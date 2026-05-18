@@ -25,8 +25,9 @@ use std::time::Duration;
 
 use tach::bench::{
   CellReport, ClockReport, ClockSource, FastantInstant, HostInfo, MinstantInstant, QuantaInstant,
-  SkewResult, StdInstant, TachInstant, TachOrderedInstant, measure_cross_thread,
-  measure_per_thread, measure_skew, tach_freq_hz, tach_used_cpuid_15h, unix_ns_now,
+  SkewResult, StdInstant, TachInstant, TachMonotonicInstant, TachOrderedInstant,
+  measure_cross_thread, measure_per_thread, measure_skew, tach_freq_hz, tach_used_cpuid_15h,
+  unix_ns_now,
 };
 
 #[cfg(feature = "recalibrate-background")]
@@ -35,6 +36,7 @@ use tach::bench::TachInstantRecal;
 const ALL_CLOCKS: &[&str] = &[
   "tach",
   "tach_ordered",
+  "tach_monotonic",
   #[cfg(feature = "recalibrate-background")]
   "tach_recal",
   "std",
@@ -102,6 +104,7 @@ fn run_clock(name: &str, args: &Args) -> ClockReport {
   match name {
     "tach" => run_for::<TachInstant>(args),
     "tach_ordered" => run_for::<TachOrderedInstant>(args),
+    "tach_monotonic" => run_for::<TachMonotonicInstant>(args),
     #[cfg(feature = "recalibrate-background")]
     "tach_recal" => run_for::<TachInstantRecal>(args),
     "std" => run_for::<StdInstant>(args),

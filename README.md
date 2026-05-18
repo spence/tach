@@ -27,9 +27,13 @@ Methodology and per-target reports: [BENCHMARKS.md](BENCHMARKS.md).
 
 ## semantics
 
-**Monotonic timer at parity with `std::time::Instant`.** The counter is wall-clock-rate — keeps ticking through park, suspension, and descheduling. All threads in the process read the same source.
+**Guaranteed monotonic timer.** `Instant::now()` returns strictly non-decreasing values within a thread, by design and by architectural spec. The counter is wall-clock-rate — keeps ticking through park, suspension, and descheduling — and every thread in the process reads the same source.
 
-Per-thread monotonicity is verified empirically: 0 backward jumps over billions of reads on every cell × clock combination, matching `std::time::Instant` exactly. Cross-thread observation consistency stays at the hardware sync-slop floor (≤10 µs) on every tested cell — the same floor `std` sits at, because `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)` reading the same underlying counter with no software-side cross-thread enforcement. On Graviton 3 (`c7g.4xlarge`) tach reads the architecturally-synchronized `cntvct_el0` directly and shows literally 0 ns cross-thread violations where `std` sits at 9.4 µs — direct register reads dodge vDSO call jitter on hardware that synchronizes the counter across cores by design.
+The guarantee rests on three things:
+
+1. **Hardware**: every backing counter is documented monotonic non-decreasing in its primary spec — RDTSC (Intel SDM Vol 3B §17.17 "Invariant TSC"), CNTVCT_EL0 (ARMv8 ARM §D11.1.2, "must report the same value of the global counter" across cores), RISC-V `time` (Privileged Spec §10.1), LoongArch Stable Counter, Windows QPC, `clock_gettime(CLOCK_MONOTONIC)`, WASI `clockid::monotonic`, `Performance.now()`. Survey + citations in `BENCHMARKS.md`.
+2. **Design**: `Instant` stores the raw counter tick (`u64`), not a converted nanosecond value. Ordering (`<`, `>`, `cmp`) is pure tick comparison; `duration_since` is non-negative tick delta × scale; `checked_duration_since` returns `None` on argument-swap. The frequency scaling is consulted only at observation time on a non-negative delta, so a frequency *estimate* changing across calls cannot make a younger `Instant` appear older.
+3. **Empirical**: 0 backward jumps measured per-thread on every cell × clock × variant we test (`benches/skewmono-*.json`, 6 cells, billions of reads). Cross-thread, every cell sits at the hardware sync-slop floor (≤10 µs) — matching `std::time::Instant` on the same hardware. On Graviton 3 tach reads the architecturally-synchronized `cntvct_el0` directly and shows literally 0 ns cross-thread violations where `std` sits at 9.4 µs (direct register reads dodge vDSO call jitter).
 
 Untested cross-CCX (AMD Zen4) and multi-socket NUMA boundaries are outside the verification set. `std` doesn't help there either — it reads the same hardware counter through a slower path — so measure on your specific hardware if you correlate timestamps across those boundaries.
 

@@ -21,6 +21,7 @@ use std::vec::Vec;
 use serde::Serialize;
 
 use crate::Instant as TachInstantTy;
+use crate::MonotonicInstant as TachMonotonicInstantTy;
 use crate::OrderedInstant as TachOrderedInstantTy;
 
 /// A clock under test. Produces a `u64` of ns-since-anchor each `now_as_u64`
@@ -379,6 +380,20 @@ impl ClockSource for TachOrderedInstant {
   fn now_as_u64() -> u64 {
     let anchor = *TACH_ORD_ANCHOR.get().expect("init_anchor first");
     u64::try_from(TachOrderedInstantTy::now().saturating_duration_since(anchor).as_nanos())
+      .unwrap_or(u64::MAX)
+  }
+}
+
+pub struct TachMonotonicInstant;
+static TACH_MONO_ANCHOR: OnceLock<TachMonotonicInstantTy> = OnceLock::new();
+impl ClockSource for TachMonotonicInstant {
+  const NAME: &'static str = "tach_monotonic";
+  fn init_anchor() {
+    let _ = TACH_MONO_ANCHOR.get_or_init(TachMonotonicInstantTy::now);
+  }
+  fn now_as_u64() -> u64 {
+    let anchor = *TACH_MONO_ANCHOR.get().expect("init_anchor first");
+    u64::try_from(TachMonotonicInstantTy::now().saturating_duration_since(anchor).as_nanos())
       .unwrap_or(u64::MAX)
   }
 }

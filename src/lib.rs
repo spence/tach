@@ -55,12 +55,44 @@
 //! ```
 //!
 //! [`OrderedInstant::now()`] emits the arch-appropriate barrier before the
-//! counter read (`isb sy` on aarch64, `lfence` on x86; best-effort
+//! counter read (`isb sy` on aarch64, `rdtscp` on x86; best-effort
 //! `fence iorw, iorw` on riscv64 and `dbar 0` on loongarch64 — CSR-vs-memory
-//! ordering is implementation-defined on those archs). Cost is ~5–20 ns more
-//! than [`Instant::now()`] depending on architecture, still substantially
-//! faster than [`std::time::Instant::now()`] on Linux and macOS (which use the
-//! vDSO / libsystem path but do not themselves guarantee this ordering).
+//! ordering is implementation-defined on those archs). On x86 the single
+//! `rdtscp` replaces the older `lfence; rdtsc` pair: one instruction instead
+//! of two, and unconditionally fully serializing for prior instructions on
+//! AMD without requiring the kernel-set `DE_CFG[1]` MSR. Cost is ~5–20 ns
+//! more than [`Instant::now()`] depending on architecture, still
+//! substantially faster than [`std::time::Instant::now()`] on Linux and
+//! macOS (which use the vDSO / libsystem path but do not themselves
+//! guarantee this ordering).
+//!
+//! # Strict cross-thread monotonicity: [`MonotonicInstant`]
+//!
+//! Plain [`Instant`] and [`OrderedInstant`] are bounded by the underlying
+//! counter's cross-thread synchronization. On x86 the per-core TSC is
+//! firmware-synchronized but can show sub-microsecond drift; a thread that
+//! migrates between cores can observe a TSC slightly behind what it had
+//! just seen. On aarch64 the ARMv8 ARM specifies `cntvct_el0` as a single
+//! global counter, but empirically Apple Silicon M1 still shows measurable
+//! per-core slop under contention.
+//!
+//! [`MonotonicInstant`] guarantees strictly non-decreasing timestamps
+//! across every thread in the process by enforcing a process-global
+//! `AtomicU64::fetch_max` on each read. Applied uniformly across every
+//! supported architecture — the spec-says-so-it-must-be-true assumption is
+//! not relied on. Adds ~10–25 cycles on top of the bare read for the
+//! atomic operation; total ~35-50 cycles on x86, ~15-35 cycles on aarch64.
+//!
+//! ```ignore
+//! let t1 = tach::MonotonicInstant::now();
+//! // ... cross-thread work via channels, mutexes, atomics ...
+//! let t2 = tach::MonotonicInstant::now();
+//! assert!(t2 >= t1);   // always; cross-thread monotonicity is strict
+//! ```
+//!
+//! This is strictly stronger than [`std::time::Instant`] on x86, which reads
+//! the same underlying counter through a slower path and performs no
+//! software-side cross-thread enforcement.
 
 mod arch;
 // Calibration is needed wherever the architectural counter doesn't self-report
@@ -78,7 +110,7 @@ mod arch;
 mod calibration;
 mod instant;
 
-pub use instant::{Instant, OrderedInstant};
+pub use instant::{Instant, MonotonicInstant, OrderedInstant};
 
 // The crate is strictly `#![no_std]` by default. Two opt-in features bring std
 // in: `recalibrate-background` (for the periodic-recalibration thread) and
@@ -108,6 +140,7 @@ mod tests {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<Instant>();
     assert_send_sync::<OrderedInstant>();
+    assert_send_sync::<MonotonicInstant>();
   }
 
   #[test]
@@ -297,6 +330,115 @@ mod tests {
     assert!(
       ratio > 0.95 && ratio < 1.05,
       "tach/std ratio = {ratio} (std={s_ns} ns, tach={t_ns} ns)",
+    );
+  }
+
+  #[test]
+  fn monotonic_now_advances() {
+    let mut previous = MonotonicInstant::now();
+    for _ in 0..10_000 {
+      let current = MonotonicInstant::now();
+      assert!(current >= previous, "monotonic counter moved backward");
+      previous = current;
+    }
+  }
+
+  #[test]
+  fn monotonic_elapsed_after_sleep() {
+    let start = MonotonicInstant::now();
+    std::thread::sleep(Duration::from_millis(10));
+    let elapsed = start.elapsed();
+    assert!(elapsed.as_millis() >= 9, "monotonic elapsed too short: {elapsed:?}");
+    assert!(elapsed.as_millis() < 200, "monotonic elapsed too long: {elapsed:?}");
+  }
+
+  #[test]
+  fn monotonic_arithmetic_mirrors_instant() {
+    let a = MonotonicInstant::now();
+    std::thread::sleep(Duration::from_millis(5));
+    let b = MonotonicInstant::now();
+    let diff: Duration = b - a;
+    assert!(diff.as_millis() >= 4 && diff.as_millis() < 200, "diff: {diff:?}");
+    assert_eq!(a.duration_since(b), Duration::ZERO);
+    assert!(b.checked_duration_since(a).is_some());
+
+    let later = a + Duration::from_secs(1);
+    let drift = later.duration_since(a).abs_diff(Duration::from_secs(1));
+    assert!(drift < Duration::from_micros(1), "drift: {drift:?}");
+  }
+
+  // Strict cross-thread monotonicity test, directly validating the
+  // happens-before contract: "after observing a value via Acquire-load,
+  // a subsequent MonotonicInstant::now() must return a value >= what was
+  // observed." With fetch_max enforcement inside MonotonicInstant::now(),
+  // this must hold with literally 0 violations across N racing threads.
+  //
+  // The contract being tested:
+  //   - Thread P does now(); publishes its value via Release-store.
+  //   - Thread O does Acquire-load to observe P's value; then now().
+  //   - O's now() must return >= what O observed.
+  //
+  // Plain Instant fails this on x86 (~10 µs hardware sync slop) and on
+  // Apple Silicon (~10 µs measured on M1 despite the ARMv8 architectural
+  // guarantee that cntvct_el0 is one global counter). MonotonicInstant
+  // must pass because its now() internally does AcqRel fetch_max on a
+  // process-global counter, which forces the local return to be >= any
+  // previously synchronized-with value.
+  #[test]
+  fn monotonic_strict_cross_thread() {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::thread;
+    use std::vec::Vec;
+
+    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(16);
+    let anchor = MonotonicInstant::now();
+    let published_ns = Arc::new(AtomicU64::new(0));
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let barrier = Arc::new(std::sync::Barrier::new(threads + 1));
+
+    let handles: Vec<_> = (0..threads)
+      .map(|_| {
+        let published_ns = Arc::clone(&published_ns);
+        let stop = Arc::clone(&stop);
+        let barrier = Arc::clone(&barrier);
+        thread::spawn(move || {
+          let mut violations: u64 = 0;
+          barrier.wait();
+          while !stop.load(Ordering::Relaxed) {
+            // Step 1: Acquire-load the latest published nanosecond value.
+            //         This synchronizes-with the prior thread's Release on
+            //         this atomic and on MonotonicInstant's internal
+            //         GLOBAL_LAST_TSC (transitively).
+            let observed = published_ns.load(Ordering::Acquire);
+            // Step 2: Call now(). Its internal AcqRel fetch_max on
+            //         GLOBAL_LAST_TSC sees the value that was synchronized-
+            //         with via the Acquire above, so the return must be
+            //         >= the underlying tick for the observed ns.
+            let t = MonotonicInstant::now();
+            let ns = t.duration_since(anchor).as_nanos() as u64;
+            // Step 3: Check the contract: ns >= observed.
+            if ns < observed {
+              violations += 1;
+            }
+            // Step 4: Publish our value via Release fetch_max so future
+            //         readers can observe us.
+            published_ns.fetch_max(ns, Ordering::Release);
+          }
+          violations
+        })
+      })
+      .collect();
+
+    barrier.wait();
+    std::thread::sleep(Duration::from_millis(500));
+    stop.store(true, Ordering::Relaxed);
+
+    let total_violations: u64 = handles.into_iter().map(|h| h.join().unwrap()).sum();
+    assert_eq!(
+      total_violations, 0,
+      "MonotonicInstant showed {total_violations} happens-before cross-thread monotonicity \
+       violations (expected 0); fetch_max enforcement appears to be broken",
     );
   }
 }

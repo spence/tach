@@ -23,23 +23,47 @@ pub fn cpuid_tsc_hz() -> Option<u64> {
   Some(u64::from(leaf.ecx) * u64::from(leaf.ebx) / u64::from(leaf.eax))
 }
 
-/// Ordered RDTSC: `lfence` serializes prior loads so the timestamp cannot be
-/// sampled before an `Acquire`-or-stronger observation that precedes it.
-/// See `x86_64::rdtsc_ordered` for the AMD caveat and the `nomem` rationale.
+/// Ordered RDTSC via `rdtscp`: one-instruction equivalent of `lfence; rdtsc`
+/// that also serializes prior stores on AMD without requiring `DE_CFG[1]`.
+/// See `x86_64::rdtsc_ordered` for the full rationale and the `nomem`
+/// discussion.
 #[inline(always)]
 pub fn rdtsc_ordered() -> u64 {
   let lo: u32;
   let hi: u32;
-  // SAFETY: `lfence; rdtsc` only writes EDX:EAX. Compiler must treat as
-  // memory-touching so surrounding loads aren't reordered across it.
+  // SAFETY: `rdtscp` writes EDX:EAX (TSC) and ECX (IA32_TSC_AUX). Compiler
+  // must treat as memory-touching so surrounding loads aren't reordered
+  // across it.
   unsafe {
     asm!(
-      "lfence",
-      "rdtsc",
+      "rdtscp",
       out("eax") lo,
       out("edx") hi,
+      out("ecx") _,
       options(nostack, preserves_flags),
     );
   }
   (u64::from(hi) << 32) | u64::from(lo)
+}
+
+/// `rdtscp` capturing both halves: 64-bit TSC value and the OS-populated
+/// `IA32_TSC_AUX` MSR (CPU identifier on Linux). See
+/// `x86_64::rdtscp_with_cpu` for the contract.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn rdtscp_with_cpu() -> (u64, u32) {
+  let lo: u32;
+  let hi: u32;
+  let aux: u32;
+  // SAFETY: `rdtscp` writes EDX:EAX (TSC) and ECX (IA32_TSC_AUX).
+  unsafe {
+    asm!(
+      "rdtscp",
+      out("eax") lo,
+      out("edx") hi,
+      out("ecx") aux,
+      options(nostack, preserves_flags),
+    );
+  }
+  ((u64::from(hi) << 32) | u64::from(lo), aux)
 }

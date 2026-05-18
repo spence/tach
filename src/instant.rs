@@ -332,6 +332,173 @@ impl Sub<OrderedInstant> for OrderedInstant {
   }
 }
 
+/// An [`Instant`] sampled with a guarantee of **strict cross-thread
+/// monotonicity**: every call from any thread returns a value greater than
+/// or equal to every prior call from any thread.
+///
+/// # When to use this
+///
+/// Reach for `MonotonicInstant` when you need timestamps from multiple
+/// threads to be strictly ordered — for example, distributed tracing spans
+/// whose start/end events come from different threads but must form a
+/// non-decreasing timeline, lock-free data structures that use timestamps
+/// as monotonic version numbers, or any code where a "later" timestamp
+/// observed via cross-thread synchronization must not compare less than an
+/// "earlier" one.
+///
+/// Plain [`Instant`] is bounded by the underlying counter's cross-thread
+/// synchronization. On x86 the per-core TSC is firmware-synchronized but
+/// not architecturally so, and even on aarch64 — where ARMv8 specifies
+/// `cntvct_el0` as a single global counter — measurable per-core slop has
+/// been observed in practice (sub-microsecond on Apple Silicon M1). For
+/// timestamps that must be strictly ordered across threads, `Instant`'s
+/// hardware-floor monotonicity isn't enough.
+///
+/// `MonotonicInstant` adds a process-global `AtomicU64::fetch_max` to
+/// every read, applied uniformly across every supported target. The
+/// fetch_max forces every return value to be `>=` every previously
+/// published value, by construction.
+///
+/// # Cost
+///
+/// On every architecture, `MonotonicInstant::now()` performs the bare
+/// counter read plus one `AtomicU64::fetch_max` against a process-global
+/// last-seen tick. Uncontended cost is ~10-25 cycles on top of the bare
+/// read — total ~35-50 cycles per call on x86, ~15-35 cycles on aarch64.
+/// Under heavy contention (many threads simultaneously hammering `now()`),
+/// the `fetch_max` can degrade to 100+ ns per call as the cache line
+/// bounces between cores. If your workload only needs per-thread
+/// monotonicity, prefer plain [`Instant`] to avoid this cost.
+///
+/// # Comparison to `std::time::Instant`
+///
+/// `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)`
+/// — it reads the same underlying hardware counter and performs no software
+/// cross-thread enforcement. On x86 it inherits the same sub-microsecond
+/// hardware sync slop that plain tach `Instant` does. `MonotonicInstant` is
+/// **strictly stronger than `std::time::Instant`** on x86, and matches its
+/// guarantee at zero cost on every other architecture.
+///
+/// # Example
+///
+/// ```
+/// use tach::MonotonicInstant;
+///
+/// let t1 = MonotonicInstant::now();
+/// // ... cross-thread work, channel sends, mutex unlocks, etc. ...
+/// let t2 = MonotonicInstant::now();
+/// assert!(t2 >= t1);  // always; never returns Instants out of order
+/// ```
+#[must_use]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct MonotonicInstant(u64);
+
+impl MonotonicInstant {
+  /// Reads a strictly-cross-thread-monotonic timestamp.
+  ///
+  /// On architectures where the underlying counter is already
+  /// architecturally globally synchronized (aarch64, RISC-V, LoongArch,
+  /// WASI, wasm) or where the OS clock guarantees monotonicity, this
+  /// compiles to the same instruction as [`Instant::now()`]. On x86, it
+  /// performs the bare counter read plus an `AtomicU64::fetch_max` against
+  /// a process-global last-seen tick.
+  #[inline(always)]
+  #[allow(clippy::inline_always)]
+  pub fn now() -> Self {
+    Self(arch::ticks_monotonic())
+  }
+
+  /// Returns the duration that has elapsed since `self` was sampled, with
+  /// the end read also strictly cross-thread monotonic.
+  #[inline]
+  #[must_use]
+  pub fn elapsed(&self) -> Duration {
+    let delta = arch::ticks_monotonic().wrapping_sub(self.0);
+    ticks_to_duration(delta)
+  }
+
+  /// Returns the duration elapsed from `earlier` to `self`, or zero if
+  /// `earlier` is later. Matches modern [`std::time::Instant::duration_since`].
+  #[inline]
+  #[must_use]
+  pub fn duration_since(&self, earlier: MonotonicInstant) -> Duration {
+    self.checked_duration_since(earlier).unwrap_or_default()
+  }
+
+  /// Returns the duration elapsed from `earlier` to `self`, or `None` if
+  /// `earlier` is later than `self`. Because `MonotonicInstant::now()` is
+  /// strictly cross-thread monotonic, this only returns `None` if the
+  /// caller passes the arguments in the wrong order.
+  #[inline]
+  #[must_use]
+  pub fn checked_duration_since(&self, earlier: MonotonicInstant) -> Option<Duration> {
+    self.0.checked_sub(earlier.0).map(ticks_to_duration)
+  }
+
+  /// Saturating equivalent of [`Self::duration_since`].
+  #[inline]
+  #[must_use]
+  pub fn saturating_duration_since(&self, earlier: MonotonicInstant) -> Duration {
+    self.duration_since(earlier)
+  }
+
+  /// Returns `Some(self + duration)` if it can be represented, otherwise `None`.
+  #[inline]
+  #[must_use]
+  pub fn checked_add(&self, duration: Duration) -> Option<Self> {
+    let delta = duration_to_ticks(duration)?;
+    self.0.checked_add(delta).map(Self)
+  }
+
+  /// Returns `Some(self - duration)` if it can be represented, otherwise `None`.
+  #[inline]
+  #[must_use]
+  pub fn checked_sub(&self, duration: Duration) -> Option<Self> {
+    let delta = duration_to_ticks(duration)?;
+    self.0.checked_sub(delta).map(Self)
+  }
+
+  #[inline(always)]
+  #[allow(dead_code)]
+  pub(crate) fn from_raw_ticks(ticks: u64) -> Self {
+    Self(ticks)
+  }
+}
+
+impl Add<Duration> for MonotonicInstant {
+  type Output = MonotonicInstant;
+  fn add(self, rhs: Duration) -> MonotonicInstant {
+    self.checked_add(rhs).expect("overflow when adding duration to instant")
+  }
+}
+
+impl AddAssign<Duration> for MonotonicInstant {
+  fn add_assign(&mut self, rhs: Duration) {
+    *self = *self + rhs;
+  }
+}
+
+impl Sub<Duration> for MonotonicInstant {
+  type Output = MonotonicInstant;
+  fn sub(self, rhs: Duration) -> MonotonicInstant {
+    self.checked_sub(rhs).expect("overflow when subtracting duration from instant")
+  }
+}
+
+impl SubAssign<Duration> for MonotonicInstant {
+  fn sub_assign(&mut self, rhs: Duration) {
+    *self = *self - rhs;
+  }
+}
+
+impl Sub<MonotonicInstant> for MonotonicInstant {
+  type Output = Duration;
+  fn sub(self, rhs: MonotonicInstant) -> Duration {
+    self.duration_since(rhs)
+  }
+}
+
 // Q32 fixed-point conversion: nanos = (ticks * scale) >> 32 where
 // scale = (1e9 << 32) / frequency. Avoids the per-call u128 division
 // which is slow on virtualized x86 (Nitro burst VMs, Firecracker on

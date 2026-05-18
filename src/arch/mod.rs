@@ -5,6 +5,7 @@ pub mod aarch64;
 pub mod fallback;
 #[cfg(target_arch = "loongarch64")]
 pub mod loongarch64;
+mod monotonic;
 #[cfg(target_arch = "riscv64")]
 pub mod riscv64;
 #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
@@ -15,7 +16,7 @@ pub mod x86;
 pub mod x86_64;
 
 mod direct;
-pub use direct::{ticks, ticks_ordered};
+pub use direct::{ticks, ticks_monotonic, ticks_ordered};
 
 // Cached at first elapsed() call. Stored as fixed-point Q32:
 //   nanos_per_tick_q32 = (1e9 << 32) / frequency

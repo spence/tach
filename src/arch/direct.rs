@@ -154,3 +154,27 @@ pub fn ticks_ordered() -> u64 {
     panic!("tach: no monotonic clock source on this target")
   }
 }
+
+// ── Strict cross-thread monotonic reads ─────────────────────────────────
+// `ticks_monotonic()` is the bare counter read plus a process-global
+// `AtomicU64::fetch_max` that forces every read across every thread into a
+// strictly non-decreasing sequence. Applied uniformly on every architecture:
+//
+//   - On x86 the per-core TSC is firmware-synchronized but not architecturally
+//     so; cross-core slop is real and the fetch_max is load-bearing.
+//   - On aarch64 the ARMv8 spec requires `cntvct_el0` to be a single global
+//     counter, but in practice — measured on Apple Silicon M1 — per-core
+//     reads can disagree by sub-microsecond amounts under contention. The
+//     fetch_max forces strictness here too.
+//   - On RISC-V / LoongArch / fallback clocks the underlying source is either
+//     already-monotonic or globally-synced, but applying the fetch_max
+//     uniformly keeps the algorithm simple and defends against future
+//     implementation surprises analogous to the Apple Silicon finding.
+//
+// See `super::monotonic`.
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn ticks_monotonic() -> u64 {
+  super::monotonic::ticks_monotonic_enforced()
+}
