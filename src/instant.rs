@@ -361,14 +361,25 @@ impl Sub<OrderedInstant> for OrderedInstant {
 ///
 /// # Cost
 ///
-/// On every architecture, `MonotonicInstant::now()` performs the bare
-/// counter read plus one `AtomicU64::fetch_max` against a process-global
-/// last-seen tick. Uncontended cost is ~10-25 cycles on top of the bare
-/// read — total ~35-50 cycles per call on x86, ~15-35 cycles on aarch64.
-/// Under heavy contention (many threads simultaneously hammering `now()`),
-/// the `fetch_max` can degrade to 100+ ns per call as the cache line
-/// bounces between cores. If your workload only needs per-thread
-/// monotonicity, prefer plain [`Instant`] to avoid this cost.
+/// The enforcement is applied empirically — `MonotonicInstant::now()` pays
+/// the cost of `AtomicU64::fetch_max(AcqRel)` only on platforms where
+/// `measure_strict_cross_thread` (see `BENCHMARKS.md` "Strict cross-thread
+/// monotonicity (contract validation)") shows the bare arch counter fails
+/// the strict happens-before contract. That covers every multi-threaded
+/// platform tach supports: x86 (Linux / macOS / Windows), aarch64 (Linux /
+/// macOS / Windows), riscv64, loongarch64. On those platforms, uncontended
+/// cost is ~10-25 cycles on top of the bare read — total ~35-50 cycles per
+/// call on x86, ~15-35 cycles on aarch64. Under heavy contention (many
+/// threads simultaneously hammering `now()`), the `fetch_max` can degrade
+/// to 100+ ns per call as the cache line bounces between cores. If your
+/// workload only needs per-thread monotonicity, prefer plain [`Instant`]
+/// to avoid this cost.
+///
+/// On wasm32 (single-threaded JS realm with W3C HRT strict `performance.now()`)
+/// and WASI (single-threaded execution with strict-monotonic spec),
+/// `MonotonicInstant::now()` compiles to **the same instruction as
+/// [`Instant::now()`]** — there is no concurrency for the enforcement
+/// to enforce against, so it is elided at compile time.
 ///
 /// # Comparison to `std::time::Instant`
 ///

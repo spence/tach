@@ -156,23 +156,47 @@ pub fn ticks_ordered() -> u64 {
 }
 
 // ── Strict cross-thread monotonic reads ─────────────────────────────────
-// `ticks_monotonic()` is the bare counter read plus a process-global
-// `AtomicU64::fetch_max` that forces every read across every thread into a
-// strictly non-decreasing sequence. Applied uniformly on every architecture:
+// Empirical validation (`measure_strict_cross_thread` across 6 production
+// cells, ~30s × 16 threads each, captured in `benches/skewmono-*.json` under
+// `strict_cross_thread.total_violations`) demonstrates:
 //
-//   - On x86 the per-core TSC is firmware-synchronized but not architecturally
-//     so; cross-core slop is real and the fetch_max is load-bearing.
-//   - On aarch64 the ARMv8 spec requires `cntvct_el0` to be a single global
-//     counter, but in practice — measured on Apple Silicon M1 — per-core
-//     reads can disagree by sub-microsecond amounts under contention. The
-//     fetch_max forces strictness here too.
-//   - On RISC-V / LoongArch / fallback clocks the underlying source is either
-//     already-monotonic or globally-synced, but applying the fetch_max
-//     uniformly keeps the algorithm simple and defends against future
-//     implementation surprises analogous to the Apple Silicon finding.
+//   - **Bare arch counter reads (RDTSC, cntvct_el0) FAIL strict cross-thread
+//     monotonicity on every multi-threaded platform tested.** Rates vary —
+//     sub-ppm on Nitro VMs (t3.medium), single-digit % on bare metal (M1,
+//     m7i bare-metal) — but every multi-threaded platform shows non-zero
+//     contract violations. x86 per-core TSC is firmware-synced but not
+//     architecturally strict; aarch64 `cntvct_el0` is spec-strict per
+//     ARMv8 ARM §D11.1.2 but Apple Silicon M1 and Graviton 3 both show
+//     real per-core slop in practice. `fetch_max` enforcement is required.
+//   - **wasm32 (browser/Node) and WASI execute single-threaded by design**:
+//     the W3C HRT spec strictly requires per-realm monotonic `now()`, and
+//     WASI's execution model has no cross-thread concurrency. No atomic
+//     operation has anything to enforce against. `MonotonicInstant::now()`
+//     on these targets compiles to the same instruction as `Instant::now()`.
 //
-// See `super::monotonic`.
+// See `super::monotonic` for the enforcement implementation and the
+// correctness argument. See `BENCHMARKS.md` `## Strict cross-thread
+// monotonicity (contract validation)` for the per-cell data driving the
+// per-platform decision.
 
+// wasm32 (browser/Node host) and WASI: single-threaded by execution model;
+// no fetch_max needed. Compiles to bare `ticks()`.
+#[cfg(any(
+  all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+  target_os = "wasi",
+))]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn ticks_monotonic() -> u64 {
+  ticks()
+}
+
+// Every multi-threaded platform: bare counter empirically fails strict
+// cross-thread monotonicity. Apply `AtomicU64::fetch_max` enforcement.
+#[cfg(not(any(
+  all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+  target_os = "wasi",
+)))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_monotonic() -> u64 {

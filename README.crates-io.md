@@ -65,9 +65,9 @@ On riscv64 (`fence iorw, iorw`) and loongarch64 (`dbar 0`) the strongest availab
 
 ## strict cross-thread monotonicity
 
-Plain `Instant` and `OrderedInstant` are bounded by the underlying counter's cross-thread synchronization. On x86 the per-core TSC is firmware-synchronized but not architecturally so — a thread that migrates between cores can observe a TSC slightly behind what it just saw. On aarch64 the ARMv8 ARM specifies `cntvct_el0` as a single global counter, but empirically Apple Silicon M1 still shows sub-microsecond per-core slop in practice — tach's own strict-monotonicity unit test (load-then-now-then-check pattern; see `src/lib.rs::monotonic_strict_cross_thread`) fails against bare `cntvct_el0` reads on M1. Architectural-guarantee-says-so is not a safe basis for shipping a "strict cross-thread monotonic" claim; only software enforcement makes the test pass on every cell.
+Plain `Instant` and `OrderedInstant` are bounded by the underlying counter's cross-thread synchronization. On x86 the per-core TSC is firmware-synchronized but not architecturally so — a thread that migrates between cores can observe a TSC slightly behind what it just saw. On aarch64 the ARMv8 ARM specifies `cntvct_el0` as a single global counter, but empirically Apple Silicon and Graviton 3 both show real per-core slop in practice — tach's own strict-monotonicity test (load-then-now-then-check pattern; runnable with `cargo bench --bench skew` or as the `monotonic_strict_cross_thread` unit test) fails against bare counter reads on **every multi-threaded platform tested**: 17M / 144M reads on Apple Silicon, 1.8K / 382M reads on Graviton 3, 9.6M / 154M on Intel bare metal, similar non-zero numbers on every other cell. Architectural-guarantee-says-so is not a safe basis for shipping a "strict cross-thread monotonic" claim — only software enforcement makes the test pass on every cell.
 
-`MonotonicInstant` enforces strict cross-thread monotonicity in software, on every supported target:
+`MonotonicInstant` enforces strict cross-thread monotonicity in software where it's empirically needed, and skips the enforcement where the platform's execution model already guarantees it:
 
 ```rust
 let t1 = tach::MonotonicInstant::now();
@@ -76,11 +76,11 @@ let t2 = tach::MonotonicInstant::now();
 assert!(t2 >= t1);   // always; no hardware-floor sync slop leaks through
 ```
 
-Algorithm: every `now()` does the bare counter read plus one `AtomicU64::fetch_max(tsc, AcqRel)` against a process-global last-seen tick. The fetch_max forces the return to be `>=` every previously published value. Uniformly applied — not skipped on "architecturally synchronized" platforms, because the spec-vs-reality gap is real.
+Algorithm: every `now()` does the bare counter read; on platforms where the bare clock empirically fails the strict contract (every multi-threaded platform — x86, aarch64, RISC-V, LoongArch), the read is followed by `AtomicU64::fetch_max(tsc, AcqRel)` against a process-global last-seen tick. The fetch_max forces the return to be `>=` every previously published value. On wasm32 (single-threaded JS realm with W3C HRT strict-monotonic spec) and WASI (single-threaded execution model with strict-monotonic spec), the enforcement is skipped — `MonotonicInstant::now()` compiles to **the same instruction as `Instant::now()`**, free of cost.
 
-Cost is ~+10–25 cycles per call uncontended (one LOCK CMPXCHG-class atomic on a hot cache line). Under heavy contention (many threads simultaneously hammering `now()`) it can degrade to 100+ ns per call as the cache line bounces between cores. Plain `Instant` stays untouched for callers who want the speed pitch and accept hardware-floor monotonicity.
+Where enforcement applies, cost is ~+10–25 cycles per call uncontended (one LOCK CMPXCHG-class atomic on a hot cache line). Under heavy contention (many threads simultaneously hammering `now()`) it can degrade to 100+ ns per call as the cache line bounces between cores. Plain `Instant` stays untouched for callers who want the speed pitch and accept hardware-floor monotonicity.
 
-This is the only timestamp in the comparison set (vs `std::time::Instant`, `quanta`, `minstant`, `fastant`) that offers strict cross-thread monotonicity by construction — `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)` reading the same underlying counter with no software-side enforcement.
+This is the only timestamp in the comparison set (vs `std::time::Instant`, `quanta`, `minstant`, `fastant`) that offers strict cross-thread monotonicity by construction — `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)` reading the same underlying counter, and `quanta::Instant::now()` reads bare RDTSC / `mrs cntvct_el0` with no software-side enforcement. The empirical evidence (see [BENCHMARKS.md](https://github.com/spence/tach/blob/main/BENCHMARKS.md), "Strict cross-thread monotonicity (contract validation)") shows `std` happens to pass the test on every cell (the vDSO/syscall path serializes internally), while `quanta`, `minstant`, and `fastant` show non-zero contract violations on multiple cells.
 
 ## platform support
 
@@ -107,14 +107,14 @@ The crate is `#![no_std]`. `wasm-bindgen` is the only dependency, pulled in only
 
 | Crate | 1-sec interval | 1-min interval | 1-hr interval | 1-day interval |
 |---|---|---|---|---|
-| `tach::Instant` (default, `#![no_std]`) | 1.1 µs | 29.4 µs | 1.8 ms | 42.3 ms |
-| `tach::Instant` + `recalibrate-background` (**requires `std`**) | 1.5 µs | 13.9 µs | 13.9 µs | 13.9 µs |
-| `tach::OrderedInstant` (default, `#![no_std]`) | 1.1 µs | 24.4 µs | 1.5 ms | 35.2 ms |
-| `tach::MonotonicInstant` (default, `#![no_std]`) | 1.1 µs | 29.5 µs | 1.8 ms | 42.5 ms |
-| `quanta::Instant` | 2.2 µs | 131.1 µs | 7.9 ms | 188.8 ms |
-| `minstant::Instant` | 1.0 µs | 95.4 µs | 5.7 ms | 137.4 ms |
-| `fastant::Instant` | 1.9 µs | 102.1 µs | 6.1 ms | 147.1 ms |
-| `std::time::Instant` | 373 ns | 450 ns | 450 ns | 450 ns |
+| `tach::Instant` (default, `#![no_std]`) | 1.6 µs | 11.1 µs | 668.9 µs | 16.1 ms |
+| `tach::Instant` + `recalibrate-background` (**requires `std`**) | 1.4 µs | 13.9 µs | 13.9 µs | 13.9 µs |
+| `tach::OrderedInstant` (default, `#![no_std]`) | 1.4 µs | 9.9 µs | 593.9 µs | 14.3 ms |
+| `tach::MonotonicInstant` (default, `#![no_std]`) | 1.4 µs | 8.6 µs | 518.4 µs | 12.4 ms |
+| `quanta::Instant` | 1.5 µs | 67.4 µs | 4.0 ms | 97.1 ms |
+| `minstant::Instant` | 1.8 µs | 9.9 µs | 595.7 µs | 14.3 ms |
+| `fastant::Instant` | 2.0 µs | 18.4 µs | 1.1 ms | 26.5 ms |
+| `std::time::Instant` | 373 ns | 511 ns | 511 ns | 511 ns |
 
 Numbers are cross-cell empirical medians measured on 6 platforms (Apple Silicon M1 MBP, AWS Graviton 3, AWS Intel t3.medium, AWS Intel m7i.metal-24xl bare-metal, AWS Lambda x86_64, GitHub Actions windows-2025). Per-cell breakdown and methodology in [BENCHMARKS.md](https://github.com/spence/tach/blob/main/BENCHMARKS.md). On Intel x86 the architectural TSC frequency comes from CPUID leaf 15h when the host exposes it (Skylake+ Intel, Zen2+ AMD bare metal); on hosts that zero the leaf (Firecracker, Azure VMs, GitHub Windows runners) tach falls back to a 100 ms × 7-sample spin-loop calibration with hypervisor-preemption discard. On Linux aarch64 (Graviton 3 and similar) `cntfrq_el0` is firmware-published nominal — the underlying crystal can be 10–30 ppm off and the kernel never folds the NTP-corrected scaling factor back into it. Tach calibrates `cntvct_el0` against `clock_gettime(CLOCK_MONOTONIC)` at startup, which inherits the kernel's NTP-corrected vDSO scaling, so drift lands sub-ppm regardless of the underlying chip's crystal offset. Apple Silicon (macOS aarch64) reads `mach_timebase_info` directly — Apple measures the timebase per-die at manufacture, so no calibration is needed.
 

@@ -45,8 +45,7 @@ pub fn cpuid_tsc_hz() -> Option<u64> {
 /// sufficient for tach's acquire-side ordering contract.
 ///
 /// `rdtscp` writes to ECX (`IA32_TSC_AUX`); this function discards it via the
-/// `_` placeholder. See [`rdtscp_with_cpu`] for the variant that captures
-/// the CPU-ID half — used by `MonotonicInstant` to detect thread migrations.
+/// `_` placeholder.
 ///
 /// `nomem` is intentionally omitted: the CPU barrier orders execution, but
 /// the compiler also needs to keep surrounding memory operations in order
@@ -75,42 +74,3 @@ pub fn rdtsc_ordered() -> u64 {
   (u64::from(hi) << 32) | u64::from(lo)
 }
 
-/// `rdtscp` capturing both halves: the 64-bit TSC value in `EDX:EAX` and the
-/// `IA32_TSC_AUX` MSR value in `ECX`. The latter is OS-populated per-core: on
-/// Linux it holds `(numa_node << 12) | cpu_id`, so two reads on the same
-/// thread that observe different ECX values prove the thread migrated cores
-/// between them. Used by `MonotonicInstant::now()` to gate a fast-path /
-/// slow-path strict-monotonicity algorithm on x86.
-///
-/// Other OSes populate `IA32_TSC_AUX` differently (or not at all). Callers
-/// treat the value as an opaque identifier — equal-equal means same site;
-/// nothing more is inferred.
-///
-/// Shares the same ordering guarantee as [`rdtsc_ordered`]: prior instructions
-/// retire and prior loads become globally visible before the counter is read.
-///
-/// Currently unused inside tach — the strict cross-thread monotonicity in
-/// [`crate::MonotonicInstant`] uses a uniform `fetch_max` rather than a
-/// CPU-ID-keyed fast path (an earlier design attempt that turned out to
-/// admit cross-thread violations). Kept available for future migration-
-/// detection or NUMA-attribution use cases.
-#[inline(always)]
-#[allow(dead_code)]
-pub fn rdtscp_with_cpu() -> (u64, u32) {
-  let lo: u32;
-  let hi: u32;
-  let aux: u32;
-  // SAFETY: `rdtscp` writes EDX:EAX (TSC) and ECX (IA32_TSC_AUX). No stack
-  // access; flags preserved. Compiler must treat as memory-touching so
-  // surrounding loads aren't reordered across it.
-  unsafe {
-    asm!(
-      "rdtscp",
-      out("eax") lo,
-      out("edx") hi,
-      out("ecx") aux,
-      options(nostack, preserves_flags),
-    );
-  }
-  ((u64::from(hi) << 32) | u64::from(lo), aux)
-}

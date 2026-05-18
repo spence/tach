@@ -1,28 +1,41 @@
 //! Software enforcement of strict cross-thread monotonicity for
 //! [`crate::MonotonicInstant`].
 //!
-//! # Why this is uniform across architectures
+//! # When this is needed (empirically determined)
 //!
-//! The original design plan claimed `MonotonicInstant` would be free on
-//! architectures where the underlying counter is architecturally globally
-//! synchronized (aarch64 `cntvct_el0`, RISC-V `time`, LoongArch stable
-//! counter, runtime-provided clocks like `Performance.now()` and WASI
-//! `clock_time_get`). Empirical validation on Apple Silicon M1 falsified
-//! that assumption: a strict cross-thread monotonicity test reading bare
-//! `cntvct_el0` and racing N threads through `AtomicU64::fetch_max` produced
-//! ~2.4M violations in a 500ms window. The ARMv8 ARM §D11.1.2 wording ("all
-//! instances of `CNTVCT_EL0` within a system must report the same value")
-//! is aspirational on M1 — there is measurable sub-microsecond per-core
-//! slop in practice.
+//! `MonotonicInstant`'s enforcement is applied on every multi-threaded
+//! platform tach supports because empirical testing across 6 production
+//! cells (Apple Silicon M1, AWS Graviton 3, AWS Intel virtualized + bare
+//! metal, AWS Lambda Firecracker, GitHub Actions Windows Server 2025)
+//! shows bare arch-counter reads fail strict cross-thread monotonicity on
+//! every multi-threaded platform tested. Per-cell violation rates from
+//! the `measure_strict_cross_thread` load-then-now-then-check test:
 //!
-//! The same risk applies to other architectures whose specs claim global
-//! synchronization but whose implementations may not honor it tightly:
-//! RISC-V `time`, LoongArch stable counter, and even kernel-provided
-//! monotonic clocks under specific configurations. Rather than relying on
-//! the spec-says-so-it-must-be-true argument and shipping a guarantee that
-//! has empirical counterexamples, this module applies `fetch_max`
-//! enforcement uniformly. The cost is one atomic operation per
-//! `MonotonicInstant::now()` call — ~10-25 cycles uncontended.
+//! | Platform | bare counter | violations / reads |
+//! |---|---|---|
+//! | Apple Silicon M1 | `mrs cntvct_el0` | 17.4M / 144M (12%) |
+//! | Graviton 3 (c7g) | `mrs cntvct_el0` | 1.8K / 382M (sub-ppm) |
+//! | Intel virtualized (t3) | `rdtsc` | 42 / 662M (sub-ppm) |
+//! | Intel bare metal (m7i) | `rdtsc` | 9.6M / 154M (6%) |
+//! | Firecracker (lambda) | `rdtsc` | 13K / 85M (sub-‰) |
+//! | Windows (gh-windows) | `rdtsc` | 1.7M / 260M (0.6%) |
+//!
+//! Rates vary by orders of magnitude but every multi-threaded platform
+//! shows non-zero contract violations on the bare read. ARMv8 ARM §D11.1.2
+//! says `cntvct_el0` is a single global counter and Intel SDM says invariant
+//! TSC is firmware-synchronized — both turn out to be aspirational under
+//! the strict load-then-now contract. Software enforcement via
+//! `AtomicU64::fetch_max(AcqRel)` is required.
+//!
+//! Compiled out on wasm32 (single-threaded JS realm with W3C HRT strict
+//! `performance.now()`) and WASI (single-threaded execution model with
+//! strict spec) — those platforms have no concurrency for the enforcement
+//! to enforce against. See the cfg gates in `super::direct::ticks_monotonic`
+//! and `super::mod`. On those targets `MonotonicInstant::now()` compiles
+//! to the same instruction as `Instant::now()` — zero overhead.
+//!
+//! Cost on every other platform: one `fetch_max` per call —
+//! ~10-25 cycles uncontended.
 //!
 //! # Algorithm
 //!

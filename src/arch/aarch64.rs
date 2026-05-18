@@ -43,7 +43,13 @@ pub fn cntvct_ordered() -> u64 {
   cnt
 }
 
-#[allow(dead_code)] // unused on aarch64 Linux (calibrates against clock_gettime instead)
+/// Read the architectural counter frequency. Used on aarch64 non-Linux
+/// targets (Apple Silicon via `mach_timebase_info`, Windows aarch64 via
+/// firmware-QPF) to feed calibration. Not used on aarch64 Linux, where the
+/// spin-loop calibration against `clock_gettime` replaced the
+/// firmware-published `cntfrq_el0` value (which on Graviton 3 is the
+/// nominal rate rather than the measured crystal rate).
+#[cfg(not(target_os = "linux"))]
 #[inline]
 pub fn cntfrq() -> u64 {
   let freq: u64;

@@ -46,24 +46,3 @@ pub fn rdtsc_ordered() -> u64 {
   (u64::from(hi) << 32) | u64::from(lo)
 }
 
-/// `rdtscp` capturing both halves: 64-bit TSC value and the OS-populated
-/// `IA32_TSC_AUX` MSR (CPU identifier on Linux). See
-/// `x86_64::rdtscp_with_cpu` for the contract.
-#[inline(always)]
-#[allow(dead_code)]
-pub fn rdtscp_with_cpu() -> (u64, u32) {
-  let lo: u32;
-  let hi: u32;
-  let aux: u32;
-  // SAFETY: `rdtscp` writes EDX:EAX (TSC) and ECX (IA32_TSC_AUX).
-  unsafe {
-    asm!(
-      "rdtscp",
-      out("eax") lo,
-      out("edx") hi,
-      out("ecx") aux,
-      options(nostack, preserves_flags),
-    );
-  }
-  ((u64::from(hi) << 32) | u64::from(lo), aux)
-}

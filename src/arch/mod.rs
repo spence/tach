@@ -5,6 +5,14 @@ pub mod aarch64;
 pub mod fallback;
 #[cfg(target_arch = "loongarch64")]
 pub mod loongarch64;
+// Strict-monotonicity enforcement module. Not compiled on platforms whose
+// execution model already guarantees strict cross-thread monotonicity by
+// structure (wasm32 single-threaded JS realm; WASI single-threaded execution
+// model). Matches the cfg gate in `direct::ticks_monotonic`.
+#[cfg(not(any(
+  all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+  target_os = "wasi",
+)))]
 mod monotonic;
 #[cfg(target_arch = "riscv64")]
 pub mod riscv64;

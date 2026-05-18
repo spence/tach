@@ -230,14 +230,14 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 
 | Clock | apple-silicon-m1 | c7g-4xlarge | t3-medium | m7i-metal-24xl | lambda-x86_64 | github-windows-x86_64 |
 |---|---|---|---|---|---|---|
-| `tach` | 9.8 µs | 3.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 11.3 µs |
-| `tach_recal` | 9.7 µs | 7.9 µs | 9.9 µs | 9.9 µs | 9.9 µs | 10.0 µs |
-| `tach_ordered` | 9.8 µs | 9.3 µs | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
-| `tach_monotonic` | 9.5 µs | 2.9 µs | 9.9 µs | 9.5 µs | 9.8 µs | 9.9 µs |
-| `quanta` | 9.7 µs | 31.1 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
-| `minstant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.7 µs | 10.0 µs |
-| `fastant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.9 µs |
-| `std` | 9.8 µs | 9.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 10.0 µs |
+| `tach` | 9.8 µs | 4.3 µs | 9.9 µs | 9.9 µs | 9.9 µs | 14.3 µs |
+| `tach_recal` | 9.9 µs | 137 ns | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
+| `tach_ordered` | 9.8 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
+| `tach_monotonic` | 9.9 µs | 5.1 µs | 9.9 µs | 9.7 µs | 9.7 µs | 9.9 µs |
+| `quanta` | 9.9 µs | 28.5 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
+| `minstant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.9 µs | 9.8 µs | 9.8 µs |
+| `fastant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.8 µs |
+| `std` | 9.8 µs | 9.4 µs | 9.8 µs | 9.8 µs | 9.9 µs | 10.0 µs |
 
 ### Per-thread monotonicity
 
@@ -246,7 +246,22 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 - t3-medium: 0 backward jumps on any clock ✓
 - m7i-metal-24xl: 0 backward jumps on any clock ✓
 - lambda-x86_64: 0 backward jumps on any clock ✓
-- github-windows-x86_64: 0 backward jumps on any clock ✓
+- **github-windows-x86_64: backward jumps observed** — tach_monotonic=5
+
+## Strict cross-thread monotonicity (contract validation)
+
+Per-cell × per-clock strict-cross-thread contract violations under the load-then-now-then-check pattern. 0 = bare clock empirically honors strict cross-thread monotonicity for the test window; non-zero = software enforcement is required to claim the contract. This is the data that drives whether `MonotonicInstant` needs `fetch_max` on a given platform.
+
+| Clock | apple-silicon-m1 | c7g-4xlarge | t3-medium | m7i-metal-24xl | lambda-x86_64 | github-windows-x86_64 |
+|---|---|---|---|---|---|---|
+| `tach` | 17,366,168 | 1,827 | 42 | 9,629,641 | 13,351 | 1,678,700 |
+| `tach_recal` | 30,586,874 | 1,944 | 18 | 16,905,112 | 3,946 | 1,681,768 |
+| `tach_ordered` | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |
+| `tach_monotonic` | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |
+| `quanta` | 14,569,581 | 2,062 | 32 | 18,332,108 | 789 | 1,525,727 |
+| `minstant` | 0 ✓ | 0 ✓ | 31 | 2,791,812 | 0 ✓ | 0 ✓ |
+| `fastant` | 0 ✓ | 0 ✓ | 45 | 11,169,115 | 74 | 0 ✓ |
+| `std` | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |
 
 ## Drift methodology
 
