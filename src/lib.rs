@@ -59,12 +59,18 @@
 //! vDSO / libsystem path but do not themselves guarantee this ordering).
 
 mod arch;
-#[cfg(not(any(
-  target_arch = "aarch64",
-  target_os = "macos",
-  target_os = "wasi",
-  all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
-)))]
+// Calibration is needed wherever the architectural counter doesn't self-report
+// an NTP-corrected rate. That's: x86 / x86_64 on non-macOS (CPUID 15h is
+// nominal, kernel doesn't continuously correct), aarch64 Linux (cntfrq_el0 is
+// firmware-published nominal), and riscv64 / loongarch64. NOT needed on:
+// macOS (mach_timebase_info is measured per-die), Windows aarch64
+// (cntfrq_el0 is QPF-calibrated), wasm/WASI (host clock is the source).
+#[cfg(any(
+  all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")),
+  all(target_arch = "aarch64", target_os = "linux"),
+  target_arch = "riscv64",
+  target_arch = "loongarch64",
+))]
 mod calibration;
 mod instant;
 
@@ -239,10 +245,12 @@ mod tests {
     Instant::recalibrate();
     let elapsed = start.elapsed();
     // Recalibration itself spins for up to ~700 ms on platforms where it
-    // actually measures (Linux/Windows x86); no-op on aarch64 + macOS. The
-    // upper bound here is a sanity check that a buggy recalibration didn't
-    // jump the scaling so far that elapsed jumps to multi-second values,
-    // not an assertion about the recalibrate cost itself.
+    // actually measures (Linux/Windows x86, aarch64 Linux); no-op on macOS
+    // and Windows aarch64 where cntfrq_el0 / mach_timebase_info are
+    // authoritative. The upper bound here is a sanity check that a buggy
+    // recalibration didn't jump the scaling so far that elapsed jumps to
+    // multi-second values, not an assertion about the recalibrate cost
+    // itself.
     assert!(
       elapsed.as_millis() >= 19 && elapsed.as_millis() < 2_000,
       "unexpected elapsed across recalibration: {elapsed:?}",

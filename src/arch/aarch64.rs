@@ -43,6 +43,7 @@ pub fn cntvct_ordered() -> u64 {
   cnt
 }
 
+#[allow(dead_code)] // unused on aarch64 Linux (calibrates against clock_gettime instead)
 #[inline]
 pub fn cntfrq() -> u64 {
   let freq: u64;

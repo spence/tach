@@ -49,10 +49,24 @@ pub fn nanos_per_tick_q32() -> u64 {
   scale
 }
 
-#[cfg(target_arch = "aarch64")]
+// aarch64 on macOS / Windows / non-Linux: `cntfrq_el0` is authoritative.
+// Apple writes the per-die measured timebase; Windows derives it from QPF.
+#[cfg(all(target_arch = "aarch64", not(target_os = "linux")))]
 #[inline]
 fn read_frequency() -> u64 {
   aarch64::cntfrq()
+}
+
+// aarch64 on Linux: `cntfrq_el0` is the firmware-published nominal value
+// (typically a round 1.000 GHz), not the actual crystal frequency. The
+// underlying crystal can be 10-30 ppm off — on Graviton 3 specifically it's
+// about -27 ppm. Calibrate against `clock_gettime(CLOCK_MONOTONIC)`, whose
+// vDSO scaling factor already includes the kernel's NTP correction, so the
+// measured rate ends up wall-clock-correct.
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
+#[inline]
+fn read_frequency() -> u64 {
+  crate::calibration::calibrate_frequency()
 }
 
 #[cfg(all(not(target_arch = "aarch64"), target_os = "macos"))]
@@ -132,11 +146,11 @@ fn read_frequency() -> u64 {
 /// load in `nanos_per_tick_q32`.
 ///
 /// On platforms where the frequency comes from an authoritative register or
-/// OS API (aarch64 `cntfrq_el0`, macOS `mach_timebase_info`, WASI / wasm
-/// fixed at 1 GHz), this is a no-op — re-reading would just yield the same
-/// value. On x86 / x86_64 (Linux, other Unixes, and Windows) the kernel
-/// doesn't continuously correct crystal drift, so recalibration measures
-/// the actual rate against the platform monotonic clock
+/// OS API (macOS `mach_timebase_info`, Windows aarch64 `cntfrq_el0`,
+/// WASI / wasm fixed at 1 GHz), this is a no-op — re-reading would just
+/// yield the same value. On x86 / x86_64 (Linux, other Unixes, and
+/// Windows) and on aarch64 Linux, recalibration measures the actual
+/// counter rate against the platform monotonic clock
 /// (`clock_gettime(CLOCK_MONOTONIC)` on Unix, `QueryPerformanceCounter` on
 /// Windows).
 ///
@@ -161,8 +175,8 @@ pub fn recalibrate() {
 /// [`crate::Instant::recalibrate`] get wholesale-replace semantics via
 /// [`recalibrate`] above.
 ///
-/// Returns `None` on platforms where there's nothing to measure (aarch64,
-/// macOS, WASI, wasm — frequency source is authoritative).
+/// Returns `None` on platforms where there's nothing to measure (macOS,
+/// Windows aarch64, WASI, wasm — frequency source is authoritative).
 #[cfg(feature = "recalibrate-background")]
 pub(crate) fn recalibrate_measure() -> Option<u64> {
   measure_frequency_for_recal()
@@ -172,15 +186,22 @@ pub(crate) fn recalibrate_measure() -> Option<u64> {
 // Recalibration's job is to track *actual* frequency drift over uptime, so we
 // go straight to the platform-monotonic spin-loop calibration. Returns None
 // (don't update) when the rate measurement was unusable, e.g. survivor-list
-// fallback returned 0.
+// fallback returned 0, or when the platform's frequency source is already
+// authoritative (macOS, Windows aarch64, wasm).
 #[inline]
 fn measure_frequency_for_recal() -> Option<u64> {
-  #[cfg(all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")))]
+  #[cfg(any(
+    all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")),
+    all(target_arch = "aarch64", target_os = "linux"),
+  ))]
   {
     let hz = crate::calibration::calibrate_frequency();
     if hz > 0 { Some(hz) } else { None }
   }
-  #[cfg(not(all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos"))))]
+  #[cfg(not(any(
+    all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")),
+    all(target_arch = "aarch64", target_os = "linux"),
+  )))]
   {
     None
   }
