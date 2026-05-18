@@ -205,65 +205,24 @@ The bench captures three quantities for each clock source:
 - **Cross-thread observation consistency**: N threads (min(num_cpus, 16)) race on a shared `AtomicU64` max for 10 s. A "violation" is a read whose value is less than something another thread already published — i.e., we observed a non-monotonic timeline across threads. Bracket-read filter drops iterations preempted between counter read and publish.
 - **Drift vs `std::Instant`**: 30 × 1 s samples and 5 × 60 s samples; report median + spread. The reference is `std::Instant` (CLOCK_MONOTONIC on Linux / CLOCK_UPTIME_RAW on macOS / QueryPerformanceCounter on Windows).
 
-### Per-thread monotonicity (10-s sweep, single thread)
-
-- apple-silicon-m1: 0 backward jumps for tach / std / quanta / minstant. fastant=690 (likely its macOS-fallback path)
-- c7g-4xlarge: 0 backward jumps on any clock ✓
-- t3-medium: 0 backward jumps on any clock ✓
-- m7i-metal-24xl: 0 backward jumps on any clock ✓
-- lambda-x86_64: 0 backward jumps on any clock ✓
-- github-windows-x86_64: 0 backward jumps on any clock ✓
-
-Tach (`Instant`, `OrderedInstant`, and the `recalibrate-background` variant) showed **0 backward jumps in every cell on every clock** — matching `std::time::Instant` on per-thread monotonicity.
-
-### Cross-thread observation consistency (10-s sweep, N threads)
-
-Per-cell maximum cross-thread violation magnitude. Threshold rules:
-- ≤ 1 µs: clean (matches std in practice)
-- 1–10 µs: documented sync-slop
-- > 10 µs: hazard caveat
-
-| Clock | apple-silicon-m1 | c7g-4xlarge | t3-medium | m7i-metal-24xl | lambda-x86_64 | github-windows-x86_64 |
-|---|---|---|---|---|---|---|
-| `tach` | 9.8 µs | 0 ns | 9.9 µs | 9.9 µs | 9.9 µs | 1.3 µs |
-| `tach_recal` | 9.8 µs | 0 ns | 9.9 µs | 9.8 µs | 9.9 µs | 1.3 µs |
-| `tach_ordered` | 9.8 µs | 9.8 µs | 9.9 µs | 9.9 µs | 9.9 µs | 100 ns |
-| `quanta` | 9.6 µs | 22.7 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
-| `minstant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
-| `fastant` | 10.0 µs | 9.8 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
-| `std` | 9.5 µs | 9.4 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.7 µs |
-
-Observations:
-- Every cell × clock combination (except `quanta` on `c7g-4xlarge` at 22.7 µs) sits at or below 10 µs — the bracket-filter ceiling for what we count as "not preemption." Tach matches std within measurement noise on every cell.
-- On `c7g-4xlarge`, the Graviton 3 `cntvct_el0` is architecturally synchronized across cores, so tach (which reads it directly) shows literally zero cross-thread violations. `tach_ordered` shows 9.8 µs because the `isb sy` barrier opens a wider window during which other threads can publish; the data is preemption-bracketed even though the underlying counter is monotonic.
-- `quanta::Instant` on `c7g-4xlarge` at 22.7 µs is the only cell × clock that crosses the 10 µs threshold; it's a quanta-specific code path (the crate does its own scaling) rather than something inherent to the platform.
 ### Drift vs `std::Instant` (median across samples, per cell)
 
 Per-cell 1-second and 1-minute median skew. Negative = tach reports less elapsed than std; positive = more.
 
-| Cell | tach 1s | tach 1m | tach_recal 1s | tach_recal 1m | std 1m |
-|---|---|---|---|---|---|
-| `apple-silicon-m1` | -667 ns | -541 ns | -958 ns | -917 ns | -124 ns |
-| `c7g-4xlarge` | -602 ns | -11.9 µs | +198 ns | +14.6 µs | -571 ns |
-| `t3-medium` | -2.0 µs | +5.0 µs | -1.9 µs | +20.6 µs | -775 ns |
-| `m7i-metal-24xl` | -4.3 µs | -199.5 µs | -4.4 µs | -27.6 µs | -414 ns |
-| `lambda-x86_64` | -1.5 µs | +45.3 µs | -910 ns | +61.9 µs | -292 ns |
-| `github-windows-x86_64` | -939 ns | +14.3 µs | +808 ns | +47.6 µs | -500 ns |
+| Cell | tach 1s | tach 1m | tach_mono 1m | tach_recal 1s | tach_recal 1m | std 1m |
+|---|---|---|---|---|---|---|
+| `apple-silicon-m1` | -708 ns | -666 ns | -1.0 µs | -1.2 µs | -1.2 µs | -501 ns |
+| `c7g-4xlarge` | +27 ns | +3.3 µs | +2.5 µs | +31 ns | +9.9 µs | -554 ns |
+| `t3-medium` | +1.3 µs | +175.6 µs | +173.9 µs | -1.9 µs | +17.4 µs | -840 ns |
+| `m7i-metal-24xl` | -2.4 µs | -108.7 µs | -116.7 µs | -3.0 µs | -10.4 µs | -373 ns |
+| `lambda-x86_64` | -1.5 µs | +25.5 µs | +26.2 µs | -1.7 µs | +25.9 µs | -305 ns |
+| `github-windows-x86_64` | -939 ns | +14.3 µs | _pending re-bench_ | +808 ns | +47.6 µs | -500 ns |
 
 Observations:
-- `m7i-metal-24xl` is the only cell where CPUID leaf 15h is exposed (Intel Sapphire Rapids bare metal). On this cell `tach::Instant` drifts at ~3.3 ppm — within the same order of magnitude as `std`. Other Intel cells fall back to the 100 ms × 7-sample spin-loop calibration with hypervisor-preemption discard, which holds calibration error to sub-ppm in the cross-cell median.
-- `recalibrate-background` is a measurable improvement on Intel x86 cells where startup calibration accumulates error: `lambda-x86_64` goes from 0.75 ppm baseline to 0.58 ppm with recal, and `m7i-metal-24xl` (the CPUID-15h cell) goes from -3.25 ppm to -0.34 ppm (10× tighter). On cells where startup calibration already hit sub-ppm (`t3-medium` at 0.15 ppm baseline, `c7g-4xlarge` at -0.23 ppm post-calibration) the EMA residual sits a few tenths of a ppm above baseline, still well below any noise floor a service would notice. No-op on macOS (Apple measures the per-die timebase) and Windows aarch64 (`cntfrq_el0` is QPF-calibrated by the firmware).
-- `c7g-4xlarge` previously showed a ~27 ppm constant offset because `cntfrq_el0` is the firmware-published nominal — not the measured crystal rate. As of this revision, aarch64 Linux calibrates `cntvct_el0` against `clock_gettime(CLOCK_MONOTONIC)` at startup (same path the x86 cells already use), so drift now tracks the kernel's NTP-corrected vDSO scaling and lands sub-ppm. Per-chip variation in the underlying crystal is invisible to users; what tach reports matches what the kernel reports.
+- `tach_mono 1m` (the new `MonotonicInstant` row) matches `tach 1m` within bench noise on every cell, as expected by construction: both read the same underlying counter, so they have identical drift profiles. The `fetch_max` enforcement that makes `MonotonicInstant` strictly cross-thread monotonic doesn't change the clock, only the cross-thread observation order.
+- `recalibrate-background` is a measurable improvement on Intel x86 cells where startup calibration accumulates error. The remaining variance across cells is dominated by per-instance calibration noise and per-chip crystal lottery (different physical chips in the same EC2 instance family can vary by ppm). The cross-cell median in the README table is the right summary statistic; individual per-cell numbers move between runs.
+- `c7g-4xlarge` previously showed a ~27 ppm constant offset because `cntfrq_el0` is the firmware-published nominal rather than the measured crystal rate. Since the aarch64-Linux calibration landed, drift tracks the kernel's NTP-corrected vDSO scaling and stays sub-ppm regardless of the specific Graviton 3 chip the run landed on.
 - `std::time::Instant` 1m skew is consistently sub-µs on every cell, reflecting the kernel's continuous correction (vDSO scaling-factor updates on Linux, the equivalent on each OS).
-
-### Per-thread monotonicity
-
-- **apple-silicon-m1: backward jumps observed** — fastant=690
-- c7g-4xlarge: 0 backward jumps on any clock ✓
-- t3-medium: 0 backward jumps on any clock ✓
-- m7i-metal-24xl: 0 backward jumps on any clock ✓
-- lambda-x86_64: 0 backward jumps on any clock ✓
-- github-windows-x86_64: 0 backward jumps on any clock ✓
 
 ## Cross-thread monotonicity
 
@@ -271,17 +230,20 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 
 | Clock | apple-silicon-m1 | c7g-4xlarge | t3-medium | m7i-metal-24xl | lambda-x86_64 | github-windows-x86_64 |
 |---|---|---|---|---|---|---|
-| `tach` | 9.8 µs | 9.3 µs | 9.9 µs | 9.9 µs | 9.9 µs | 9.8 µs |
-| `tach_recal` | 9.8 µs | 7.1 µs | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
-| `tach_ordered` | 9.8 µs | 9.8 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.9 µs |
-| `quanta` | 9.6 µs | 25.9 µs | 9.9 µs | 9.9 µs | 9.9 µs | 9.5 µs |
-| `minstant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.7 µs | 9.7 µs |
-| `fastant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.8 µs |
-| `std` | 9.5 µs | 9.5 µs | 9.9 µs | 9.7 µs | 9.8 µs | 9.8 µs |
+| `tach` | 9.8 µs | 3.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
+| `tach_recal` | 9.7 µs | 7.9 µs | 9.9 µs | 9.9 µs | 9.9 µs | 9.9 µs |
+| `tach_ordered` | 9.8 µs | 9.3 µs | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
+| `tach_monotonic` | 9.5 µs | 2.9 µs | 9.9 µs | 9.5 µs | 9.8 µs | n/a |
+| `quanta` | 9.7 µs | 31.1 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.5 µs |
+| `minstant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.7 µs | 9.7 µs |
+| `fastant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
+| `std` | 9.8 µs | 9.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
+
+**What this metric measures, and why `tach_monotonic` looks similar to plain `tach` here:** the bench harness uses a `now()` → `max.fetch_max(r1)` → check-`r1<prev` pattern with a 10 µs bracket filter for preemption. For unenforced clocks, this measures hardware cross-core sync slop (small) plus harness publish-race jitter (also small) mixed together. For `tach_monotonic`, the internal `fetch_max` enforcement gives strict cross-thread monotonicity in the happens-before sense, but the harness's pattern can still flag concurrent-publish races where another thread's later `now()` outpaces this thread's earlier `now()` between the `now()` call and the harness's `fetch_max` — those aren't contract violations, just race noise that looks the same under this metric. The canonical strict-monotonicity test is `cargo test monotonic_strict_cross_thread` (in `src/lib.rs`) which uses a load-then-now-then-check pattern that actually validates the contract; it passes 0 violations for `MonotonicInstant` on every host. The cross-thread row above is best read as "how much sync slop does the underlying hardware show through this test methodology"; it does not differentiate enforced vs unenforced monotonicity by design.
 
 ### Per-thread monotonicity
 
-- **apple-silicon-m1: backward jumps observed** — fastant=690
+- apple-silicon-m1: 0 backward jumps on any clock ✓
 - c7g-4xlarge: 0 backward jumps on any clock ✓
 - t3-medium: 0 backward jumps on any clock ✓
 - m7i-metal-24xl: 0 backward jumps on any clock ✓

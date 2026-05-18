@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run the skew+monotonicity bench on the current host. Two builds:
-#   - bench-internal only (6 clocks; no tach_recal)
+#   - bench-internal only (7 clocks; no tach_recal)
 #   - bench-internal + recalibrate-background (only tach_recal — its measurements
 #     are affected by the background thread; the "tach" row would be polluted
 #     by the thread if measured in this build)

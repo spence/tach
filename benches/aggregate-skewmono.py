@@ -35,12 +35,13 @@ CELL_ORDER = [
 # Display order for clocks in tables.
 CLOCK_ORDER = [
     ("tach",         "`tach::Instant` (default, `#![no_std]`)"),
-    ("tach_recal",   "`tach::Instant` + `recalibrate-background` (**requires `std`**)"),
-    ("tach_ordered", "`tach::OrderedInstant` (default, `#![no_std]`)"),
-    ("quanta",       "`quanta::Instant`"),
-    ("minstant",     "`minstant::Instant`"),
-    ("fastant",      "`fastant::Instant`"),
-    ("std",          "`std::time::Instant`"),
+    ("tach_recal",     "`tach::Instant` + `recalibrate-background` (**requires `std`**)"),
+    ("tach_ordered",   "`tach::OrderedInstant` (default, `#![no_std]`)"),
+    ("tach_monotonic", "`tach::MonotonicInstant` (default, `#![no_std]`)"),
+    ("quanta",         "`quanta::Instant`"),
+    ("minstant",       "`minstant::Instant`"),
+    ("fastant",        "`fastant::Instant`"),
+    ("std",            "`std::time::Instant`"),
 ]
 
 # Clocks where recalibration bounds drift to a constant window (so 1h/1d

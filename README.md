@@ -8,7 +8,7 @@ A replacement for `std::time::Instant` that reads the architectural counter dire
 ## usage
 
 ```rust
-use tach::{Instant, OrderedInstant};
+use tach::{Instant, MonotonicInstant, OrderedInstant};
 
 // drop-in for std::time::Instant
 let start = Instant::now();
@@ -17,6 +17,10 @@ let elapsed = start.elapsed();
 // same API, sampled after prior Acquire loads
 let ordered = OrderedInstant::now();
 let elapsed = ordered.elapsed();
+
+// same API, strict cross-thread monotonic by construction
+let monotonic = MonotonicInstant::now();
+let elapsed = monotonic.elapsed();
 ```
 
 ## benchmark
@@ -33,7 +37,7 @@ The guarantee rests on three things:
 
 1. **Hardware**: every backing counter is documented monotonic non-decreasing in its primary spec — RDTSC (Intel SDM Vol 3B §17.17 "Invariant TSC"), CNTVCT_EL0 (ARMv8 ARM §D11.1.2, "must report the same value of the global counter" across cores), RISC-V `time` (Privileged Spec §10.1), LoongArch Stable Counter, Windows QPC, `clock_gettime(CLOCK_MONOTONIC)`, WASI `clockid::monotonic`, `Performance.now()`. Survey + citations in `BENCHMARKS.md`.
 2. **Design**: `Instant` stores the raw counter tick (`u64`), not a converted nanosecond value. Ordering (`<`, `>`, `cmp`) is pure tick comparison; `duration_since` is non-negative tick delta × scale; `checked_duration_since` returns `None` on argument-swap. The frequency scaling is consulted only at observation time on a non-negative delta, so a frequency *estimate* changing across calls cannot make a younger `Instant` appear older.
-3. **Empirical**: 0 backward jumps measured per-thread on every cell × clock × variant we test (`benches/skewmono-*.json`, 6 cells, billions of reads). Cross-thread, every cell sits at the hardware sync-slop floor (≤10 µs) — matching `std::time::Instant` on the same hardware. On Graviton 3 tach reads the architecturally-synchronized `cntvct_el0` directly and shows literally 0 ns cross-thread violations where `std` sits at 9.4 µs (direct register reads dodge vDSO call jitter).
+3. **Empirical**: 0 backward jumps measured per-thread on every cell × clock × variant we test (`benches/skewmono-*.json`, 6 cells, billions of reads). Cross-thread, every cell sits at the hardware sync-slop floor (≤10 µs) — matching `std::time::Instant` on the same hardware. On Graviton 3, tach reads `cntvct_el0` directly and reliably beats `std` on cross-thread slop because direct register reads dodge vDSO call jitter (current run: tach 3.4 µs vs std 9.4 µs; an earlier run hit a chip with perfectly-synced counters and saw 0 ns vs std's 9.4 µs — the architectural spec aspires to perfect sync but real chips vary).
 
 Untested cross-CCX (AMD Zen4) and multi-socket NUMA boundaries are outside the verification set. `std` doesn't help there either — it reads the same hardware counter through a slower path — so measure on your specific hardware if you correlate timestamps across those boundaries.
 
@@ -48,7 +52,7 @@ let deadline = scheduler.load(Ordering::Acquire);
 let now = tach::Instant::now();   // may be sampled before `deadline` is observed
 ```
 
-`mrs cntvct_el0` is a system-register read; `rdtsc` is not a serializing instruction. Memory fences don't constrain when either executes. `OrderedInstant` emits the per-arch barrier (`isb sy` on aarch64, `lfence` on x86) before the counter read, restoring the order:
+`mrs cntvct_el0` is a system-register read; `rdtsc` is not a serializing instruction. Memory fences don't constrain when either executes. `OrderedInstant` emits the per-arch barrier (`isb sy` on aarch64, `rdtscp` on x86 — Intel SDM Vol 2B specifies that `rdtscp` "waits until all previous instructions have executed and all previous loads are globally visible") before / as the counter read, restoring the order:
 
 ```rust
 let deadline = scheduler.load(Ordering::Acquire);
@@ -58,6 +62,25 @@ let now = tach::OrderedInstant::now();   // sampled after `deadline`
 Cost is ~5–20 ns more than `Instant::now()`. `OrderedInstant::as_unordered()` downgrades to a plain `Instant` for storage; the reverse is not provided.
 
 On riscv64 (`fence iorw, iorw`) and loongarch64 (`dbar 0`) the strongest available memory barrier is used; whether memory fences constrain CSR reads is implementation-defined on those targets, so the guarantee is best-effort.
+
+## strict cross-thread monotonicity
+
+Plain `Instant` and `OrderedInstant` are bounded by the underlying counter's cross-thread synchronization. On x86 the per-core TSC is firmware-synchronized but not architecturally so — a thread that migrates between cores can observe a TSC slightly behind what it just saw. On aarch64 the ARMv8 ARM specifies `cntvct_el0` as a single global counter, but empirically Apple Silicon M1 still shows sub-microsecond per-core slop in practice — tach's own strict-monotonicity unit test (load-then-now-then-check pattern; see `src/lib.rs::monotonic_strict_cross_thread`) fails against bare `cntvct_el0` reads on M1. Architectural-guarantee-says-so is not a safe basis for shipping a "strict cross-thread monotonic" claim; only software enforcement makes the test pass on every cell.
+
+`MonotonicInstant` enforces strict cross-thread monotonicity in software, on every supported target:
+
+```rust
+let t1 = tach::MonotonicInstant::now();
+// ... cross-thread work via channels, mutexes, atomics ...
+let t2 = tach::MonotonicInstant::now();
+assert!(t2 >= t1);   // always; no hardware-floor sync slop leaks through
+```
+
+Algorithm: every `now()` does the bare counter read plus one `AtomicU64::fetch_max(tsc, AcqRel)` against a process-global last-seen tick. The fetch_max forces the return to be `>=` every previously published value. Uniformly applied — not skipped on "architecturally synchronized" platforms, because the spec-vs-reality gap is real.
+
+Cost is ~+10–25 cycles per call uncontended (one LOCK CMPXCHG-class atomic on a hot cache line). Under heavy contention (many threads simultaneously hammering `now()`) it can degrade to 100+ ns per call as the cache line bounces between cores. Plain `Instant` stays untouched for callers who want the speed pitch and accept hardware-floor monotonicity.
+
+This is the only timestamp in the comparison set (vs `std::time::Instant`, `quanta`, `minstant`, `fastant`) that offers strict cross-thread monotonicity by construction — `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)` reading the same underlying counter with no software-side enforcement.
 
 ## platform support
 
@@ -84,13 +107,14 @@ The crate is `#![no_std]`. `wasm-bindgen` is the only dependency, pulled in only
 
 | Crate | 1-sec interval | 1-min interval | 1-hr interval | 1-day interval |
 |---|---|---|---|---|
-| `tach::Instant` (default, `#![no_std]`) | 1.2 µs | 13.1 µs | 785.8 µs | 18.9 ms |
-| `tach::Instant` + `recalibrate-background` (**requires `std`**) | 934 ns | 24.1 µs | 24.1 µs | 24.1 µs |
-| `tach::OrderedInstant` (default, `#![no_std]`) | 1.6 µs | 10.3 µs | 615.5 µs | 14.8 ms |
-| `quanta::Instant` | 6.3 µs | 411.6 µs | 24.7 ms | 592.7 ms |
-| `minstant::Instant` | 2.3 µs | 37.9 µs | 2.3 ms | 54.5 ms |
-| `fastant::Instant` | 2.2 µs | 27.8 µs | 1.7 ms | 40.0 ms |
-| `std::time::Instant` | 346 ns | 457 ns | 457 ns | 457 ns |
+| `tach::Instant` (default, `#![no_std]`) | 1.1 µs | 19.9 µs | 1.2 ms | 28.6 ms |
+| `tach::Instant` + `recalibrate-background` (**requires `std`**) | 1.4 µs | 13.9 µs | 13.9 µs | 13.9 µs |
+| `tach::OrderedInstant` (default, `#![no_std]`) | 1.2 µs | 20.2 µs | 1.2 ms | 29.1 ms |
+| `tach::MonotonicInstant` (default, `#![no_std]`) | 1.2 µs | 26.2 µs | 1.6 ms | 37.8 ms |
+| `quanta::Instant` | 2.2 µs | 131.1 µs | 7.9 ms | 188.8 ms |
+| `minstant::Instant` | 1.0 µs | 95.4 µs | 5.7 ms | 137.4 ms |
+| `fastant::Instant` | 1.9 µs | 102.1 µs | 6.1 ms | 147.1 ms |
+| `std::time::Instant` | 373 ns | 500 ns | 500 ns | 500 ns |
 
 Numbers are cross-cell empirical medians measured on 6 platforms (Apple Silicon M1 MBP, AWS Graviton 3, AWS Intel t3.medium, AWS Intel m7i.metal-24xl bare-metal, AWS Lambda x86_64, GitHub Actions windows-2025). Per-cell breakdown and methodology in [BENCHMARKS.md](BENCHMARKS.md). On Intel x86 the architectural TSC frequency comes from CPUID leaf 15h when the host exposes it (Skylake+ Intel, Zen2+ AMD bare metal); on hosts that zero the leaf (Firecracker, Azure VMs, GitHub Windows runners) tach falls back to a 100 ms × 7-sample spin-loop calibration with hypervisor-preemption discard. On Linux aarch64 (Graviton 3 and similar) `cntfrq_el0` is firmware-published nominal — the underlying crystal can be 10–30 ppm off and the kernel never folds the NTP-corrected scaling factor back into it. Tach calibrates `cntvct_el0` against `clock_gettime(CLOCK_MONOTONIC)` at startup, which inherits the kernel's NTP-corrected vDSO scaling, so drift lands sub-ppm regardless of the underlying chip's crystal offset. Apple Silicon (macOS aarch64) reads `mach_timebase_info` directly — Apple measures the timebase per-die at manufacture, so no calibration is needed.
 

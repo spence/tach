@@ -2,9 +2,9 @@
 # Orchestrate Lambda invocations to build benches/skewmono-lambda-x86_64.json.
 #
 # Sequence:
-#   1. Invoke skew-fast (deployed function, no `recal` feature) — gets 6 clocks
+#   1. Invoke skew-fast (deployed function, no `recal` feature) — gets 7 clocks
 #      per-thread + cross-thread + skew-1s in one ~5min invocation
-#   2. Invoke skew-drift × 6 in parallel — one 1m sample per clock, ~5min each
+#   2. Invoke skew-drift × 7 in parallel — one 1m sample per clock, ~5min each
 #   3. Redeploy with --features recal
 #   4. Invoke skew-fast (returns ONLY tach_recal) and skew-drift clock=tach_recal
 #   5. Redeploy back to default (no recal) for tidiness
@@ -31,14 +31,14 @@ invoke() {
     "$out" >/dev/null
 }
 
-# Step 1: skew-fast (6 clocks, no recal)
+# Step 1: skew-fast (7 clocks, no recal)
 echo "[$(date +%T)] step 1: skew-fast (no recal) ..."
 invoke '{"mode":"skew-fast","duration":10,"samples":30}' "$work/fast.json"
 
-# Step 2: skew-drift × 6 in parallel
-echo "[$(date +%T)] step 2: skew-drift × 6 (parallel) ..."
+# Step 2: skew-drift × 7 in parallel
+echo "[$(date +%T)] step 2: skew-drift × 7 (parallel) ..."
 pids=()
-for clock in tach tach_ordered std quanta minstant fastant; do
+for clock in tach tach_ordered tach_monotonic std quanta minstant fastant; do
   invoke "{\"mode\":\"skew-drift\",\"clock\":\"$clock\",\"samples\":5}" "$work/drift-$clock.json" &
   pids+=($!)
 done
@@ -77,7 +77,7 @@ work = sys.argv[1]
 fast = json.load(open(f"{work}/fast.json"))
 fast_recal = json.load(open(f"{work}/fast-recal.json"))
 
-# Start from fast (6 clocks present)
+# Start from fast (7 clocks present)
 out = fast
 # Merge in tach_recal from the recal build's fast invocation
 for k, v in fast_recal["clocks"].items():
@@ -86,6 +86,12 @@ for k, v in fast_recal["clocks"].items():
 # Attach the 1m drift data from per-clock invocations
 for drift_path in glob.glob(f"{work}/drift-*.json"):
   d = json.load(open(drift_path))
+  if "errorType" in d:
+    # Lambda invocation errored — usually means the deployed binary doesn't
+    # know about this clock yet (binary update pending). Skip and warn.
+    clock_hint = drift_path.rsplit("drift-", 1)[-1].removesuffix(".json")
+    print(f"  warn: invocation for {clock_hint} errored ({d.get('errorMessage', '?')}); skipping")
+    continue
   clock = d["clock"]
   if clock not in out["clocks"]:
     print(f"  warn: drift for clock {clock} but no fast data; skipping")
