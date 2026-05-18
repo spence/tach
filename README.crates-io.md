@@ -27,7 +27,13 @@ Methodology and per-target reports: [BENCHMARKS.md](https://github.com/spence/ta
 
 ## semantics
 
-The counter is wall-clock-rate. It keeps ticking through park, suspension, and descheduling. All threads in the process read the same source. Per-thread monotonicity is verified empirically (0 backward jumps over billions of consecutive reads on every benchmark cell). Cross-thread observation consistency is measured at ≤10 µs across all tested cells — matching `std::time::Instant` within measurement noise on the same hardware. AMD Zen4 CCX boundaries are not in the tested set; if you correlate timestamps across CCXes or sockets, prefer `std::time::Instant`. Cost difference: tach's counter read is ~0.35 ns vs `std::time::Instant::now()`'s ~20 ns.
+**Monotonic timer at parity with `std::time::Instant`.** The counter is wall-clock-rate — keeps ticking through park, suspension, and descheduling. All threads in the process read the same source.
+
+Per-thread monotonicity is verified empirically: 0 backward jumps over billions of reads on every cell × clock combination, matching `std::time::Instant` exactly. Cross-thread observation consistency stays at the hardware sync-slop floor (≤10 µs) on every tested cell — the same floor `std` sits at, because `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)` reading the same underlying counter with no software-side cross-thread enforcement. On Graviton 3 (`c7g.4xlarge`) tach reads the architecturally-synchronized `cntvct_el0` directly and shows literally 0 ns cross-thread violations where `std` sits at 9.4 µs — direct register reads dodge vDSO call jitter on hardware that synchronizes the counter across cores by design.
+
+Untested cross-CCX (AMD Zen4) and multi-socket NUMA boundaries are outside the verification set. `std` doesn't help there either — it reads the same hardware counter through a slower path — so measure on your specific hardware if you correlate timestamps across those boundaries.
+
+Cost difference on the read: tach's ~0.35 ns vs `std::time::Instant::now()`'s ~20 ns.
 
 ## ordered reads
 
@@ -93,7 +99,6 @@ Within a single process, two tach measurements are mutually consistent — drift
 
 ## non-goals
 
-- Strict cross-thread monotonicity. Use `std::time::Instant`.
 - Clock-skew correction across machines. This is a per-process counter.
 
 ## msrv

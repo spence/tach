@@ -23,10 +23,14 @@
 //! # Timing contract
 //!
 //! `Instant` is wall-clock-rate: keeps ticking through park, suspension, and
-//! descheduling. Same source across every thread in the process. **Not strictly
-//! cross-thread monotonic** — raw hardware counters can disagree across CPUs by
-//! sub-microsecond sync slop on most hosts. For strict cross-thread monotonicity,
-//! use [`std::time::Instant`].
+//! descheduling. Same source across every thread in the process. Monotonicity is
+//! at parity with [`std::time::Instant`] on every tested platform — both read the
+//! same underlying counter, neither performs software-side cross-thread
+//! enforcement, so cross-thread observation slop is bounded by the hardware
+//! (≤10 µs on every tested cell; 0 ns on Graviton 3, whose `cntvct_el0` is
+//! architecturally synchronized across cores). AMD Zen4 cross-CCX and
+//! multi-socket NUMA boundaries are not in the verification set — measure on
+//! your hardware if you correlate timestamps across those.
 //!
 //! # Ordering against atomics: [`OrderedInstant`]
 //!
