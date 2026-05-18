@@ -244,7 +244,7 @@ Per-cell 1-second and 1-minute median skew. Negative = tach reports less elapsed
 | Cell | tach 1s | tach 1m | tach_recal 1s | tach_recal 1m | std 1m |
 |---|---|---|---|---|---|
 | `apple-silicon-m1` | -667 ns | -541 ns | -958 ns | -917 ns | -124 ns |
-| `c7g-4xlarge` | -27.1 µs | -1.6 ms | -27.0 µs | -1.6 ms | -494 ns |
+| `c7g-4xlarge` | -602 ns | -11.9 µs | +198 ns | +14.6 µs | -571 ns |
 | `t3-medium` | -2.0 µs | +5.0 µs | -1.9 µs | +20.6 µs | -775 ns |
 | `m7i-metal-24xl` | -4.3 µs | -199.5 µs | -4.4 µs | -27.6 µs | -414 ns |
 | `lambda-x86_64` | -1.5 µs | +45.3 µs | -910 ns | +61.9 µs | -292 ns |
@@ -252,8 +252,8 @@ Per-cell 1-second and 1-minute median skew. Negative = tach reports less elapsed
 
 Observations:
 - `m7i-metal-24xl` is the only cell where CPUID leaf 15h is exposed (Intel Sapphire Rapids bare metal). On this cell `tach::Instant` drifts at ~3.3 ppm — within the same order of magnitude as `std`. Other Intel cells fall back to the 100 ms × 7-sample spin-loop calibration with hypervisor-preemption discard, which holds calibration error to sub-ppm in the cross-cell median.
-- `recalibrate-background` is a measurable improvement on Intel x86 cells where startup calibration accumulates error: `lambda-x86_64` goes from 0.75 ppm baseline to 0.58 ppm with recal, and `m7i-metal-24xl` (the CPUID-15h cell) goes from -3.25 ppm to -0.34 ppm (10× tighter). On cells where startup calibration already hit sub-ppm (`t3-medium` at 0.15 ppm baseline) the EMA residual sits a few tenths of a ppm above baseline, still well below any noise floor a service would notice. No-op on aarch64 / macOS where the frequency source is authoritative.
-- `c7g-4xlarge` shows ~27 ppm constant offset across both `tach` and `tach_recal` — this is the underlying Graviton 3 crystal offset that `cntfrq_el0` faithfully reports as 1 GHz when the actual rate is slightly off nominal. tach has no way to correct this without an external reference; `std::time::Instant` corrects it via vDSO updates against NTP.
+- `recalibrate-background` is a measurable improvement on Intel x86 cells where startup calibration accumulates error: `lambda-x86_64` goes from 0.75 ppm baseline to 0.58 ppm with recal, and `m7i-metal-24xl` (the CPUID-15h cell) goes from -3.25 ppm to -0.34 ppm (10× tighter). On cells where startup calibration already hit sub-ppm (`t3-medium` at 0.15 ppm baseline, `c7g-4xlarge` at -0.23 ppm post-calibration) the EMA residual sits a few tenths of a ppm above baseline, still well below any noise floor a service would notice. No-op on macOS (Apple measures the per-die timebase) and Windows aarch64 (`cntfrq_el0` is QPF-calibrated by the firmware).
+- `c7g-4xlarge` previously showed a ~27 ppm constant offset because `cntfrq_el0` is the firmware-published nominal — not the measured crystal rate. As of this revision, aarch64 Linux calibrates `cntvct_el0` against `clock_gettime(CLOCK_MONOTONIC)` at startup (same path the x86 cells already use), so drift now tracks the kernel's NTP-corrected vDSO scaling and lands sub-ppm. Per-chip variation in the underlying crystal is invisible to users; what tach reports matches what the kernel reports.
 - `std::time::Instant` 1m skew is consistently sub-µs on every cell, reflecting the kernel's continuous correction (vDSO scaling-factor updates on Linux, the equivalent on each OS).
 
 ### Per-thread monotonicity
@@ -271,10 +271,10 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 
 | Clock | apple-silicon-m1 | c7g-4xlarge | t3-medium | m7i-metal-24xl | lambda-x86_64 | github-windows-x86_64 |
 |---|---|---|---|---|---|---|
-| `tach` | 9.8 µs | 112 ns | 9.9 µs | 9.9 µs | 9.9 µs | 9.8 µs |
-| `tach_recal` | 9.8 µs | 129 ns | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
-| `tach_ordered` | 9.8 µs | 9.5 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.9 µs |
-| `quanta` | 9.6 µs | 30.1 µs | 9.9 µs | 9.9 µs | 9.9 µs | 9.5 µs |
+| `tach` | 9.8 µs | 9.3 µs | 9.9 µs | 9.9 µs | 9.9 µs | 9.8 µs |
+| `tach_recal` | 9.8 µs | 7.1 µs | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
+| `tach_ordered` | 9.8 µs | 9.8 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.9 µs |
+| `quanta` | 9.6 µs | 25.9 µs | 9.9 µs | 9.9 µs | 9.9 µs | 9.5 µs |
 | `minstant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.7 µs | 9.7 µs |
 | `fastant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.8 µs |
 | `std` | 9.5 µs | 9.5 µs | 9.9 µs | 9.7 µs | 9.8 µs | 9.8 µs |
@@ -308,7 +308,8 @@ After CPUID 15h removes the calibration component on Skylake+ Intel / Zen2+ AMD,
 - **`tach::OrderedInstant`**: same backing scaling as `tach::Instant`, so identical drift profile. The `isb`/`lfence` barriers only constrain ordering, not the underlying tick value.
 - **`quanta::Instant`, `minstant::Instant`, `fastant::Instant` — ~500 µs/sec**: these crates either don't use CPUID 15h or rely on the kernel's pre-calibrated TSC frequency without continuous correction. Numbers reflect their reported tolerance against `clock_gettime` over multi-second intervals.
 - **`std::time::Instant` (Linux / Windows) — ~1 µs/sec**: kernel-corrected via vDSO scaling-factor updates plus NTP discipline. Reported drift is the typical no-NTP case; with active chrony / w32time, drift drops another 10× to sub-microsecond per minute.
-- **`std::time::Instant` (macOS / aarch64) — ~50 µs/sec**: reads `mach_timebase_info` / `cntfrq_el0` (the exact register-reported frequency) but does not run kernel-side per-tick correction the way Linux x86 does. Drift matches tach's default on the same architecture.
+- **`std::time::Instant` (macOS) — ~50 µs/sec**: reads `mach_timebase_info` (the exact per-die measured frequency) but does not run kernel-side per-tick correction the way Linux does. Drift matches tach's default on the same architecture.
+- **`std::time::Instant` (Linux aarch64) — ~1 µs/sec**: reads `cntvct_el0` through the vDSO with an NTP-corrected scaling factor, same kernel-corrected path as Linux x86. Tach now matches this on aarch64 Linux by calibrating against `clock_gettime` at startup, which inherits the same vDSO scaling.
 
 ### Caveats
 
