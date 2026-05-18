@@ -216,7 +216,7 @@ Per-cell 1-second and 1-minute median skew. Negative = tach reports less elapsed
 | `t3-medium` | +1.3 µs | +175.6 µs | +173.9 µs | -1.9 µs | +17.4 µs | -840 ns |
 | `m7i-metal-24xl` | -2.4 µs | -108.7 µs | -116.7 µs | -3.0 µs | -10.4 µs | -373 ns |
 | `lambda-x86_64` | -1.5 µs | +25.5 µs | +26.2 µs | -1.7 µs | +25.9 µs | -305 ns |
-| `github-windows-x86_64` | -939 ns | +14.3 µs | _pending re-bench_ | +808 ns | +47.6 µs | -500 ns |
+| `github-windows-x86_64` | -939 ns | +14.3 µs | +32.9 µs | +808 ns | +47.6 µs | -500 ns |
 
 Observations:
 - `tach_mono 1m` (the new `MonotonicInstant` row) matches `tach 1m` within bench noise on every cell, as expected by construction: both read the same underlying counter, so they have identical drift profiles. The `fetch_max` enforcement that makes `MonotonicInstant` strictly cross-thread monotonic doesn't change the clock, only the cross-thread observation order.
@@ -230,16 +230,14 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 
 | Clock | apple-silicon-m1 | c7g-4xlarge | t3-medium | m7i-metal-24xl | lambda-x86_64 | github-windows-x86_64 |
 |---|---|---|---|---|---|---|
-| `tach` | 9.8 µs | 3.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
-| `tach_recal` | 9.7 µs | 7.9 µs | 9.9 µs | 9.9 µs | 9.9 µs | 9.9 µs |
+| `tach` | 9.8 µs | 3.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 11.3 µs |
+| `tach_recal` | 9.7 µs | 7.9 µs | 9.9 µs | 9.9 µs | 9.9 µs | 10.0 µs |
 | `tach_ordered` | 9.8 µs | 9.3 µs | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
-| `tach_monotonic` | 9.5 µs | 2.9 µs | 9.9 µs | 9.5 µs | 9.8 µs | n/a |
-| `quanta` | 9.7 µs | 31.1 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.5 µs |
-| `minstant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.7 µs | 9.7 µs |
-| `fastant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
-| `std` | 9.8 µs | 9.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.8 µs |
-
-**What this metric measures, and why `tach_monotonic` looks similar to plain `tach` here:** the bench harness uses a `now()` → `max.fetch_max(r1)` → check-`r1<prev` pattern with a 10 µs bracket filter for preemption. For unenforced clocks, this measures hardware cross-core sync slop (small) plus harness publish-race jitter (also small) mixed together. For `tach_monotonic`, the internal `fetch_max` enforcement gives strict cross-thread monotonicity in the happens-before sense, but the harness's pattern can still flag concurrent-publish races where another thread's later `now()` outpaces this thread's earlier `now()` between the `now()` call and the harness's `fetch_max` — those aren't contract violations, just race noise that looks the same under this metric. The canonical strict-monotonicity test is `cargo test monotonic_strict_cross_thread` (in `src/lib.rs`) which uses a load-then-now-then-check pattern that actually validates the contract; it passes 0 violations for `MonotonicInstant` on every host. The cross-thread row above is best read as "how much sync slop does the underlying hardware show through this test methodology"; it does not differentiate enforced vs unenforced monotonicity by design.
+| `tach_monotonic` | 9.5 µs | 2.9 µs | 9.9 µs | 9.5 µs | 9.8 µs | 9.9 µs |
+| `quanta` | 9.7 µs | 31.1 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
+| `minstant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.7 µs | 10.0 µs |
+| `fastant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.8 µs | 9.9 µs |
+| `std` | 9.8 µs | 9.4 µs | 9.9 µs | 9.8 µs | 9.8 µs | 10.0 µs |
 
 ### Per-thread monotonicity
 

@@ -107,14 +107,14 @@ The crate is `#![no_std]`. `wasm-bindgen` is the only dependency, pulled in only
 
 | Crate | 1-sec interval | 1-min interval | 1-hr interval | 1-day interval |
 |---|---|---|---|---|
-| `tach::Instant` (default, `#![no_std]`) | 1.1 µs | 19.9 µs | 1.2 ms | 28.6 ms |
-| `tach::Instant` + `recalibrate-background` (**requires `std`**) | 1.4 µs | 13.9 µs | 13.9 µs | 13.9 µs |
-| `tach::OrderedInstant` (default, `#![no_std]`) | 1.2 µs | 20.2 µs | 1.2 ms | 29.1 ms |
-| `tach::MonotonicInstant` (default, `#![no_std]`) | 1.2 µs | 26.2 µs | 1.6 ms | 37.8 ms |
+| `tach::Instant` (default, `#![no_std]`) | 1.1 µs | 29.4 µs | 1.8 ms | 42.3 ms |
+| `tach::Instant` + `recalibrate-background` (**requires `std`**) | 1.5 µs | 13.9 µs | 13.9 µs | 13.9 µs |
+| `tach::OrderedInstant` (default, `#![no_std]`) | 1.1 µs | 24.4 µs | 1.5 ms | 35.2 ms |
+| `tach::MonotonicInstant` (default, `#![no_std]`) | 1.1 µs | 29.5 µs | 1.8 ms | 42.5 ms |
 | `quanta::Instant` | 2.2 µs | 131.1 µs | 7.9 ms | 188.8 ms |
 | `minstant::Instant` | 1.0 µs | 95.4 µs | 5.7 ms | 137.4 ms |
 | `fastant::Instant` | 1.9 µs | 102.1 µs | 6.1 ms | 147.1 ms |
-| `std::time::Instant` | 373 ns | 500 ns | 500 ns | 500 ns |
+| `std::time::Instant` | 373 ns | 450 ns | 450 ns | 450 ns |
 
 Numbers are cross-cell empirical medians measured on 6 platforms (Apple Silicon M1 MBP, AWS Graviton 3, AWS Intel t3.medium, AWS Intel m7i.metal-24xl bare-metal, AWS Lambda x86_64, GitHub Actions windows-2025). Per-cell breakdown and methodology in [BENCHMARKS.md](https://github.com/spence/tach/blob/main/BENCHMARKS.md). On Intel x86 the architectural TSC frequency comes from CPUID leaf 15h when the host exposes it (Skylake+ Intel, Zen2+ AMD bare metal); on hosts that zero the leaf (Firecracker, Azure VMs, GitHub Windows runners) tach falls back to a 100 ms × 7-sample spin-loop calibration with hypervisor-preemption discard. On Linux aarch64 (Graviton 3 and similar) `cntfrq_el0` is firmware-published nominal — the underlying crystal can be 10–30 ppm off and the kernel never folds the NTP-corrected scaling factor back into it. Tach calibrates `cntvct_el0` against `clock_gettime(CLOCK_MONOTONIC)` at startup, which inherits the kernel's NTP-corrected vDSO scaling, so drift lands sub-ppm regardless of the underlying chip's crystal offset. Apple Silicon (macOS aarch64) reads `mach_timebase_info` directly — Apple measures the timebase per-die at manufacture, so no calibration is needed.
 
