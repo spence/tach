@@ -82,10 +82,21 @@ pub struct SkewResult {
 }
 
 #[derive(Serialize, Clone, Debug)]
+pub struct StrictResult {
+  pub clock: &'static str,
+  pub threads: u32,
+  pub total_violations: u64,
+  pub total_reads: u64,
+  pub max_violation_ns: u64,
+  pub duration_ns: u64,
+}
+
+#[derive(Serialize, Clone, Debug)]
 pub struct ClockReport {
   pub backed_by_arch_counter: bool,
   pub per_thread: PerThreadResult,
   pub cross_thread: CrossThreadResult,
+  pub strict_cross_thread: Option<StrictResult>,
   pub skew_1s: SkewResult,
   pub skew_1m: Option<SkewResult>,
 }
@@ -251,6 +262,107 @@ pub fn measure_cross_thread<C: ClockSource>(
     preemption_dropped,
     duration_ns,
     violation_histogram_ns,
+  }
+}
+
+/// Strict cross-thread monotonicity test — empirically validate whether the
+/// bare clock honors the happens-before-respecting contract.
+///
+/// Unlike `measure_cross_thread` (which uses a now-then-fetch_max pattern and
+/// mixes hardware sync slop with publish-race jitter), this uses the
+/// load-then-now-then-check pattern that directly validates the contract:
+///
+/// 1. **Acquire-load** the global `published` atomic. This synchronizes-with
+///    any prior thread's Release write on the same atomic.
+/// 2. Read the clock under test (`C::now_as_u64()`).
+/// 3. Check that the new read is `>=` what we observed before reading. If not,
+///    the bare clock failed to honor strict cross-thread monotonicity at the
+///    happens-before level.
+/// 4. **Release-fetch_max** publishes our reading for the next iteration.
+///
+/// Returns `total_violations == 0` if and only if the clock is empirically
+/// strict cross-thread monotonic under the test conditions (N threads × the
+/// given duration). Any non-zero value means the underlying clock needs
+/// software enforcement (a process-global fetch_max wrapping every read) to
+/// claim the strict-cross-thread contract.
+///
+/// This is the canonical test for deciding whether `MonotonicInstant`'s
+/// fetch_max enforcement is needed on a given platform.
+pub fn measure_strict_cross_thread<C: ClockSource>(
+  threads: usize,
+  duration: Duration,
+) -> StrictResult {
+  C::init_anchor();
+  for _ in 0..1_000 {
+    let _ = C::now_as_u64();
+  }
+
+  let published = std::sync::Arc::new(AtomicU64::new(0));
+  let start_barrier = std::sync::Arc::new(std::sync::Barrier::new(threads + 1));
+  let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+  let mut handles = Vec::with_capacity(threads);
+  for _ in 0..threads {
+    let published = std::sync::Arc::clone(&published);
+    let start_barrier = std::sync::Arc::clone(&start_barrier);
+    let stop = std::sync::Arc::clone(&stop);
+    handles.push(thread::spawn(move || -> (u64, u64, u64) {
+      let mut local_violations = 0u64;
+      let mut local_reads = 0u64;
+      let mut local_max_violation = 0u64;
+
+      start_barrier.wait();
+
+      while !stop.load(Ordering::Relaxed) {
+        // (1) Acquire-load the latest published value. Synchronizes-with any
+        //     prior Release publish on this atomic.
+        let observed = published.load(Ordering::Acquire);
+        // (2) Read the clock under test.
+        let now_ns = C::now_as_u64();
+        local_reads += 1;
+        // (3) Check the contract: now_ns >= observed.
+        if now_ns < observed {
+          local_violations += 1;
+          let diff = observed - now_ns;
+          if diff > local_max_violation {
+            local_max_violation = diff;
+          }
+        }
+        // (4) Publish our value via Release fetch_max so future threads'
+        //     Acquire-loads can observe us.
+        published.fetch_max(now_ns, Ordering::Release);
+      }
+      (local_violations, local_reads, local_max_violation)
+    }));
+  }
+
+  start_barrier.wait();
+  let wall_start = StdInstantTy::now();
+  thread::sleep(duration);
+  stop.store(true, Ordering::Relaxed);
+
+  let mut total_violations = 0u64;
+  let mut total_reads = 0u64;
+  let mut max_violation_ns = 0u64;
+
+  for h in handles {
+    let (v, r, mv) = h.join().expect("thread panic");
+    total_violations += v;
+    total_reads += r;
+    if mv > max_violation_ns {
+      max_violation_ns = mv;
+    }
+  }
+
+  let duration_ns = u64::try_from(wall_start.elapsed().as_nanos()).unwrap_or(u64::MAX);
+
+  StrictResult {
+    clock: C::NAME,
+    threads: u32::try_from(threads).unwrap_or(u32::MAX),
+    total_violations,
+    total_reads,
+    max_violation_ns,
+    duration_ns,
   }
 }
 

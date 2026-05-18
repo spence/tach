@@ -26,8 +26,8 @@ use std::time::Duration;
 use tach::bench::{
   CellReport, ClockReport, ClockSource, FastantInstant, HostInfo, MinstantInstant, QuantaInstant,
   SkewResult, StdInstant, TachInstant, TachMonotonicInstant, TachOrderedInstant,
-  measure_cross_thread, measure_per_thread, measure_skew, tach_freq_hz, tach_used_cpuid_15h,
-  unix_ns_now,
+  measure_cross_thread, measure_per_thread, measure_skew, measure_strict_cross_thread,
+  tach_freq_hz, tach_used_cpuid_15h, unix_ns_now,
 };
 
 #[cfg(feature = "recalibrate-background")]
@@ -118,8 +118,13 @@ fn run_clock(name: &str, args: &Args) -> ClockReport {
 fn run_for<C: ClockSource>(args: &Args) -> ClockReport {
   let backed_by_arch_counter = C::backed_by_arch_counter();
 
-  let (per_thread, cross_thread, skew_1s) = match args.mode {
-    Mode::Drift => (empty_per_thread::<C>(), empty_cross_thread::<C>(), empty_skew_1s::<C>()),
+  let (per_thread, cross_thread, strict_cross_thread, skew_1s) = match args.mode {
+    Mode::Drift => (
+      empty_per_thread::<C>(),
+      empty_cross_thread::<C>(),
+      None,
+      empty_skew_1s::<C>(),
+    ),
     Mode::Fast | Mode::All => {
       eprintln!("  per-thread ({:?})...", args.duration);
       let pt = measure_per_thread::<C>(args.duration);
@@ -132,10 +137,24 @@ fn run_for<C: ClockSource>(args: &Args) -> ClockReport {
         ct.total_violations, ct.max_violation_ns, ct.total_reads
       );
 
+      // Strict-cross-thread (load-then-now-then-check) — empirically validates
+      // whether the bare clock honors the happens-before-respecting strict
+      // monotonicity contract. Runs at the cross-thread duration (no separate
+      // budget); the metric only matters at the violations≷0 boundary.
+      eprintln!(
+        "  strict-cross-thread ({} threads, {:?})...",
+        args.threads, args.duration
+      );
+      let st = measure_strict_cross_thread::<C>(args.threads, args.duration);
+      eprintln!(
+        "    {} contract violations (max {} ns) / {} reads",
+        st.total_violations, st.max_violation_ns, st.total_reads
+      );
+
       eprintln!("  skew-1s ({} samples)...", args.skew_1s_samples);
       let s1 = measure_skew::<C>(Duration::from_secs(1), args.skew_1s_samples, "1s");
       eprintln!("    median skew: {} ns ({:.2} ppm)", s1.median_skew_ns, s1.median_skew_ppm);
-      (pt, ct, s1)
+      (pt, ct, Some(st), s1)
     }
   };
 
@@ -149,7 +168,14 @@ fn run_for<C: ClockSource>(args: &Args) -> ClockReport {
     }
   };
 
-  ClockReport { backed_by_arch_counter, per_thread, cross_thread, skew_1s, skew_1m }
+  ClockReport {
+    backed_by_arch_counter,
+    per_thread,
+    cross_thread,
+    strict_cross_thread,
+    skew_1s,
+    skew_1m,
+  }
 }
 
 fn empty_per_thread<C: ClockSource>() -> tach::bench::PerThreadResult {

@@ -178,6 +178,49 @@ def build_xthread_table(cells: dict[str, dict]) -> str:
     return "\n".join(out)
 
 
+def build_strict_table(cells: dict[str, dict]) -> str:
+    """Per-cell × per-clock strict-cross-thread (load-then-now-then-check)
+    violation counts. 0 means the bare clock honored the happens-before-
+    respecting contract for the test window. Non-zero means software
+    enforcement (MonotonicInstant's fetch_max) is required to claim
+    strict-cross-thread monotonicity on that platform.
+
+    This metric is the empirical basis for deciding whether MonotonicInstant
+    needs the fetch_max gate on a given platform — not spec readings, not
+    judgment, just data.
+    """
+    out = [
+        "Per-cell × per-clock strict-cross-thread contract violations under "
+        "the load-then-now-then-check pattern. 0 = bare clock empirically "
+        "honors strict cross-thread monotonicity for the test window; non-zero "
+        "= software enforcement is required to claim the contract. This is the "
+        "data that drives whether `MonotonicInstant` needs `fetch_max` on a "
+        "given platform.",
+        "",
+        "| Clock | " + " | ".join(CELL_ORDER) + " |",
+        "|---|" + "|".join(["---"] * len(CELL_ORDER)) + "|",
+    ]
+    for clock, _label in CLOCK_ORDER:
+        cells_data = []
+        for cell in CELL_ORDER:
+            c = cells.get(cell)
+            if c is None:
+                cells_data.append("n/a")
+                continue
+            cr = c["clocks"].get(clock)
+            if cr is None:
+                cells_data.append("n/a")
+                continue
+            strict = cr.get("strict_cross_thread")
+            if strict is None:
+                cells_data.append("n/a (pre-metric data)")
+                continue
+            v = strict.get("total_violations", 0)
+            cells_data.append("0 ✓" if v == 0 else f"{v:,}")
+        out.append(f"| `{clock}` | " + " | ".join(cells_data) + " |")
+    return "\n".join(out)
+
+
 def build_perthread_summary(cells: dict[str, dict]) -> str:
     lines = []
     for cell in CELL_ORDER:
@@ -246,13 +289,17 @@ def main():
 
     drift = build_drift_table(cells)
     xthread = build_xthread_table(cells)
+    strict = build_strict_table(cells)
     perthread = build_perthread_summary(cells)
 
     print("=== README drift table ===")
     print(drift)
     print()
-    print("=== BENCHMARKS cross-thread table ===")
+    print("=== BENCHMARKS cross-thread table (hardware sync slop + harness jitter) ===")
     print(xthread)
+    print()
+    print("=== BENCHMARKS strict-cross-thread table (contract validation) ===")
+    print(strict)
     print()
     print("=== BENCHMARKS per-thread summary ===")
     print(perthread)
@@ -273,6 +320,9 @@ def main():
             + perthread
         )
         txt = replace_or_append_bench_section(txt, "Cross-thread monotonicity", xthread_body)
+        txt = replace_or_append_bench_section(
+            txt, "Strict cross-thread monotonicity (contract validation)", strict
+        )
         bench_md.write_text(txt)
         print(f"wrote {bench_md}", file=sys.stderr)
     return 0
