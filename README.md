@@ -10,18 +10,39 @@ A replacement for `std::time::Instant` that reads the architectural counter dire
 ```rust
 use tach::{Instant, MonotonicInstant, OrderedInstant};
 
-// drop-in for std::time::Instant
+// drop-in for std::time::Instant — fastest read (3.5–21 ns
+// across platforms; 1.5–8× faster than std::time::Instant).
+// Use this for the common case: pinned threads, or any code
+// where ≤10 µs cross-thread sync slop is acceptable.
 let start = Instant::now();
 let elapsed = start.elapsed();
 
-// same API, sampled after prior Acquire loads
+// same API, strict cross-thread monotonic by construction —
+// guaranteed timeline across all threads even on platforms
+// where the bare hardware counter has per-core sync slop.
+// Use for tracing spans, multi-thread ordered logs, lock-free
+// version numbers.
+let mono = MonotonicInstant::now();
+let elapsed = mono.elapsed();
+
+// same API, sampled after prior Acquire loads — for
+// correlating a timestamp with atomic synchronization state.
+// Use when you need an explicit memory ordering barrier.
 let ordered = OrderedInstant::now();
 let elapsed = ordered.elapsed();
-
-// same API, strict cross-thread monotonic by construction
-let monotonic = MonotonicInstant::now();
-let elapsed = monotonic.elapsed();
 ```
+
+## choosing the right type
+
+| Need | Reach for | Why |
+|---|---|---|
+| Fastest read, single-threaded or cross-thread with ≤10 µs slop OK | `Instant` | Bare counter read. Per-thread monotonic by hardware on every platform; cross-thread bounded by hardware sync floor. Best choice for most tracing/profiling/logging. |
+| Guaranteed strict cross-thread monotonicity (spans crossing threads, multi-thread ordered logs) | `MonotonicInstant` | Adds one `AtomicU64::fetch_max` on platforms that need it (every multi-threaded target tested); zero-cost on wasm/WASI. |
+| Acquire-load correlation with user atomics | `OrderedInstant` | Adds an arch-appropriate barrier (`rdtscp` on x86, `isb sy` on aarch64) before the counter read. |
+
+Cost ordering, per-thread (no contention), as of 2026-05 (see `BENCHMARKS.md` for the full table): **`Instant` < `MonotonicInstant` < `OrderedInstant`**. Counterintuitive — `MonotonicInstant`'s LOCK fetch_max on an uncontended cache line is cheaper than `OrderedInstant`'s pipeline-drain barrier — but consistent across every cell we measure.
+
+Bonus property of `OrderedInstant`: empirically passes strict cross-thread monotonicity on every cell we test (the pipeline-drain barrier serializes enough to close the cross-core race window). This is an *observation*, not an ISA guarantee. If you need cross-thread strictness guaranteed by construction, use `MonotonicInstant`. If you measure your target hardware and confirm `OrderedInstant` passes the strict test there, you can rely on it for both — but the safer default for the strict claim is `MonotonicInstant`.
 
 ## benchmark
 
@@ -31,17 +52,36 @@ Methodology and per-target reports: [BENCHMARKS.md](BENCHMARKS.md).
 
 ## semantics
 
-**Guaranteed monotonic timer.** `Instant::now()` returns strictly non-decreasing values within a thread, by design and by architectural spec. The counter is wall-clock-rate — keeps ticking through park, suspension, and descheduling — and every thread in the process reads the same source.
+`Instant` is the fast read — `RDTSC` on x86, `mrs cntvct_el0` on aarch64, `rdtime` on RISC-V, `rdtime.d` on LoongArch, `Performance.now()` in wasm, `clock_gettime(CLOCK_MONOTONIC)` everywhere else. Wall-clock-rate, keeps ticking through park / suspension / descheduling. Same source across every thread in the process. The whole counter read is one instruction on every native target; no runtime dispatch.
 
-The guarantee rests on three things:
+**Per-thread monotonicity is hardware-guaranteed.** A pinned thread (or any thread the OS doesn't migrate between cores) sees a strictly non-decreasing sequence. Measured: 0 backward jumps across 33 billion reads on our 6-cell bench matrix (`benches/skewmono-*.json`).
 
-1. **Hardware**: every backing counter is documented monotonic non-decreasing in its primary spec — RDTSC (Intel SDM Vol 3B §17.17 "Invariant TSC"), CNTVCT_EL0 (ARMv8 ARM §D11.1.2, "must report the same value of the global counter" across cores), RISC-V `time` (Privileged Spec §10.1), LoongArch Stable Counter, Windows QPC, `clock_gettime(CLOCK_MONOTONIC)`, WASI `clockid::monotonic`, `Performance.now()`. Survey + citations in `BENCHMARKS.md`.
-2. **Design**: `Instant` stores the raw counter tick (`u64`), not a converted nanosecond value. Ordering (`<`, `>`, `cmp`) is pure tick comparison; `duration_since` is non-negative tick delta × scale; `checked_duration_since` returns `None` on argument-swap. The frequency scaling is consulted only at observation time on a non-negative delta, so a frequency *estimate* changing across calls cannot make a younger `Instant` appear older.
-3. **Empirical**: 0 backward jumps measured per-thread on every cell × clock × variant we test (`benches/skewmono-*.json`, 6 cells, billions of reads). Cross-thread, every cell sits at the hardware sync-slop floor (≤10 µs) — matching `std::time::Instant` on the same hardware. On Graviton 3, tach reads `cntvct_el0` directly and reliably beats `std` on cross-thread slop because direct register reads dodge vDSO call jitter (current run: tach 3.4 µs vs std 9.4 µs; an earlier run hit a chip with perfectly-synced counters and saw 0 ns vs std's 9.4 µs — the architectural spec aspires to perfect sync but real chips vary).
+**Cross-thread monotonicity is bounded by the hardware's per-core sync slop.** On x86 the per-core TSC is firmware-synchronized but can show sub-microsecond drift on migration; on aarch64 the spec says `cntvct_el0` is one global counter but Apple Silicon and Graviton 3 both show measurable per-core slop in practice (see BENCHMARKS.md for the per-cell strict-contract data). Empirically the slop sits at the bracket-filter floor (≤10 µs) on every cell tested — matching `std::time::Instant` on the same hardware, because `std` reads the same underlying counter. For most use cases (tracing, profiling, latency measurement, request budgets) ≤10 µs slop is fine. For uses where it isn't — strictly ordered cross-thread events — reach for `MonotonicInstant` (next section).
 
-Untested cross-CCX (AMD Zen4) and multi-socket NUMA boundaries are outside the verification set. `std` doesn't help there either — it reads the same hardware counter through a slower path — so measure on your specific hardware if you correlate timestamps across those boundaries.
+Within a single process, two `Instant`s captured on the same thread (or both on pinned threads) are strictly orderable. Untested cross-CCX (AMD Zen4) and multi-socket NUMA boundaries are outside the verification set; `std` doesn't help there either — same hardware counter through a slower path — so measure your hardware if you correlate timestamps across those.
 
-Cost difference on the read: tach's ~0.35 ns vs `std::time::Instant::now()`'s ~20 ns.
+Cost on the read: 3.5–21 ns across our test matrix vs `std::time::Instant::now()`'s ~20–60 ns (1.5–8× faster). Full per-platform breakdown in `## performance` below.
+
+## strict cross-thread monotonicity
+
+Plain `Instant` is bounded by the hardware's per-core sync slop. **Bare arch counter reads (`rdtsc`, `mrs cntvct_el0`) FAIL strict cross-thread monotonicity on every multi-threaded platform we tested.** Rates vary by orders of magnitude — sub-ppm on Nitro VMs, 12% on Apple Silicon M1 — but every platform shows non-zero contract violations under the strict load-then-now-then-check test (`measure_strict_cross_thread`, runnable as `cargo bench --bench skew` or as the `monotonic_strict_cross_thread` unit test). See `BENCHMARKS.md` "Strict cross-thread monotonicity (contract validation)" for the per-cell × per-clock data.
+
+`MonotonicInstant` enforces strict cross-thread monotonicity in software where the bench data shows it's needed, and skips the enforcement where the platform's execution model already guarantees it:
+
+```rust
+let t1 = tach::MonotonicInstant::now();
+// ... cross-thread work via channels, mutexes, atomics ...
+let t2 = tach::MonotonicInstant::now();
+assert!(t2 >= t1);   // always; no hardware-floor sync slop leaks through
+```
+
+**Algorithm**: every `now()` does the bare counter read; on platforms where the bare clock empirically fails the strict contract (every multi-threaded target — x86, aarch64, RISC-V, LoongArch), the read is followed by `AtomicU64::fetch_max(tsc, AcqRel)` against a process-global last-seen tick. The fetch_max forces the return to be `>=` every previously published value. On wasm32 (single-threaded JS realm with W3C HRT strict-monotonic spec) and WASI (single-threaded execution model with strict-monotonic spec), the enforcement is skipped — `MonotonicInstant::now()` compiles to **the same instruction as `Instant::now()`**, free of cost.
+
+**Cost where enforcement applies**: ~+2–14 ns per call uncontended (one LOCK CMPXCHG-class atomic on a hot cache line). Under heavy contention (many threads simultaneously hammering `now()`) it can degrade to 100+ ns per call as the cache line bounces between cores. Plain `Instant` stays untouched for callers who want the fastest read and accept hardware-floor monotonicity.
+
+**Counterintuitive performance note**: on every platform we measure, `MonotonicInstant::now()` is FASTER than `OrderedInstant::now()` per-thread (e.g. Apple Silicon: 7.0 ns vs 18.5 ns; Windows: 10.7 ns vs 25.4 ns). The pipeline-drain barrier `OrderedInstant` uses costs more than a LOCK fetch_max on an uncontended cache line. Atomics-should-be-expensive is the wrong intuition for this regime.
+
+**Comparison crates**: `std::time::Instant`, `quanta`, `minstant`, `fastant` all read the same underlying hardware counter (or a kernel-mediated wrapper thereof). On the strict load-then-now test (`BENCHMARKS.md`), `std` happens to pass on every cell (the vDSO/syscall path serializes internally); `quanta` fails on every cell (bare counter read); `minstant` and `fastant` show mixed results by platform. Notably, `fastant` falls back to wall-clock `SystemTime` on non-Linux targets — this is structurally non-monotonic (NTP corrections can move it backward) and would break tracing-style code on macOS / Windows. `MonotonicInstant` is the only type in the comparison set that gives strict cross-thread monotonicity by construction.
 
 ## ordered reads
 
@@ -63,24 +103,7 @@ Cost is ~5–20 ns more than `Instant::now()`. `OrderedInstant::as_unordered()` 
 
 On riscv64 (`fence iorw, iorw`) and loongarch64 (`dbar 0`) the strongest available memory barrier is used; whether memory fences constrain CSR reads is implementation-defined on those targets, so the guarantee is best-effort.
 
-## strict cross-thread monotonicity
-
-Plain `Instant` and `OrderedInstant` are bounded by the underlying counter's cross-thread synchronization. On x86 the per-core TSC is firmware-synchronized but not architecturally so — a thread that migrates between cores can observe a TSC slightly behind what it just saw. On aarch64 the ARMv8 ARM specifies `cntvct_el0` as a single global counter, but empirically Apple Silicon and Graviton 3 both show real per-core slop in practice — tach's own strict-monotonicity test (load-then-now-then-check pattern; runnable with `cargo bench --bench skew` or as the `monotonic_strict_cross_thread` unit test) fails against bare counter reads on **every multi-threaded platform tested**: 17M / 144M reads on Apple Silicon, 1.8K / 382M reads on Graviton 3, 9.6M / 154M on Intel bare metal, similar non-zero numbers on every other cell. Architectural-guarantee-says-so is not a safe basis for shipping a "strict cross-thread monotonic" claim — only software enforcement makes the test pass on every cell.
-
-`MonotonicInstant` enforces strict cross-thread monotonicity in software where it's empirically needed, and skips the enforcement where the platform's execution model already guarantees it:
-
-```rust
-let t1 = tach::MonotonicInstant::now();
-// ... cross-thread work via channels, mutexes, atomics ...
-let t2 = tach::MonotonicInstant::now();
-assert!(t2 >= t1);   // always; no hardware-floor sync slop leaks through
-```
-
-Algorithm: every `now()` does the bare counter read; on platforms where the bare clock empirically fails the strict contract (every multi-threaded platform — x86, aarch64, RISC-V, LoongArch), the read is followed by `AtomicU64::fetch_max(tsc, AcqRel)` against a process-global last-seen tick. The fetch_max forces the return to be `>=` every previously published value. On wasm32 (single-threaded JS realm with W3C HRT strict-monotonic spec) and WASI (single-threaded execution model with strict-monotonic spec), the enforcement is skipped — `MonotonicInstant::now()` compiles to **the same instruction as `Instant::now()`**, free of cost.
-
-Where enforcement applies, cost is ~+10–25 cycles per call uncontended (one LOCK CMPXCHG-class atomic on a hot cache line). Under heavy contention (many threads simultaneously hammering `now()`) it can degrade to 100+ ns per call as the cache line bounces between cores. Plain `Instant` stays untouched for callers who want the speed pitch and accept hardware-floor monotonicity.
-
-This is the only timestamp in the comparison set (vs `std::time::Instant`, `quanta`, `minstant`, `fastant`) that offers strict cross-thread monotonicity by construction — `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)` reading the same underlying counter, and `quanta::Instant::now()` reads bare RDTSC / `mrs cntvct_el0` with no software-side enforcement. The empirical evidence (see `BENCHMARKS.md`, "Strict cross-thread monotonicity (contract validation)") shows `std` happens to pass the test on every cell (the vDSO/syscall path serializes internally), while `quanta`, `minstant`, and `fastant` show non-zero contract violations on multiple cells.
+**Empirical bonus (not an ISA guarantee)**: across every cell we test, `OrderedInstant::now()` also passes the strict cross-thread monotonicity test — the pipeline-drain barrier serializes enough state that the cross-core race window closes. This is a *side effect* of the barrier, not promised by Intel/ARM specs. If you need *guaranteed* strict cross-thread monotonicity by construction, use `MonotonicInstant` (it's also cheaper). If you've measured your target hardware and confirmed `OrderedInstant` passes the strict test there, you can rely on it for both ordering and cross-thread strictness on that hardware.
 
 ## platform support
 
@@ -124,6 +147,25 @@ For long-running services that need wall-clock-correlated accuracy:
 - **`recalibrate-background` Cargo feature** — automatic. Spawns a background thread that re-measures the frequency every 60 seconds (configurable via `tach::set_recalibration_interval`) and EMA-blends the result into the cached scale (α ≈ 0.2 ≈ 5-sample averaging window), so a single noisy calibration window can't jolt the scale on virtualized hosts. **Requires `std`; incompatible with `#![no_std]` targets** (pulls in `std::thread` and `std::sync::OnceLock`). Active on every target that calibrates at startup: Intel x86 (Linux / Windows) and aarch64 Linux. Empirically improves drift where startup calibration accumulates error — AWS Lambda goes from 0.75 ppm baseline to 0.58 ppm with recal, m7i.metal-24xl bare metal goes from -3.25 ppm to -0.34 ppm. No-op on macOS (Apple writes the per-die timebase) and Windows aarch64 (`cntfrq_el0` is QPF-calibrated). On cells where startup calibration was already sub-ppm (t3.medium burst VM, c7g.4xlarge Graviton) the EMA's residual stays within noise of baseline.
 
 Within a single process, two tach measurements are mutually consistent — drift only shows up when comparing against an external reference (NTP-disciplined wall clock, another process, etc.).
+
+## performance
+
+Per-thread call cost across our 6-cell bench matrix (single-thread tight loop, no contention):
+
+| Platform | `Instant` | `MonotonicInstant` | `OrderedInstant` | `std::Instant` |
+|---|---|---|---|---|
+| Apple Silicon M1 (aarch64 macOS) | **3.5 ns** | 7.0 ns | 18.5 ns | 28.0 ns |
+| Graviton 3 (aarch64 Linux, `c7g.4xlarge`) | **7.3 ns** | 10.6 ns | 26.1 ns | 37.7 ns |
+| Intel Nitro VM (x86 Linux, `t3.medium`) | **14.4 ns** | 25.4 ns | 27.1 ns | 36.3 ns |
+| Intel bare metal (x86 Linux, `m7i.metal-24xl`) | **8.5 ns** | 14.4 ns | 16.8 ns | 19.5 ns |
+| AWS Lambda Firecracker (x86) | **21.2 ns** | 35.7 ns | 40.0 ns | 59.5 ns |
+| Windows Server 2025 (x86) | **9.6 ns** | 10.7 ns | 25.4 ns | 36.3 ns |
+
+`Instant` is **1.5–8× faster than `std::time::Instant`** on every platform. `MonotonicInstant` adds 2–14 ns over `Instant`; `OrderedInstant` adds 8–19 ns. Notably `MonotonicInstant` is **faster than `OrderedInstant`** on every cell — the LOCK fetch_max on an uncontended cache line is cheaper than the pipeline-drain barrier `OrderedInstant` uses. Counterintuitive but consistent.
+
+These are uncontended per-thread costs. Under heavy contention (many threads simultaneously hammering `now()`), `MonotonicInstant`'s fetch_max can degrade to 100+ ns as the cache line bounces between cores; `Instant` and `OrderedInstant` keep their per-thread cost regardless of contention. If your use case has hundreds of threads emitting timestamps in tight loops, plain `Instant` (accepting the hardware-floor cross-thread slop) is the right choice for the hot path; reserve `MonotonicInstant` for cases where strict ordering across threads is load-bearing.
+
+Source: `benches/skewmono-*.json` (regenerable via `bash benches/run-skewmono-aws.sh <cell> <instance-type>`).
 
 ## non-goals
 

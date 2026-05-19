@@ -263,6 +263,29 @@ Per-cell × per-clock strict-cross-thread contract violations under the load-the
 | `fastant` | 0 ✓ | 0 ✓ | 45 | 11,169,115 | 74 | 0 ✓ |
 | `std` | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |
 
+## Per-thread call cost
+
+Per-thread cost (single-thread tight loop, no contention) derived from `PerThreadResult.duration_ns / PerThreadResult.total_reads` in `benches/skewmono-*.json`. This is the honest per-call cost for the typical use pattern.
+
+| Platform | `Instant` | `MonotonicInstant` | `OrderedInstant` | `std::Instant` |
+|---|---|---|---|---|
+| Apple Silicon M1 (aarch64 macOS) | **3.5 ns** | 7.0 ns | 18.5 ns | 28.0 ns |
+| Graviton 3 (aarch64 Linux, `c7g.4xlarge`) | **7.3 ns** | 10.6 ns | 26.1 ns | 37.7 ns |
+| Intel Nitro VM (x86 Linux, `t3.medium`) | **14.4 ns** | 25.4 ns | 27.1 ns | 36.3 ns |
+| Intel bare metal (x86 Linux, `m7i.metal-24xl`) | **8.5 ns** | 14.4 ns | 16.8 ns | 19.5 ns |
+| AWS Lambda Firecracker (x86) | **21.2 ns** | 35.7 ns | 40.0 ns | 59.5 ns |
+| Windows Server 2025 (x86) | **9.6 ns** | 10.7 ns | 25.4 ns | 36.3 ns |
+
+**`Instant` is 1.5–8× faster than `std::time::Instant`** on every platform.
+
+**`MonotonicInstant` adds 2–14 ns** over `Instant` for the LOCK fetch_max enforcement.
+
+**`OrderedInstant` adds 8–19 ns** over `Instant` for the per-arch pipeline-drain barrier (`rdtscp` / `isb sy`).
+
+**Counterintuitive finding**: on every cell we measure, `MonotonicInstant` is FASTER than `OrderedInstant` per-thread. The LOCK fetch_max on an uncontended cache line costs less than the pipeline-drain barrier. The "atomics are expensive" intuition is wrong for this regime — `MonotonicInstant`'s atomic touches one always-warm global cache line; `OrderedInstant`'s barrier waits for the entire pipeline to drain, which can stall depending on what's in flight. On the platforms we test (modern out-of-order cores), pipeline drain consistently beats LOCK fetch_max.
+
+**Cross-thread cost story**: the numbers above are uncontended per-thread costs. Under heavy contention (many threads simultaneously calling `now()`), `MonotonicInstant`'s fetch_max can degrade to 100+ ns per call as the global cache line bounces between cores. `Instant` and `OrderedInstant` keep their per-thread cost regardless of contention. For high-thread-count workloads where strict cross-thread ordering isn't load-bearing, prefer `Instant`.
+
 ## Drift methodology
 
 The drift table in the README compares `tach::Instant`, `quanta::Instant`, `minstant::Instant`, `fastant::Instant`, and `std::time::Instant` at 1-second, 1-minute, 1-hour, and 1-day measurement intervals. The numbers are *per-interval*, not uptime-cumulative — a 1-minute measurement made 5 seconds into the process has the same drift as one made 100 days in. Drift only shows up when comparing tach's `elapsed()` against an external reference clock; within a single process, all tach measurements are mutually consistent.

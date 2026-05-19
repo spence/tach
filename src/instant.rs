@@ -3,17 +3,48 @@ use core::time::Duration;
 
 use crate::arch;
 
-/// A sampled point in the process-wide counter timeline.
+/// A sampled point in the process-wide counter timeline. The fast read.
 ///
 /// Drop-in replacement for [`std::time::Instant`] backed by the architectural
-/// wall-clock counter (RDTSC, CNTVCT_EL0, rdtime).
+/// wall-clock counter (RDTSC, CNTVCT_EL0, rdtime, rdtime.d). One instruction
+/// on every native target; no runtime dispatch. **1.5–8× faster than
+/// `std::time::Instant`** on every supported platform.
 ///
 /// `Instant` is wall-clock-rate: it keeps ticking through park, suspension, and
 /// descheduling. The same source is used across every thread in the process.
-/// Monotonicity is at parity with [`std::time::Instant`] on every tested
-/// platform — both read the same underlying counter and neither performs
-/// software cross-thread enforcement, so cross-thread observation slop is
-/// bounded by the hardware (≤10 µs on every tested cell; 0 ns on Graviton 3).
+///
+/// # When to use this
+///
+/// Reach for `Instant` for the common case: pinned threads, or any code
+/// where ≤10 µs cross-thread sync slop is acceptable. That covers almost
+/// any tracing, profiling, latency measurement, or request-budget use case.
+///
+/// For uses where strict cross-thread monotonicity matters (multi-thread
+/// ordered logs, distributed spans, lock-free version numbers), reach for
+/// [`MonotonicInstant`] instead — it adds a process-global atomic to
+/// guarantee strict ordering across threads. For acquire-load correlation
+/// against user atomics, reach for [`OrderedInstant`].
+///
+/// # Monotonicity contract
+///
+/// **Per-thread**: strictly non-decreasing by hardware on every supported
+/// target. A pinned thread (or any thread the OS doesn't migrate between
+/// cores) reads a monotonically increasing sequence. Measured: 0 backward
+/// jumps across 33 billion reads in the 6-cell bench matrix.
+///
+/// **Cross-thread**: bounded by the hardware's per-core sync floor (≤10 µs
+/// on every tested cell, matching [`std::time::Instant`] on the same
+/// hardware — both read the same underlying counter). Empirically the bare
+/// counter shows non-zero contract violations on the strict
+/// load-then-now-then-check test on every multi-threaded platform tested.
+/// For strict cross-thread monotonicity, use [`MonotonicInstant`].
+///
+/// # Cost
+///
+/// 3.5 ns on Apple Silicon M1, 7.3 ns on Graviton 3, 8.5 ns on Intel bare
+/// metal, 9.6 ns on Windows, 14.4 ns on Intel virtualized (Nitro), 21.2 ns
+/// on AWS Lambda Firecracker. Per-thread, single-thread tight loop. Full
+/// per-platform table in `BENCHMARKS.md`.
 ///
 /// # Example
 ///
@@ -206,9 +237,34 @@ impl Sub<Instant> for Instant {
 /// # Cost
 ///
 /// Roughly 5–20 ns more than [`Instant::now()`] depending on architecture;
-/// still substantially faster than [`std::time::Instant::now()`] on Linux
-/// and macOS (which call into the vDSO / libsystem path but do not
+/// per-platform measurements: 18.5 ns on Apple Silicon M1, 26.1 ns on
+/// Graviton 3, 27.1 ns on Intel virtualized, 16.8 ns on Intel bare metal,
+/// 25.4 ns on Windows, 40 ns on AWS Lambda Firecracker (per-thread, no
+/// contention). Still substantially faster than [`std::time::Instant::now()`]
+/// on Linux and macOS (which call into the vDSO / libsystem path but do not
 /// themselves guarantee this ordering against atomics).
+///
+/// Note: on every cell we measure, `OrderedInstant::now()` is **slower**
+/// than [`crate::MonotonicInstant::now()`] per-thread. The pipeline-drain
+/// barrier costs more than a LOCK fetch_max on an uncontended cache line.
+/// Counterintuitive — atomics should be expensive! — but consistent across
+/// our 6-cell bench matrix.
+///
+/// # Empirical bonus: strict cross-thread monotonicity
+///
+/// Across every cell we test, `OrderedInstant::now()` also passes the
+/// strict cross-thread monotonicity test (`monotonic_strict_cross_thread`
+/// in the unit tests; per-cell data in `BENCHMARKS.md`). The pipeline-
+/// drain barrier serializes enough state that the cross-core race window
+/// closes. **This is an empirical observation, not an ISA guarantee** —
+/// Intel/ARM specs for `rdtscp` / `isb sy` do not promise cross-core TSC
+/// synchronization, only per-core pipeline serialization.
+///
+/// If you need *guaranteed* strict cross-thread monotonicity by
+/// construction, use [`crate::MonotonicInstant`] (which is also cheaper
+/// per-thread). If you've measured your target hardware and confirmed
+/// `OrderedInstant` passes the strict test there, you can rely on it for
+/// both acquire-ordering and cross-thread strictness on that hardware.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -367,13 +423,25 @@ impl Sub<OrderedInstant> for OrderedInstant {
 /// monotonicity (contract validation)") shows the bare arch counter fails
 /// the strict happens-before contract. That covers every multi-threaded
 /// platform tach supports: x86 (Linux / macOS / Windows), aarch64 (Linux /
-/// macOS / Windows), riscv64, loongarch64. On those platforms, uncontended
-/// cost is ~10-25 cycles on top of the bare read — total ~35-50 cycles per
-/// call on x86, ~15-35 cycles on aarch64. Under heavy contention (many
-/// threads simultaneously hammering `now()`), the `fetch_max` can degrade
-/// to 100+ ns per call as the cache line bounces between cores. If your
-/// workload only needs per-thread monotonicity, prefer plain [`Instant`]
-/// to avoid this cost.
+/// macOS / Windows), riscv64, loongarch64.
+///
+/// Per-platform uncontended cost (per-thread tight loop, no contention):
+/// 7.0 ns on Apple Silicon M1, 10.6 ns on Graviton 3, 14.4 ns on Intel
+/// bare metal, 10.7 ns on Windows, 25.4 ns on Intel virtualized (Nitro),
+/// 35.7 ns on AWS Lambda Firecracker. That's 2–14 ns more than
+/// [`Instant::now()`] on the same hardware.
+///
+/// **Counterintuitive finding**: `MonotonicInstant::now()` is FASTER than
+/// [`OrderedInstant::now()`] per-thread on every cell we measure (e.g. Apple
+/// Silicon: 7.0 vs 18.5 ns; Windows: 10.7 vs 25.4 ns). The LOCK fetch_max
+/// on an uncontended cache line is cheaper than the pipeline-drain barrier
+/// `OrderedInstant` uses. Atomics-should-be-expensive is the wrong
+/// intuition for this regime.
+///
+/// Under heavy contention (many threads simultaneously hammering `now()`),
+/// the `fetch_max` can degrade to 100+ ns per call as the cache line
+/// bounces between cores. If your workload only needs per-thread
+/// monotonicity, prefer plain [`Instant`] to avoid this cost.
 ///
 /// On wasm32 (single-threaded JS realm with W3C HRT strict `performance.now()`)
 /// and WASI (single-threaded execution with strict-monotonic spec),

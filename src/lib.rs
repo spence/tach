@@ -20,17 +20,73 @@
 //! println!("{elapsed:?}");
 //! ```
 //!
-//! # Timing contract
+//! # Three types, picked by use case
+//!
+//! - **[`Instant`]** — the fast read (3.5–21 ns across platforms; 1.5–8×
+//!   faster than [`std::time::Instant`]). Per-thread monotonic by hardware on
+//!   every supported target; cross-thread bounded by the hardware sync floor
+//!   (≤10 µs on every tested cell, matching [`std::time::Instant`] on the
+//!   same hardware). Right choice for the common case: pinned threads, or
+//!   any code where ≤10 µs cross-thread slop is acceptable (tracing,
+//!   profiling, latency measurement, request budgets).
+//! - **[`MonotonicInstant`]** — strict cross-thread monotonic by
+//!   construction. Adds a process-global `AtomicU64::fetch_max` to the bare
+//!   read on every multi-threaded platform (skipped on wasm32 / WASI where
+//!   the runtime already guarantees strictness). Adds 2–14 ns vs `Instant`
+//!   in the uncontended case. Right choice for tracing spans crossing
+//!   threads, lock-free version numbers, multi-thread ordered logs.
+//! - **[`OrderedInstant`]** — acquire-side ordered against prior atomic
+//!   loads. Adds a per-arch barrier (`rdtscp` on x86, `isb sy` on aarch64).
+//!   Adds 8–19 ns vs `Instant`. Right choice for correlating a timestamp
+//!   with atomic synchronization state.
+//!
+//! Counterintuitive performance fact, consistent across every cell we
+//! measure: [`MonotonicInstant`] is FASTER than [`OrderedInstant`]
+//! per-thread, despite the extra atomic. The LOCK fetch_max on an
+//! uncontended cache line costs less than the pipeline-drain barrier
+//! [`OrderedInstant`] uses. See `BENCHMARKS.md` for the full per-platform
+//! cost table.
+//!
+//! # Timing contract for [`Instant`]
 //!
 //! `Instant` is wall-clock-rate: keeps ticking through park, suspension, and
-//! descheduling. Same source across every thread in the process. Monotonicity is
-//! at parity with [`std::time::Instant`] on every tested platform — both read the
-//! same underlying counter, neither performs software-side cross-thread
-//! enforcement, so cross-thread observation slop is bounded by the hardware
-//! (≤10 µs on every tested cell; 0 ns on Graviton 3, whose `cntvct_el0` is
-//! architecturally synchronized across cores). AMD Zen4 cross-CCX and
-//! multi-socket NUMA boundaries are not in the verification set — measure on
-//! your hardware if you correlate timestamps across those.
+//! descheduling. Same source across every thread in the process. **Per-thread
+//! monotonicity is hardware-guaranteed.** Measured: 0 backward jumps across
+//! 33 billion reads in the 6-cell bench matrix (`benches/skewmono-*.json`).
+//!
+//! **Cross-thread monotonicity is bounded by the hardware's per-core sync
+//! slop.** On every tested cell the slop sits at the bracket-filter floor
+//! (≤10 µs), matching [`std::time::Instant`] on the same hardware (both read
+//! the same underlying counter). For uses where ≤10 µs slop isn't acceptable
+//! — strictly ordered cross-thread events — reach for [`MonotonicInstant`].
+//! AMD Zen4 cross-CCX and multi-socket NUMA boundaries are outside the
+//! verification set; measure your hardware if you correlate timestamps
+//! across those.
+//!
+//! # Strict cross-thread monotonicity: [`MonotonicInstant`]
+//!
+//! Bare arch counter reads FAIL strict cross-thread monotonicity on every
+//! multi-threaded platform we test. Rates vary from sub-ppm (Nitro VMs) to
+//! 12% (Apple Silicon M1), but every multi-threaded platform shows non-zero
+//! contract violations under the strict load-then-now-then-check test (the
+//! `monotonic_strict_cross_thread` unit test runs this; per-cell data in
+//! `BENCHMARKS.md`). [`MonotonicInstant`] enforces the strict contract in
+//! software via a process-global `AtomicU64::fetch_max` on every read:
+//!
+//! ```ignore
+//! let t1 = tach::MonotonicInstant::now();
+//! // ... cross-thread work via channels, mutexes, atomics ...
+//! let t2 = tach::MonotonicInstant::now();
+//! assert!(t2 >= t1);   // always; cross-thread monotonicity is strict
+//! ```
+//!
+//! On wasm32 (single-threaded JS realm) and WASI (single-threaded execution
+//! model), the enforcement is skipped — `MonotonicInstant::now()` compiles
+//! to the same instruction as `Instant::now()` on those targets.
+//!
+//! This is strictly stronger than [`std::time::Instant`] on x86, which reads
+//! the same underlying counter through a slower path and performs no
+//! software-side cross-thread enforcement.
 //!
 //! # Ordering against atomics: [`OrderedInstant`]
 //!
@@ -66,33 +122,12 @@
 //! macOS (which use the vDSO / libsystem path but do not themselves
 //! guarantee this ordering).
 //!
-//! # Strict cross-thread monotonicity: [`MonotonicInstant`]
-//!
-//! Plain [`Instant`] and [`OrderedInstant`] are bounded by the underlying
-//! counter's cross-thread synchronization. On x86 the per-core TSC is
-//! firmware-synchronized but can show sub-microsecond drift; a thread that
-//! migrates between cores can observe a TSC slightly behind what it had
-//! just seen. On aarch64 the ARMv8 ARM specifies `cntvct_el0` as a single
-//! global counter, but empirically Apple Silicon M1 still shows measurable
-//! per-core slop under contention.
-//!
-//! [`MonotonicInstant`] guarantees strictly non-decreasing timestamps
-//! across every thread in the process by enforcing a process-global
-//! `AtomicU64::fetch_max` on each read. Applied uniformly across every
-//! supported architecture — the spec-says-so-it-must-be-true assumption is
-//! not relied on. Adds ~10–25 cycles on top of the bare read for the
-//! atomic operation; total ~35-50 cycles on x86, ~15-35 cycles on aarch64.
-//!
-//! ```ignore
-//! let t1 = tach::MonotonicInstant::now();
-//! // ... cross-thread work via channels, mutexes, atomics ...
-//! let t2 = tach::MonotonicInstant::now();
-//! assert!(t2 >= t1);   // always; cross-thread monotonicity is strict
-//! ```
-//!
-//! This is strictly stronger than [`std::time::Instant`] on x86, which reads
-//! the same underlying counter through a slower path and performs no
-//! software-side cross-thread enforcement.
+//! **Empirical bonus**: across every cell we test, [`OrderedInstant`] also
+//! happens to pass the strict cross-thread monotonicity test (the
+//! pipeline-drain barrier serializes enough state that the cross-core race
+//! window closes). This is an observation, not an ISA guarantee — if you
+//! need *guaranteed* strict cross-thread monotonicity by construction, use
+//! [`MonotonicInstant`] (which is also cheaper per-thread).
 
 mod arch;
 // Calibration is needed wherever the architectural counter doesn't self-report
