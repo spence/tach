@@ -69,7 +69,7 @@
           ]
         ]
       },
-      "strict_cross_thread": {
+      "synchronization_order": {
         "clock": "fastant",
         "threads": 16,
         "total_violations": 11169115,
@@ -366,7 +366,7 @@
           ]
         ]
       },
-      "strict_cross_thread": {
+      "synchronization_order": {
         "clock": "minstant",
         "threads": 16,
         "total_violations": 2791812,
@@ -663,7 +663,7 @@
           ]
         ]
       },
-      "strict_cross_thread": {
+      "synchronization_order": {
         "clock": "quanta",
         "threads": 16,
         "total_violations": 18332108,
@@ -960,7 +960,7 @@
           ]
         ]
       },
-      "strict_cross_thread": {
+      "synchronization_order": {
         "clock": "std",
         "threads": 16,
         "total_violations": 0,
@@ -1257,7 +1257,7 @@
           ]
         ]
       },
-      "strict_cross_thread": {
+      "synchronization_order": {
         "clock": "tach",
         "threads": 16,
         "total_violations": 9629641,
@@ -1496,17 +1496,17 @@
         "median_skew_ppm": -2.7766775227653935
       }
     },
-    "tach_monotonic": {
+    "tach_synced": {
       "backed_by_arch_counter": true,
       "per_thread": {
-        "clock": "tach_monotonic",
+        "clock": "tach_synced",
         "violations": 0,
         "total_reads": 693829633,
         "max_violation_ns": 0,
         "duration_ns": 10000050629
       },
       "cross_thread": {
-        "clock": "tach_monotonic",
+        "clock": "tach_synced",
         "threads": 16,
         "violations_per_thread": [
           4429286,
@@ -1554,8 +1554,8 @@
           ]
         ]
       },
-      "strict_cross_thread": {
-        "clock": "tach_monotonic",
+      "synchronization_order": {
+        "clock": "tach_synced",
         "threads": 16,
         "total_violations": 0,
         "total_reads": 130578569,
@@ -1563,7 +1563,7 @@
         "duration_ns": 10001527321
       },
       "skew_1s": {
-        "clock": "tach_monotonic",
+        "clock": "tach_synced",
         "interval": "1s",
         "samples": [
           {
@@ -1753,7 +1753,7 @@
         "median_skew_ppm": -3.820551623881973
       },
       "skew_1m": {
-        "clock": "tach_monotonic",
+        "clock": "tach_synced",
         "interval": "1m",
         "samples": [
           {
@@ -1793,17 +1793,17 @@
         "median_skew_ppm": -2.791710885266066
       }
     },
-    "tach_ordered": {
+    "tach_fenced": {
       "backed_by_arch_counter": true,
       "per_thread": {
-        "clock": "tach_ordered",
+        "clock": "tach_fenced",
         "violations": 0,
         "total_reads": 595656705,
         "max_violation_ns": 0,
         "duration_ns": 10001018160
       },
       "cross_thread": {
-        "clock": "tach_ordered",
+        "clock": "tach_fenced",
         "threads": 16,
         "violations_per_thread": [
           9348265,
@@ -1851,8 +1851,8 @@
           ]
         ]
       },
-      "strict_cross_thread": {
-        "clock": "tach_ordered",
+      "synchronization_order": {
+        "clock": "tach_fenced",
         "threads": 16,
         "total_violations": 0,
         "total_reads": 151617504,
@@ -1860,7 +1860,7 @@
         "duration_ns": 10001110002
       },
       "skew_1s": {
-        "clock": "tach_ordered",
+        "clock": "tach_fenced",
         "interval": "1s",
         "samples": [
           {
@@ -2050,7 +2050,7 @@
         "median_skew_ppm": -3.9355861258918288
       },
       "skew_1m": {
-        "clock": "tach_ordered",
+        "clock": "tach_fenced",
         "interval": "1m",
         "samples": [
           {
@@ -2148,7 +2148,7 @@
           ]
         ]
       },
-      "strict_cross_thread": {
+      "synchronization_order": {
         "clock": "tach_recal",
         "threads": 16,
         "total_violations": 16905112,

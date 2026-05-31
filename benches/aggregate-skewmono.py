@@ -36,8 +36,8 @@ CELL_ORDER = [
 CLOCK_ORDER = [
     ("tach",         "`tach::Instant` (default, `#![no_std]`)"),
     ("tach_recal",     "`tach::Instant` + `recalibrate-background` (**requires `std`**)"),
-    ("tach_ordered",   "`tach::OrderedInstant` (default, `#![no_std]`)"),
-    ("tach_monotonic", "`tach::MonotonicInstant` (default, `#![no_std]`)"),
+    ("tach_fenced",   "`tach::FencedInstant` (default, `#![no_std]`)"),
+    ("tach_synced", "`tach::SyncedInstant` (default, `#![no_std]`)"),
     ("quanta",         "`quanta::Instant`"),
     ("minstant",       "`minstant::Instant`"),
     ("fastant",        "`fastant::Instant`"),
@@ -179,23 +179,23 @@ def build_xthread_table(cells: dict[str, dict]) -> str:
 
 
 def build_strict_table(cells: dict[str, dict]) -> str:
-    """Per-cell × per-clock strict-cross-thread (load-then-now-then-check)
+    """Per-cell × per-clock synchronization-order (load-then-now-then-check)
     violation counts. 0 means the bare clock honored the happens-before-
     respecting contract for the test window. Non-zero means software
-    enforcement (MonotonicInstant's fetch_max) is required to claim
-    strict-cross-thread monotonicity on that platform.
+    enforcement (SyncedInstant's fetch_max) is required to claim
+    synchronization-order monotonicity on that platform.
 
-    This metric is the empirical basis for deciding whether MonotonicInstant
+    This metric is the empirical basis for deciding whether SyncedInstant
     needs the fetch_max gate on a given platform — not spec readings, not
     judgment, just data.
     """
     out = [
-        "Per-cell × per-clock strict-cross-thread contract violations under "
+        "Per-cell × per-clock synchronization-order contract violations under "
         "the load-then-now-then-check pattern. 0 = bare clock empirically "
-        "honors strict cross-thread monotonicity for the test window; non-zero "
-        "= software enforcement is required to claim the contract. This is the "
-        "data that drives whether `MonotonicInstant` needs `fetch_max` on a "
-        "given platform.",
+        "honors synchronization-order monotonicity for the test window; "
+        "non-zero = software enforcement is required to claim the contract. "
+        "This is the data that drives whether `SyncedInstant` needs "
+        "`fetch_max` on a given platform.",
         "",
         "| Clock | " + " | ".join(CELL_ORDER) + " |",
         "|---|" + "|".join(["---"] * len(CELL_ORDER)) + "|",
@@ -211,7 +211,7 @@ def build_strict_table(cells: dict[str, dict]) -> str:
             if cr is None:
                 cells_data.append("n/a")
                 continue
-            strict = cr.get("strict_cross_thread")
+            strict = cr.get("synchronization_order")
             if strict is None:
                 cells_data.append("n/a (pre-metric data)")
                 continue
@@ -298,7 +298,7 @@ def main():
     print("=== BENCHMARKS cross-thread table (hardware sync slop + harness jitter) ===")
     print(xthread)
     print()
-    print("=== BENCHMARKS strict-cross-thread table (contract validation) ===")
+    print("=== BENCHMARKS synchronization-order table (contract validation) ===")
     print(strict)
     print()
     print("=== BENCHMARKS per-thread summary ===")
@@ -321,7 +321,7 @@ def main():
         )
         txt = replace_or_append_bench_section(txt, "Cross-thread monotonicity", xthread_body)
         txt = replace_or_append_bench_section(
-            txt, "Strict cross-thread monotonicity (contract validation)", strict
+            txt, "Synchronization-order monotonicity (contract validation)", strict
         )
         bench_md.write_text(txt)
         print(f"wrote {bench_md}", file=sys.stderr)

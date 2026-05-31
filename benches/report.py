@@ -37,17 +37,17 @@ DEFAULT_CRITERION_DIR = REPO_ROOT / "target" / "criterion"
 
 GROUP_NOW = "Instant__now()"
 GROUP_ELAPSED = "Instant__now() + elapsed()"
-GROUP_ORDERED = "Ordered Instant__now()"
+GROUP_FENCED = "Fenced Instant__now()"
 
 CRATES = ["tach", "quanta", "fastant", "minstant", "std"]
 
-# (criterion subdir, display label, highlight?) tuples for the ordered group.
+# (criterion subdir, display label, highlight?) tuples for the fenced group.
 # Criterion replaces `::` with `__` in subdir names; the display labels
 # restore the original form.
-ORDERED_ENTRIES = [
-  ("tach__OrderedInstant", "tach::OrderedInstant", True),
-  ("tach__OrderedInstant (now + elapsed)", "OrderedInstant (now+elapsed)", True),
-  ("tach__Instant (unordered reference)", "tach::Instant (unordered ref)", False),
+FENCED_ENTRIES = [
+  ("tach__FencedInstant", "tach::FencedInstant", True),
+  ("tach__FencedInstant (now + elapsed)", "FencedInstant (now+elapsed)", True),
+  ("tach__Instant (unfenced reference)", "tach::Instant (unfenced ref)", False),
   ("std__time__Instant", "std::time::Instant", False),
   ("std__time__Instant (now + elapsed)", "std::Instant (now+elapsed)", False),
 ]
@@ -306,13 +306,13 @@ def embed_pdf_row_entries(
   return "\n".join(parts), label_h + cell_h
 
 
-def build_ordered_table(
+def build_fenced_table(
   criterion_dir: Path,
   group_label: str,
   entries: list[tuple[str, str, bool]],
   y_top: float,
 ) -> tuple[str, float]:
-  """Single-column table for the heterogeneous ordered-bench entries.
+  """Single-column table for the heterogeneous fenced-bench entries.
   Each row: bench label, median, 95% CI."""
   parts = []
   col_x_label = PAD + 20
@@ -349,13 +349,13 @@ def build_report(criterion_dir: Path, cell_name: str, title: str, subtitle: str)
   now_data = {c: read_estimates(criterion_dir, GROUP_NOW, c) for c in CRATES}
   elapsed_data = {c: read_estimates(criterion_dir, GROUP_ELAPSED, c) for c in CRATES}
 
-  # Ordered group is optional — only present if the bench was run with the
-  # OrderedInstant group enabled.
+  # Fenced group is optional — only present if the bench was run with the
+  # FencedInstant group enabled.
   try:
-    ordered_inner, ord_w, ord_h = read_violin(criterion_dir, GROUP_ORDERED)
-    has_ordered = True
+    fenced_inner, ord_w, ord_h = read_violin(criterion_dir, GROUP_FENCED)
+    has_fenced = True
   except FileNotFoundError:
-    has_ordered = False
+    has_fenced = False
 
   # Header
   title_y = 36
@@ -389,24 +389,24 @@ def build_report(criterion_dir: Path, cell_name: str, title: str, subtitle: str)
   table_fragment, table_bottom = build_table(now_data, elapsed_data, y)
   y = table_bottom + PAD
 
-  # Ordered section: violin + per-entry distributions + ordered table
-  if has_ordered:
-    ordered_label_y = y
+  # Fenced section: violin + per-entry distributions + fenced table
+  if has_fenced:
+    fenced_label_y = y
     y += SECTION_LABEL_H
-    ordered_violin_fragment, ordered_rendered_h = embed_violin(ordered_inner, ord_w, ord_h, y)
-    y += ordered_rendered_h + 8
-    ordered_dist_label_y = y
+    fenced_violin_fragment, fenced_rendered_h = embed_violin(fenced_inner, ord_w, ord_h, y)
+    y += fenced_rendered_h + 8
+    fenced_dist_label_y = y
     y += SECTION_LABEL_H
-    ordered_pdf_fragment, ordered_pdf_h = embed_pdf_row_entries(
-      criterion_dir, GROUP_ORDERED, ORDERED_ENTRIES, y,
+    fenced_pdf_fragment, fenced_pdf_h = embed_pdf_row_entries(
+      criterion_dir, GROUP_FENCED, FENCED_ENTRIES, y,
     )
-    y += ordered_pdf_h + PAD
-    ordered_table_label_y = y
+    y += fenced_pdf_h + PAD
+    fenced_table_label_y = y
     y += SECTION_LABEL_H
-    ordered_table_fragment, ordered_table_bottom = build_ordered_table(
-      criterion_dir, GROUP_ORDERED, ORDERED_ENTRIES, y,
+    fenced_table_fragment, fenced_table_bottom = build_fenced_table(
+      criterion_dir, GROUP_FENCED, FENCED_ENTRIES, y,
     )
-    y = ordered_table_bottom + PAD
+    y = fenced_table_bottom + PAD
 
   total_height = int(y)
   width = TARGET_WIDTH
@@ -433,14 +433,14 @@ def build_report(criterion_dir: Path, cell_name: str, title: str, subtitle: str)
     table_fragment,
   ]
 
-  if has_ordered:
+  if has_fenced:
     parts.extend([
-      build_section_label("Ordered Instant::now() — Acquire-ordered counter reads", ordered_label_y),
-      build_section_label("Ordered Instant::now() — per-bench distribution", ordered_dist_label_y),
-      build_section_label("Ordered bench medians and 95% confidence intervals (nanoseconds)", ordered_table_label_y),
-      ordered_violin_fragment,
-      ordered_pdf_fragment,
-      ordered_table_fragment,
+      build_section_label("Fenced Instant::now() — barrier-fenced counter reads", fenced_label_y),
+      build_section_label("Fenced Instant::now() — per-bench distribution", fenced_dist_label_y),
+      build_section_label("Fenced bench medians and 95% confidence intervals (nanoseconds)", fenced_table_label_y),
+      fenced_violin_fragment,
+      fenced_pdf_fragment,
+      fenced_table_fragment,
     ])
 
   parts.append('</svg>')
@@ -602,7 +602,7 @@ def build_lambda_report(runs: list[dict], cell_name: str, title: str, subtitle: 
 
 SKEWMONO_CLOCKS = [
   ("tach", "tach::Instant", True),
-  ("tach_ordered", "tach::OrderedInstant", True),
+  ("tach_fenced", "tach::FencedInstant", True),
   ("tach_recal", "tach::Instant + recal-bg", True),
   ("std", "std::time::Instant", False),
   ("quanta", "quanta::Instant", False),
