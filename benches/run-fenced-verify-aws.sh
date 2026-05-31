@@ -91,6 +91,21 @@ PIN=$($SSH "lscpu -p=CPU,SOCKET,NODE | awk -F, '
   }'")
 echo "adversarial pin pair: $PIN"
 
+# Verify the pair actually straddles two sockets — otherwise a "0" from the
+# fenced run on this pair is a placement artifact, not evidence. Print the socket
+# of each pinned CPU and a clear PASS/WARN so the operator can trust the verdict.
+C0="${PIN%%,*}"; C1="${PIN##*,}"
+SOCKETS=$($SSH "lscpu -p=CPU,SOCKET | awk -F, -v a=$C0 -v b=$C1 '!/^#/{if(\$1==a)sa=\$2; if(\$1==b)sb=\$2} END{print sa\" \"sb}'")
+SA="${SOCKETS%% *}"; SB="${SOCKETS##* }"
+echo "adversarial pair sockets: cpu$C0->socket$SA  cpu$C1->socket$SB"
+if [ "$SA" = "$SB" ]; then
+  echo "WARNING: adversarial pair is on the SAME socket ($SA) — this box is likely single-socket."
+  echo "         The adversarial-pair 'fenced=0' will be a coherent-counter result, not a"
+  echo "         cross-socket test. full-span/oversubscribed still span all cores present."
+else
+  echo "OK: adversarial pair straddles sockets $SA and $SB — cross-socket reads are exercised."
+fi
+
 OUT="benches/fenced-verify-${CELL}.json"
 $SSH "cd tach && source \$HOME/.cargo/env && cargo build --release --bench skew --features bench-internal 2>&1 | tail -2"
 $SSH "cd tach && source \$HOME/.cargo/env && BIN=\$(find target/release/deps -name 'skew-*' -type f -perm -u+x | head -1) && \"\$BIN\" --mode fenced-verify --cell '$CELL' --pin '$PIN' --duration '$DURATION' --output '$OUT'"
