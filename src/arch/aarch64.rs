@@ -27,7 +27,7 @@ pub fn cntvct() -> u64 {
 /// prior `Acquire` load past the asm, defeating the contract.
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn cntvct_ordered() -> u64 {
+pub fn cntvct_fenced() -> u64 {
   let cnt: u64;
   // SAFETY: `isb sy; mrs cntvct_el0` reads the architectural counter and forces a pipeline
   // sync; neither instruction accesses the stack. Compiler treats as memory-touching so

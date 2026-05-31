@@ -25,10 +25,10 @@ pub fn cpuid_tsc_hz() -> Option<u64> {
 
 /// Ordered RDTSC via `rdtscp`: one-instruction equivalent of `lfence; rdtsc`
 /// that also serializes prior stores on AMD without requiring `DE_CFG[1]`.
-/// See `x86_64::rdtsc_ordered` for the full rationale and the `nomem`
+/// See `x86_64::rdtsc_fenced` for the full rationale and the `nomem`
 /// discussion.
 #[inline(always)]
-pub fn rdtsc_ordered() -> u64 {
+pub fn rdtsc_fenced() -> u64 {
   let lo: u32;
   let hi: u32;
   // SAFETY: `rdtscp` writes EDX:EAX (TSC) and ECX (IA32_TSC_AUX). Compiler
@@ -45,4 +45,3 @@ pub fn rdtsc_ordered() -> u64 {
   }
   (u64::from(hi) << 32) | u64::from(lo)
 }
-

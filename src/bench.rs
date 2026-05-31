@@ -21,8 +21,8 @@ use std::vec::Vec;
 use serde::Serialize;
 
 use crate::Instant as TachInstantTy;
-use crate::MonotonicInstant as TachMonotonicInstantTy;
-use crate::OrderedInstant as TachOrderedInstantTy;
+use crate::SyncedInstant as TachSyncedInstantTy;
+use crate::FencedInstant as TachFencedInstantTy;
 
 /// A clock under test. Produces a `u64` of ns-since-anchor each `now_as_u64`
 /// call, so cross-thread monotonicity tests can use one `AtomicU64` shape for
@@ -82,7 +82,7 @@ pub struct SkewResult {
 }
 
 #[derive(Serialize, Clone, Debug)]
-pub struct StrictResult {
+pub struct SyncOrderResult {
   pub clock: &'static str,
   pub threads: u32,
   pub total_violations: u64,
@@ -96,7 +96,7 @@ pub struct ClockReport {
   pub backed_by_arch_counter: bool,
   pub per_thread: PerThreadResult,
   pub cross_thread: CrossThreadResult,
-  pub strict_cross_thread: Option<StrictResult>,
+  pub synchronization_order: Option<SyncOrderResult>,
   pub skew_1s: SkewResult,
   pub skew_1m: Option<SkewResult>,
 }
@@ -265,7 +265,7 @@ pub fn measure_cross_thread<C: ClockSource>(
   }
 }
 
-/// Strict cross-thread monotonicity test — empirically validate whether the
+/// Synchronization-order monotonicity test — empirically validate whether the
 /// bare clock honors the happens-before-respecting contract.
 ///
 /// Unlike `measure_cross_thread` (which uses a now-then-fetch_max pattern and
@@ -276,22 +276,22 @@ pub fn measure_cross_thread<C: ClockSource>(
 ///    any prior thread's Release write on the same atomic.
 /// 2. Read the clock under test (`C::now_as_u64()`).
 /// 3. Check that the new read is `>=` what we observed before reading. If not,
-///    the bare clock failed to honor strict cross-thread monotonicity at the
+///    the bare clock failed to honor synchronization-order monotonicity at the
 ///    happens-before level.
 /// 4. **Release-fetch_max** publishes our reading for the next iteration.
 ///
 /// Returns `total_violations == 0` if and only if the clock is empirically
-/// strict cross-thread monotonic under the test conditions (N threads × the
+/// synchronization-order monotonic under the test conditions (N threads × the
 /// given duration). Any non-zero value means the underlying clock needs
 /// software enforcement (a process-global fetch_max wrapping every read) to
-/// claim the strict-cross-thread contract.
+/// claim the synchronization-order contract.
 ///
-/// This is the canonical test for deciding whether `MonotonicInstant`'s
+/// This is the canonical test for deciding whether `SyncedInstant`'s
 /// fetch_max enforcement is needed on a given platform.
-pub fn measure_strict_cross_thread<C: ClockSource>(
+pub fn measure_synchronization_order<C: ClockSource>(
   threads: usize,
   duration: Duration,
-) -> StrictResult {
+) -> SyncOrderResult {
   C::init_anchor();
   for _ in 0..1_000 {
     let _ = C::now_as_u64();
@@ -356,7 +356,7 @@ pub fn measure_strict_cross_thread<C: ClockSource>(
 
   let duration_ns = u64::try_from(wall_start.elapsed().as_nanos()).unwrap_or(u64::MAX);
 
-  StrictResult {
+  SyncOrderResult {
     clock: C::NAME,
     threads: u32::try_from(threads).unwrap_or(u32::MAX),
     total_violations,
@@ -482,30 +482,30 @@ impl ClockSource for TachInstant {
   }
 }
 
-pub struct TachOrderedInstant;
-static TACH_ORD_ANCHOR: OnceLock<TachOrderedInstantTy> = OnceLock::new();
-impl ClockSource for TachOrderedInstant {
-  const NAME: &'static str = "tach_ordered";
+pub struct TachFencedInstant;
+static TACH_FENCED_ANCHOR: OnceLock<TachFencedInstantTy> = OnceLock::new();
+impl ClockSource for TachFencedInstant {
+  const NAME: &'static str = "tach_fenced";
   fn init_anchor() {
-    let _ = TACH_ORD_ANCHOR.get_or_init(TachOrderedInstantTy::now);
+    let _ = TACH_FENCED_ANCHOR.get_or_init(TachFencedInstantTy::now);
   }
   fn now_as_u64() -> u64 {
-    let anchor = *TACH_ORD_ANCHOR.get().expect("init_anchor first");
-    u64::try_from(TachOrderedInstantTy::now().saturating_duration_since(anchor).as_nanos())
+    let anchor = *TACH_FENCED_ANCHOR.get().expect("init_anchor first");
+    u64::try_from(TachFencedInstantTy::now().saturating_duration_since(anchor).as_nanos())
       .unwrap_or(u64::MAX)
   }
 }
 
-pub struct TachMonotonicInstant;
-static TACH_MONO_ANCHOR: OnceLock<TachMonotonicInstantTy> = OnceLock::new();
-impl ClockSource for TachMonotonicInstant {
-  const NAME: &'static str = "tach_monotonic";
+pub struct TachSyncedInstant;
+static TACH_SYNC_ANCHOR: OnceLock<TachSyncedInstantTy> = OnceLock::new();
+impl ClockSource for TachSyncedInstant {
+  const NAME: &'static str = "tach_synced";
   fn init_anchor() {
-    let _ = TACH_MONO_ANCHOR.get_or_init(TachMonotonicInstantTy::now);
+    let _ = TACH_SYNC_ANCHOR.get_or_init(TachSyncedInstantTy::now);
   }
   fn now_as_u64() -> u64 {
-    let anchor = *TACH_MONO_ANCHOR.get().expect("init_anchor first");
-    u64::try_from(TachMonotonicInstantTy::now().saturating_duration_since(anchor).as_nanos())
+    let anchor = *TACH_SYNC_ANCHOR.get().expect("init_anchor first");
+    u64::try_from(TachSyncedInstantTy::now().saturating_duration_since(anchor).as_nanos())
       .unwrap_or(u64::MAX)
   }
 }

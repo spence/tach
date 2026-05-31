@@ -1,15 +1,15 @@
-//! Software enforcement of strict cross-thread monotonicity for
-//! [`crate::MonotonicInstant`].
+//! Software enforcement of synchronization-order monotonicity for
+//! [`crate::SyncedInstant`].
 //!
 //! # When this is needed (empirically determined)
 //!
-//! `MonotonicInstant`'s enforcement is applied on every multi-threaded
+//! `SyncedInstant`'s enforcement is applied on every multi-threaded
 //! platform tach supports because empirical testing across 6 production
 //! cells (Apple Silicon M1, AWS Graviton 3, AWS Intel virtualized + bare
 //! metal, AWS Lambda Firecracker, GitHub Actions Windows Server 2025)
-//! shows bare arch-counter reads fail strict cross-thread monotonicity on
+//! shows bare arch-counter reads fail synchronization-order monotonicity on
 //! every multi-threaded platform tested. Per-cell violation rates from
-//! the `measure_strict_cross_thread` load-then-now-then-check test:
+//! the `measure_synchronization_order` load-then-now-then-check test:
 //!
 //! | Platform | bare counter | violations / reads |
 //! |---|---|---|
@@ -30,8 +30,8 @@
 //! Compiled out on wasm32 (single-threaded JS realm with W3C HRT strict
 //! `performance.now()`) and WASI (single-threaded execution model with
 //! strict spec) — those platforms have no concurrency for the enforcement
-//! to enforce against. See the cfg gates in `super::direct::ticks_monotonic`
-//! and `super::mod`. On those targets `MonotonicInstant::now()` compiles
+//! to enforce against. See the cfg gates in `super::direct::ticks_synced`
+//! and `super::mod`. On those targets `SyncedInstant::now()` compiles
 //! to the same instruction as `Instant::now()` — zero overhead.
 //!
 //! Cost on every other platform: one `fetch_max` per call —
@@ -73,7 +73,7 @@
 //! Under heavy contention (many threads simultaneously calling `now()`,
 //! hammering the single cache line that holds `GLOBAL_LAST_TSC`), the
 //! `fetch_max` can degrade from ~10-25 cycles uncontended to 100+ ns per
-//! call. This is the cost of strict cross-thread monotonicity by software
+//! call. This is the cost of synchronization-order monotonicity by software
 //! enforcement. Plain [`crate::Instant`] remains available for callers
 //! that don't need the cross-thread guarantee and want the fastest possible
 //! read.
@@ -82,11 +82,11 @@ use core::sync::atomic::{AtomicU64, Ordering};
 
 pub(crate) static GLOBAL_LAST_TSC: AtomicU64 = AtomicU64::new(0);
 
-/// Read the counter and enforce strict cross-thread monotonicity via
+/// Read the counter and enforce synchronization-order monotonicity via
 /// `fetch_max` on the process-global `GLOBAL_LAST_TSC`. See the module
 /// documentation for the correctness argument.
 #[inline]
-pub(crate) fn ticks_monotonic_enforced() -> u64 {
+pub(crate) fn ticks_synced_enforced() -> u64 {
   let tsc = super::ticks();
   let prev = GLOBAL_LAST_TSC.fetch_max(tsc, Ordering::AcqRel);
   tsc.max(prev)
