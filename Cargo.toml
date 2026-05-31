@@ -24,6 +24,7 @@ serde = { version = "1", default-features = false, features = ["derive", "alloc"
 quanta = { version = "0.12.6", optional = true }
 minstant = { version = "0.1.7", optional = true }
 fastant = { version = "0.1.11", optional = true }
+core_affinity = { version = "0.8", optional = true }
 
 [features]
 default = []
@@ -41,7 +42,7 @@ default = []
 recalibrate-background = []
 # INTERNAL: exposes `pub mod bench` (hidden in docs) for use by benches/skew.rs
 # and the out-of-repo Lambda handler. Implies std. Not intended for end users.
-bench-internal = ["dep:serde", "dep:quanta", "dep:minstant", "dep:fastant"]
+bench-internal = ["dep:serde", "dep:quanta", "dep:minstant", "dep:fastant", "dep:core_affinity"]
 
 [dev-dependencies]
 criterion = "0.8"
@@ -59,6 +60,11 @@ harness = false
 
 [[bench]]
 name = "skew"
+harness = false
+required-features = ["bench-internal"]
+
+[[bench]]
+name = "contention"
 harness = false
 required-features = ["bench-internal"]
 

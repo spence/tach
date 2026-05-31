@@ -92,6 +92,47 @@ pub struct SyncOrderResult {
 }
 
 #[derive(Serialize, Clone, Debug)]
+pub struct FencedVerifyPlacement {
+  /// "adversarial-pair" | "full-span" | "oversubscribed-2x"
+  pub placement: String,
+  /// Logical core id bound to worker i (worker i -> pinned_cores[i]).
+  pub pinned_cores: Vec<usize>,
+  pub threads: u32,
+  /// Sync-order result per clock under this placement. Read `tach` as the
+  /// positive control (must be non-zero), `tach_fenced` as the subject,
+  /// `tach_synced` as the remedy, `std` as reference.
+  pub results: std::collections::BTreeMap<String, SyncOrderResult>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct FencedVerifyReport {
+  pub schema: &'static str,
+  pub cell: String,
+  pub target_triple: &'static str,
+  pub started_at_unix_ns: u128,
+  pub host: HostInfo,
+  pub tach_freq_hz: u64,
+  pub duration_secs_per_run: u64,
+  pub placements: Vec<FencedVerifyPlacement>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct ContentionResult {
+  pub clock: &'static str,
+  pub threads: u32,
+  /// Synthetic `spin_loop` iterations executed between each `now()` call —
+  /// the inter-call-spacing knob. 0 = pathological tight loop.
+  pub spin_iters: u32,
+  pub total_ops: u64,
+  pub duration_ns: u64,
+  pub throughput_per_sec: f64,
+  /// Mean per-call latency a single thread experiences (includes the
+  /// `spin_iters` of synthetic work and the ns-conversion wrapper; the
+  /// signal is the *delta* between clocks at a given thread count).
+  pub per_call_ns_mean: f64,
+}
+
+#[derive(Serialize, Clone, Debug)]
 pub struct ClockReport {
   pub backed_by_arch_counter: bool,
   pub per_thread: PerThreadResult,
@@ -363,6 +404,166 @@ pub fn measure_synchronization_order<C: ClockSource>(
     total_reads,
     max_violation_ns,
     duration_ns,
+  }
+}
+
+/// Pinned variant of [`measure_synchronization_order`]: spawns `pin.len()`
+/// workers, binding worker *i* to logical core `pin[i]` before the barrier.
+///
+/// Forces the cross-socket / cross-CCX read pairs an unpinned scheduler might
+/// never produce. Without that placement a "0 violations" result is
+/// uninterpretable — you can't distinguish coherent hardware from a scheduler
+/// that kept publisher and reader on the same socket. Repeated ids in `pin`
+/// oversubscribe those cores. Bare `tach` on the same `pin` is the positive
+/// control: it must show violations, else the placement didn't exercise the
+/// adversarial direction.
+pub fn measure_synchronization_order_pinned<C: ClockSource>(
+  pin: &[usize],
+  duration: Duration,
+) -> SyncOrderResult {
+  C::init_anchor();
+  for _ in 0..1_000 {
+    let _ = C::now_as_u64();
+  }
+
+  let threads = pin.len();
+  let published = std::sync::Arc::new(AtomicU64::new(0));
+  let start_barrier = std::sync::Arc::new(std::sync::Barrier::new(threads + 1));
+  let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+  let mut handles = Vec::with_capacity(threads);
+  for &core in pin {
+    let published = std::sync::Arc::clone(&published);
+    let start_barrier = std::sync::Arc::clone(&start_barrier);
+    let stop = std::sync::Arc::clone(&stop);
+    handles.push(thread::spawn(move || -> (u64, u64, u64) {
+      // Bind before the barrier so every measured read runs on `core`.
+      let _ = core_affinity::set_for_current(core_affinity::CoreId { id: core });
+      let mut local_violations = 0u64;
+      let mut local_reads = 0u64;
+      let mut local_max_violation = 0u64;
+
+      start_barrier.wait();
+
+      while !stop.load(Ordering::Relaxed) {
+        let observed = published.load(Ordering::Acquire);
+        let now_ns = C::now_as_u64();
+        local_reads += 1;
+        if now_ns < observed {
+          local_violations += 1;
+          let diff = observed - now_ns;
+          if diff > local_max_violation {
+            local_max_violation = diff;
+          }
+        }
+        published.fetch_max(now_ns, Ordering::Release);
+      }
+      (local_violations, local_reads, local_max_violation)
+    }));
+  }
+
+  start_barrier.wait();
+  let wall_start = StdInstantTy::now();
+  thread::sleep(duration);
+  stop.store(true, Ordering::Relaxed);
+
+  let mut total_violations = 0u64;
+  let mut total_reads = 0u64;
+  let mut max_violation_ns = 0u64;
+  for h in handles {
+    let (v, r, mv) = h.join().expect("thread panic");
+    total_violations += v;
+    total_reads += r;
+    if mv > max_violation_ns {
+      max_violation_ns = mv;
+    }
+  }
+  let duration_ns = u64::try_from(wall_start.elapsed().as_nanos()).unwrap_or(u64::MAX);
+
+  SyncOrderResult {
+    clock: C::NAME,
+    threads: u32::try_from(threads).unwrap_or(u32::MAX),
+    total_violations,
+    total_reads,
+    max_violation_ns,
+    duration_ns,
+  }
+}
+
+/// Logical core ids this process may bind threads to. Empty if the platform
+/// doesn't report them. Used to build pinned placements for the fenced-verify
+/// study.
+#[must_use]
+pub fn available_core_ids() -> Vec<usize> {
+  core_affinity::get_core_ids()
+    .map(|v| v.into_iter().map(|c| c.id).collect())
+    .unwrap_or_default()
+}
+
+/// Contention: `threads` workers all hammer `C::now_as_u64()` for `duration`,
+/// with `spin_iters` of synthetic work between calls. Reports aggregate
+/// throughput and the mean per-call latency a single thread experiences.
+///
+/// The only clock with shared mutable hot-path state is `SyncedInstant` (its
+/// process-global `fetch_max` on one cache line), so its per-call latency
+/// should climb with thread count and its throughput should plateau, while the
+/// barrier-free clocks scale flat.
+pub fn measure_contention<C: ClockSource>(
+  threads: usize,
+  duration: Duration,
+  spin_iters: u32,
+) -> ContentionResult {
+  C::init_anchor();
+  for _ in 0..1_000 {
+    let _ = C::now_as_u64();
+  }
+
+  let start_barrier = std::sync::Arc::new(std::sync::Barrier::new(threads + 1));
+  let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+  let mut handles = Vec::with_capacity(threads);
+  for _ in 0..threads {
+    let start_barrier = std::sync::Arc::clone(&start_barrier);
+    let stop = std::sync::Arc::clone(&stop);
+    handles.push(thread::spawn(move || -> u64 {
+      let mut ops = 0u64;
+      start_barrier.wait();
+      // Check the stop flag every 64 ops so the loop exits promptly (small
+      // overshoot past `duration`) without a per-call atomic load dominating.
+      while !stop.load(Ordering::Relaxed) {
+        for _ in 0..64 {
+          std::hint::black_box(C::now_as_u64());
+          for _ in 0..spin_iters {
+            std::hint::spin_loop();
+          }
+        }
+        ops += 64;
+      }
+      ops
+    }));
+  }
+
+  start_barrier.wait();
+  let wall_start = StdInstantTy::now();
+  thread::sleep(duration);
+  stop.store(true, Ordering::Relaxed);
+
+  let mut total_ops = 0u64;
+  for h in handles {
+    total_ops += h.join().expect("thread panic");
+  }
+  let duration_ns = u64::try_from(wall_start.elapsed().as_nanos()).unwrap_or(u64::MAX);
+
+  let secs = duration_ns as f64 / 1e9;
+  let ops_per_thread = total_ops as f64 / threads as f64;
+  ContentionResult {
+    clock: C::NAME,
+    threads: u32::try_from(threads).unwrap_or(u32::MAX),
+    spin_iters,
+    total_ops,
+    duration_ns,
+    throughput_per_sec: total_ops as f64 / secs,
+    per_call_ns_mean: duration_ns as f64 / ops_per_thread,
   }
 }
 
