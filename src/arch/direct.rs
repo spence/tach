@@ -87,42 +87,42 @@ pub fn ticks() -> u64 {
 #[cfg(target_arch = "x86_64")]
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn ticks_fenced() -> u64 {
-  super::x86_64::rdtsc_fenced()
+pub fn ticks_ordered() -> u64 {
+  super::x86_64::rdtsc_ordered()
 }
 
 #[cfg(target_arch = "x86")]
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn ticks_fenced() -> u64 {
-  super::x86::rdtsc_fenced()
+pub fn ticks_ordered() -> u64 {
+  super::x86::rdtsc_ordered()
 }
 
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn ticks_fenced() -> u64 {
-  super::aarch64::cntvct_fenced()
+pub fn ticks_ordered() -> u64 {
+  super::aarch64::cntvct_ordered()
 }
 
 #[cfg(target_arch = "riscv64")]
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn ticks_fenced() -> u64 {
-  super::riscv64::rdtime_fenced()
+pub fn ticks_ordered() -> u64 {
+  super::riscv64::rdtime_ordered()
 }
 
 #[cfg(target_arch = "loongarch64")]
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn ticks_fenced() -> u64 {
-  super::loongarch64::rdtime_fenced()
+pub fn ticks_ordered() -> u64 {
+  super::loongarch64::rdtime_ordered()
 }
 
 #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn ticks_fenced() -> u64 {
+pub fn ticks_ordered() -> u64 {
   super::wasm::ticks()
 }
 
@@ -136,7 +136,7 @@ pub fn ticks_fenced() -> u64 {
 )))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
-pub fn ticks_fenced() -> u64 {
+pub fn ticks_ordered() -> u64 {
   #[cfg(target_os = "macos")]
   {
     super::fallback::mach_time()
@@ -153,52 +153,4 @@ pub fn ticks_fenced() -> u64 {
   {
     panic!("tach: no monotonic clock source on this target")
   }
-}
-
-// ── Synchronization-order monotonic reads ─────────────────────────────────
-// Empirical validation (`measure_synchronization_order` across 6 production
-// cells, ~30s × 16 threads each, captured in `benches/skewmono-*.json` under
-// `synchronization_order.total_violations`) demonstrates:
-//
-//   - **Bare arch counter reads (RDTSC, cntvct_el0) FAIL synchronization-order
-//     monotonicity on every multi-threaded platform tested.** Rates vary —
-//     sub-ppm on Nitro VMs (t3.medium), single-digit % on bare metal (M1,
-//     m7i bare-metal) — but every multi-threaded platform shows non-zero
-//     contract violations. x86 per-core TSC is firmware-synced but not
-//     architecturally strict; aarch64 `cntvct_el0` is spec-strict per
-//     ARMv8 ARM §D11.1.2 but Apple Silicon M1 and Graviton 3 both show
-//     real per-core slop in practice. `fetch_max` enforcement is required.
-//   - **wasm32 (browser/Node) and WASI execute single-threaded by design**:
-//     the W3C HRT spec strictly requires per-realm monotonic `now()`, and
-//     WASI's execution model has no cross-thread concurrency. No atomic
-//     operation has anything to enforce against. `SyncedInstant::now()`
-//     on these targets compiles to the same instruction as `Instant::now()`.
-//
-// See `super::synced` for the enforcement implementation and the
-// correctness argument. See `BENCHMARKS.md` `## Synchronization-order
-// monotonicity (contract validation)` for the per-cell data driving the
-// per-platform decision.
-
-// wasm32 (browser/Node host) and WASI: single-threaded by execution model;
-// no fetch_max needed. Compiles to bare `ticks()`.
-#[cfg(any(
-  all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
-  target_os = "wasi",
-))]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn ticks_synced() -> u64 {
-  ticks()
-}
-
-// Every multi-threaded platform: bare counter empirically fails strict
-// cross-thread monotonicity. Apply `AtomicU64::fetch_max` enforcement.
-#[cfg(not(any(
-  all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
-  target_os = "wasi",
-)))]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn ticks_synced() -> u64 {
-  super::synced::ticks_synced_enforced()
 }

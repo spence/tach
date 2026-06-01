@@ -56,7 +56,7 @@ pub fn cpuid_tsc_hz() -> Option<u64> {
 /// Nehalem (2008), AMD since K10 (2007). Same generational floor as Invariant
 /// TSC (CPUID `80000007H:EDX[8]`) which tach already relies on.
 #[inline(always)]
-pub fn rdtsc_fenced() -> u64 {
+pub fn rdtsc_ordered() -> u64 {
   let lo: u32;
   let hi: u32;
   // SAFETY: `rdtscp` writes EDX:EAX (TSC) and ECX (IA32_TSC_AUX). No stack

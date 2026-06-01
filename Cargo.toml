@@ -63,11 +63,6 @@ name = "skew"
 harness = false
 required-features = ["bench-internal"]
 
-[[bench]]
-name = "contention"
-harness = false
-required-features = ["bench-internal"]
-
 [[example]]
 name = "basic"
 

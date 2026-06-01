@@ -38,7 +38,7 @@ invoke '{"mode":"skew-fast","duration":10,"samples":30}' "$work/fast.json"
 # Step 2: skew-drift × 7 in parallel
 echo "[$(date +%T)] step 2: skew-drift × 7 (parallel) ..."
 pids=()
-for clock in tach tach_fenced tach_synchronized std quanta minstant fastant; do
+for clock in tach tach_ordered std quanta minstant fastant; do
   invoke "{\"mode\":\"skew-drift\",\"clock\":\"$clock\",\"samples\":5}" "$work/drift-$clock.json" &
   pids+=($!)
 done

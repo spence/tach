@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Provision an EC2 instance, run the fenced-verify study, pull JSON back, terminate.
+# Provision an EC2 instance, run the ordered-verify study, pull JSON back, terminate.
 #
-# Finds the boundary where FencedInstant goes backward cross-thread: runs the
+# Proves OrderedInstant holds across threads while the fast comparison crates invert: runs the
 # synchronization-order test under pinned placements (adversarial cross-socket
-# pair + full-span + oversubscribed-2x) across tach / tach_fenced / tach_synced /
+# pair + full-span + oversubscribed-2x) across tach / tach_ordered / std / quanta / minstant /
 # std. Bare `tach` is the positive control — it MUST show violations under a
 # placement, or that placement was inert (result inconclusive, not a pass).
 #
@@ -11,14 +11,14 @@
 # — the topologies single-socket cells can't exercise and where the TSC could
 # genuinely lag across sockets.
 #
-# Usage: benches/run-fenced-verify-aws.sh <cell-name> <instance-type> [duration-secs]
-#   e.g. benches/run-fenced-verify-aws.sh intel-2s-m7i m7i.metal-48xl 300
+# Usage: benches/run-ordered-verify-aws.sh <cell-name> <instance-type> [duration-secs]
+#   e.g. benches/run-ordered-verify-aws.sh intel-2s-m7i m7i.metal-48xl 300
 #
 # Requires: aws CLI profile "tach", SSH key ~/.ssh/tach-bench.pem, SG with SSH.
 # Metal instances are ~$8-11/hr. Self-terminates on exit (trap) and on shutdown.
 set -euo pipefail
 
-CELL="${1:?usage: run-fenced-verify-aws.sh <cell-name> <instance-type> [duration-secs]}"
+CELL="${1:?usage: run-ordered-verify-aws.sh <cell-name> <instance-type> [duration-secs]}"
 INSTANCE_TYPE="${2:?need instance type (e.g. m7i.metal-48xl)}"
 DURATION="${3:-300}"
 
@@ -107,7 +107,7 @@ PIN=$($SSH "lscpu -p=CPU,SOCKET,NODE | awk -F, '
 echo "adversarial pin pair: $PIN"
 
 # Verify the pair actually straddles two sockets — otherwise a "0" from the
-# fenced run on this pair is a placement artifact, not evidence. Print the socket
+# ordered run on this pair is a placement artifact, not evidence. Print the socket
 # of each pinned CPU and a clear PASS/WARN so the operator can trust the verdict.
 C0="${PIN%%,*}"; C1="${PIN##*,}"
 SOCKETS=$($SSH "lscpu -p=CPU,SOCKET | awk -F, -v a=$C0 -v b=$C1 '!/^#/{if(\$1==a)sa=\$2; if(\$1==b)sb=\$2} END{print sa\" \"sb}'")
@@ -115,33 +115,38 @@ SA="${SOCKETS%% *}"; SB="${SOCKETS##* }"
 echo "adversarial pair sockets: cpu$C0->socket$SA  cpu$C1->socket$SB"
 if [ "$SA" = "$SB" ]; then
   echo "WARNING: adversarial pair is on the SAME socket ($SA) — this box is likely single-socket."
-  echo "         The adversarial-pair 'fenced=0' will be a coherent-counter result, not a"
+  echo "         The adversarial-pair 'ordered=0' will be a coherent-counter result, not a"
   echo "         cross-socket test. full-span/oversubscribed still span all cores present."
 else
   echo "OK: adversarial pair straddles sockets $SA and $SB — cross-socket reads are exercised."
 fi
 
-OUT="benches/fenced-verify-${CELL}.json"
+OUT="benches/ordered-verify-${CELL}.json"
 $SSH "cd tach && source \$HOME/.cargo/env && cargo build --release --bench skew --features bench-internal 2>&1 | tail -2"
-$SSH "cd tach && source \$HOME/.cargo/env && BIN=\$(find target/release/deps -name 'skew-*' -type f -perm -u+x | head -1) && \"\$BIN\" --mode fenced-verify --cell '$CELL' --pin '$PIN' --duration '$DURATION' --output '$OUT'"
+$SSH "cd tach && source \$HOME/.cargo/env && BIN=\$(find target/release/deps -name 'skew-*' -type f -perm -u+x | head -1) && \"\$BIN\" --mode ordered-verify --cell '$CELL' --pin '$PIN' --duration '$DURATION' --output '$OUT'"
 $SCP "ec2-user@$IP:tach/${OUT}" "${OUT}"
 echo "pulled ${OUT}"
 
-# Verdict per placement.
+# Verdict per placement: OrderedInstant must hold at 0 while the fast comparison
+# crates (quanta/minstant/fastant) invert wherever they read the counter bare.
 python3 - "${OUT}" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 print(f"\n=== {d['cell']} ({d['target_triple']}) — {d['host']['cpu_model']} — {d['duration_secs_per_run']}s/run ===")
+def vof(r, k): return r[k]["total_violations"] if k in r else None
 for p in d["placements"]:
     r = p["results"]
-    def v(k): return r[k]["total_violations"]
-    if v("tach") == 0:
+    ctrl = vof(r, "tach")
+    ordd = vof(r, "tach_ordered")
+    if ctrl == 0:
         verdict = "INCONCLUSIVE (control inert — placement didn't exercise cross-domain reads)"
-    elif v("tach_fenced") == 0:
-        verdict = "Fenced SUFFICIENT (control fired, fenced held at 0)"
+    elif ordd == 0:
+        verdict = "OrderedInstant HOLDS (control fired, ordered=0)"
     else:
-        verdict = f"BOUNDARY: Fenced went backward (max {r['tach_fenced']['max_violation_ns']}ns) -> Synced REQUIRED"
-    sync = "synced=0" if v("tach_synced") == 0 else f"synced={v('tach_synced')}!"
+        verdict = f"REGRESSION: OrderedInstant inverted (max {r['tach_ordered']['max_violation_ns']}ns)"
+    comp = " ".join(
+        f"{k}={vof(r, k)}" for k in ("std", "quanta", "minstant", "fastant") if k in r
+    )
     print(f"  {p['placement']:<18} cores~{p['pinned_cores'][:2]} "
-          f"tach={v('tach')} fenced={v('tach_fenced')} {sync} std={v('std')}  -> {verdict}")
+          f"tach(ctrl)={ctrl} tach_ordered={ordd} | {comp}  -> {verdict}")
 PY

@@ -1,56 +1,47 @@
 {
-  "schema": "tach-fenced-verify/v1",
-  "cell": "intel-2s-m7i",
+  "schema": "tach-ordered-verify/v1",
+  "cell": "amd-2s-m7a",
   "target_triple": "x86_64-unknown-linux-gnu",
-  "started_at_unix_ns": 0,
+  "started_at_unix_ns": 1780276363895759804,
   "host": {
-    "cpu_model": "Intel(R) Xeon(R) Platinum 8488C",
+    "cpu_model": "AMD EPYC 9R14 96-Core Processor",
     "num_cpus": 192,
-    "kernel": "al2023-6.1"
+    "kernel": "6.1.172-216.329.amzn2023.x86_64"
   },
-  "tach_freq_hz": 0,
-  "duration_secs_per_run": 240,
-  "_note": "Reconstructed from run log; the instance was terminated on user request seconds before its SCP, so the oversubscribed-2x tach_synced/std clocks did not record. The decisive control (tach) and subject (tach_fenced) are complete for all three placements. AMD cell pulled its JSON normally.",
+  "tach_freq_hz": 2599980370,
+  "duration_secs_per_run": 120,
   "placements": [
     {
       "placement": "adversarial-pair",
       "pinned_cores": [
         0,
-        48
+        96
       ],
       "threads": 2,
       "results": {
-        "tach": {
-          "clock": "tach",
-          "threads": 2,
-          "total_violations": 18215,
-          "total_reads": 3326339582,
-          "max_violation_ns": 5726,
-          "duration_ns": 240000000000
-        },
-        "tach_fenced": {
-          "clock": "tach_fenced",
-          "threads": 2,
-          "total_violations": 0,
-          "total_reads": 2540352935,
-          "max_violation_ns": 0,
-          "duration_ns": 240000000000
-        },
-        "tach_synced": {
-          "clock": "tach_synced",
-          "threads": 2,
-          "total_violations": 0,
-          "total_reads": 1094289985,
-          "max_violation_ns": 0,
-          "duration_ns": 240000000000
-        },
         "std": {
           "clock": "std",
           "threads": 2,
           "total_violations": 0,
-          "total_reads": 2184458900,
+          "total_reads": 1751113665,
           "max_violation_ns": 0,
-          "duration_ns": 240000000000
+          "duration_ns": 120000320609
+        },
+        "tach": {
+          "clock": "tach",
+          "threads": 2,
+          "total_violations": 398744698,
+          "total_reads": 4834784604,
+          "max_violation_ns": 1200,
+          "duration_ns": 120000288649
+        },
+        "tach_ordered": {
+          "clock": "tach_ordered",
+          "threads": 2,
+          "total_violations": 0,
+          "total_reads": 1641777149,
+          "max_violation_ns": 0,
+          "duration_ns": 120000281529
         }
       }
     },
@@ -252,37 +243,29 @@
       ],
       "threads": 192,
       "results": {
-        "tach": {
-          "clock": "tach",
-          "threads": 192,
-          "total_violations": 96917605,
-          "total_reads": 518965199,
-          "max_violation_ns": 49912,
-          "duration_ns": 240000000000
-        },
-        "tach_fenced": {
-          "clock": "tach_fenced",
-          "threads": 192,
-          "total_violations": 0,
-          "total_reads": 564976127,
-          "max_violation_ns": 0,
-          "duration_ns": 240000000000
-        },
-        "tach_synced": {
-          "clock": "tach_synced",
-          "threads": 192,
-          "total_violations": 0,
-          "total_reads": 592819709,
-          "max_violation_ns": 0,
-          "duration_ns": 240000000000
-        },
         "std": {
           "clock": "std",
           "threads": 192,
           "total_violations": 0,
-          "total_reads": 513311653,
+          "total_reads": 2796745861,
           "max_violation_ns": 0,
-          "duration_ns": 240000000000
+          "duration_ns": 120012348687
+        },
+        "tach": {
+          "clock": "tach",
+          "threads": 192,
+          "total_violations": 2109733521,
+          "total_reads": 3300564018,
+          "max_violation_ns": 93941,
+          "duration_ns": 120010677582
+        },
+        "tach_ordered": {
+          "clock": "tach_ordered",
+          "threads": 192,
+          "total_violations": 0,
+          "total_reads": 2796830267,
+          "max_violation_ns": 0,
+          "duration_ns": 120012225718
         }
       }
     },
@@ -676,21 +659,29 @@
       ],
       "threads": 384,
       "results": {
+        "std": {
+          "clock": "std",
+          "threads": 384,
+          "total_violations": 0,
+          "total_reads": 2799730225,
+          "max_violation_ns": 0,
+          "duration_ns": 120024741333
+        },
         "tach": {
           "clock": "tach",
           "threads": 384,
-          "total_violations": 112133235,
-          "total_reads": 568103404,
-          "max_violation_ns": 55245,
-          "duration_ns": 240000000000
+          "total_violations": 2207802728,
+          "total_reads": 3269287401,
+          "max_violation_ns": 96800,
+          "duration_ns": 120021446478
         },
-        "tach_fenced": {
-          "clock": "tach_fenced",
+        "tach_ordered": {
+          "clock": "tach_ordered",
           "threads": 384,
           "total_violations": 0,
-          "total_reads": 504307032,
+          "total_reads": 2792256784,
           "max_violation_ns": 0,
-          "duration_ns": 240000000000
+          "duration_ns": 120022383332
         }
       }
     }

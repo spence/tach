@@ -24,9 +24,9 @@ use std::process::Command;
 use std::time::Duration;
 
 use tach::bench::{
-  CellReport, ClockReport, ClockSource, FastantInstant, FencedVerifyPlacement, FencedVerifyReport,
-  HostInfo, MinstantInstant, QuantaInstant, SkewResult, StdInstant, SyncOrderResult, TachInstant,
-  TachSyncedInstant, TachFencedInstant, available_core_ids, measure_cross_thread,
+  CellReport, ClockReport, ClockSource, FastantInstant, HostInfo, MinstantInstant,
+  OrderedVerifyPlacement, OrderedVerifyReport, QuantaInstant, SkewResult, StdInstant,
+  SyncOrderResult, TachInstant, TachOrderedInstant, available_core_ids, measure_cross_thread,
   measure_per_thread, measure_skew, measure_synchronization_order,
   measure_synchronization_order_pinned, tach_freq_hz, tach_used_cpuid_15h, unix_ns_now,
 };
@@ -36,8 +36,7 @@ use tach::bench::TachInstantRecal;
 
 const ALL_CLOCKS: &[&str] = &[
   "tach",
-  "tach_fenced",
-  "tach_synced",
+  "tach_ordered",
   #[cfg(feature = "recalibrate-background")]
   "tach_recal",
   "std",
@@ -55,7 +54,7 @@ struct Args {
   skew_1s_samples: usize,
   skew_1m_samples: usize,
   output: Option<String>,
-  /// fenced-verify only: explicit adversarial core ids, e.g. "0,48".
+  /// ordered-verify only: explicit adversarial core ids, e.g. "0,48".
   pin: Option<String>,
 }
 
@@ -63,16 +62,16 @@ enum Mode {
   Fast,
   Drift,
   All,
-  FencedVerify,
+  OrderedVerify,
 }
 
 fn main() {
   let args = parse_args();
 
-  // fenced-verify builds its own report shape (placements × clocks), not the
+  // ordered-verify builds its own report shape (placements × clocks), not the
   // per-clock CellReport, so it short-circuits the standard path.
-  if matches!(args.mode, Mode::FencedVerify) {
-    run_fenced_verify(&args);
+  if matches!(args.mode, Mode::OrderedVerify) {
+    run_ordered_verify(&args);
     return;
   }
 
@@ -114,8 +113,7 @@ fn main() {
 fn run_clock(name: &str, args: &Args) -> ClockReport {
   match name {
     "tach" => run_for::<TachInstant>(args),
-    "tach_fenced" => run_for::<TachFencedInstant>(args),
-    "tach_synced" => run_for::<TachSyncedInstant>(args),
+    "tach_ordered" => run_for::<TachOrderedInstant>(args),
     #[cfg(feature = "recalibrate-background")]
     "tach_recal" => run_for::<TachInstantRecal>(args),
     "std" => run_for::<StdInstant>(args),
@@ -159,12 +157,12 @@ fn run_for<C: ClockSource>(args: &Args) -> ClockReport {
       eprintln!("    median skew: {} ns ({:.2} ppm)", s1.median_skew_ns, s1.median_skew_ppm);
       (pt, ct, Some(st), s1)
     }
-    // fenced-verify short-circuits in main() before reaching run_for.
-    Mode::FencedVerify => unreachable!("fenced-verify handled in main"),
+    // ordered-verify short-circuits in main() before reaching run_for.
+    Mode::OrderedVerify => unreachable!("ordered-verify handled in main"),
   };
 
   let skew_1m = match args.mode {
-    Mode::Fast | Mode::FencedVerify => None,
+    Mode::Fast | Mode::OrderedVerify => None,
     Mode::Drift | Mode::All => {
       eprintln!("  skew-1m ({} samples)...", args.skew_1m_samples);
       let s60 = measure_skew::<C>(Duration::from_secs(60), args.skew_1m_samples, "1m");
@@ -241,7 +239,7 @@ fn parse_args() -> Args {
           "fast" => Mode::Fast,
           "drift" => Mode::Drift,
           "all" => Mode::All,
-          "fenced-verify" => Mode::FencedVerify,
+          "ordered-verify" => Mode::OrderedVerify,
           other => panic!("unknown mode {other:?}"),
         };
         i += 2;
@@ -295,18 +293,18 @@ fn parse_args() -> Args {
   Args { mode, cell, only_clock, threads, duration, skew_1s_samples, skew_1m_samples, output, pin }
 }
 
-/// `--mode fenced-verify`: run the synchronization-order test under deliberately
-/// pinned placements to find where (or prove that) `FencedInstant` goes backward
-/// cross-thread. Bare `tach` is the built-in positive control — it must show
+/// `--mode ordered-verify`: run the synchronization-order test under deliberately
+/// pinned placements to prove `OrderedInstant` holds across threads (and that the
+/// fast comparison crates do not). Bare `tach` is the built-in positive control — it must show
 /// violations under a placement, or that placement was inert (the result is then
 /// inconclusive, not a pass).
 ///
 /// `--pin a,b,...` supplies an adversarial cross-domain core set (e.g. one core
 /// per socket from `lscpu`). A full-span (one thread per reported core) and an
 /// oversubscribed-2x placement are always added when the platform reports core
-/// ids. Emits a `tach-fenced-verify/v1` report. Honors `--cell`, `--duration`,
+/// ids. Emits a `tach-ordered-verify/v1` report. Honors `--cell`, `--duration`,
 /// `--output`.
-fn run_fenced_verify(args: &Args) {
+fn run_ordered_verify(args: &Args) {
   let cores = available_core_ids();
   if cores.is_empty() {
     eprintln!("warning: platform reports no core ids; pinning is a no-op here (e.g. macOS)");
@@ -332,7 +330,7 @@ fn run_fenced_verify(args: &Args) {
     std::process::exit(1);
   }
 
-  let mut out: Vec<FencedVerifyPlacement> = Vec::new();
+  let mut out: Vec<OrderedVerifyPlacement> = Vec::new();
   for (label, pin) in &placements {
     eprintln!("placement {label}: {} threads on cores {pin:?}", pin.len());
     let mut results: BTreeMap<String, SyncOrderResult> = BTreeMap::new();
@@ -340,15 +338,20 @@ fn run_fenced_verify(args: &Args) {
       ($name:literal, $ty:ty) => {{
         eprintln!("  {} ...", $name);
         let r = measure_synchronization_order_pinned::<$ty>(pin, args.duration);
-        eprintln!("    {} violations (max {} ns) / {} reads", r.total_violations, r.max_violation_ns, r.total_reads);
+        eprintln!(
+          "    {} violations (max {} ns) / {} reads",
+          r.total_violations, r.max_violation_ns, r.total_reads
+        );
         results.insert($name.to_string(), r);
       }};
     }
     run!("tach", TachInstant);
-    run!("tach_fenced", TachFencedInstant);
-    run!("tach_synced", TachSyncedInstant);
+    run!("tach_ordered", TachOrderedInstant);
     run!("std", StdInstant);
-    out.push(FencedVerifyPlacement {
+    run!("quanta", QuantaInstant);
+    run!("minstant", MinstantInstant);
+    run!("fastant", FastantInstant);
+    out.push(OrderedVerifyPlacement {
       placement: label.clone(),
       pinned_cores: pin.clone(),
       threads: u32::try_from(pin.len()).unwrap_or(u32::MAX),
@@ -356,8 +359,8 @@ fn run_fenced_verify(args: &Args) {
     });
   }
 
-  let report = FencedVerifyReport {
-    schema: "tach-fenced-verify/v1",
+  let report = OrderedVerifyReport {
+    schema: "tach-ordered-verify/v1",
     cell: args.cell.clone(),
     target_triple: target_triple(),
     started_at_unix_ns: unix_ns_now(),
@@ -366,7 +369,7 @@ fn run_fenced_verify(args: &Args) {
     duration_secs_per_run: args.duration.as_secs(),
     placements: out,
   };
-  let txt = serde_json::to_string_pretty(&report).expect("serialize fenced-verify report");
+  let txt = serde_json::to_string_pretty(&report).expect("serialize ordered-verify report");
   match &args.output {
     Some(path) => std::fs::write(path, txt).expect("write output"),
     None => println!("{txt}"),

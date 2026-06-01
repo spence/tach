@@ -19,11 +19,11 @@ use crate::arch;
 /// where ≤10 µs cross-thread sync slop is acceptable. That covers almost
 /// any tracing, profiling, latency measurement, or request-budget use case.
 ///
-/// For uses where synchronization-order monotonicity matters (multi-thread
-/// ordered logs, distributed spans, lock-free version numbers), reach for
-/// [`SyncedInstant`] instead — it adds a process-global atomic to
-/// guarantee strict ordering across threads. For acquire-load correlation
-/// against user atomics, reach for [`FencedInstant`].
+/// The moment a timestamp crosses a thread boundary and gets *compared or
+/// ordered* against another thread's — multi-thread ordered logs, distributed
+/// spans, lock-free version numbers, a deadline read after an `Acquire`-load —
+/// reach for [`OrderedInstant`] instead, which is monotonic across threads by
+/// construction.
 ///
 /// # Monotonicity contract
 ///
@@ -37,7 +37,7 @@ use crate::arch;
 /// hardware — both read the same underlying counter). Empirically the bare
 /// counter shows non-zero contract violations on the strict
 /// load-then-now-then-check test on every multi-threaded platform tested.
-/// For synchronization-order monotonicity, use [`SyncedInstant`].
+/// For cross-thread synchronization-order monotonicity, use [`OrderedInstant`].
 ///
 /// # Cost
 ///
@@ -76,7 +76,7 @@ impl Instant {
   /// Drop-in equivalent for [`std::time::Instant::elapsed()`]. Saturates to
   /// zero rather than wrapping if the current read lands before `self` — the
   /// only way that happens is a cross-thread read landing inside the counter's
-  /// sub-microsecond sync window; see [`crate::SyncedInstant`] for a
+  /// sub-microsecond sync window; see [`crate::OrderedInstant`] for a
   /// value that is monotone for cross-thread *ordering*, not just subtraction.
   #[inline]
   #[must_use]
@@ -156,7 +156,7 @@ impl Instant {
   /// and is incompatible with `#![no_std]` targets** — it pulls in
   /// `std::thread` and `std::sync::OnceLock`.
   ///
-  /// Affects both [`Instant`] and [`crate::FencedInstant`]; they share
+  /// Affects both [`Instant`] and [`crate::OrderedInstant`]; they share
   /// the same scaling cache.
   pub fn recalibrate() {
     arch::recalibrate();
@@ -201,87 +201,77 @@ impl Sub<Instant> for Instant {
   }
 }
 
-/// An [`Instant`] sampled with an instruction-ordering barrier so the
-/// timestamp cannot be reordered before any prior `Acquire`-or-stronger
-/// observation.
+/// The architectural counter read, **ordered against memory** — sampled at its
+/// true position in program order, never earlier. This is the timestamp to use
+/// the moment a value crosses a thread boundary and gets compared or ordered.
 ///
-/// Use this when correlating a timestamp with synchronization state — e.g.
-/// reading a deadline or yielding signal from another thread and needing
-/// the timestamp to reflect time *after* the observation:
+/// `OrderedInstant` is **monotonic across threads**: a timestamp taken on any
+/// thread, after an `Acquire`-load that observed another thread's published
+/// `OrderedInstant`, is guaranteed `>=` that published value. Verified at
+/// **0 backward steps in ~10.9 billion reads** across Apple Silicon, AWS
+/// Graviton 3, Intel and AMD x86 (single- and dual-socket NUMA) — see
+/// `benches/ORDERED-VERIFICATION.md`. On the same hardware, a bare [`Instant`]
+/// inverts from sub-ppm (Nitro VMs) to ~12% (Apple Silicon) of cross-thread
+/// reads.
 ///
 /// ```ignore
-/// let deadline = scheduler_state.load(Ordering::Acquire);
-/// let now = FencedInstant::now();
-/// // `now` is guaranteed to be sampled after `deadline` was observed.
+/// // Thread A:                          // Thread B:
+/// let t = OrderedInstant::now();         let seen = shared.load(Ordering::Acquire);
+/// shared.store(t, Ordering::Release);    let now = OrderedInstant::now();
+///                                        // now >= t, always.
 /// ```
 ///
-/// With plain [`Instant`] the counter read can be hoisted earlier than the
-/// acquire-load completes (on aarch64 `mrs cntvct_el0` is a system-register
-/// access that memory fences do not constrain; on x86 `rdtsc` is not a
-/// serializing instruction). [`FencedInstant::now()`] emits the
-/// arch-appropriate barrier before the counter read.
+/// # Why this exists
+///
+/// [`Instant::now()`] is one counter-read instruction (`rdtsc` / `mrs
+/// cntvct_el0`). It is not a memory operation, and an out-of-order CPU can
+/// sample it *before* a prior `Acquire`-load completes. Two consequences, one
+/// cause: on the same thread the read can land before the load you meant to
+/// time after; across threads it can land before the load that joins you to
+/// another thread, inverting two timestamps across a happens-before edge.
+/// `OrderedInstant` emits the arch barrier that pins the read after prior
+/// memory operations, closing both at once.
 ///
 /// # Per-architecture barrier
 ///
-/// - **aarch64**: `isb sy` before `mrs cntvct_el0` — the established pattern,
-///   documented to order the system-register read.
-/// - **x86 / x86_64**: `lfence` before `rdtsc` — Intel-documented; AMD honors
-///   it when the kernel sets `DE_CFG[1]` (Linux does so by default for
-///   Spectre v1 mitigation).
-/// - **riscv64**: `fence iorw, iorw` before `rdtime`. **Best-effort**: whether
-///   memory fences constrain CSR access (`rdtime` reads the Zicntr time CSR,
-///   not memory) is implementation-defined in the RISC-V spec. Weaker
-///   contract than aarch64 / x86.
-/// - **loongarch64**: `dbar 0` before `rdtime.d`. **Best-effort**: same
-///   caveat — `dbar 0` is a memory barrier; its constraint on CSR access is
-///   implementation-defined.
-/// - **wasm / WASI / fallback paths**: kernel / runtime / JS boundary already
-///   serializes naturally.
+/// - **x86 / x86_64**: `rdtscp` — Intel SDM Vol 2B: "waits until all previous
+///   instructions have executed and all previous loads are globally visible."
+///   One instruction, unconditionally serializing for prior loads.
+/// - **aarch64**: `isb sy` before `mrs cntvct_el0` — drains the pipeline so the
+///   system-register read cannot be hoisted past prior memory access.
+/// - **riscv64**: `fence iorw, iorw` before `rdtime`. **Best-effort**: whether a
+///   memory fence constrains the `rdtime` CSR read is implementation-defined in
+///   the RISC-V spec, and tach's cross-thread guarantee is **not yet verified on
+///   native RISC-V hardware**. Use `std` there if you need a bench-proven
+///   ordering guarantee today.
+/// - **loongarch64**: `dbar 0` before `rdtime.d` — same best-effort caveat and
+///   the same "not yet verified on native hardware" status as riscv64.
+/// - **wasm / WASI / fallback paths**: the kernel / runtime / JS boundary
+///   already serializes the call site.
 ///
 /// # Cost
 ///
-/// Roughly 5–20 ns more than [`Instant::now()`] depending on architecture;
-/// per-platform measurements: 18.5 ns on Apple Silicon M1, 26.1 ns on
-/// Graviton 3, 27.1 ns on Intel virtualized, 16.8 ns on Intel bare metal,
-/// 25.4 ns on Windows, 40 ns on AWS Lambda Firecracker (per-thread, no
-/// contention). Still substantially faster than [`std::time::Instant::now()`]
-/// on Linux and macOS (which call into the vDSO / libsystem path but do not
-/// themselves guarantee this ordering against atomics).
-///
-/// Note: on every cell we measure, `FencedInstant::now()` is **slower**
-/// than [`crate::SyncedInstant::now()`] per-thread. The pipeline-drain
-/// barrier costs more than a LOCK fetch_max on an uncontended cache line.
-/// Counterintuitive — atomics should be expensive! — but consistent across
-/// our 6-cell bench matrix.
-///
-/// # Empirical bonus: synchronization-order monotonicity
-///
-/// Across every cell we test, `FencedInstant::now()` also passes the
-/// synchronization-order monotonicity test (`synced_honors_happens_before`
-/// in the unit tests; per-cell data in `BENCHMARKS.md`). The pipeline-
-/// drain barrier serializes enough state that the cross-core race window
-/// closes. **This is an empirical observation, not an ISA guarantee** —
-/// Intel/ARM specs for `rdtscp` / `isb sy` do not promise cross-core TSC
-/// synchronization, only per-core pipeline serialization.
-///
-/// If you need *guaranteed* synchronization-order monotonicity by
-/// construction, use [`crate::SyncedInstant`] (which is also cheaper
-/// per-thread). If you've measured your target hardware and confirmed
-/// `FencedInstant` passes the strict test there, you can rely on it for
-/// both acquire-ordering and cross-thread strictness on that hardware.
+/// Roughly 5–20 ns more than [`Instant::now()`] depending on architecture:
+/// 18.5 ns on Apple Silicon M1, 26.1 ns on Graviton 3, 16.8 ns on Intel bare
+/// metal, 25.4 ns on Windows, 40 ns on AWS Lambda Firecracker (per-thread).
+/// Still 1.5–4× faster than [`std::time::Instant::now()`], which reaches its
+/// own cross-thread correctness only by paying the vDSO / syscall path. And
+/// unlike an atomic-based approach, `OrderedInstant` holds **no shared state**,
+/// so its per-call cost is flat regardless of thread count — there is no
+/// contention cliff. (See `docs/WHY-NOT-AN-ATOMIC.md`.)
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct FencedInstant(u64);
+pub struct OrderedInstant(u64);
 
-impl FencedInstant {
+impl OrderedInstant {
   /// Reads the counter with an instruction-ordering barrier so the
   /// timestamp is sampled *after* any prior `Acquire`-or-stronger
   /// observation.
   #[inline(always)]
   #[allow(clippy::inline_always)]
   pub fn now() -> Self {
-    Self(arch::ticks_fenced())
+    Self(arch::ticks_ordered())
   }
 
   /// Returns the duration that has elapsed since `self` was sampled, with
@@ -290,7 +280,7 @@ impl FencedInstant {
   #[inline]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
-    let delta = arch::ticks_fenced().saturating_sub(self.0);
+    let delta = arch::ticks_ordered().saturating_sub(self.0);
     ticks_to_duration(delta)
   }
 
@@ -300,7 +290,7 @@ impl FencedInstant {
   /// reporting where pre-acquire drift is harmless.
   #[inline]
   #[must_use]
-  pub fn elapsed_unfenced(&self) -> Duration {
+  pub fn elapsed_unordered(&self) -> Duration {
     let delta = arch::ticks().saturating_sub(self.0);
     ticks_to_duration(delta)
   }
@@ -320,25 +310,25 @@ impl FencedInstant {
   /// [`Self::as_unordered`] first if you need to compare.
   #[inline]
   #[must_use]
-  pub fn duration_since(&self, earlier: FencedInstant) -> Duration {
+  pub fn duration_since(&self, earlier: OrderedInstant) -> Duration {
     self.checked_duration_since(earlier).unwrap_or_default()
   }
 
   /// See [`Instant::checked_duration_since`].
   #[inline]
   #[must_use]
-  pub fn checked_duration_since(&self, earlier: FencedInstant) -> Option<Duration> {
+  pub fn checked_duration_since(&self, earlier: OrderedInstant) -> Option<Duration> {
     self.0.checked_sub(earlier.0).map(ticks_to_duration)
   }
 
   /// See [`Instant::saturating_duration_since`].
   #[inline]
   #[must_use]
-  pub fn saturating_duration_since(&self, earlier: FencedInstant) -> Duration {
+  pub fn saturating_duration_since(&self, earlier: OrderedInstant) -> Duration {
     self.duration_since(earlier)
   }
 
-  /// See [`Instant::checked_add`]. The returned `FencedInstant` is a
+  /// See [`Instant::checked_add`]. The returned `OrderedInstant` is a
   /// synthetic point in the timeline; no architectural fence runs (fences
   /// only matter for *reads*).
   #[inline]
@@ -357,227 +347,37 @@ impl FencedInstant {
   }
 }
 
-impl Add<Duration> for FencedInstant {
-  type Output = FencedInstant;
-  fn add(self, rhs: Duration) -> FencedInstant {
+impl Add<Duration> for OrderedInstant {
+  type Output = OrderedInstant;
+  fn add(self, rhs: Duration) -> OrderedInstant {
     self.checked_add(rhs).expect("overflow when adding duration to ordered instant")
   }
 }
 
-impl AddAssign<Duration> for FencedInstant {
+impl AddAssign<Duration> for OrderedInstant {
   fn add_assign(&mut self, rhs: Duration) {
     *self = *self + rhs;
   }
 }
 
-impl Sub<Duration> for FencedInstant {
-  type Output = FencedInstant;
-  fn sub(self, rhs: Duration) -> FencedInstant {
+impl Sub<Duration> for OrderedInstant {
+  type Output = OrderedInstant;
+  fn sub(self, rhs: Duration) -> OrderedInstant {
     self
       .checked_sub(rhs)
       .expect("overflow when subtracting duration from ordered instant")
   }
 }
 
-impl SubAssign<Duration> for FencedInstant {
+impl SubAssign<Duration> for OrderedInstant {
   fn sub_assign(&mut self, rhs: Duration) {
     *self = *self - rhs;
   }
 }
 
-impl Sub<FencedInstant> for FencedInstant {
+impl Sub<OrderedInstant> for OrderedInstant {
   type Output = Duration;
-  fn sub(self, rhs: FencedInstant) -> Duration {
-    self.duration_since(rhs)
-  }
-}
-
-/// An [`Instant`] sampled with a guarantee of **synchronization-order
-/// monotonicity**: every call from any thread returns a value greater than
-/// or equal to every prior call from any thread.
-///
-/// # When to use this
-///
-/// Reach for `SyncedInstant` when you need timestamps from multiple
-/// threads to be strictly ordered — for example, distributed tracing spans
-/// whose start/end events come from different threads but must form a
-/// non-decreasing timeline, lock-free data structures that use timestamps
-/// as monotonic version numbers, or any code where a "later" timestamp
-/// observed via cross-thread synchronization must not compare less than an
-/// "earlier" one.
-///
-/// Plain [`Instant`] is bounded by the underlying counter's cross-thread
-/// synchronization. On x86 the per-core TSC is firmware-synchronized but
-/// not architecturally so, and even on aarch64 — where ARMv8 specifies
-/// `cntvct_el0` as a single global counter — measurable per-core slop has
-/// been observed in practice (sub-microsecond on Apple Silicon M1). For
-/// timestamps that must be strictly ordered across threads, `Instant`'s
-/// hardware-floor monotonicity isn't enough.
-///
-/// `SyncedInstant` adds a process-global `AtomicU64::fetch_max` to
-/// every read, applied uniformly across every supported target. The
-/// fetch_max forces every return value to be `>=` every previously
-/// published value, by construction.
-///
-/// # Cost
-///
-/// The enforcement is applied empirically — `SyncedInstant::now()` pays
-/// the cost of `AtomicU64::fetch_max(AcqRel)` only on platforms where
-/// `measure_synchronization_order` (see `BENCHMARKS.md` "Synchronization-order
-/// monotonicity (contract validation)") shows the bare arch counter fails
-/// the strict happens-before contract. That covers every multi-threaded
-/// platform tach supports: x86 (Linux / macOS / Windows), aarch64 (Linux /
-/// macOS / Windows), riscv64, loongarch64.
-///
-/// Per-platform uncontended cost (per-thread tight loop, no contention):
-/// 7.0 ns on Apple Silicon M1, 10.6 ns on Graviton 3, 14.4 ns on Intel
-/// bare metal, 10.7 ns on Windows, 25.4 ns on Intel virtualized (Nitro),
-/// 35.7 ns on AWS Lambda Firecracker. That's 2–14 ns more than
-/// [`Instant::now()`] on the same hardware.
-///
-/// **Counterintuitive finding**: `SyncedInstant::now()` is FASTER than
-/// [`FencedInstant::now()`] per-thread on every cell we measure (e.g. Apple
-/// Silicon: 7.0 vs 18.5 ns; Windows: 10.7 vs 25.4 ns). The LOCK fetch_max
-/// on an uncontended cache line is cheaper than the pipeline-drain barrier
-/// `FencedInstant` uses. Atomics-should-be-expensive is the wrong
-/// intuition for this regime.
-///
-/// Under heavy contention (many threads simultaneously hammering `now()`),
-/// the `fetch_max` can degrade to 100+ ns per call as the cache line
-/// bounces between cores. If your workload only needs per-thread
-/// monotonicity, prefer plain [`Instant`] to avoid this cost.
-///
-/// On wasm32 (single-threaded JS realm with W3C HRT strict `performance.now()`)
-/// and WASI (single-threaded execution with strict-monotonic spec),
-/// `SyncedInstant::now()` compiles to **the same instruction as
-/// [`Instant::now()`]** — there is no concurrency for the enforcement
-/// to enforce against, so it is elided at compile time.
-///
-/// # Comparison to `std::time::Instant`
-///
-/// `std::time::Instant::now()` on Unix is just `clock_gettime(CLOCK_MONOTONIC)`
-/// — it reads the same underlying hardware counter and performs no software
-/// cross-thread enforcement. On x86 it inherits the same sub-microsecond
-/// hardware sync slop that plain tach `Instant` does. `SyncedInstant` is
-/// **strictly stronger than `std::time::Instant`** on x86, and matches its
-/// guarantee at zero cost on every other architecture.
-///
-/// # Example
-///
-/// ```
-/// use tach::SyncedInstant;
-///
-/// let t1 = SyncedInstant::now();
-/// // ... cross-thread work, channel sends, mutex unlocks, etc. ...
-/// let t2 = SyncedInstant::now();
-/// assert!(t2 >= t1);  // always; never returns Instants out of order
-/// ```
-#[must_use]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct SyncedInstant(u64);
-
-impl SyncedInstant {
-  /// Reads a strictly-cross-thread-monotonic timestamp.
-  ///
-  /// On architectures where the underlying counter is already
-  /// architecturally globally synchronized (aarch64, RISC-V, LoongArch,
-  /// WASI, wasm) or where the OS clock guarantees monotonicity, this
-  /// compiles to the same instruction as [`Instant::now()`]. On x86, it
-  /// performs the bare counter read plus an `AtomicU64::fetch_max` against
-  /// a process-global last-seen tick.
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now() -> Self {
-    Self(arch::ticks_synced())
-  }
-
-  /// Returns the duration that has elapsed since `self` was sampled, with
-  /// the end read also strictly cross-thread monotonic.
-  #[inline]
-  #[must_use]
-  pub fn elapsed(&self) -> Duration {
-    let delta = arch::ticks_synced().saturating_sub(self.0);
-    ticks_to_duration(delta)
-  }
-
-  /// Returns the duration elapsed from `earlier` to `self`, or zero if
-  /// `earlier` is later. Matches modern [`std::time::Instant::duration_since`].
-  #[inline]
-  #[must_use]
-  pub fn duration_since(&self, earlier: SyncedInstant) -> Duration {
-    self.checked_duration_since(earlier).unwrap_or_default()
-  }
-
-  /// Returns the duration elapsed from `earlier` to `self`, or `None` if
-  /// `earlier` is later than `self`. Because `SyncedInstant::now()` is
-  /// strictly cross-thread monotonic, this only returns `None` if the
-  /// caller passes the arguments in the wrong order.
-  #[inline]
-  #[must_use]
-  pub fn checked_duration_since(&self, earlier: SyncedInstant) -> Option<Duration> {
-    self.0.checked_sub(earlier.0).map(ticks_to_duration)
-  }
-
-  /// Saturating equivalent of [`Self::duration_since`].
-  #[inline]
-  #[must_use]
-  pub fn saturating_duration_since(&self, earlier: SyncedInstant) -> Duration {
-    self.duration_since(earlier)
-  }
-
-  /// Returns `Some(self + duration)` if it can be represented, otherwise `None`.
-  #[inline]
-  #[must_use]
-  pub fn checked_add(&self, duration: Duration) -> Option<Self> {
-    let delta = duration_to_ticks(duration)?;
-    self.0.checked_add(delta).map(Self)
-  }
-
-  /// Returns `Some(self - duration)` if it can be represented, otherwise `None`.
-  #[inline]
-  #[must_use]
-  pub fn checked_sub(&self, duration: Duration) -> Option<Self> {
-    let delta = duration_to_ticks(duration)?;
-    self.0.checked_sub(delta).map(Self)
-  }
-
-  #[inline(always)]
-  #[allow(dead_code)]
-  pub(crate) fn from_raw_ticks(ticks: u64) -> Self {
-    Self(ticks)
-  }
-}
-
-impl Add<Duration> for SyncedInstant {
-  type Output = SyncedInstant;
-  fn add(self, rhs: Duration) -> SyncedInstant {
-    self.checked_add(rhs).expect("overflow when adding duration to instant")
-  }
-}
-
-impl AddAssign<Duration> for SyncedInstant {
-  fn add_assign(&mut self, rhs: Duration) {
-    *self = *self + rhs;
-  }
-}
-
-impl Sub<Duration> for SyncedInstant {
-  type Output = SyncedInstant;
-  fn sub(self, rhs: Duration) -> SyncedInstant {
-    self.checked_sub(rhs).expect("overflow when subtracting duration from instant")
-  }
-}
-
-impl SubAssign<Duration> for SyncedInstant {
-  fn sub_assign(&mut self, rhs: Duration) {
-    *self = *self - rhs;
-  }
-}
-
-impl Sub<SyncedInstant> for SyncedInstant {
-  type Output = Duration;
-  fn sub(self, rhs: SyncedInstant) -> Duration {
+  fn sub(self, rhs: OrderedInstant) -> Duration {
     self.duration_since(rhs)
   }
 }

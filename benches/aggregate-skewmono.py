@@ -36,8 +36,7 @@ CELL_ORDER = [
 CLOCK_ORDER = [
     ("tach",         "`tach::Instant` (default, `#![no_std]`)"),
     ("tach_recal",     "`tach::Instant` + `recalibrate-background` (**requires `std`**)"),
-    ("tach_fenced",   "`tach::FencedInstant` (default, `#![no_std]`)"),
-    ("tach_synced", "`tach::SyncedInstant` (default, `#![no_std]`)"),
+    ("tach_ordered",   "`tach::OrderedInstant` (default, `#![no_std]`)"),
     ("quanta",         "`quanta::Instant`"),
     ("minstant",       "`minstant::Instant`"),
     ("fastant",        "`fastant::Instant`"),
@@ -180,22 +179,22 @@ def build_xthread_table(cells: dict[str, dict]) -> str:
 
 def build_strict_table(cells: dict[str, dict]) -> str:
     """Per-cell × per-clock synchronization-order (load-then-now-then-check)
-    violation counts. 0 means the bare clock honored the happens-before-
-    respecting contract for the test window. Non-zero means software
-    enforcement (SyncedInstant's fetch_max) is required to claim
-    synchronization-order monotonicity on that platform.
+    violation counts. 0 means the clock honored the happens-before-respecting
+    contract for the test window. Non-zero means the bare read can be sampled
+    before a prior Acquire-load — i.e. an ordering barrier is required.
 
-    This metric is the empirical basis for deciding whether SyncedInstant
-    needs the fetch_max gate on a given platform — not spec readings, not
-    judgment, just data.
+    This is the empirical basis for OrderedInstant's cross-thread guarantee:
+    `tach` (bare) fails, `tach_ordered` (barrier) passes at 0, and the fast
+    comparison crates (quanta/minstant/fastant) fail wherever they read the
+    counter bare — not spec readings, not judgment, just data.
     """
     out = [
         "Per-cell × per-clock synchronization-order contract violations under "
-        "the load-then-now-then-check pattern. 0 = bare clock empirically "
-        "honors synchronization-order monotonicity for the test window; "
-        "non-zero = software enforcement is required to claim the contract. "
-        "This is the data that drives whether `SyncedInstant` needs "
-        "`fetch_max` on a given platform.",
+        "the load-then-now-then-check pattern. 0 = clock empirically honors "
+        "synchronization-order monotonicity for the test window; non-zero = the "
+        "bare read can be sampled before a prior Acquire-load (an ordering "
+        "barrier is required). This is the data behind `OrderedInstant`'s "
+        "cross-thread guarantee.",
         "",
         "| Clock | " + " | ".join(CELL_ORDER) + " |",
         "|---|" + "|".join(["---"] * len(CELL_ORDER)) + "|",

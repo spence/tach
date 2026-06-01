@@ -4,7 +4,7 @@ use std::hint::black_box;
 use std::time::Instant as StdInstant;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use tach::{Instant, FencedInstant, SyncedInstant};
+use tach::{Instant, OrderedInstant};
 
 fn bench_now(c: &mut Criterion) {
   // Prime the lazy frequency calibration so it doesn't land in the first
@@ -61,18 +61,18 @@ fn bench_elapsed(c: &mut Criterion) {
   g.finish();
 }
 
-fn bench_fenced(c: &mut Criterion) {
-  let mut g = c.benchmark_group("Fenced Instant::now()");
-  g.bench_function("tach::FencedInstant", |b| {
-    b.iter(|| black_box(FencedInstant::now()));
+fn bench_ordered(c: &mut Criterion) {
+  let mut g = c.benchmark_group("Ordered Instant::now()");
+  g.bench_function("tach::OrderedInstant", |b| {
+    b.iter(|| black_box(OrderedInstant::now()));
   });
-  g.bench_function("tach::FencedInstant (now + elapsed)", |b| {
+  g.bench_function("tach::OrderedInstant (now + elapsed)", |b| {
     b.iter(|| {
-      let start = FencedInstant::now();
+      let start = OrderedInstant::now();
       black_box(start.elapsed())
     });
   });
-  g.bench_function("tach::Instant (unfenced reference)", |b| {
+  g.bench_function("tach::Instant (unordered reference)", |b| {
     b.iter(|| black_box(Instant::now()));
   });
   g.bench_function("std::time::Instant", |b| {
@@ -97,13 +97,9 @@ fn bench_elapsed_only(c: &mut Criterion) {
   g.bench_function("tach::Instant", |b| {
     b.iter(|| black_box(black_box(tach_start).elapsed()));
   });
-  let sync_start = SyncedInstant::now();
-  g.bench_function("tach::SyncedInstant", |b| {
-    b.iter(|| black_box(black_box(sync_start).elapsed()));
-  });
-  let fenced_start = FencedInstant::now();
-  g.bench_function("tach::FencedInstant", |b| {
-    b.iter(|| black_box(black_box(fenced_start).elapsed()));
+  let ordered_start = OrderedInstant::now();
+  g.bench_function("tach::OrderedInstant", |b| {
+    b.iter(|| black_box(black_box(ordered_start).elapsed()));
   });
   let std_start = StdInstant::now();
   g.bench_function("std::time::Instant", |b| {
@@ -112,5 +108,5 @@ fn bench_elapsed_only(c: &mut Criterion) {
   g.finish();
 }
 
-criterion_group!(benches, bench_now, bench_elapsed, bench_elapsed_only, bench_fenced);
+criterion_group!(benches, bench_now, bench_elapsed, bench_elapsed_only, bench_ordered);
 criterion_main!(benches);

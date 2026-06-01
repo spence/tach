@@ -20,114 +20,72 @@
 //! println!("{elapsed:?}");
 //! ```
 //!
-//! # Three types, picked by use case
+//! # Two types, one decision
 //!
-//! - **[`Instant`]** — the fast read (3.5–21 ns across platforms; 1.5–8×
-//!   faster than [`std::time::Instant`]). Per-thread monotonic by hardware on
-//!   every supported target; cross-thread bounded by the hardware sync floor
-//!   (≤10 µs on every tested cell, matching [`std::time::Instant`] on the
-//!   same hardware). Right choice for the common case: pinned threads, or
-//!   any code where ≤10 µs cross-thread slop is acceptable (tracing,
-//!   profiling, latency measurement, request budgets).
-//! - **[`SyncedInstant`]** — synchronization-order monotonic by
-//!   construction. Adds a process-global `AtomicU64::fetch_max` to the bare
-//!   read on every multi-threaded platform (skipped on wasm32 / WASI where
-//!   the runtime already guarantees strictness). Adds 2–14 ns vs `Instant`
-//!   in the uncontended case. Right choice for tracing spans crossing
-//!   threads, lock-free version numbers, multi-thread ordered logs.
-//! - **[`FencedInstant`]** — acquire-side ordered against prior atomic
-//!   loads. Adds a per-arch barrier (`rdtscp` on x86, `isb sy` on aarch64).
-//!   Adds 8–19 ns vs `Instant`. Right choice for correlating a timestamp
-//!   with atomic synchronization state.
+//! - **[`Instant`]** — the fastest timestamp (3.5–21 ns across platforms;
+//!   1.5–8× faster than [`std::time::Instant`]). Monotonic on a thread, and in
+//!   wall-clock order across threads. Use it for timing, profiling, latency,
+//!   local elapsed — anything **not** compared against another thread's
+//!   timestamp through shared state.
+//! - **[`OrderedInstant`]** — the same architectural-counter read, *ordered
+//!   against memory*. **Monotonic across threads** by construction, verified at
+//!   0 backward steps in ~10.9 billion reads across Apple Silicon, Graviton 3,
+//!   Intel and AMD x86 (single- and dual-socket NUMA). Use it the moment a
+//!   timestamp crosses a thread boundary and gets compared or ordered — trace
+//!   timelines, timestamp-as-version, a deadline read after an `Acquire`-load.
 //!
-//! Counterintuitive performance fact, consistent across every cell we
-//! measure: [`SyncedInstant`] is FASTER than [`FencedInstant`]
-//! per-thread, despite the extra atomic. The LOCK fetch_max on an
-//! uncontended cache line costs less than the pipeline-drain barrier
-//! [`FencedInstant`] uses. See `BENCHMARKS.md` for the full per-platform
-//! cost table.
+//! If a timestamp ever leaves the thread that made it and gets compared, reach
+//! for [`OrderedInstant`]. Otherwise [`Instant`].
 //!
-//! # Timing contract for [`Instant`]
+//! # Why [`OrderedInstant`] exists: one hazard, two faces
 //!
-//! `Instant` is wall-clock-rate: keeps ticking through park, suspension, and
-//! descheduling. Same source across every thread in the process. **Per-thread
-//! monotonicity is hardware-guaranteed.** Measured: 0 backward jumps across
-//! 33 billion reads in the 6-cell bench matrix (`benches/skewmono-*.json`).
+//! [`Instant::now()`] is one counter-read instruction (`rdtsc` / `mrs
+//! cntvct_el0`). It is not a memory operation, and an out-of-order CPU can
+//! sample it *before* a prior `Acquire`-load completes. That single fact has
+//! two consequences:
 //!
-//! **Cross-thread monotonicity is bounded by the hardware's per-core sync
-//! slop.** On every tested cell the slop sits at the bracket-filter floor
-//! (≤10 µs), matching [`std::time::Instant`] on the same hardware (both read
-//! the same underlying counter). For uses where ≤10 µs slop isn't acceptable
-//! — strictly ordered cross-thread events — reach for [`SyncedInstant`].
-//! AMD Zen4 cross-CCX and multi-socket NUMA boundaries are outside the
-//! verification set; measure your hardware if you correlate timestamps
-//! across those.
-//!
-//! # Synchronization-order monotonicity: [`SyncedInstant`]
-//!
-//! Bare arch counter reads FAIL synchronization-order monotonicity on every
-//! multi-threaded platform we test. Rates vary from sub-ppm (Nitro VMs) to
-//! 12% (Apple Silicon M1), but every multi-threaded platform shows non-zero
-//! contract violations under the strict load-then-now-then-check test (the
-//! `synced_honors_happens_before` unit test runs this; per-cell data in
-//! `BENCHMARKS.md`). [`SyncedInstant`] enforces the strict contract in
-//! software via a process-global `AtomicU64::fetch_max` on every read:
-//!
-//! ```ignore
-//! let t1 = tach::SyncedInstant::now();
-//! // ... cross-thread work via channels, mutexes, atomics ...
-//! let t2 = tach::SyncedInstant::now();
-//! assert!(t2 >= t1);   // always; cross-thread monotonicity is strict
-//! ```
-//!
-//! On wasm32 (single-threaded JS realm) and WASI (single-threaded execution
-//! model), the enforcement is skipped — `SyncedInstant::now()` compiles
-//! to the same instruction as `Instant::now()` on those targets.
-//!
-//! This is strictly stronger than [`std::time::Instant`] on x86, which reads
-//! the same underlying counter through a slower path and performs no
-//! software-side cross-thread enforcement.
-//!
-//! # Ordering against atomics: [`FencedInstant`]
-//!
-//! Plain [`Instant::now()`] is intentionally minimal — one counter instruction
-//! with no synchronization barrier. That's a hazard if you correlate timestamps
-//! with atomic loads:
+//! - **Same thread**: the read can land before the load you meant to time
+//!   *after* — your measurement brackets the wrong region.
+//! - **Across threads**: the read can land before the load that joins you to
+//!   another thread, so two timestamps invert across a happens-before edge.
 //!
 //! ```ignore
 //! let deadline = scheduler.load(Ordering::Acquire);
 //! let now = tach::Instant::now();    // ← may be sampled BEFORE `deadline` is observed
 //! ```
 //!
-//! On aarch64 `mrs cntvct_el0` is a system-register read; on x86 `rdtsc` is not
-//! serializing. Memory fences alone don't constrain when those execute, so the
-//! timestamp can drift earlier than the synchronization point. Use
-//! [`FencedInstant`] when you need *"my timestamp is sampled after any prior
-//! `Acquire`-or-stronger observation"*:
+//! [`OrderedInstant`] emits the arch barrier that pins the read *after* prior
+//! memory operations, closing both faces at once:
 //!
 //! ```ignore
 //! let deadline = scheduler.load(Ordering::Acquire);
-//! let now = tach::FencedInstant::now();   // safe to correlate with `deadline`
+//! let now = tach::OrderedInstant::now();   // sampled after `deadline` — safe to compare
 //! ```
 //!
-//! [`FencedInstant::now()`] emits the arch-appropriate barrier before the
-//! counter read (`isb sy` on aarch64, `rdtscp` on x86; best-effort
-//! `fence iorw, iorw` on riscv64 and `dbar 0` on loongarch64 — CSR-vs-memory
-//! ordering is implementation-defined on those archs). On x86 the single
-//! `rdtscp` replaces the older `lfence; rdtsc` pair: one instruction instead
-//! of two, and unconditionally fully serializing for prior instructions on
-//! AMD without requiring the kernel-set `DE_CFG[1]` MSR. Cost is ~5–20 ns
-//! more than [`Instant::now()`] depending on architecture, still
-//! substantially faster than [`std::time::Instant::now()`] on Linux and
-//! macOS (which use the vDSO / libsystem path but do not themselves
-//! guarantee this ordering).
+//! # The guarantee, precisely
 //!
-//! **Empirical bonus**: across every cell we test, [`FencedInstant`] also
-//! happens to pass the synchronization-order monotonicity test (the
-//! pipeline-drain barrier serializes enough state that the cross-core race
-//! window closes). This is an observation, not an ISA guarantee — if you
-//! need *guaranteed* synchronization-order monotonicity by construction, use
-//! [`SyncedInstant`] (which is also cheaper per-thread).
+//! A timestamp taken on any thread, after an `Acquire`-load that observed
+//! another thread's published [`OrderedInstant`], is guaranteed `>=` that
+//! published value (the load-then-now-then-check contract). Verified: **0
+//! violations in ~10.9 billion reads** across x86 and aarch64, including
+//! 2-socket Intel and AMD NUMA where a bare [`Instant`] inverts from sub-ppm
+//! to ~12% of cross-thread reads (see `benches/ORDERED-VERIFICATION.md`).
+//!
+//! The barrier is `rdtscp` on x86 (Intel SDM: "waits until all previous
+//! instructions have executed and all previous loads are globally visible"),
+//! `isb sy` before `mrs cntvct_el0` on aarch64. On **riscv64 and loongarch64**
+//! it is the strongest barrier each ISA offers (`fence iorw, iorw` / `dbar 0`),
+//! but whether a memory fence constrains the time-CSR read is
+//! implementation-defined, and tach's cross-thread ordering is **not yet
+//! verified on native RISC-V / LoongArch hardware** — use [`std::time::Instant`]
+//! there if you need a bench-proven guarantee today.
+//!
+//! # The one assumption
+//!
+//! tach assumes a coherent, monotonic hardware counter. Where the OS marks the
+//! TSC clocksource unstable (genuinely desynchronized cores — exotic or broken
+//! multi-socket firmware), tach is off-contract for *every* type; use
+//! [`std::time::Instant`] on such hosts.
 
 mod arch;
 // Calibration is needed wherever the architectural counter doesn't self-report
@@ -145,7 +103,7 @@ mod arch;
 mod calibration;
 mod instant;
 
-pub use instant::{Instant, SyncedInstant, FencedInstant};
+pub use instant::{Instant, OrderedInstant};
 
 // The crate is strictly `#![no_std]` by default. Two opt-in features bring std
 // in: `recalibrate-background` (for the periodic-recalibration thread) and
@@ -174,8 +132,7 @@ mod tests {
   fn instant_is_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<Instant>();
-    assert_send_sync::<FencedInstant>();
-    assert_send_sync::<SyncedInstant>();
+    assert_send_sync::<OrderedInstant>();
   }
 
   #[test]
@@ -198,18 +155,18 @@ mod tests {
   }
 
   #[test]
-  fn fenced_now_advances() {
-    let mut previous = FencedInstant::now();
+  fn ordered_now_advances() {
+    let mut previous = OrderedInstant::now();
     for _ in 0..10_000 {
-      let current = FencedInstant::now();
+      let current = OrderedInstant::now();
       assert!(current >= previous, "ordered counter moved backward");
       previous = current;
     }
   }
 
   #[test]
-  fn fenced_elapsed_after_sleep() {
-    let start = FencedInstant::now();
+  fn ordered_elapsed_after_sleep() {
+    let start = OrderedInstant::now();
     std::thread::sleep(Duration::from_millis(10));
     let elapsed = start.elapsed();
     assert!(elapsed.as_millis() >= 9, "ordered elapsed too short: {elapsed:?}");
@@ -220,10 +177,10 @@ mod tests {
   // measurement from the converted unordered handle should match an elapsed
   // measurement from the original within bench-runtime noise.
   #[test]
-  fn fenced_as_unfenced_preserves_tick_value() {
-    let ordered = FencedInstant::now();
+  fn ordered_as_unordered_preserves_tick_value() {
+    let ordered = OrderedInstant::now();
     let unordered = ordered.as_unordered();
-    let elapsed_from_ordered = ordered.elapsed_unfenced();
+    let elapsed_from_ordered = ordered.elapsed_unordered();
     let elapsed_from_unordered = unordered.elapsed();
     let diff = elapsed_from_ordered.abs_diff(elapsed_from_unordered);
     // The two .elapsed*() calls happen back-to-back; diff is whatever a
@@ -231,16 +188,16 @@ mod tests {
     assert!(diff.as_millis() < 1, "elapsed diverged after as_unordered: {diff:?}");
   }
 
-  // Pairing FencedInstant start with elapsed_unfenced() end: end timestamp
+  // Pairing OrderedInstant start with elapsed_unordered() end: end timestamp
   // is unordered but should still come after the ordered start (sleep is well
   // longer than any reordering window).
   #[test]
-  fn fenced_elapsed_unfenced_after_sleep() {
-    let start = FencedInstant::now();
+  fn ordered_elapsed_unordered_after_sleep() {
+    let start = OrderedInstant::now();
     std::thread::sleep(Duration::from_millis(10));
-    let elapsed = start.elapsed_unfenced();
-    assert!(elapsed.as_millis() >= 9, "elapsed_unfenced too short: {elapsed:?}");
-    assert!(elapsed.as_millis() < 200, "elapsed_unfenced too long: {elapsed:?}");
+    let elapsed = start.elapsed_unordered();
+    assert!(elapsed.as_millis() >= 9, "elapsed_unordered too short: {elapsed:?}");
+    assert!(elapsed.as_millis() < 200, "elapsed_unordered too long: {elapsed:?}");
   }
 
   #[test]
@@ -254,15 +211,14 @@ mod tests {
 
   // elapsed() must saturate to zero when `self` is in the future rather than
   // wrapping to a ~580-year garbage Duration. The future instant is an hour
-  // ahead, so the current read always lands before it. Covers all three types
-  // plus FencedInstant's unfenced end read.
+  // ahead, so the current read always lands before it. Covers both types
+  // plus OrderedInstant's unordered end read.
   #[test]
   fn elapsed_saturates_when_self_is_in_the_future() {
     let one_hour = Duration::from_secs(3600);
     assert_eq!((Instant::now() + one_hour).elapsed(), Duration::ZERO);
-    assert_eq!((SyncedInstant::now() + one_hour).elapsed(), Duration::ZERO);
-    assert_eq!((FencedInstant::now() + one_hour).elapsed(), Duration::ZERO);
-    assert_eq!((FencedInstant::now() + one_hour).elapsed_unfenced(), Duration::ZERO);
+    assert_eq!((OrderedInstant::now() + one_hour).elapsed(), Duration::ZERO);
+    assert_eq!((OrderedInstant::now() + one_hour).elapsed_unordered(), Duration::ZERO);
   }
 
   #[test]
@@ -309,10 +265,10 @@ mod tests {
   }
 
   #[test]
-  fn fenced_instant_arithmetic_mirrors_instant() {
-    let a = FencedInstant::now();
+  fn ordered_instant_arithmetic_mirrors_instant() {
+    let a = OrderedInstant::now();
     std::thread::sleep(Duration::from_millis(5));
-    let b = FencedInstant::now();
+    let b = OrderedInstant::now();
     let diff: Duration = b - a;
     assert!(diff.as_millis() >= 4 && diff.as_millis() < 200, "diff: {diff:?}");
     assert_eq!(a.duration_since(b), Duration::ZERO);
@@ -381,66 +337,31 @@ mod tests {
     );
   }
 
-  #[test]
-  fn synced_now_advances() {
-    let mut previous = SyncedInstant::now();
-    for _ in 0..10_000 {
-      let current = SyncedInstant::now();
-      assert!(current >= previous, "monotonic counter moved backward");
-      previous = current;
-    }
-  }
-
-  #[test]
-  fn synced_elapsed_after_sleep() {
-    let start = SyncedInstant::now();
-    std::thread::sleep(Duration::from_millis(10));
-    let elapsed = start.elapsed();
-    assert!(elapsed.as_millis() >= 9, "monotonic elapsed too short: {elapsed:?}");
-    assert!(elapsed.as_millis() < 200, "monotonic elapsed too long: {elapsed:?}");
-  }
-
-  #[test]
-  fn synced_arithmetic_mirrors_instant() {
-    let a = SyncedInstant::now();
-    std::thread::sleep(Duration::from_millis(5));
-    let b = SyncedInstant::now();
-    let diff: Duration = b - a;
-    assert!(diff.as_millis() >= 4 && diff.as_millis() < 200, "diff: {diff:?}");
-    assert_eq!(a.duration_since(b), Duration::ZERO);
-    assert!(b.checked_duration_since(a).is_some());
-
-    let later = a + Duration::from_secs(1);
-    let drift = later.duration_since(a).abs_diff(Duration::from_secs(1));
-    assert!(drift < Duration::from_micros(1), "drift: {drift:?}");
-  }
-
-  // Synchronization-order monotonicity test, directly validating the
-  // happens-before contract: "after observing a value via Acquire-load,
-  // a subsequent SyncedInstant::now() must return a value >= what was
-  // observed." With fetch_max enforcement inside SyncedInstant::now(),
-  // this must hold with literally 0 violations across N racing threads.
+  // Synchronization-order monotonicity, directly validating the happens-before
+  // contract: "after observing a value via Acquire-load, a subsequent
+  // OrderedInstant::now() must return a value >= what was observed." This is the
+  // in-crate version of the `measure_synchronization_order` bench; it must hold
+  // with 0 violations across N racing threads.
   //
-  // The contract being tested:
+  // The contract:
   //   - Thread P does now(); publishes its value via Release-store.
   //   - Thread O does Acquire-load to observe P's value; then now().
   //   - O's now() must return >= what O observed.
   //
-  // Plain Instant fails this on x86 (~10 µs hardware sync slop) and on
-  // Apple Silicon (~10 µs measured on M1 despite the ARMv8 architectural
-  // guarantee that cntvct_el0 is one global counter). SyncedInstant
-  // must pass because its now() internally does AcqRel fetch_max on a
-  // process-global counter, which forces the local return to be >= any
-  // previously synchronized-with value.
+  // Plain Instant FAILS this — on x86 (~10 µs hardware sync slop) and on Apple
+  // Silicon (~12% of reads on M1) the bare counter read can be sampled before
+  // the Acquire-load retires. OrderedInstant passes because its barrier
+  // (`rdtscp` / `isb sy`) pins the read after prior loads are globally visible,
+  // verified at 0 violations across ~10.9B reads incl. 2-socket NUMA.
   #[test]
-  fn synced_honors_happens_before() {
+  fn ordered_honors_happens_before() {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::thread;
     use std::vec::Vec;
 
     let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(16);
-    let anchor = SyncedInstant::now();
+    let anchor = OrderedInstant::now();
     let published_ns = Arc::new(AtomicU64::new(0));
     let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let barrier = Arc::new(std::sync::Barrier::new(threads + 1));
@@ -454,16 +375,14 @@ mod tests {
           let mut violations: u64 = 0;
           barrier.wait();
           while !stop.load(Ordering::Relaxed) {
-            // Step 1: Acquire-load the latest published nanosecond value.
-            //         This synchronizes-with the prior thread's Release on
-            //         this atomic and on SyncedInstant's internal
-            //         GLOBAL_LAST_TSC (transitively).
+            // Step 1: Acquire-load the latest published nanosecond value,
+            //         synchronizing-with the prior thread's Release on this
+            //         atomic.
             let observed = published_ns.load(Ordering::Acquire);
-            // Step 2: Call now(). Its internal AcqRel fetch_max on
-            //         GLOBAL_LAST_TSC sees the value that was synchronized-
-            //         with via the Acquire above, so the return must be
-            //         >= the underlying tick for the observed ns.
-            let t = SyncedInstant::now();
+            // Step 2: Call now(). Its barrier pins the counter read after the
+            //         Acquire-load above, so the return must be >= the tick
+            //         for the observed ns.
+            let t = OrderedInstant::now();
             let ns = t.duration_since(anchor).as_nanos() as u64;
             // Step 3: Check the contract: ns >= observed.
             if ns < observed {
@@ -485,8 +404,8 @@ mod tests {
     let total_violations: u64 = handles.into_iter().map(|h| h.join().unwrap()).sum();
     assert_eq!(
       total_violations, 0,
-      "SyncedInstant showed {total_violations} happens-before cross-thread monotonicity \
-       violations (expected 0); fetch_max enforcement appears to be broken",
+      "OrderedInstant showed {total_violations} happens-before cross-thread monotonicity \
+       violations (expected 0); the ordering barrier appears to be broken",
     );
   }
 }

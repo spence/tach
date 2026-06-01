@@ -31,7 +31,7 @@ pub fn rdtime() -> u64 {
 /// `nomem` is intentionally omitted so the compiler also keeps surrounding
 /// memory operations in order around the asm block.
 #[inline(always)]
-pub fn rdtime_fenced() -> u64 {
+pub fn rdtime_ordered() -> u64 {
   let cnt: u64;
   // SAFETY: `fence iorw, iorw; rdtime` orders prior I/O and memory ops vs subsequent ones
   // and reads the timer CSR; no stack access. Compiler treats as memory-touching.

@@ -5,15 +5,6 @@ pub mod aarch64;
 pub mod fallback;
 #[cfg(target_arch = "loongarch64")]
 pub mod loongarch64;
-// Synchronization-order enforcement module. Not compiled on platforms whose
-// execution model already guarantees a single linearized read order by
-// structure (wasm32 single-threaded JS realm; WASI single-threaded execution
-// model). Matches the cfg gate in `direct::ticks_synced`.
-#[cfg(not(any(
-  all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
-  target_os = "wasi",
-)))]
-mod synced;
 #[cfg(target_arch = "riscv64")]
 pub mod riscv64;
 #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
@@ -24,7 +15,7 @@ pub mod x86;
 pub mod x86_64;
 
 mod direct;
-pub use direct::{ticks, ticks_synced, ticks_fenced};
+pub use direct::{ticks, ticks_ordered};
 
 // Cached at first elapsed() call. Stored as fixed-point Q32:
 //   nanos_per_tick_q32 = (1e9 << 32) / frequency

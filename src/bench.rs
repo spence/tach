@@ -21,8 +21,7 @@ use std::vec::Vec;
 use serde::Serialize;
 
 use crate::Instant as TachInstantTy;
-use crate::SyncedInstant as TachSyncedInstantTy;
-use crate::FencedInstant as TachFencedInstantTy;
+use crate::OrderedInstant as TachOrderedInstantTy;
 
 /// A clock under test. Produces a `u64` of ns-since-anchor each `now_as_u64`
 /// call, so cross-thread monotonicity tests can use one `AtomicU64` shape for
@@ -92,20 +91,20 @@ pub struct SyncOrderResult {
 }
 
 #[derive(Serialize, Clone, Debug)]
-pub struct FencedVerifyPlacement {
+pub struct OrderedVerifyPlacement {
   /// "adversarial-pair" | "full-span" | "oversubscribed-2x"
   pub placement: String,
   /// Logical core id bound to worker i (worker i -> pinned_cores[i]).
   pub pinned_cores: Vec<usize>,
   pub threads: u32,
   /// Sync-order result per clock under this placement. Read `tach` as the
-  /// positive control (must be non-zero), `tach_fenced` as the subject,
-  /// `tach_synced` as the remedy, `std` as reference.
+  /// positive control (must be non-zero), `tach_ordered` as the subject, and
+  /// `std` / `quanta` / `minstant` / `fastant` as ecosystem comparators.
   pub results: std::collections::BTreeMap<String, SyncOrderResult>,
 }
 
 #[derive(Serialize, Clone, Debug)]
-pub struct FencedVerifyReport {
+pub struct OrderedVerifyReport {
   pub schema: &'static str,
   pub cell: String,
   pub target_triple: &'static str,
@@ -113,23 +112,7 @@ pub struct FencedVerifyReport {
   pub host: HostInfo,
   pub tach_freq_hz: u64,
   pub duration_secs_per_run: u64,
-  pub placements: Vec<FencedVerifyPlacement>,
-}
-
-#[derive(Serialize, Clone, Debug)]
-pub struct ContentionResult {
-  pub clock: &'static str,
-  pub threads: u32,
-  /// Synthetic `spin_loop` iterations executed between each `now()` call —
-  /// the inter-call-spacing knob. 0 = pathological tight loop.
-  pub spin_iters: u32,
-  pub total_ops: u64,
-  pub duration_ns: u64,
-  pub throughput_per_sec: f64,
-  /// Mean per-call latency a single thread experiences (includes the
-  /// `spin_iters` of synthetic work and the ns-conversion wrapper; the
-  /// signal is the *delta* between clocks at a given thread count).
-  pub per_call_ns_mean: f64,
+  pub placements: Vec<OrderedVerifyPlacement>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -323,12 +306,12 @@ pub fn measure_cross_thread<C: ClockSource>(
 ///
 /// Returns `total_violations == 0` if and only if the clock is empirically
 /// synchronization-order monotonic under the test conditions (N threads × the
-/// given duration). Any non-zero value means the underlying clock needs
-/// software enforcement (a process-global fetch_max wrapping every read) to
-/// claim the synchronization-order contract.
+/// given duration). Any non-zero value means the bare clock read can be sampled
+/// before a prior Acquire-load — i.e. it needs an ordering barrier to claim the
+/// synchronization-order contract.
 ///
-/// This is the canonical test for deciding whether `SyncedInstant`'s
-/// fetch_max enforcement is needed on a given platform.
+/// This is the canonical test behind `OrderedInstant`'s cross-thread guarantee:
+/// `tach` (bare) fails it, `tach_ordered` (barrier) passes it at 0 violations.
 pub fn measure_synchronization_order<C: ClockSource>(
   threads: usize,
   duration: Duration,
@@ -491,80 +474,13 @@ pub fn measure_synchronization_order_pinned<C: ClockSource>(
 }
 
 /// Logical core ids this process may bind threads to. Empty if the platform
-/// doesn't report them. Used to build pinned placements for the fenced-verify
+/// doesn't report them. Used to build pinned placements for the ordered-verify
 /// study.
 #[must_use]
 pub fn available_core_ids() -> Vec<usize> {
   core_affinity::get_core_ids()
     .map(|v| v.into_iter().map(|c| c.id).collect())
     .unwrap_or_default()
-}
-
-/// Contention: `threads` workers all hammer `C::now_as_u64()` for `duration`,
-/// with `spin_iters` of synthetic work between calls. Reports aggregate
-/// throughput and the mean per-call latency a single thread experiences.
-///
-/// The only clock with shared mutable hot-path state is `SyncedInstant` (its
-/// process-global `fetch_max` on one cache line), so its per-call latency
-/// should climb with thread count and its throughput should plateau, while the
-/// barrier-free clocks scale flat.
-pub fn measure_contention<C: ClockSource>(
-  threads: usize,
-  duration: Duration,
-  spin_iters: u32,
-) -> ContentionResult {
-  C::init_anchor();
-  for _ in 0..1_000 {
-    let _ = C::now_as_u64();
-  }
-
-  let start_barrier = std::sync::Arc::new(std::sync::Barrier::new(threads + 1));
-  let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-
-  let mut handles = Vec::with_capacity(threads);
-  for _ in 0..threads {
-    let start_barrier = std::sync::Arc::clone(&start_barrier);
-    let stop = std::sync::Arc::clone(&stop);
-    handles.push(thread::spawn(move || -> u64 {
-      let mut ops = 0u64;
-      start_barrier.wait();
-      // Check the stop flag every 64 ops so the loop exits promptly (small
-      // overshoot past `duration`) without a per-call atomic load dominating.
-      while !stop.load(Ordering::Relaxed) {
-        for _ in 0..64 {
-          std::hint::black_box(C::now_as_u64());
-          for _ in 0..spin_iters {
-            std::hint::spin_loop();
-          }
-        }
-        ops += 64;
-      }
-      ops
-    }));
-  }
-
-  start_barrier.wait();
-  let wall_start = StdInstantTy::now();
-  thread::sleep(duration);
-  stop.store(true, Ordering::Relaxed);
-
-  let mut total_ops = 0u64;
-  for h in handles {
-    total_ops += h.join().expect("thread panic");
-  }
-  let duration_ns = u64::try_from(wall_start.elapsed().as_nanos()).unwrap_or(u64::MAX);
-
-  let secs = duration_ns as f64 / 1e9;
-  let ops_per_thread = total_ops as f64 / threads as f64;
-  ContentionResult {
-    clock: C::NAME,
-    threads: u32::try_from(threads).unwrap_or(u32::MAX),
-    spin_iters,
-    total_ops,
-    duration_ns,
-    throughput_per_sec: total_ops as f64 / secs,
-    per_call_ns_mean: duration_ns as f64 / ops_per_thread,
-  }
 }
 
 /// Reference clock — the same clock std::Instant uses on this platform.
@@ -683,30 +599,16 @@ impl ClockSource for TachInstant {
   }
 }
 
-pub struct TachFencedInstant;
-static TACH_FENCED_ANCHOR: OnceLock<TachFencedInstantTy> = OnceLock::new();
-impl ClockSource for TachFencedInstant {
-  const NAME: &'static str = "tach_fenced";
+pub struct TachOrderedInstant;
+static TACH_ORDERED_ANCHOR: OnceLock<TachOrderedInstantTy> = OnceLock::new();
+impl ClockSource for TachOrderedInstant {
+  const NAME: &'static str = "tach_ordered";
   fn init_anchor() {
-    let _ = TACH_FENCED_ANCHOR.get_or_init(TachFencedInstantTy::now);
+    let _ = TACH_ORDERED_ANCHOR.get_or_init(TachOrderedInstantTy::now);
   }
   fn now_as_u64() -> u64 {
-    let anchor = *TACH_FENCED_ANCHOR.get().expect("init_anchor first");
-    u64::try_from(TachFencedInstantTy::now().saturating_duration_since(anchor).as_nanos())
-      .unwrap_or(u64::MAX)
-  }
-}
-
-pub struct TachSyncedInstant;
-static TACH_SYNC_ANCHOR: OnceLock<TachSyncedInstantTy> = OnceLock::new();
-impl ClockSource for TachSyncedInstant {
-  const NAME: &'static str = "tach_synced";
-  fn init_anchor() {
-    let _ = TACH_SYNC_ANCHOR.get_or_init(TachSyncedInstantTy::now);
-  }
-  fn now_as_u64() -> u64 {
-    let anchor = *TACH_SYNC_ANCHOR.get().expect("init_anchor first");
-    u64::try_from(TachSyncedInstantTy::now().saturating_duration_since(anchor).as_nanos())
+    let anchor = *TACH_ORDERED_ANCHOR.get().expect("init_anchor first");
+    u64::try_from(TachOrderedInstantTy::now().saturating_duration_since(anchor).as_nanos())
       .unwrap_or(u64::MAX)
   }
 }
