@@ -50,7 +50,7 @@ max ~800 ns — while both `FencedInstant` and `SyncedInstant` stayed at 0. So t
 | | single-socket / coherent counter | multi-socket / NUMA |
 |---|---|---|
 | **aarch64** | ✅ Fenced sufficient (M1, M4, Graviton 3) | not tested — ARM system counter is one SoC-broadcast IP; skew unlikely |
-| **x86_64** | ✅ Fenced sufficient (t3, m7i-24xl, lambda, windows) | ⏳ **OPEN — quota-blocked** (needs ≥96-vCPU metal; account cap is 32) |
+| **x86_64** | ✅ Fenced sufficient (t3, m7i-24xl, lambda, windows) | ⏳ **OPEN — decisive test, run pending** |
 | **riscv64 / loongarch64** | ⚠️ best-effort by spec (fence-vs-CSR ordering implementation-defined); unverified | — |
 
 ## Honest limitations
@@ -60,15 +60,13 @@ max ~800 ns — while both `FencedInstant` and `SyncedInstant` stayed at 0. So t
 - Every cell verified so far is **single-socket / coherent-counter**. The one
   topology that could genuinely make `FencedInstant` go backward — where the
   barrier correctly pins the read in time but the *other socket's TSC physically
-  lags* — is **multi-socket / NUMA x86**, which is **not yet tested**. The harness
-  and runner (`run-fenced-verify-aws.sh`) are ready, but the run is currently
-  **blocked by AWS account quota**: a true cross-socket test requires a bare-metal
-  instance (≥96 vCPU; `m7i.metal-48xl` is 192), and the account's on-demand
-  standard vCPU limit is 32. No 2-socket instance fits under 32 vCPU, and a
-  virtualized instance shares one hypervisor-synced TSC, so it can't exercise the
-  cross-socket case. Unblocking requires a Service Quotas increase
-  (`L-1216C47A`, async AWS approval). Only `SyncedInstant`'s value-floor would
-  catch a cross-socket inversion if one occurs.
+  lags* — is **multi-socket / NUMA x86**, which is **not yet tested**. A true
+  cross-socket test requires a bare-metal instance (`m7i.metal-48xl`, 2-socket,
+  192 vCPU); a virtualized instance shares one hypervisor-synced TSC and can't
+  exercise the cross-socket case. The harness and runner
+  (`run-fenced-verify-aws.sh`) are ready and the AWS account can launch it
+  (on-demand standard vCPU quota is 592). Only `SyncedInstant`'s value-floor
+  would catch a cross-socket inversion if one occurs.
 - riscv64 / loongarch64 **cannot be closed by hardware runs** — a board that
   doesn't reorder in practice proves nothing about the ISA's best-effort
   guarantee. Their honest status is "use `SyncedInstant` for a
@@ -82,5 +80,4 @@ Windows x86 — `FencedInstant` does not go backward across threads: 0 violation
 in ~1.58 billion reads, with the bare-counter control firing to prove the test
 was live. The remaining gap is multi-socket NUMA x86 — the only place the
 underlying counter itself could be incoherent. The harness and AWS runner are in
-place to settle it; the run is pending an AWS vCPU-quota increase (bare-metal
-needs ≥96 vCPU vs the account's current 32-vCPU cap).
+place to settle it; the run is pending.
