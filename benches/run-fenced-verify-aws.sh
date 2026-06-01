@@ -34,11 +34,16 @@ case "$INSTANCE_TYPE" in
   c7g*|c8g*|t4g*|c6g*|m7g*|m6g*|r7g*|r8g*) ARCH=arm64 ;;
   *) ARCH=x86_64 ;;
 esac
-AMI_SSM="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.12-${ARCH}"
+AMI_PATTERN="al2023-ami-2023.*-kernel-6.1-${ARCH}"
 
 aws_() { aws "$@" --region "$REGION" --profile "$PROFILE"; }
 
-AMI_ID=$(aws_ ssm get-parameters --names "$AMI_SSM" --query 'Parameters[0].Value' --output text)
+# Resolve the latest AL2023 AMI via describe-images. (The SSM public-parameter
+# path needs ssm:GetParameters, which this IAM user lacks; describe-images only
+# needs ec2:DescribeImages.)
+AMI_ID=$(aws_ ec2 describe-images --owners amazon \
+  --filters "Name=name,Values=${AMI_PATTERN}" "Name=state,Values=available" \
+  --query 'reverse(sort_by(Images,&CreationDate))[0].ImageId' --output text)
 
 echo "creating ephemeral keypair $KEY_NAME"
 aws_ ec2 create-key-pair --key-name "$KEY_NAME" \
