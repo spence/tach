@@ -209,7 +209,7 @@ The bench captures three quantities for each clock source:
 
 Per-cell 1-second and 1-minute median skew. Negative = tach reports less elapsed than std; positive = more.
 
-| Cell | tach 1s | tach 1m | tach_sync 1m | tach_recal 1s | tach_recal 1m | std 1m |
+| Cell | tach 1s | tach 1m | tach_ordered 1m | tach_recal 1s | tach_recal 1m | std 1m |
 |---|---|---|---|---|---|---|
 | `apple-silicon-m1` | -708 ns | -666 ns | -1.0 µs | -1.2 µs | -1.2 µs | -501 ns |
 | `c7g-4xlarge` | +27 ns | +3.3 µs | +2.5 µs | +31 ns | +9.9 µs | -554 ns |
@@ -219,7 +219,7 @@ Per-cell 1-second and 1-minute median skew. Negative = tach reports less elapsed
 | `github-windows-x86_64` | -939 ns | +14.3 µs | +32.9 µs | +808 ns | +47.6 µs | -500 ns |
 
 Observations:
-- `tach_sync 1m` (the new `SyncedInstant` row) matches `tach 1m` within bench noise on every cell, as expected by construction: both read the same underlying counter, so they have identical drift profiles. The `fetch_max` enforcement that makes `SyncedInstant` synchronization-order monotonic doesn't change the clock, only the cross-thread observation order.
+- `tach_ordered 1m` (the `OrderedInstant` row) matches `tach 1m` within bench noise on every cell, as expected by construction: both read the same underlying counter, so they have identical drift profiles. The ordering barrier constrains *when* the read is sampled, not the tick value, so it doesn't change drift.
 - `recalibrate-background` is a measurable improvement on Intel x86 cells where startup calibration accumulates error. The remaining variance across cells is dominated by per-instance calibration noise and per-chip crystal lottery (different physical chips in the same EC2 instance family can vary by ppm). The cross-cell median in the README table is the right summary statistic; individual per-cell numbers move between runs.
 - `c7g-4xlarge` previously showed a ~27 ppm constant offset because `cntfrq_el0` is the firmware-published nominal rather than the measured crystal rate. Since the aarch64-Linux calibration landed, drift tracks the kernel's NTP-corrected vDSO scaling and stays sub-ppm regardless of the specific Graviton 3 chip the run landed on.
 - `std::time::Instant` 1m skew is consistently sub-µs on every cell, reflecting the kernel's continuous correction (vDSO scaling-factor updates on Linux, the equivalent on each OS).
@@ -232,8 +232,7 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 |---|---|---|---|---|---|---|
 | `tach` | 9.8 µs | 4.3 µs | 9.9 µs | 9.9 µs | 9.9 µs | 14.3 µs |
 | `tach_recal` | 9.9 µs | 137 ns | 9.9 µs | 9.9 µs | 9.8 µs | 9.9 µs |
-| `tach_fenced` | 9.8 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
-| `tach_synced` | 9.9 µs | 5.1 µs | 9.9 µs | 9.7 µs | 9.7 µs | 9.9 µs |
+| `tach_ordered` | 9.8 µs | 9.6 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
 | `quanta` | 9.9 µs | 28.5 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.9 µs |
 | `minstant` | 10.0 µs | 9.6 µs | 9.9 µs | 9.9 µs | 9.8 µs | 9.8 µs |
 | `fastant` | 10.0 µs | 9.7 µs | 9.9 µs | 9.8 µs | 9.9 µs | 9.8 µs |
@@ -246,41 +245,36 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 - t3-medium: 0 backward jumps on any clock ✓
 - m7i-metal-24xl: 0 backward jumps on any clock ✓
 - lambda-x86_64: 0 backward jumps on any clock ✓
-- **github-windows-x86_64: backward jumps observed** — tach_synced=5
+- github-windows-x86_64: 0 backward jumps on any clock ✓
 
 ## Per-thread call cost
 
 Per-thread cost (single-thread tight loop, no contention) derived from `PerThreadResult.duration_ns / PerThreadResult.total_reads` in `benches/skewmono-*.json`. This is the honest per-call cost for the typical use pattern.
 
-| Platform | `Instant` | `SyncedInstant` | `FencedInstant` | `std::Instant` |
-|---|---|---|---|---|
-| Apple Silicon M1 (aarch64 macOS) | **3.5 ns** | 7.0 ns | 18.5 ns | 28.0 ns |
-| Graviton 3 (aarch64 Linux, `c7g.4xlarge`) | **7.3 ns** | 10.6 ns | 26.1 ns | 37.7 ns |
-| Intel Nitro VM (x86 Linux, `t3.medium`) | **14.4 ns** | 25.4 ns | 27.1 ns | 36.3 ns |
-| Intel bare metal (x86 Linux, `m7i.metal-24xl`) | **8.5 ns** | 14.4 ns | 16.8 ns | 19.5 ns |
-| AWS Lambda Firecracker (x86) | **21.2 ns** | 35.7 ns | 40.0 ns | 59.5 ns |
-| Windows Server 2025 (x86) | **9.6 ns** | 10.7 ns | 25.4 ns | 36.3 ns |
+| Platform | `Instant` | `OrderedInstant` | `std::Instant` |
+|---|---|---|---|
+| Apple Silicon M1 (aarch64 macOS) | **3.5 ns** | 18.5 ns | 28.0 ns |
+| Graviton 3 (aarch64 Linux, `c7g.4xlarge`) | **7.3 ns** | 26.1 ns | 37.7 ns |
+| Intel Nitro VM (x86 Linux, `t3.medium`) | **14.4 ns** | 27.1 ns | 36.3 ns |
+| Intel bare metal (x86 Linux, `m7i.metal-24xl`) | **8.5 ns** | 16.8 ns | 19.5 ns |
+| AWS Lambda Firecracker (x86) | **21.2 ns** | 40.0 ns | 59.5 ns |
+| Windows Server 2025 (x86) | **9.6 ns** | 25.4 ns | 36.3 ns |
 
 **`Instant` is 1.5–8× faster than `std::time::Instant`** on every platform.
 
-**`SyncedInstant` adds 2–14 ns** over `Instant` for the LOCK fetch_max enforcement.
+**`OrderedInstant` adds 8–19 ns** over `Instant` for the per-arch ordering barrier (`rdtscp` / `isb sy`), and is still 1.5–4× faster than `std` while adding the cross-thread guarantee std reaches only via the slow kernel path.
 
-**`FencedInstant` adds 8–19 ns** over `Instant` for the per-arch pipeline-drain barrier (`rdtscp` / `isb sy`).
-
-**Counterintuitive finding**: on every cell we measure, `SyncedInstant` is FASTER than `FencedInstant` per-thread. The LOCK fetch_max on an uncontended cache line costs less than the pipeline-drain barrier. The "atomics are expensive" intuition is wrong for this regime — `SyncedInstant`'s atomic touches one always-warm global cache line; `FencedInstant`'s barrier waits for the entire pipeline to drain, which can stall depending on what's in flight. On the platforms we test (modern out-of-order cores), pipeline drain consistently beats LOCK fetch_max.
-
-**Cross-thread cost story**: the numbers above are uncontended per-thread costs. Under heavy contention (many threads simultaneously calling `now()`), `SyncedInstant`'s fetch_max can degrade to 100+ ns per call as the global cache line bounces between cores. `Instant` and `FencedInstant` keep their per-thread cost regardless of contention. For high-thread-count workloads where synchronization-order monotonicity (cross-thread timestamps participating in happens-before edges) isn't load-bearing, prefer `Instant`.
+**No contention cliff.** The numbers above are uncontended per-thread costs, but `OrderedInstant` holds **no shared state** — its per-call cost is flat regardless of thread count. (An alternative atomic-based design, with a process-global `fetch_max`, is as correct but collapses under contention — stops scaling at 2 threads, degrades to 100s of ns. See `docs/WHY-NOT-AN-ATOMIC.md` for the head-to-head.)
 
 ## Synchronization-order monotonicity (contract validation)
 
-Per-cell × per-clock synchronization-order contract violations under the load-then-now-then-check pattern. 0 = bare clock empirically honors synchronization-order monotonicity for the test window; non-zero = software enforcement is required to claim the contract. This is the data that drives whether `SyncedInstant` needs `fetch_max` on a given platform.
+Per-cell × per-clock synchronization-order contract violations under the load-then-now-then-check pattern. 0 = clock empirically honors synchronization-order monotonicity for the test window; non-zero = the bare read can be sampled before a prior Acquire-load (an ordering barrier is required). This is the data behind `OrderedInstant`'s cross-thread guarantee: bare `tach` and the fast comparison crates fail; `tach_ordered` passes at 0 everywhere; `std` passes (via its slow path). Pinned 2-socket data in `benches/ORDERED-VERIFICATION.md`.
 
 | Clock | apple-silicon-m1 | c7g-4xlarge | t3-medium | m7i-metal-24xl | lambda-x86_64 | github-windows-x86_64 |
 |---|---|---|---|---|---|---|
 | `tach` | 17,366,168 | 1,827 | 42 | 9,629,641 | 13,351 | 1,678,700 |
 | `tach_recal` | 30,586,874 | 1,944 | 18 | 16,905,112 | 3,946 | 1,681,768 |
-| `tach_fenced` | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |
-| `tach_synced` | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |
+| `tach_ordered` | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ | 0 ✓ |
 | `quanta` | 14,569,581 | 2,062 | 32 | 18,332,108 | 789 | 1,525,727 |
 | `minstant` | 0 ✓ | 0 ✓ | 31 | 2,791,812 | 0 ✓ | 0 ✓ |
 | `fastant` | 0 ✓ | 0 ✓ | 45 | 11,169,115 | 74 | 0 ✓ |
@@ -303,7 +297,7 @@ After CPUID 15h removes the calibration component on Skylake+ Intel / Zen2+ AMD,
 
 - **`tach::Instant` (default) — ~50 µs/sec**: crystal drift only, after CPUID 15h. Multiplied out per interval (50 ppm × duration).
 - **`tach::Instant` + `recalibrate-background` — ~1 µs/sec**: with 60-second recalibration, drift inside each window is bounded by `(crystal × window) + calibration_error`. The reported per-second number reflects the steady-state behavior after a recal cycle.
-- **`tach::FencedInstant`**: same backing scaling as `tach::Instant`, so identical drift profile. The `isb`/`lfence` barriers only constrain ordering, not the underlying tick value.
+- **`tach::OrderedInstant`**: same backing scaling as `tach::Instant`, so identical drift profile. The `isb sy` / `rdtscp` barriers only constrain ordering, not the underlying tick value.
 - **`quanta::Instant`, `minstant::Instant`, `fastant::Instant` — ~500 µs/sec**: these crates either don't use CPUID 15h or rely on the kernel's pre-calibrated TSC frequency without continuous correction. Numbers reflect their reported tolerance against `clock_gettime` over multi-second intervals.
 - **`std::time::Instant` (Linux / Windows) — ~1 µs/sec**: kernel-corrected via vDSO scaling-factor updates plus NTP discipline. Reported drift is the typical no-NTP case; with active chrony / w32time, drift drops another 10× to sub-microsecond per minute.
 - **`std::time::Instant` (macOS) — ~50 µs/sec**: reads `mach_timebase_info` (the exact per-die measured frequency) but does not run kernel-side per-tick correction the way Linux does. Drift matches tach's default on the same architecture.

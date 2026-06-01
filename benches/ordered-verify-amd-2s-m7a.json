@@ -2,14 +2,14 @@
   "schema": "tach-ordered-verify/v1",
   "cell": "amd-2s-m7a",
   "target_triple": "x86_64-unknown-linux-gnu",
-  "started_at_unix_ns": 1780276363895759804,
+  "started_at_unix_ns": 1780287582625384478,
   "host": {
     "cpu_model": "AMD EPYC 9R14 96-Core Processor",
     "num_cpus": 192,
     "kernel": "6.1.172-216.329.amzn2023.x86_64"
   },
-  "tach_freq_hz": 2599980370,
-  "duration_secs_per_run": 120,
+  "tach_freq_hz": 2599981307,
+  "duration_secs_per_run": 90,
   "placements": [
     {
       "placement": "adversarial-pair",
@@ -19,29 +19,53 @@
       ],
       "threads": 2,
       "results": {
+        "fastant": {
+          "clock": "fastant",
+          "threads": 2,
+          "total_violations": 237108349,
+          "total_reads": 2942370672,
+          "max_violation_ns": 1180,
+          "duration_ns": 90000229756
+        },
+        "minstant": {
+          "clock": "minstant",
+          "threads": 2,
+          "total_violations": 253498378,
+          "total_reads": 2951856552,
+          "max_violation_ns": 1210,
+          "duration_ns": 90000229965
+        },
+        "quanta": {
+          "clock": "quanta",
+          "threads": 2,
+          "total_violations": 121250245,
+          "total_reads": 3068942120,
+          "max_violation_ns": 1160,
+          "duration_ns": 90000218526
+        },
         "std": {
           "clock": "std",
           "threads": 2,
           "total_violations": 0,
-          "total_reads": 1751113665,
+          "total_reads": 1237013636,
           "max_violation_ns": 0,
-          "duration_ns": 120000320609
+          "duration_ns": 90000221629
         },
         "tach": {
           "clock": "tach",
           "threads": 2,
-          "total_violations": 398744698,
-          "total_reads": 4834784604,
+          "total_violations": 257284001,
+          "total_reads": 3471719648,
           "max_violation_ns": 1200,
-          "duration_ns": 120000288649
+          "duration_ns": 90000230357
         },
         "tach_ordered": {
           "clock": "tach_ordered",
           "threads": 2,
           "total_violations": 0,
-          "total_reads": 1641777149,
+          "total_reads": 1582234489,
           "max_violation_ns": 0,
-          "duration_ns": 120000281529
+          "duration_ns": 90000238640
         }
       }
     },
@@ -243,29 +267,53 @@
       ],
       "threads": 192,
       "results": {
+        "fastant": {
+          "clock": "fastant",
+          "threads": 192,
+          "total_violations": 1597493438,
+          "total_reads": 2341432196,
+          "max_violation_ns": 71351,
+          "duration_ns": 90011786443
+        },
+        "minstant": {
+          "clock": "minstant",
+          "threads": 192,
+          "total_violations": 1536214626,
+          "total_reads": 2320180764,
+          "max_violation_ns": 73851,
+          "duration_ns": 90010892507
+        },
+        "quanta": {
+          "clock": "quanta",
+          "threads": 192,
+          "total_violations": 1595243184,
+          "total_reads": 2324309598,
+          "max_violation_ns": 70531,
+          "duration_ns": 90011727266
+        },
         "std": {
           "clock": "std",
           "threads": 192,
           "total_violations": 0,
-          "total_reads": 2796745861,
+          "total_reads": 2042805576,
           "max_violation_ns": 0,
-          "duration_ns": 120012348687
+          "duration_ns": 90011552900
         },
         "tach": {
           "clock": "tach",
           "threads": 192,
-          "total_violations": 2109733521,
-          "total_reads": 3300564018,
-          "max_violation_ns": 93941,
-          "duration_ns": 120010677582
+          "total_violations": 1529678258,
+          "total_reads": 2458552111,
+          "max_violation_ns": 90471,
+          "duration_ns": 90011799488
         },
         "tach_ordered": {
           "clock": "tach_ordered",
           "threads": 192,
           "total_violations": 0,
-          "total_reads": 2796830267,
+          "total_reads": 2066569462,
           "max_violation_ns": 0,
-          "duration_ns": 120012225718
+          "duration_ns": 90011612432
         }
       }
     },
@@ -659,29 +707,53 @@
       ],
       "threads": 384,
       "results": {
+        "fastant": {
+          "clock": "fastant",
+          "threads": 384,
+          "total_violations": 1463503959,
+          "total_reads": 2359646721,
+          "max_violation_ns": 72530,
+          "duration_ns": 90024604714
+        },
+        "minstant": {
+          "clock": "minstant",
+          "threads": 384,
+          "total_violations": 1627973714,
+          "total_reads": 2299409160,
+          "max_violation_ns": 71420,
+          "duration_ns": 90022100807
+        },
+        "quanta": {
+          "clock": "quanta",
+          "threads": 384,
+          "total_violations": 1615712350,
+          "total_reads": 2343179860,
+          "max_violation_ns": 76371,
+          "duration_ns": 90022484788
+        },
         "std": {
           "clock": "std",
           "threads": 384,
           "total_violations": 0,
-          "total_reads": 2799730225,
+          "total_reads": 2037422490,
           "max_violation_ns": 0,
-          "duration_ns": 120024741333
+          "duration_ns": 90020414942
         },
         "tach": {
           "clock": "tach",
           "threads": 384,
-          "total_violations": 2207802728,
-          "total_reads": 3269287401,
-          "max_violation_ns": 96800,
-          "duration_ns": 120021446478
+          "total_violations": 1610301168,
+          "total_reads": 2437928623,
+          "max_violation_ns": 91870,
+          "duration_ns": 90023133896
         },
         "tach_ordered": {
           "clock": "tach_ordered",
           "threads": 384,
           "total_violations": 0,
-          "total_reads": 2792256784,
+          "total_reads": 2076439623,
           "max_violation_ns": 0,
-          "duration_ns": 120022383332
+          "duration_ns": 90022968859
         }
       }
     }
