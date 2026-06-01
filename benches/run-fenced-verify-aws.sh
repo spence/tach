@@ -24,8 +24,10 @@ DURATION="${3:-300}"
 
 REGION="us-east-2"
 PROFILE="tach"
-KEY_NAME="tach-bench"
-KEY_PATH="$HOME/.ssh/tach-bench.pem"
+# Ephemeral keypair: created at launch, deleted on cleanup. Avoids depending on
+# a pre-existing local .pem (which won't exist on a fresh machine).
+KEY_NAME="tach-fv-$$-$(date +%s 2>/dev/null || echo 0)"
+KEY_PATH="$(mktemp -t tach-fv-key.XXXXXX).pem"
 SG_ID="sg-05e99abafa54936d3"
 
 case "$INSTANCE_TYPE" in
@@ -37,6 +39,12 @@ AMI_SSM="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.12-${ARCH}"
 aws_() { aws "$@" --region "$REGION" --profile "$PROFILE"; }
 
 AMI_ID=$(aws_ ssm get-parameters --names "$AMI_SSM" --query 'Parameters[0].Value' --output text)
+
+echo "creating ephemeral keypair $KEY_NAME"
+aws_ ec2 create-key-pair --key-name "$KEY_NAME" \
+  --query 'KeyMaterial' --output text > "$KEY_PATH"
+chmod 600 "$KEY_PATH"
+
 echo "launching $INSTANCE_TYPE ($ARCH, ami $AMI_ID) — metal is ~\$8-11/hr, self-terminates on exit"
 IID=$(aws_ ec2 run-instances \
   --image-id "$AMI_ID" \
@@ -52,6 +60,8 @@ cleanup() {
     echo "terminating $IID"
     aws_ ec2 terminate-instances --instance-ids "$IID" >/dev/null 2>&1 || true
   fi
+  aws_ ec2 delete-key-pair --key-name "$KEY_NAME" >/dev/null 2>&1 || true
+  rm -f "$KEY_PATH" 2>/dev/null || true
 }
 trap cleanup EXIT
 
