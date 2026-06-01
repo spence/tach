@@ -54,9 +54,9 @@ both fast and cross-thread-correct.**
 |---|:---:|:---:|
 | `tach::Instant` | ✓ 3.5–21 ns | ✗ *(by design — bare read)* |
 | **`tach::OrderedInstant`** | **✓ ordered read** | **✓ 0 / 10.9B verified** |
-| `quanta::Instant` | ✓ | ✗ inverts on every cell tested |
-| `minstant::Instant` | ✓ | ✗ inverts on bare-metal x86 |
-| `fastant::Instant` | ✓ | ✗ inverts on bare-metal x86 |
+| `quanta::Instant` | ✓ | ✗ inverts on every machine tested |
+| `minstant::Instant` | ✓ | ✗ inverts on x86 |
+| `fastant::Instant` | ✓ | ✗ inverts on x86 |
 | `std::time::Instant` | ✗ ~20–60 ns | ✓ *(but slow)* |
 
 This is measured, not asserted. On a 2-socket AMD EPYC box, under identical
@@ -65,7 +65,7 @@ cross-socket conditions, `quanta`, `minstant`, and `fastant` each inverted **ove
 hardware, same threads, same instant. The fast crates fall back to `std` on aarch64
 (and pass there, by not actually being fast), and none of the three exposes an
 *ordered* read variant — there is no knob to make them correct on x86. Full
-side-by-side per-cell numbers in
+side-by-side per-machine numbers in
 [benches/ORDERED-VERIFICATION.md](https://github.com/spence/tach/blob/main/benches/ORDERED-VERIFICATION.md) and
 [BENCHMARKS.md](https://github.com/spence/tach/blob/main/BENCHMARKS.md).
 
@@ -106,7 +106,7 @@ violations in ~10.9 billion reads** across x86 and aarch64, including 2-socket I
 (Xeon 8488C) and AMD (EPYC 9R14) NUMA boxes where a bare `Instant` inverts from
 sub-ppm (Nitro VMs) to ~12% of cross-thread reads (Apple Silicon). On the
 multi-socket boxes the bare counter went backward by up to ~97 µs under contention;
-`OrderedInstant` held at 0 throughout. Full methodology and per-cell data in
+`OrderedInstant` held at 0 throughout. Full methodology and per-machine data in
 [benches/ORDERED-VERIFICATION.md](https://github.com/spence/tach/blob/main/benches/ORDERED-VERIFICATION.md).
 
 The barrier is `rdtscp` on x86 (Intel SDM: "waits until all previous instructions
@@ -167,7 +167,7 @@ the slow path. Crucially, `OrderedInstant` holds **no shared state**, so its
 per-call cost is flat regardless of thread count — there is no contention cliff (see
 *why not an atomic?* below).
 
-Cross-cell empirical medians; methodology and per-cell breakdown in
+Cross-machine empirical medians; methodology and per-machine breakdown in
 [BENCHMARKS.md](https://github.com/spence/tach/blob/main/BENCHMARKS.md).
 
 ## platform support
@@ -219,7 +219,7 @@ For long-running services that need wall-clock-correlated accuracy:
   frequency every 60 s (configurable via `tach::set_recalibration_interval`) and
   EMA-blends it in. **Requires `std`.**
 
-Methodology and per-cell breakdown in [BENCHMARKS.md](https://github.com/spence/tach/blob/main/BENCHMARKS.md).
+Methodology and per-machine breakdown in [BENCHMARKS.md](https://github.com/spence/tach/blob/main/BENCHMARKS.md).
 
 ## why not just wrap it in an atomic?
 

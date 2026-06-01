@@ -134,7 +134,7 @@ On every modern architecture we tested — Apple Silicon (M1/M4), AWS Graviton 3
 Intel x86 and AMD x86 (virtualized, single-socket bare-metal, Firecracker, and
 2-socket NUMA bare-metal), Windows x86 — `OrderedInstant` does not go backward across
 threads: **0 violations in ~10.9 billion reads**, with the bare-counter control
-firing on every cell to prove each test was live, and with the fast comparison crates
+firing on every machine to prove each test was live, and with the fast comparison crates
 inverting under the same conditions. The one topology that could have broken it —
 multi-socket NUMA, where the bare counter inverts by tens of microseconds — is the
 one that confirmed it.
