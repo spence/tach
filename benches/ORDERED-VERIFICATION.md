@@ -58,7 +58,7 @@ Identical placement, identical hardware, identical moment — violation counts:
 
 **Intel Xeon 8488C, 2-socket (cross-socket pinned):**
 
-| placement | `tach` (control) | **`tach_ordered`** | `std` | `quanta` | `minstant` | `fastant` |
+| placement | `tach::Instant` | **`tach::OrderedInstant`** | `std` | `quanta` | `minstant` | `fastant` |
 |---|--:|--:|--:|--:|--:|--:|
 | adversarial-pair | 63,638 | **0** | 0 | 16,166 | 4,797 | 5,785 |
 | full-span (192t) | 48,099,661 | **0** | 0 | 46,299,832 | 44,214,260 | 54,422,121 |
@@ -66,18 +66,23 @@ Identical placement, identical hardware, identical moment — violation counts:
 
 **AMD EPYC 9R14, 2-socket (cross-socket pinned):**
 
-| placement | `tach` (control) | **`tach_ordered`** | `std` | `quanta` | `minstant` | `fastant` |
+| placement | `tach::Instant` | **`tach::OrderedInstant`** | `std` | `quanta` | `minstant` | `fastant` |
 |---|--:|--:|--:|--:|--:|--:|
 | adversarial-pair | 257,284,001 | **0** | 0 | 121,250,245 | 253,498,378 | 237,108,349 |
 | full-span (192t) | 1,529,678,258 | **0** | 0 | 1,595,243,184 | 1,536,214,626 | 1,597,493,438 |
 | oversubscribed-2x | 1,610,301,168 | **0** | 0 | 1,615,712,350 | 1,627,973,714 | 1,463,503,959 |
 
-Read the AMD full-span row: `quanta`, `minstant`, and `fastant` each inverted **over
-1.5 billion times**, while `tach_ordered` inverted **zero** times — same box, same
-threads, same instant. The fast crates fail for the same reason bare `tach` fails:
-they read the counter with no ordering barrier, so the read floats ahead of the
-Acquire-load. `std` passes (its vDSO / syscall path serializes the read incidentally)
-but pays 2–8× the per-call cost for it.
+`tach::Instant` is in the table on purpose — it is the **positive control**, and it
+inverts right alongside the fast competitors (AMD full-span: Instant 1.53B, quanta
+1.60B, minstant 1.54B, fastant 1.60B). That's the point: **every bare architectural-
+counter read fails this contract the same way** — tach's included. The barrier is the
+only thing that changes the outcome, and `tach::OrderedInstant` is the one clock here
+that has it. `std` also passes, but via its vDSO / syscall path, at 2–8× the per-call
+cost.
+
+(`tach::Instant`'s inversions are *not* a defect — it's the fast read, documented to
+trade cross-thread ordering for speed. Reach for `OrderedInstant` exactly when this
+table matters to you.)
 
 None of `quanta` / `minstant` / `fastant` exposes an *ordered* read variant — there is
 no API knob to make them cross-thread-correct short of dropping to `std`.
