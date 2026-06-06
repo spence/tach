@@ -1,0 +1,32 @@
+{
+  "title": "AWS Intel (musl)",
+  "instance": "c7i.large + Alpine",
+  "triple": "x86_64-unknown-linux-musl",
+  "order": 3,
+  "clocks": {
+    "tach": {
+      "now": 14.439291815743495,
+      "elapsed": 29.51999412463957
+    },
+    "tach_ordered": {
+      "now": 21.814913477141737,
+      "elapsed": 42.406010410586426
+    },
+    "quanta": {
+      "now": 17.200843429366415,
+      "elapsed": 38.325518966303854
+    },
+    "fastant": {
+      "now": 14.748554206898834,
+      "elapsed": 39.922722732575096
+    },
+    "minstant": {
+      "now": 14.742059997463674,
+      "elapsed": 39.95369471495449
+    },
+    "std": {
+      "now": 26.42784266437257,
+      "elapsed": 56.02135110870173
+    }
+  }
+}

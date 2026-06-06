@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1596" height="1318" viewBox="0 0 1596 1318">
+<rect width="1596" height="1318" fill="#FBF6EC"/>
+<g shape-rendering="crispEdges">
+<rect x="74" y="124" width="720" height="24" fill="#b5aea4"/>
+<rect x="74" y="124" width="331.2" height="24" fill="#2E231B"/>
+<text x="239.6" y="114" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" font-weight="600" fill="#2E231B">Instant::now()</text>
+<text x="599.6" y="114" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" font-weight="600" fill="#2E231B">now() + elapsed()</text>
+<text x="1522" y="136" text-anchor="end" dominant-baseline="central" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#7A6E60">times shown in nanoseconds</text>
+<text x="74" y="266" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">Apple Silicon</text>
+<text x="74" y="306" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">M1 Max MacBook Pro</text>
+<text x="74" y="338" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">aarch64-apple-darwin</text>
+<text x="74" y="402.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">tach_ordered</text>
+<rect x="297" y="374" width="119.546" height="36" fill="#f5c69c"/>
+<rect x="297" y="374" width="62.9326" height="36" fill="#EC7A1C"/>
+<text x="746" y="402.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">12.2<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">23.1</tspan></text>
+<text x="74" y="466.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">std</text>
+<rect x="297" y="438" width="219" height="36" fill="#d6cca8"/>
+<rect x="297" y="438" width="100.117" height="36" fill="#9A8A3A"/>
+<text x="746" y="466.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">19.4<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">42.3</tspan></text>
+<text x="850" y="266" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">AWS Graviton 3</text>
+<text x="850" y="306" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">c7g.large</text>
+<text x="850" y="338" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">aarch64-unknown-linux-gnu</text>
+<text x="850" y="402.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">tach_ordered</text>
+<rect x="1073" y="374" width="124.238" height="36" fill="#f5c69c"/>
+<rect x="1073" y="374" width="62.8937" height="36" fill="#EC7A1C"/>
+<text x="1522" y="402.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">20.3<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">40.0</tspan></text>
+<text x="850" y="466.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">std</text>
+<rect x="1073" y="438" width="219" height="36" fill="#d6cca8"/>
+<rect x="1073" y="438" width="100.582" height="36" fill="#9A8A3A"/>
+<text x="1522" y="466.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">32.4<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">70.6</tspan></text>
+<text x="74" y="648" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">AWS Intel</text>
+<text x="74" y="688" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">c7i.large</text>
+<text x="74" y="720" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-unknown-linux-gnu</text>
+<text x="74" y="784.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">tach_ordered</text>
+<rect x="297" y="756" width="166.516" height="36" fill="#f5c69c"/>
+<rect x="297" y="756" width="85.6748" height="36" fill="#EC7A1C"/>
+<text x="746" y="784.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">22.2<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">43.2</tspan></text>
+<text x="74" y="848.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">std</text>
+<rect x="297" y="820" width="219" height="36" fill="#d6cca8"/>
+<rect x="297" y="820" width="102.572" height="36" fill="#9A8A3A"/>
+<text x="746" y="848.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">26.6<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">56.8</tspan></text>
+<text x="850" y="648" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">AWS Intel (musl)</text>
+<text x="850" y="688" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">c7i.large + Alpine</text>
+<text x="850" y="720" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-unknown-linux-musl</text>
+<text x="850" y="784.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">tach_ordered</text>
+<rect x="1073" y="756" width="165.775" height="36" fill="#f5c69c"/>
+<rect x="1073" y="756" width="85.2794" height="36" fill="#EC7A1C"/>
+<text x="1522" y="784.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">21.8<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">42.4</tspan></text>
+<text x="850" y="848.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">std</text>
+<rect x="1073" y="820" width="219" height="36" fill="#d6cca8"/>
+<rect x="1073" y="820" width="103.312" height="36" fill="#9A8A3A"/>
+<text x="1522" y="848.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">26.4<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">56.0</tspan></text>
+<text x="74" y="1030" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">GitHub Windows</text>
+<text x="74" y="1070" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">windows-2025</text>
+<text x="74" y="1102" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-pc-windows-msvc</text>
+<text x="74" y="1166.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">tach_ordered</text>
+<rect x="297" y="1138" width="133.605" height="36" fill="#f5c69c"/>
+<rect x="297" y="1138" width="61.5556" height="36" fill="#EC7A1C"/>
+<text x="746" y="1166.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">22.2<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">48.1</tspan></text>
+<text x="74" y="1230.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">std</text>
+<rect x="297" y="1202" width="219" height="36" fill="#d6cca8"/>
+<rect x="297" y="1202" width="105.64" height="36" fill="#9A8A3A"/>
+<text x="746" y="1230.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">38.1<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">78.9</tspan></text>
+<text x="850" y="1030" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">AWS Lambda</text>
+<text x="850" y="1070" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">provided.al2023 1024MB</text>
+<text x="850" y="1102" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-unknown-linux-gnu</text>
+<text x="850" y="1166.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">tach_ordered</text>
+<rect x="1073" y="1138" width="114.145" height="36" fill="#f5c69c"/>
+<rect x="1073" y="1138" width="53.2111" height="36" fill="#EC7A1C"/>
+<text x="1522" y="1166.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">25.9<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">55.5</tspan></text>
+<text x="850" y="1230.2" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="30" fill="#2E231B">std</text>
+<rect x="1073" y="1202" width="219" height="36" fill="#d6cca8"/>
+<rect x="1073" y="1202" width="99.4653" height="36" fill="#9A8A3A"/>
+<text x="1522" y="1230.2" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">48.4<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">107</tspan></text>
+</g>
+</svg>

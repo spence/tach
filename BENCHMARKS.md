@@ -1,34 +1,40 @@
 # tach benchmarks
 
-`tach::Instant::now()` and `Instant::elapsed()` cost compared with `quanta`,
-`fastant`, `minstant`, and `std::time::Instant` across six target /
-environment cells. All numbers are nanoseconds per call (lower is better).
+`tach::Instant` and `tach::OrderedInstant` per-call cost compared with `quanta`,
+`fastant`, `minstant`, and `std::time::Instant` across six target / environment
+cells. All numbers are nanoseconds per call (lower is better). `tach::Instant` is
+the fastest read on every cell; `tach::OrderedInstant` adds a memory barrier for
+cross-thread ordering and is the fastest clock that stays correct across threads —
+see [`benches/summary-ordered.png`](benches/summary-ordered.png), which puts it
+against `std`, the only other cross-thread-correct option.
 
 ## Results
 
 ### `Instant::now()` cost
 
-| Target | Environment | Instance | tach | quanta | fastant | minstant | std |
-|---|---|---|---:|---:|---:|---:|---:|
-| `aarch64-apple-darwin` | Apple Silicon MBP | M1 MacBook Pro | **0.35** | 4.59 | 27.23 | 27.29 | 20.28 |
-| `aarch64-unknown-linux-gnu` | Graviton 3 Nitro VM | c7g.4xlarge | **6.68** | 7.02 | 41.68 | 41.68 | 32.51 |
-| `x86_64-unknown-linux-gnu` | Intel burst VM | t3.medium | **8.74** | 13.32 | 11.19 | 9.40 | 24.28 |
-| `x86_64-unknown-linux-musl` | Alpine Docker on Intel host | m7i.metal-24xl | **6.84** | 7.11 | **6.84** | **6.84** | 14.65 |
-| `x86_64-unknown-linux-gnu` | AWS Lambda (Firecracker) | provided.al2023 | **13.60** | 23.34 | 15.54 | 56.93 | 50.76 |
-| `x86_64-pc-windows-msvc` | GitHub Actions | windows-2025 | **12.34** | 12.43 | 45.54 | 45.52 | 41.23 |
+| Target | Environment | Instance | tach | tach_ordered | quanta | fastant | minstant | std |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| `aarch64-apple-darwin` | Apple Silicon | M1 Max MacBook Pro | **0.34** | 12.16 | 3.22 | 25.87 | 25.85 | 19.35 |
+| `aarch64-unknown-linux-gnu` | AWS Graviton 3 | c7g.large | **6.67** | 20.27 | 7.04 | 41.76 | 41.61 | 32.42 |
+| `x86_64-unknown-linux-gnu` | AWS Intel | c7i.large | **14.71** | 22.23 | 17.53 | 15.03 | 15.03 | 26.61 |
+| `x86_64-unknown-linux-musl` | AWS Intel (musl) | c7i.large + Alpine | **14.44** | 21.81 | 17.20 | 14.75 | 14.74 | 26.43 |
+| `x86_64-pc-windows-msvc` | GitHub Windows | windows-2025 | **11.53** | 22.17 | 11.83 | 41.21 | 41.21 | 38.05 |
+| `x86_64-unknown-linux-gnu` | AWS Lambda | provided.al2023 1024MB | **13.83** | 25.89 | 22.55 | 14.59 | 58.58 | 48.39 |
 
 ### `Instant::now() + elapsed()` cost (full roundtrip)
 
-| Target | Environment | Instance | tach | quanta | fastant | minstant | std |
-|---|---|---|---:|---:|---:|---:|---:|
-| `aarch64-apple-darwin` | Apple Silicon MBP | M1 MacBook Pro | **1.20** | 9.16 | 59.66 | 59.64 | 43.72 |
-| `aarch64-unknown-linux-gnu` | Graviton 3 Nitro VM | c7g.4xlarge | **13.35** | 15.30 | 87.81 | 88.13 | 72.58 |
-| `x86_64-unknown-linux-gnu` | Intel burst VM | t3.medium | **18.94** | 28.18 | 31.03 | 31.09 | 53.48 |
-| `x86_64-unknown-linux-musl` | Alpine Docker on Intel host | m7i.metal-24xl | **13.68** | 17.51 | 21.40 | 21.41 | 32.58 |
-| `x86_64-unknown-linux-gnu` | AWS Lambda (Firecracker) | provided.al2023 | **31.93** | 50.86 | 51.79 | 135.75 | 106.36 |
-| `x86_64-pc-windows-msvc` | GitHub Actions | windows-2025 | **24.70** | 25.48 | 104.51 | 104.44 | 85.68 |
+| Target | Environment | Instance | tach | tach_ordered | quanta | fastant | minstant | std |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| `aarch64-apple-darwin` | Apple Silicon | M1 Max MacBook Pro | **1.29** | 23.11 | 6.98 | 57.76 | 57.76 | 42.33 |
+| `aarch64-unknown-linux-gnu` | AWS Graviton 3 | c7g.large | **13.37** | 40.04 | 15.38 | 87.69 | 87.65 | 70.58 |
+| `x86_64-unknown-linux-gnu` | AWS Intel | c7i.large | **30.16** | 43.20 | 38.97 | 40.69 | 41.04 | 56.82 |
+| `x86_64-unknown-linux-musl` | AWS Intel (musl) | c7i.large + Alpine | **29.52** | 42.41 | 38.33 | 39.92 | 39.95 | 56.02 |
+| `x86_64-pc-windows-msvc` | GitHub Windows | windows-2025 | **22.76** | 48.12 | 24.34 | 95.26 | 95.21 | 78.88 |
+| `x86_64-unknown-linux-gnu` | AWS Lambda | provided.al2023 1024MB | **32.99** | 55.53 | 48.04 | 52.50 | 138.51 | 106.54 |
 
-Chart: [`benches/summary.png`](benches/summary.png) — one cell per target environment. Each crate row shows `Instant::now()` (dark portion of bar) and the full `now() + elapsed()` roundtrip (lighter extension), with numeric times as `now / elapsed` on the right.
+Chart: [`benches/summary.png`](benches/summary.png) — one cell per target environment. Each crate row shows `Instant::now()` (dark portion of bar) and the full `now() + elapsed()` roundtrip (lighter extension), with numeric times as `now / elapsed` on the right. A second chart, [`benches/summary-ordered.png`](benches/summary-ordered.png), isolates `tach::OrderedInstant` against `std` — the two clocks that stay correct across threads.
+
+Instance sizes are the smallest that produce the data: per-call cost is single-threaded and depends on the silicon, not the instance size, so a `c7g.large` reads the same `now()` ns as a larger Graviton 3 instance. All six cells come from one fresh campaign (2026-06) where every clock is measured in the same run, so `std` is identical between the two charts.
 
 **Not included**: `x86_64-apple-darwin` (GitHub Actions `macos-13`) — could not land an Intel macOS runner allocation across multiple `workflow_dispatch` attempts. The GitHub-hosted Intel macOS runner pool has very low capacity.
 
@@ -37,7 +43,7 @@ Chart: [`benches/summary.png`](benches/summary.png) — one cell per target envi
 - **Harness**: Criterion 0.8 (`harness = false`, custom `criterion_main!`).
 - **Measured functions**: `Instant::now()` standalone, and `let start = Instant::now(); black_box(start.elapsed())` (full roundtrip).
 - **Compiler**: stable Rust at the time of run (2026-05).
-- **Sample size**: Criterion default — 100 samples × ~3s measurement time per bench. GitHub Actions runs use `--warm-up-time 1 --measurement-time 3` to fit the 6 min runner budget.
+- **Sample size**: Criterion default sampling with `--warm-up-time 1 --measurement-time 3` on every cell, so the per-call numbers are directly comparable across platforms.
 - **CPU governor**: `performance` where the runtime exposes it (Linux). macOS and Windows use the OS default; bare metal runs at base clock.
 - **Process**: single-threaded, no other workload contending for the CPU.
 
@@ -249,7 +255,9 @@ Per-cell maximum cross-thread violation magnitude (ns). Cells where the value ex
 
 ## Per-thread call cost
 
-Per-thread cost (single-thread tight loop, no contention) derived from `PerThreadResult.duration_ns / PerThreadResult.total_reads` in `benches/skewmono-*.json`. This is the honest per-call cost for the typical use pattern.
+Per-thread cost (single-thread tight loop, no contention) derived from `PerThreadResult.duration_ns / PerThreadResult.total_reads` in `benches/skewmono-*.json`.
+
+This is a **different measurement method** from the criterion tables at the top of this file, and the two intentionally differ. Here each iteration is a dependency-chained `now_as_u64()` read (one serialized read); criterion's tight loop lets the out-of-order CPU overlap successive reads, so the same `Instant::now()` amortizes lower there (e.g. sub-ns on Apple Silicon). These numbers also come from an earlier skew/monotonicity campaign on different instance sizes. Use the criterion tables for the head-to-head cross-crate comparison and this for the serialized single-read cost.
 
 | Platform | `Instant` | `OrderedInstant` | `std::Instant` |
 |---|---|---|---|

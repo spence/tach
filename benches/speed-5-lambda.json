@@ -1,0 +1,32 @@
+{
+  "title": "AWS Lambda",
+  "instance": "provided.al2023 1024MB",
+  "triple": "x86_64-unknown-linux-gnu",
+  "order": 5,
+  "clocks": {
+    "tach": {
+      "now": 13.825700666666666,
+      "elapsed": 32.986682333333334
+    },
+    "tach_ordered": {
+      "now": 25.886252333333335,
+      "elapsed": 55.529517
+    },
+    "quanta": {
+      "now": 22.553943,
+      "elapsed": 48.039102666666665
+    },
+    "fastant": {
+      "now": 14.592546666666667,
+      "elapsed": 52.50461766666667
+    },
+    "minstant": {
+      "now": 58.577483,
+      "elapsed": 138.50806533333332
+    },
+    "std": {
+      "now": 48.388054333333336,
+      "elapsed": 106.53951033333334
+    }
+  }
+}

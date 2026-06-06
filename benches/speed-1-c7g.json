@@ -1,0 +1,32 @@
+{
+  "title": "AWS Graviton 3",
+  "instance": "c7g.large",
+  "triple": "aarch64-unknown-linux-gnu",
+  "order": 1,
+  "clocks": {
+    "tach": {
+      "now": 6.673724896259023,
+      "elapsed": 13.367912579274353
+    },
+    "tach_ordered": {
+      "now": 20.270918184270457,
+      "elapsed": 40.04255666718022
+    },
+    "quanta": {
+      "now": 7.041315614598808,
+      "elapsed": 15.377846580768237
+    },
+    "fastant": {
+      "now": 41.75784405023143,
+      "elapsed": 87.68828259613551
+    },
+    "minstant": {
+      "now": 41.61473864882812,
+      "elapsed": 87.65478255961375
+    },
+    "std": {
+      "now": 32.41802947930181,
+      "elapsed": 70.58469239086007
+    }
+  }
+}

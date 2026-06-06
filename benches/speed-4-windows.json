@@ -1,0 +1,32 @@
+{
+  "title": "GitHub Windows",
+  "instance": "windows-2025",
+  "triple": "x86_64-pc-windows-msvc",
+  "order": 4,
+  "clocks": {
+    "tach": {
+      "now": 11.529302002647054,
+      "elapsed": 22.75795492707092
+    },
+    "tach_ordered": {
+      "now": 22.172240776769712,
+      "elapsed": 48.124258244261085
+    },
+    "quanta": {
+      "now": 11.829717880423578,
+      "elapsed": 24.34217462462177
+    },
+    "fastant": {
+      "now": 41.211064718316685,
+      "elapsed": 95.25529865125242
+    },
+    "minstant": {
+      "now": 41.210470777299804,
+      "elapsed": 95.20737431454583
+    },
+    "std": {
+      "now": 38.05153634069714,
+      "elapsed": 78.88347611881073
+    }
+  }
+}

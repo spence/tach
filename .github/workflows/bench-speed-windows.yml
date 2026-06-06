@@ -4,8 +4,7 @@ name: bench-speed-windows
 # medians, and commits benches/speed-4-windows.json back to the branch (via the
 # built-in GITHUB_TOKEN) so the chart campaign can pull it without a local token.
 on:
-  push:
-    branches: [bench/six-clock-speed]
+  workflow_dispatch:
 
 permissions:
   contents: write
