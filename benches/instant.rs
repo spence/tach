@@ -15,6 +15,7 @@ fn bench_now(c: &mut Criterion) {
 
   let mut g = c.benchmark_group("Instant::now()");
   g.bench_function("tach", |b| b.iter(|| black_box(Instant::now())));
+  g.bench_function("tach_ordered", |b| b.iter(|| black_box(OrderedInstant::now())));
   g.bench_function("quanta", |b| b.iter(|| black_box(quanta::Instant::now())));
   g.bench_function("fastant", |b| b.iter(|| black_box(fastant::Instant::now())));
   g.bench_function("minstant", |b| b.iter(|| black_box(minstant::Instant::now())));
@@ -31,6 +32,12 @@ fn bench_elapsed(c: &mut Criterion) {
   g.bench_function("tach", |b| {
     b.iter(|| {
       let start = Instant::now();
+      black_box(start.elapsed())
+    });
+  });
+  g.bench_function("tach_ordered", |b| {
+    b.iter(|| {
+      let start = OrderedInstant::now();
       black_box(start.elapsed())
     });
   });

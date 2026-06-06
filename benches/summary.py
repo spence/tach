@@ -8,6 +8,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import bench_data
+
 
 ROOT = Path(__file__).resolve().parent
 SVG_PATH = ROOT / "summary.svg"
@@ -23,41 +25,27 @@ MUTED_FG = "#7A6E60"
 
 CRATES = [
   ("tach@0.2.0", "#D72D24"),
+  ("tach_ordered@0.2.0", "#EC7A1C"),
   ("quanta@0.12.6", "#5B6472"),
   ("fastant@0.1.11", "#4F6F6A"),
   ("minstant@0.1.7", "#8B5E3C"),
   ("std", "#9A8A3A"),
 ]
 
-NOW_GROUPS = [
-  (("Apple Silicon", "M1 MacBook Pro", "aarch64-apple-darwin"),
-   [0.348, 4.585, 27.228, 27.288, 20.277]),
-  (("AWS Graviton 3", "c7g.4xlarge", "aarch64-unknown-linux-gnu"),
-   [6.675, 7.016, 41.684, 41.682, 32.510]),
-  (("AWS Intel Burst", "t3.medium", "x86_64-unknown-linux-gnu"),
-   [8.743, 13.321, 11.192, 9.395, 24.278]),
-  (("Docker Alpine on AWS Metal", "m7i.metal-24xl", "x86_64-unknown-linux-musl"),
-   [6.842, 7.105, 6.842, 6.842, 14.653]),
-  (("AWS Lambda", "provided.al2023", "x86_64-unknown-linux-gnu"),
-   [13.602, 23.344, 15.540, 56.930, 50.760]),
-  (("GitHub Windows", "windows-2025", "x86_64-pc-windows-msvc"),
-   [12.339, 12.432, 45.535, 45.518, 41.230]),
-]
+def _clock_key(crate_name: str) -> str:
+  return crate_name.split("@")[0]
 
-ELAPSED_GROUPS = [
-  (("Apple Silicon", "M1 MacBook Pro", "aarch64-apple-darwin"),
-   [1.197, 9.163, 59.662, 59.640, 43.716]),
-  (("AWS Graviton 3", "c7g.4xlarge", "aarch64-unknown-linux-gnu"),
-   [13.354, 15.304, 87.806, 88.134, 72.580]),
-  (("AWS Intel Burst", "t3.medium", "x86_64-unknown-linux-gnu"),
-   [18.944, 28.179, 31.027, 31.087, 53.479]),
-  (("Docker Alpine on AWS Metal", "m7i.metal-24xl", "x86_64-unknown-linux-musl"),
-   [13.684, 17.511, 21.399, 21.412, 32.579]),
-  (("AWS Lambda", "provided.al2023", "x86_64-unknown-linux-gnu"),
-   [31.929, 50.860, 51.788, 135.750, 106.361]),
-  (("GitHub Windows", "windows-2025", "x86_64-pc-windows-msvc"),
-   [24.695, 25.477, 104.510, 104.440, 85.678]),
-]
+
+def _groups(kind: str):
+  return [
+    (header, [clocks[_clock_key(name)][kind] for name, _ in CRATES])
+    for header, clocks in bench_data.CELLS
+  ]
+
+
+# Built from benches/speed-*.json via bench_data.CELLS (fresh campaign).
+NOW_GROUPS = _groups("now")
+ELAPSED_GROUPS = _groups("elapsed")
 
 GRID_COLS = 2
 GRID_CELL_W = 740

@@ -1,0 +1,32 @@
+{
+  "title": "Apple Silicon",
+  "instance": "M1 Max MacBook Pro",
+  "triple": "aarch64-apple-darwin",
+  "order": 0,
+  "clocks": {
+    "tach": {
+      "now": 0.3362562111273043,
+      "elapsed": 1.2886593221139806
+    },
+    "tach_ordered": {
+      "now": 12.16457579994848,
+      "elapsed": 23.107674397804082
+    },
+    "quanta": {
+      "now": 3.2217623957442334,
+      "elapsed": 6.983948912058802
+    },
+    "fastant": {
+      "now": 25.87016860114153,
+      "elapsed": 57.763405101339494
+    },
+    "minstant": {
+      "now": 25.846189122877185,
+      "elapsed": 57.760847978812905
+    },
+    "std": {
+      "now": 19.352142656431695,
+      "elapsed": 42.3316771657519
+    }
+  }
+}
