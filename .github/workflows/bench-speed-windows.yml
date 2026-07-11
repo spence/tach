@@ -1,10 +1,23 @@
 name: bench-speed-windows
 
-# Runs the criterion speed bench on a Windows runner, extracts the six-clock
-# medians, and commits benches/speed-4-windows.json back to the branch (via the
+# Runs the criterion speed bench on a Windows runner, extracts the wall-clock
+# and thread-CPU medians (including the actual thread-CPU provider label), and
+# commits benches/speed-4-windows.json back to the branch (via the
 # built-in GITHUB_TOKEN) so the chart campaign can pull it without a local token.
 on:
   workflow_dispatch:
+  push:
+    branches: [bench/six-clock-speed]
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - benches/compose-speed.py
+      - benches/extract_speed.py
+      - benches/instant.rs
+      - benches/require-clean-benchmark-source.sh
+      - benches/speed_evidence.py
+      - src/**
+      - tests/**
 
 permissions:
   contents: write
@@ -17,12 +30,14 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo bench --bench instant -- --warm-up-time 1 --measurement-time 3
+      - run: cargo test --release --tests --features bench-internal,thread-cpu-inline
+      - run: cargo bench --bench instant --features bench-internal,thread-cpu-inline -- --warm-up-time 1 --measurement-time 3
       - name: Extract + compose Windows cell
         shell: bash
         run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
           python benches/extract_speed.py target/criterion > clocks.json
-          python -c "import json; from pathlib import Path; c=json.loads(Path('clocks.json').read_text()); Path('benches/speed-4-windows.json').write_text(json.dumps({'title':'GitHub Windows','instance':'windows-2025','triple':'x86_64-pc-windows-msvc','order':4,'clocks':c}, indent=2)+'\n')"
+          python benches/compose-speed.py clocks.json benches/speed-4-windows.json --title "GitHub Windows" --instance windows-2025 --triple x86_64-pc-windows-msvc --order 4 --source-revision "$source_revision" --rustc-version "$(rustc --version)" --harness criterion --cargo-profile bench
           cat benches/speed-4-windows.json
       - name: Commit result back
         shell: bash

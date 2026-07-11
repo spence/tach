@@ -102,15 +102,26 @@ mod arch;
 ))]
 mod calibration;
 mod instant;
+mod thread_cpu;
 
 pub use instant::{Instant, OrderedInstant};
+pub use thread_cpu::{ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
 
-// The crate is strictly `#![no_std]` by default. Two opt-in features bring std
-// in: `recalibrate-background` (for the periodic-recalibration thread) and
-// `bench-internal` (for the monotonicity + skew measurement primitives used by
-// benches/ and the out-of-repo Lambda handler). The single `extern crate std`
-// below covers both, plus `cfg(test)` for unit tests.
-#[cfg(any(test, feature = "recalibrate-background", feature = "bench-internal"))]
+// `#![no_std]` remains the crate root, and `--no-default-features` has a strict
+// no_std dependency surface. The default `thread-cpu-inline` feature links std
+// only on Linux x86_64 / aarch64 for native TLS. `recalibrate-background` and
+// `bench-internal` link std on every target for their thread and benchmark
+// support. The single `extern crate std` below covers those cases plus tests.
+#[cfg(any(
+  test,
+  all(
+    feature = "thread-cpu-inline",
+    target_os = "linux",
+    any(target_arch = "x86_64", target_arch = "aarch64"),
+  ),
+  feature = "recalibrate-background",
+  feature = "bench-internal",
+))]
 extern crate std;
 
 #[cfg(feature = "recalibrate-background")]

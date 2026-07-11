@@ -23,6 +23,43 @@ use serde::Serialize;
 use crate::Instant as TachInstantTy;
 use crate::OrderedInstant as TachOrderedInstantTy;
 
+#[cfg(all(
+  feature = "thread-cpu-inline",
+  target_os = "linux",
+  any(target_arch = "x86_64", target_arch = "aarch64"),
+))]
+#[doc(hidden)]
+pub struct ThreadCpuPerfHandle(crate::arch::thread_cpu::BenchPerfHandle);
+
+#[cfg(all(
+  feature = "thread-cpu-inline",
+  target_os = "linux",
+  any(target_arch = "x86_64", target_arch = "aarch64"),
+))]
+impl ThreadCpuPerfHandle {
+  #[doc(hidden)]
+  pub fn try_for_current_thread() -> Option<Self> {
+    crate::arch::thread_cpu::bench_perf_handle().map(Self)
+  }
+
+  #[doc(hidden)]
+  #[inline(always)]
+  #[allow(clippy::inline_always)]
+  pub fn now_nanos(&self) -> u64 {
+    self.0.now_nanos()
+  }
+}
+
+#[cfg(all(
+  feature = "thread-cpu-inline",
+  target_os = "linux",
+  any(target_arch = "x86_64", target_arch = "aarch64"),
+))]
+#[doc(hidden)]
+pub fn thread_cpu_selection_measurements() -> Option<([u64; 9], [u64; 9], usize)> {
+  crate::arch::thread_cpu::bench_selection_measurements()
+}
+
 /// A clock under test. Produces a `u64` of ns-since-anchor each `now_as_u64`
 /// call, so cross-thread monotonicity tests can use one `AtomicU64` shape for
 /// every crate.

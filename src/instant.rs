@@ -387,7 +387,7 @@ impl Sub<OrderedInstant> for OrderedInstant {
 // which is slow on virtualized x86 (Nitro burst VMs, Firecracker on
 // Lambda) — typical savings on those targets is 15-25 ns/call.
 #[inline]
-fn ticks_to_duration(ticks: u64) -> Duration {
+pub(crate) fn ticks_to_duration(ticks: u64) -> Duration {
   let product = u128::from(ticks) * u128::from(arch::nanos_per_tick_q32());
   let nanos = u64::try_from(product >> 32).unwrap_or(u64::MAX);
   // Common case for elapsed (< 1 second): build Duration directly from
@@ -402,7 +402,7 @@ fn ticks_to_duration(ticks: u64) -> Duration {
 // final u64 tick count. Headroom: at 1 GHz, u64 ticks represent ~580 years;
 // overflow is theoretical, not practical.
 #[inline]
-fn duration_to_ticks(d: Duration) -> Option<u64> {
+pub(crate) fn duration_to_ticks(d: Duration) -> Option<u64> {
   let nanos = d.as_nanos();
   let q32 = arch::nanos_per_tick_q32();
   if q32 == 0 {

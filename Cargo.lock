@@ -556,6 +556,7 @@ dependencies = [
  "core_affinity",
  "criterion",
  "fastant",
+ "libc",
  "minstant",
  "quanta",
  "serde",

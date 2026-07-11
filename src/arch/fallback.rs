@@ -2,7 +2,16 @@
 // Each submodule is cfg-gated to its platform; `direct::ticks()` selects one
 // based on target_os.
 
-#[cfg(all(target_os = "macos", not(target_arch = "aarch64")))]
+#[cfg(all(
+  target_os = "macos",
+  not(any(
+    target_arch = "x86_64",
+    target_arch = "x86",
+    target_arch = "aarch64",
+    target_arch = "riscv64",
+    target_arch = "loongarch64",
+  )),
+))]
 mod mach {
   unsafe extern "C" {
     fn mach_absolute_time() -> u64;
@@ -16,10 +25,23 @@ mod mach {
   }
 }
 
-#[cfg(all(target_os = "macos", not(target_arch = "aarch64")))]
+#[cfg(all(
+  target_os = "macos",
+  not(any(
+    target_arch = "x86_64",
+    target_arch = "x86",
+    target_arch = "aarch64",
+    target_arch = "riscv64",
+    target_arch = "loongarch64",
+  )),
+))]
 pub use mach::*;
 
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(
+  unix,
+  not(target_os = "macos"),
+  not(all(target_arch = "aarch64", not(target_os = "linux"))),
+))]
 mod monotonic {
   #[repr(C)]
   struct Timespec {
@@ -43,7 +65,11 @@ mod monotonic {
   }
 }
 
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(
+  unix,
+  not(target_os = "macos"),
+  not(all(target_arch = "aarch64", not(target_os = "linux"))),
+))]
 pub use monotonic::*;
 
 #[cfg(target_os = "wasi")]

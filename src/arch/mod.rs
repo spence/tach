@@ -7,6 +7,7 @@ pub mod fallback;
 pub mod loongarch64;
 #[cfg(target_arch = "riscv64")]
 pub mod riscv64;
+pub(crate) mod thread_cpu;
 #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
 pub mod wasm;
 #[cfg(target_arch = "x86")]
@@ -127,17 +128,27 @@ fn read_frequency() -> u64 {
   crate::calibration::calibrate_frequency()
 }
 
+#[cfg(any(target_arch = "riscv64", target_arch = "loongarch64"))]
+#[inline]
+fn read_frequency() -> u64 {
+  crate::calibration::calibrate_frequency()
+}
+
 #[cfg(not(any(
   target_arch = "aarch64",
   target_arch = "x86_64",
   target_arch = "x86",
+  target_arch = "riscv64",
+  target_arch = "loongarch64",
   target_os = "macos",
   target_os = "wasi",
   all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
 )))]
 #[inline]
 fn read_frequency() -> u64 {
-  crate::calibration::calibrate_frequency()
+  // Architectures without a direct counter use a platform monotonic source
+  // whose ticks are already nanoseconds.
+  1_000_000_000
 }
 
 /// Re-derive the tick-to-nanosecond scaling against the platform monotonic

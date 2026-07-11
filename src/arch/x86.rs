@@ -11,12 +11,16 @@ pub fn rdtsc() -> u64 {
 /// Read the architectural TSC frequency from CPUID leaf 15h. See
 /// `x86_64::cpuid_tsc_hz` for the formula and supported-CPU notes.
 #[allow(dead_code)] // unused on macOS where mach_timebase_info is authoritative
+#[allow(unused_unsafe)] // __cpuid was unsafe at the 1.85 MSRV and is safe on newer Rust
 pub fn cpuid_tsc_hz() -> Option<u64> {
-  let basic = __cpuid(0);
+  // SAFETY: Rust's supported x86 targets provide CPUID, and leaf 0 only
+  // reads CPU identification registers.
+  let basic = unsafe { __cpuid(0) };
   if basic.eax < 0x15 {
     return None;
   }
-  let leaf = __cpuid(0x15);
+  // SAFETY: the maximum basic leaf reported above includes leaf 0x15.
+  let leaf = unsafe { __cpuid(0x15) };
   if leaf.eax == 0 || leaf.ebx == 0 || leaf.ecx == 0 {
     return None;
   }

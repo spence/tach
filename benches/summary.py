@@ -22,6 +22,10 @@ FONT = "Avenir Next, Helvetica, Arial, sans-serif"
 MONO = "SFMono-Regular, Menlo, Consolas, monospace"
 TEXT_FG = "#2E231B"
 MUTED_FG = "#7A6E60"
+HEADER_NOW_LABEL = "Instant::now()"
+HEADER_ELAPSED_LABEL = "now() + elapsed()"
+UNIT_LABEL = "times shown in nanoseconds"
+DISPLAY_LABELS = {}
 
 CRATES = [
   ("tach@0.2.0", "#D72D24"),
@@ -115,11 +119,13 @@ def styled_text(
 
 
 def crate_short(name: str) -> str:
-  return name.split("@")[0]
+  key = name.split("@")[0]
+  return DISPLAY_LABELS.get(key, key)
 
 
 def render_grid_cell(now_group, elapsed_group, crates, x0: float, y0: float) -> list[str]:
-  (title, instance, triple), now_vals = now_group
+  header, now_vals = now_group
+  title, instance, triple, *notes = header
   _, elapsed_vals = elapsed_group
 
   parts = []
@@ -144,12 +150,22 @@ def render_grid_cell(now_group, elapsed_group, crates, x0: float, y0: float) -> 
     )
   )
 
+  last_subtitle_y = triple_y
+  for note in notes:
+    last_subtitle_y += GRID_SUBTITLE_FONT_SIZE + 4
+    parts.append(
+      styled_text(
+        title_x, last_subtitle_y, note, GRID_SUBTITLE_FONT_SIZE,
+        family=MONO, color=MUTED_FG, anchor="start",
+      )
+    )
+
   bar_area_left = title_x + GRID_CRATE_LABEL_WIDTH + 8
   bar_area_right = x0 + GRID_CELL_W - GRID_CELL_PAD - GRID_VALUE_RESERVE
   bar_area_width = bar_area_right - bar_area_left
   cell_max = max(elapsed_vals)
 
-  rows_top = triple_y + 22
+  rows_top = last_subtitle_y + 22
   for i, ((crate_full, color), now_v, elapsed_v) in enumerate(zip(crates, now_vals, elapsed_vals)):
     row_top = rows_top + i * GRID_ROW_HEIGHT
     bar_y = row_top + (GRID_ROW_HEIGHT - GRID_BAR_HEIGHT) / 2
@@ -210,7 +226,7 @@ def render_grid_header(width: float, y0: float) -> list[str]:
   label_baseline = bar_y - GRID_HEADER_LABEL_GAP
   parts.append(
     styled_text(
-      bar_x + dark_w / 2, label_baseline, "Instant::now()",
+      bar_x + dark_w / 2, label_baseline, HEADER_NOW_LABEL,
       GRID_LABEL_FONT_SIZE, family=MONO, anchor="middle", weight="600",
     )
   )
@@ -218,7 +234,7 @@ def render_grid_header(width: float, y0: float) -> list[str]:
     styled_text(
       bar_x + dark_w + (GRID_HEADER_BAR_WIDTH - dark_w) / 2,
       label_baseline,
-      "now() + elapsed()",
+      HEADER_ELAPSED_LABEL,
       GRID_LABEL_FONT_SIZE, family=MONO, anchor="middle", weight="600",
     )
   )
@@ -228,7 +244,7 @@ def render_grid_header(width: float, y0: float) -> list[str]:
     f'<text x="{content_right:g}" y="{bar_center_y:g}" '
     f'text-anchor="end" dominant-baseline="central" '
     f'font-family="{MONO}" font-size="{GRID_LABEL_FONT_SIZE}" '
-    f'fill="{MUTED_FG}">times shown in nanoseconds</text>'
+    f'fill="{MUTED_FG}">{esc(UNIT_LABEL)}</text>'
   )
   return parts
 
