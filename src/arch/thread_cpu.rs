@@ -2,10 +2,7 @@
 
 use crate::{ThreadCpuProvider, ThreadCpuReadCost};
 
-#[cfg(any(
-  all(unix, not(any(target_os = "macos", target_os = "emscripten"))),
-  target_os = "windows",
-))]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 use core::sync::atomic::{AtomicU8, Ordering};
 
 #[cfg(all(
@@ -61,25 +58,13 @@ pub(crate) fn bench_selection_measurements() -> Option<([u64; 9], [u64; 9], usiz
 #[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 use core::mem::MaybeUninit;
 
-#[cfg(any(
-  all(unix, not(any(target_os = "macos", target_os = "emscripten"))),
-  target_os = "windows",
-))]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 const NATIVE_UNKNOWN: u8 = 0;
-#[cfg(any(
-  all(unix, not(any(target_os = "macos", target_os = "emscripten"))),
-  target_os = "windows",
-))]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 const NATIVE_THREAD_CPU: u8 = 1;
-#[cfg(any(
-  all(unix, not(any(target_os = "macos", target_os = "emscripten"))),
-  target_os = "windows",
-))]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 const NATIVE_WALL: u8 = 2;
-#[cfg(any(
-  all(unix, not(any(target_os = "macos", target_os = "emscripten"))),
-  target_os = "windows",
-))]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 static NATIVE_PROVIDER: AtomicU8 = AtomicU8::new(NATIVE_UNKNOWN);
 
 #[cfg(target_os = "linux")]
@@ -221,15 +206,12 @@ pub(crate) const fn read_cost_hint() -> ThreadCpuReadCost {
 }
 
 #[cfg(target_os = "windows")]
-#[inline]
+#[inline(always)]
+#[allow(clippy::inline_always)]
 pub(crate) fn now_nanos() -> u64 {
   use core::ffi::c_void;
   use core::mem::MaybeUninit;
 
-  let native_state = NATIVE_PROVIDER.load(Ordering::Relaxed);
-  if native_state == NATIVE_WALL {
-    return wall_now_value();
-  }
   #[repr(C)]
   struct FileTime {
     low: u32,
@@ -264,32 +246,36 @@ pub(crate) fn now_nanos() -> u64 {
       user.as_mut_ptr(),
     )
   };
-  let nanos = if status != 0 {
-    // SAFETY: successful GetThreadTimes initialized every output.
-    let kernel = unsafe { kernel.assume_init() };
-    // SAFETY: successful GetThreadTimes initialized every output.
-    let user = unsafe { user.assume_init() };
-    let kernel_100ns = (u64::from(kernel.high) << 32) | u64::from(kernel.low);
-    let user_100ns = (u64::from(user.high) << 32) | u64::from(user.low);
-    kernel_100ns.checked_add(user_100ns).and_then(|ticks| ticks.checked_mul(100))
-  } else {
-    None
-  };
-  select_native_value(native_state, nanos)
+  if status == 0 {
+    return wall_now_value();
+  }
+  // SAFETY: successful GetThreadTimes initialized every output.
+  let kernel = unsafe { kernel.assume_init() };
+  // SAFETY: successful GetThreadTimes initialized every output.
+  let user = unsafe { user.assume_init() };
+  let kernel_100ns = (u64::from(kernel.high) << 32) | u64::from(kernel.low);
+  let user_100ns = (u64::from(user.high) << 32) | u64::from(user.low);
+  kernel_100ns.saturating_add(user_100ns).saturating_mul(100)
 }
 
 #[cfg(target_os = "windows")]
 #[inline]
 pub(crate) fn provider() -> ThreadCpuProvider {
-  initialize_native_clock();
-  native_provider(ThreadCpuProvider::WindowsThreadTimes)
+  if crate::thread_cpu::is_wall_value(now_nanos()) {
+    wall_provider()
+  } else {
+    ThreadCpuProvider::WindowsThreadTimes
+  }
 }
 
 #[cfg(target_os = "windows")]
 #[inline]
 pub(crate) fn read_cost_hint() -> ThreadCpuReadCost {
-  initialize_native_clock();
-  native_read_cost()
+  if provider() == ThreadCpuProvider::WindowsThreadTimes {
+    ThreadCpuReadCost::SystemCall
+  } else {
+    wall_read_cost()
+  }
 }
 
 #[cfg(target_os = "wasi")]
@@ -407,17 +393,14 @@ pub(crate) const fn read_cost_hint() -> ThreadCpuReadCost {
   wall_read_cost()
 }
 
-#[cfg(any(
-  all(
-    unix,
-    not(any(target_os = "macos", target_os = "emscripten")),
-    not(all(
-      feature = "thread-cpu-inline",
-      target_os = "linux",
-      any(target_arch = "x86_64", target_arch = "aarch64"),
-    )),
-  ),
-  target_os = "windows",
+#[cfg(all(
+  unix,
+  not(any(target_os = "macos", target_os = "emscripten")),
+  not(all(
+    feature = "thread-cpu-inline",
+    target_os = "linux",
+    any(target_arch = "x86_64", target_arch = "aarch64"),
+  )),
 ))]
 #[inline]
 fn initialize_native_clock() {
@@ -426,53 +409,41 @@ fn initialize_native_clock() {
   }
 }
 
-#[cfg(any(
-  all(unix, not(any(target_os = "macos", target_os = "emscripten"))),
-  target_os = "windows",
-))]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 #[inline]
 pub(super) fn native_clock_uses_wall() -> bool {
   NATIVE_PROVIDER.load(Ordering::Relaxed) == NATIVE_WALL
 }
 
-#[cfg(any(
-  all(
-    unix,
-    not(any(target_os = "macos", target_os = "emscripten")),
-    not(all(
-      feature = "thread-cpu-inline",
-      target_os = "linux",
-      any(target_arch = "x86_64", target_arch = "aarch64"),
-    )),
-  ),
-  target_os = "windows",
+#[cfg(all(
+  unix,
+  not(any(target_os = "macos", target_os = "emscripten")),
+  not(all(
+    feature = "thread-cpu-inline",
+    target_os = "linux",
+    any(target_arch = "x86_64", target_arch = "aarch64"),
+  )),
 ))]
 #[inline]
 fn native_provider(cpu_provider: ThreadCpuProvider) -> ThreadCpuProvider {
   if native_clock_uses_wall() { wall_provider() } else { cpu_provider }
 }
 
-#[cfg(any(
-  all(
-    unix,
-    not(any(target_os = "macos", target_os = "emscripten")),
-    not(all(
-      feature = "thread-cpu-inline",
-      target_os = "linux",
-      any(target_arch = "x86_64", target_arch = "aarch64"),
-    )),
-  ),
-  target_os = "windows",
+#[cfg(all(
+  unix,
+  not(any(target_os = "macos", target_os = "emscripten")),
+  not(all(
+    feature = "thread-cpu-inline",
+    target_os = "linux",
+    any(target_arch = "x86_64", target_arch = "aarch64"),
+  )),
 ))]
 #[inline]
 fn native_read_cost() -> ThreadCpuReadCost {
   if native_clock_uses_wall() { wall_read_cost() } else { ThreadCpuReadCost::SystemCall }
 }
 
-#[cfg(any(
-  all(unix, not(any(target_os = "macos", target_os = "emscripten"))),
-  target_os = "windows",
-))]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 #[inline]
 fn select_native_value(native_state: u8, nanos: Option<u64>) -> u64 {
   match (native_state, nanos) {

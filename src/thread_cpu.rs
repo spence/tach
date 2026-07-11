@@ -14,6 +14,12 @@ pub(crate) const fn encode_wall_ticks(ticks: u64) -> u64 {
   WALL_DOMAIN_BIT | (ticks & VALUE_MASK)
 }
 
+#[inline]
+#[cfg(target_os = "windows")]
+pub(crate) const fn is_wall_value(value: u64) -> bool {
+  value & WALL_DOMAIN_BIT != 0
+}
+
 /// The native mechanism used to read current-thread CPU time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -85,9 +91,9 @@ pub enum ThreadCpuReadCost {
 /// [`ThreadCpuProvider::measures_thread_cpu_time`] when the distinction is
 /// correctness-sensitive.
 ///
-/// Provider choice is sticky in normal operation. If a native provider ever
-/// violates its runtime contract after producing CPU samples, tach switches to
-/// a tagged wall timeline. Durations spanning that boundary return zero (or
+/// Provider choice is stable in normal operation. If a native read ever fails,
+/// tach returns a tagged wall sample rather than failing the call. Durations
+/// spanning a CPU/wall boundary return zero (or
 /// `None` from [`Self::checked_duration_since`]); partial comparisons across
 /// the boundary are unordered. This prevents the two domains from being mixed.
 /// The tag leaves 63 value bits: roughly 292 years of thread CPU nanoseconds;
