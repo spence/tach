@@ -2,16 +2,17 @@
 # Provision EC2, run the criterion speed bench, extract per-clock medians, pull
 # back, terminate. Models benches/run-ordered-verify-aws.sh (ephemeral keypair,
 # describe-images AMI, terminate-on-shutdown, trap cleanup) but runs the SPEED
-# bench with the measured thread-CPU tier enabled and pulls a tiny clocks JSON.
+# bench and pulls a tiny clocks JSON.
 #
 # Usage: benches/run-speed-aws.sh <cell-name> <instance-type> [--use-docker-alpine]
 #   e.g. benches/run-speed-aws.sh c7g    c7g.large
+#        benches/run-speed-aws.sh amd    c7a.large
 #        benches/run-speed-aws.sh musl   c7i.large --use-docker-alpine
 #
 # Requires: aws CLI profile "tach". Self-terminates on exit (trap) and on shutdown.
 # Output: validated /tmp/speed-<cell>.json plus its raw extracted clocks.
-# Thread-CPU entries include the actual provider, read-cost class, direct perf
-# baseline when selected, and the complete runtime-selector evidence.
+# Thread-CPU entries include the actual provider and read-cost class alongside
+# the exact native current-thread CPU clock baseline.
 set -euo pipefail
 
 CELL="${1:?usage: run-speed-aws.sh <cell-name> <instance-type> [--use-docker-alpine]}"
@@ -89,7 +90,8 @@ for _ in $(seq 1 40); do $SSH true 2>/dev/null && break || sleep 5; done
 
 # Ship source (incl. benches/extract_speed.py).
 TARBALL=/tmp/tach-speed-src.tgz
-tar --exclude=target --exclude=.git --exclude='benches/*.png' --exclude='benches/*.svg' -czf "$TARBALL" .
+tar --exclude=target --exclude=.git --exclude='benches/*.png' \
+  --exclude='benches/*.svg' -czf "$TARBALL" -C "$REPO_ROOT" .
 $SCP "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"
 $SSH 'rm -rf tach && mkdir -p tach && tar -xzf /tmp/src.tgz -C tach'
 
@@ -98,15 +100,21 @@ $SSH 'rm -rf tach && mkdir -p tach && tar -xzf /tmp/src.tgz -C tach'
 REMOTE=/tmp/remote-speed.sh
 cat > "$REMOTE" <<'REMOTE_EOF'
 #!/bin/sh
-set -e
+set -eu
 MODE="$1"
 cd "$HOME/tach"
-TEST='cargo test --release --tests --features bench-internal,thread-cpu-inline'
-BENCH='cargo bench --bench instant --features bench-internal,thread-cpu-inline -- --warm-up-time 1 --measurement-time 3'
-# The inline Linux tier is an opt-in machine capability. The benchmark owns
-# enabling it on this disposable host; the extracted provider still records a
-# syscall fallback if the PMU/mmap path is unavailable or loses at selection.
-sudo sysctl -w kernel.perf_event_paranoid=-1 >/dev/null
+TEST='cargo test --locked --release --tests --features bench-internal'
+BENCH='cargo bench --locked --bench instant --features bench-internal -- --warm-up-time 1 --measurement-time 3'
+
+# The EC2 cells exercise both sides of tach's Linux provider policy: make the
+# perf task-clock user page available, then let tach's measured selector decide
+# whether it is actually faster than CLOCK_THREAD_CPUTIME_ID. Lambda remains
+# unmodified and covers the fleet-policy-denied fallback separately.
+sudo sysctl -w kernel.perf_event_paranoid=-1
+if [ -e /proc/sys/kernel/perf_user_access ]; then
+  sudo sysctl -w kernel.perf_user_access=1
+fi
+
 if [ "$MODE" = musl ]; then
   sudo dnf install -y docker >/dev/null 2>&1
   sudo systemctl start docker
@@ -115,8 +123,8 @@ if [ "$MODE" = musl ]; then
     apk add --no-cache build-base curl python3 >/dev/null 2>&1
     curl --proto =https --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal >/dev/null 2>&1
     . "$HOME/.cargo/env"
-    cargo test --release --tests --features bench-internal,thread-cpu-inline >/dev/null 2>&1
-    cargo bench --bench instant --features bench-internal,thread-cpu-inline -- --warm-up-time 1 --measurement-time 3 >/dev/null 2>&1
+    cargo test --locked --release --tests --features bench-internal >/dev/null 2>&1
+    cargo bench --locked --bench instant --features bench-internal -- --warm-up-time 1 --measurement-time 3 >/dev/null 2>&1
     python3 benches/extract_speed.py target/criterion > /work/clocks-out.json
     rustc --version > /work/rustc-version.txt
   '
@@ -149,6 +157,8 @@ case "$CELL" in
     TITLE="AWS Intel"; ORDER=2; TRIPLE="x86_64-unknown-linux-gnu" ;;
   intelm|musl)
     TITLE="AWS Intel (musl)"; ORDER=3; TRIPLE="x86_64-unknown-linux-musl" ;;
+  amd|c7a)
+    TITLE="AWS AMD"; ORDER=6; TRIPLE="x86_64-unknown-linux-gnu" ;;
   *)
     echo "unknown campaign cell '$CELL'; add its title/order/triple mapping" >&2
     exit 1 ;;
