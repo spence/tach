@@ -98,6 +98,12 @@ decision; never silently omit a failing target.
 - Next: finish the remaining provider correctness review, including the native FreeBSD retiering path.
 - Board: M0 remains 🚧; all remediation tasks are complete, but G1 stays declared ⚪ pending the full provider review.
 
+### 2026-07-12 · codex · `OBJ-FASTEST-TIMERS.M0`
+- Did: attempted the native FreeBSD retiering test and terminated the ephemeral instance when no retained pass log was produced.
+- Found: An unretained remote command result is not evidence; the next FreeBSD probe must copy its targeted test log before cleanup.
+- Next: make a retained-log FreeBSD test runner and execute the targeted AT_TIMEKEEP retiering tests.
+- Board: M0 remains 🚧; G1 stays declared ⚪ and the native FreeBSD result is still unproven.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
