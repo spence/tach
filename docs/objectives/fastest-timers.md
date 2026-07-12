@@ -56,12 +56,12 @@ selection-profile and target-family breakdown for `ThreadCpuInstant`.
 
 - [x] `OBJ-FASTEST-TIMERS.M1.T1` Repair FreeBSD and LoongArch route-schema drift.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T2` Add missing Apple, Windows, Lambda, and thread-CPU public/direct rows.
-- [ ] `OBJ-FASTEST-TIMERS.M1.T3` Remove generated evidence from source-binding inputs.
+- [x] `OBJ-FASTEST-TIMERS.M1.T3` Remove generated evidence from source-binding inputs.
 - [x] `OBJ-FASTEST-TIMERS.M1.T4` Make every exact candidate row statically direct and
   provider-scale-correct for both operations.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T5` Bind every exact row to its identity, raw samples, and one
   isolated benchmark invocation.
-- [ ] `OBJ-FASTEST-TIMERS.M1.T6` Declare a producer and typed route profile for all advertised
+- [x] `OBJ-FASTEST-TIMERS.M1.T6` Declare a producer and typed route profile for all advertised
   target/mode/runtime identities.
 
 ### Gate `OBJ-FASTEST-TIMERS.M1.G1` — exhaustive route schema passes
@@ -141,6 +141,12 @@ decision; never silently omit a failing target.
 - Found: macOS thread-CPU benchmark rows need a distinct fixed-native selector profile, not Linux perf tournament metadata.
 - Next: finish the macOS fixed-native rows and schema profile, then validate the declarative target/mode/runtime producer manifest.
 - Board: M1 remains 🚧 and G1 ⚪; T4 is complete at aa86c72 while T2, T3, T5, and T6 remain open.
+
+### 2026-07-12 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: committed the exhaustive route-evidence contract at 6f7f646; marked source binding (T3) and the 49-identity typed producer declaration (T6) complete.
+- Found: admission rejects ten explicitly planned producers; static route coverage and selector extraction do not substitute for runnable target producers or runtime speed evidence.
+- Next: use the shared supplemental-composer design to turn the highest-leverage planned/hosted routes into real producers, beginning with the remaining Linux and hosted-native gaps.
+- Board: M1 remains 🚧 and G1 ⚪; T3, T4, and T6 are complete, while T2 and T5 plus ten producer admissions remain open.
 
 ## /goal
 
