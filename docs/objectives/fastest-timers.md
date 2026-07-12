@@ -57,7 +57,7 @@ selection-profile and target-family breakdown for `ThreadCpuInstant`.
 - [x] `OBJ-FASTEST-TIMERS.M1.T1` Repair FreeBSD and LoongArch route-schema drift.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T2` Add missing Apple, Windows, Lambda, and thread-CPU public/direct rows.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T3` Remove generated evidence from source-binding inputs.
-- [ ] `OBJ-FASTEST-TIMERS.M1.T4` Make every exact candidate row statically direct and
+- [x] `OBJ-FASTEST-TIMERS.M1.T4` Make every exact candidate row statically direct and
   provider-scale-correct for both operations.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T5` Bind every exact row to its identity, raw samples, and one
   isolated benchmark invocation.
@@ -135,6 +135,12 @@ decision; never silently omit a failing target.
 - Found: a green synthetic schema suite did not prove every advertised build identity had a producer; generic candidate primitives also risked indirect reads and selected-provider conversion scales.
 - Next: finish the static direct/provider-scale repair, then add the declarative target/mode/runtime producer manifest before considering G1.
 - Board: M1 remains 🚧 with G1 declared ⚪; the coverage manifest and its route-profile fixtures are mandatory gate inputs.
+
+### 2026-07-12 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: committed static direct-provider benchmark readers and provider-local tick conversion at aa86c72; marked T4 complete.
+- Found: macOS thread-CPU benchmark rows need a distinct fixed-native selector profile, not Linux perf tournament metadata.
+- Next: finish the macOS fixed-native rows and schema profile, then validate the declarative target/mode/runtime producer manifest.
+- Board: M1 remains 🚧 and G1 ⚪; T4 is complete at aa86c72 while T2, T3, T5, and T6 remain open.
 
 ## /goal
 

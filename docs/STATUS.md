@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       finish the static direct/provider-scale repair, then add the declarative target/mode/runtime producer manifest before considering G1.
+> Next:       finish the macOS fixed-native rows and schema profile, then validate the declarative target/mode/runtime producer manifest.
 > Blocked on you: nothing
-> Last verified: 2026-07-12 · Changed: reviewed the route harness against direct-path, identity, sample-provenance, and stale-run failure modes. · By: nsr · 7a39595
+> Last verified: 2026-07-12 · Changed: committed static direct-provider benchmark readers and provider-local tick conversion at aa86c72; marked T4 complete. · By: nsr · aa86c72
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
