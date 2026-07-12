@@ -49,6 +49,8 @@ failure remaining.
 **Description.** The harness must enumerate every eligible exact route and every selected public
 route for both `now()` and `now() + elapsed()`. Candidate counts, read-cost labels, and provider
 identities must reproduce the implementation rather than hand-wave over a faster path.
+[`../plans/thread-cpu-route-coverage.md`](../plans/thread-cpu-route-coverage.md) owns the
+selection-profile and target-family breakdown for `ThreadCpuInstant`.
 
 **Tasks.**
 
@@ -114,6 +116,12 @@ decision; never silently omit a failing target.
 - Found: The evidence unit suite is 34/34 green, but Apple, Windows, Lambda, and thread-CPU route coverage still needs exhaustive public and exact rows.
 - Next: audit Apple aarch64 candidates and add every missing exact plus public now-and-elapsed benchmark route.
 - Board: M1 is 🚧 with G1 declared ⚪; M0 is ✅ with EVID-PROVIDER-CORRECTNESS.
+
+### 2026-07-12 · codex · `OBJ-FASTEST-TIMERS.M1`
+- Did: recorded the target-by-target `ThreadCpuInstant` route contract in the coverage plan.
+- Found: fixed-native, availability-fallback, runtime-tournament, and fallback-only providers need distinct exact-row and validation shapes; Windows is the active fixed-platform implementation slice.
+- Next: complete Windows `GetThreadTimes` availability-fallback rows and metadata, then reuse the fixed-native profile for macOS.
+- Board: M1 remains 🚧 with G1 declared ⚪; runtime speed proof is still deferred to OBJ-PROVE-TIMERS.
 
 ## /goal
 
