@@ -131,6 +131,9 @@ consult its matching entry before editing a mapped path and honor any same-chang
 
 - If a gate status changed, update the objective's top table and append its gate-close Working Log
   entry with evidence and SHA, then run `nsr render`.
+- Before treating the current objective as safe to stop, run `nsr hold`: exit `1` means an
+  actionable gate remains and work must continue; exit `0` means every open gate is explicitly
+  parked behind an escalation or unlanded dependency.
 - Run `nsr check`; never hand-edit a `render:` region.
 - Record durable choices as ADRs and frozen failed explorations as investigations.
 - Verify every changed code or documentation surface with its applicable local gate before claiming
