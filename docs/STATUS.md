@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M0 🚧 Provider correctness)
-> Next:       make the Emscripten selector reentrant, then retier FreeBSD AT_TIMEKEEP transitions with truthful introspection.
+> Next:       run a real Emscripten callback regression outside quanta, then complete the remaining provider correctness review.
 > Blocked on you: nothing
-> Last verified: 2026-07-12 · Changed: committed adaptive provider implementation at 0df505b and installed the NSR objective system. · By: nsr · 0df505b
+> Last verified: 2026-07-12 · Changed: committed Emscripten reentry and FreeBSD AT_TIMEKEEP retiering fixes at 6a80582. · By: nsr · 6a80582
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
