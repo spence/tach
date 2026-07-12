@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M0 🚧 Provider correctness)
-> Next:       run a real Emscripten callback regression outside quanta, then complete the remaining provider correctness review.
+> Next:       finish the remaining provider correctness review, including the native FreeBSD retiering path.
 > Blocked on you: nothing
-> Last verified: 2026-07-12 · Changed: committed Emscripten reentry and FreeBSD AT_TIMEKEEP retiering fixes at 6a80582. · By: nsr · 6a80582
+> Last verified: 2026-07-12 · Changed: committed a standalone Emscripten reentry runtime probe at 4751a18. · By: nsr · 4751a18
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

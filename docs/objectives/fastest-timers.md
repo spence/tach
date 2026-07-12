@@ -30,7 +30,7 @@ and regression behavior before treating the adaptive layer as frozen.
 
 - [x] `OBJ-FASTEST-TIMERS.M0.T1` Make Emscripten local selection reentrant without spinning.
 - [x] `OBJ-FASTEST-TIMERS.M0.T2` Make a FreeBSD `AT_TIMEKEEP` transition retier reads and introspection.
-- [ ] `OBJ-FASTEST-TIMERS.M0.T3` Add target-specific regressions for every fixed provider fault.
+- [x] `OBJ-FASTEST-TIMERS.M0.T3` Add target-specific regressions for every fixed provider fault.
 
 ### Gate `OBJ-FASTEST-TIMERS.M0.G1` — production providers pass their correctness suite
 
@@ -91,6 +91,12 @@ decision; never silently omit a failing target.
 - Found: The Emscripten target test is blocked before tach by quanta lacking an Emscripten Monotonic implementation; normal target builds and Clippy pass.
 - Next: run a real Emscripten callback regression outside quanta, then complete the remaining provider correctness review.
 - Board: M0 remains 🚧; G1 stays declared ⚪ until target-specific runtime proof is complete.
+
+### 2026-07-12 · codex · `OBJ-FASTEST-TIMERS.M0`
+- Did: committed a standalone Emscripten reentry runtime probe at 4751a18.
+- Found: The probe passes under Rust 1.95, Emscripten 6.0.2, and Node 26 without quanta dev dependencies.
+- Next: finish the remaining provider correctness review, including the native FreeBSD retiering path.
+- Board: M0 remains 🚧; all remediation tasks are complete, but G1 stays declared ⚪ pending the full provider review.
 
 ## /goal
 
