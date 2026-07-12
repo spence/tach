@@ -1,6 +1,6 @@
 # Thread CPU route coverage
 
-Status: PLAN v0.1, 2026-07-12. Serves `OBJ-FASTEST-TIMERS.M1.G1` and
+Status: PLAN v0.2, 2026-07-12. Serves `OBJ-FASTEST-TIMERS.M1.G1` and
 `OBJ-FASTEST-TIMERS.M2.G1`. Read [`../STATUS.md`](../STATUS.md) and
 [`../README.md`](../README.md) first.
 
@@ -35,6 +35,20 @@ target before any cross-platform speed campaign begins. Runtime measurement belo
    `wasm32v1-none` need tagged fallback-only/smoke records.
 5. Bind every emitted record to the frozen benchmark source, then run the target-route verifier
    and the evidence schema suite before collecting runtime artifacts.
+
+## Exact-route invariants
+
+- A direct candidate is a statically named provider read and that provider's own tick conversion.
+  Selector dispatch, a function-pointer call, or a different provider's scale may occur before
+  benchmark registration, never inside the measured operation.
+- Every declared exact row carries its benchmark identity, provider, cost class, and time domain.
+  Candidate keys are not labels that another route may reuse.
+- Lambda candidate rows retain all raw samples and reproduce their aggregate just like public and
+  selected rows. Criterion extraction only consumes an isolated run directory, so `now`, elapsed,
+  and selector metadata cannot be mixed from different invocations.
+- The schema test contains a declarative target/profile coverage map. A new advertised target or
+  fallback shape cannot make `OBJ-FASTEST-TIMERS.M1.G1` green until it has a producer, selected
+  `now` and elapsed rows, and validated metadata.
 
 ## Coverage map
 
