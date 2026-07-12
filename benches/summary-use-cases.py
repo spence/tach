@@ -25,9 +25,9 @@ SECTIONS = [
     "SAME-THREAD ELAPSED TIME",
     [
       ("tach", "tach::Instant", "#D72D24", True),
-      ("quanta", "quanta", "#5B6472", False),
-      ("fastant", "fastant", "#4F6F6A", False),
-      ("minstant", "minstant", "#8B5E3C", False),
+      ("quanta", "quanta †", "#5B6472", False),
+      ("fastant", "fastant †", "#4F6F6A", False),
+      ("minstant", "minstant †", "#8B5E3C", False),
       ("std", "std", "#9A8A3A", False),
     ],
   ),
@@ -83,11 +83,11 @@ def value_label(value: float) -> str:
 def compact_provider(label: str) -> str:
   return (
     label
-    .replace("Linux perf mmap", "perf mmap")
     .replace("POSIX thread CPU clock", "POSIX thread clock")
     .replace("Windows GetThreadTimes", "GetThreadTimes")
     .replace("clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime_nsec_np")
     .replace("clock_gettime(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime")
+    .replace("inline syscall(CLOCK_THREAD_CPUTIME_ID)", "raw syscall")
   )
 
 
@@ -115,17 +115,6 @@ def validate(cells) -> None:
             missing.append(
               f"{header[0]} {key}: expected thread CPU, got {clocks[key]['time_domain']}"
             )
-    if "direct_thread_cpu" in clocks:
-      direct = clocks["direct_thread_cpu"]
-      required = [
-        field
-        for field in ("now", "elapsed", "provider", "read_cost", "time_domain")
-        if field not in direct
-      ]
-      if required:
-        missing.append(f"{header[0]} direct_thread_cpu: {', '.join(required)}")
-      elif direct["time_domain"] != "thread CPU":
-        missing.append(f"{header[0]} direct_thread_cpu: expected thread CPU")
   if missing:
     raise ValueError(
       "use-case campaign data is incomplete; rerun these measurements:\n  "
@@ -157,11 +146,6 @@ def render_cell(header, clocks, x0, y0, width, height, scale=1.0):
   y += 27 * scale
 
   for section_index, (section_name, rows) in enumerate(SECTIONS):
-    if section_index == 2 and "direct_thread_cpu" in clocks:
-      rows = [
-        *rows,
-        ("direct_thread_cpu", "direct selected provider", "#4F6F6A", False),
-      ]
     parts.append(text(x, y, section_name, section_size, family=MONO, color=MUTED, weight="600"))
     if section_index == 2:
       tach = clocks["tach_thread_cpu"]
@@ -238,7 +222,7 @@ def render_svg(cells, columns: int) -> str:
   parts.append(
     text(
       margin, margin + 76 * scale,
-      "median nanoseconds per call · lower is better · 95% CIs retained in JSON",
+      "median nanoseconds per call · lower is better · † informational, outside the audited contract",
       20 * scale, family=MONO, color=MUTED,
     )
   )
@@ -261,8 +245,8 @@ def render_svg(cells, columns: int) -> str:
   parts.append(
     text(
       margin, footer_y,
-      "Eligible references only · conservative 95% CI + max(1 ns, 5%) · "
-      "direct provider shown when selected.",
+      "tach selects the fastest eligible reliable provider · material tie: 95% CI + "
+      "max(1 ns, 5%) · selector evidence retained in JSON",
       14 * scale, family=MONO, color=MUTED,
     )
   )
@@ -271,7 +255,7 @@ def render_svg(cells, columns: int) -> str:
 
 
 def render(documents, output_dir: Path, png=True) -> None:
-  report = speed_evidence.validate_campaign(documents)
+  report = speed_evidence.validate_campaign_for_checkout(documents, ROOT.parent)
   if not report["passed"]:
     raise ValueError("benchmark evidence failed:\n  " + "\n  ".join(report["failures"]))
   cells = [

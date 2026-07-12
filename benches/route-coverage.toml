@@ -1,0 +1,494 @@
+schema = "tach-route-coverage-v1"
+claim_scope = "Static producer and route declarations only; this is not runtime proof, which is separately collected and validated."
+
+[route_contracts.three_timer_direct]
+description = "Every public timer has a selected direct route for now and now plus elapsed."
+
+[route_contracts.three_timer_direct.instant]
+public = "tach"
+selected = "direct_selected_wall"
+operations = ["now", "elapsed"]
+exact_candidate_identity = true
+selection_metadata = "tach.selection"
+metadata_fields = ["selected_provider", "selected_native_benchmark", "eligible_direct_candidates"]
+
+[route_contracts.three_timer_direct.ordered]
+public = "tach_ordered"
+selected = "direct_selected_ordered_wall"
+operations = ["now", "elapsed"]
+exact_candidate_identity = true
+selection_metadata = "tach_ordered.wall_selection"
+metadata_fields = ["selected_provider", "selected_native_benchmark", "eligible_direct_candidates"]
+
+[route_contracts.three_timer_direct.thread_cpu]
+public = "tach_thread_cpu"
+selected = "direct_selected_thread_cpu"
+operations = ["now", "elapsed"]
+exact_candidate_identity = true
+selection_metadata = "tach_thread_cpu.selection"
+metadata_fields = ["selected_provider", "selected_mechanism", "selected_read_cost", "selected_native_benchmark", "eligible_direct_candidates"]
+
+[selection_profile_contracts.wall_runtime_tournament]
+selection_profile = "runtime_tournament"
+validator = "wall_runtime_tournament_schema"
+metadata_fields = ["selected_provider", "selected_native_benchmark", "eligible_direct_candidates", "probe"]
+
+[selection_profile_contracts.wall_fixed_native]
+selection_profile = "fixed_native"
+validator = "wall_fixed_native_schema"
+metadata_fields = ["selected_provider", "selected_native_benchmark", "eligible_direct_candidates", "fixed_provider"]
+
+[selection_profile_contracts.thread_cpu_runtime_tournament]
+selection_profile = "runtime_tournament"
+validator = "validate_thread_cpu_selector"
+selection_kinds = ["tournament_with_measured_runner_up"]
+metadata_fields = ["selected_provider", "selected_mechanism", "selected_read_cost", "selected_native_benchmark", "eligible_direct_candidates", "native_entry_probe", "perf"]
+
+[selection_profile_contracts.thread_cpu_fixed_native]
+selection_profile = "fixed_native"
+validator = "validate_fixed_native_thread_cpu_selector"
+selection_kinds = ["fixed_native"]
+metadata_fields = ["selection_kind", "selected_provider", "selected_mechanism", "selected_read_cost", "selected_native_benchmark", "eligible_direct_candidates", "fixed_provider", "read_cost_basis"]
+forbidden_metadata = ["perf", "native_entry_probe", "failure_fallback"]
+
+[selection_profile_contracts.thread_cpu_availability_fallback]
+selection_profile = "availability_fallback"
+validator = "availability_fallback_thread_cpu_schema"
+selection_kinds = ["availability_fallback", "fixed_windows_thread_times"]
+metadata_fields = ["selected_provider", "selected_mechanism", "selected_read_cost", "selected_native_benchmark", "eligible_direct_candidates", "failure_fallback"]
+
+[selection_profile_contracts.thread_cpu_fallback_only]
+selection_profile = "fallback_only"
+validator = "fallback_only_thread_cpu_schema"
+selection_kinds = ["fallback_only"]
+metadata_fields = ["selected_provider", "selected_mechanism", "selected_read_cost", "selected_native_benchmark", "eligible_direct_candidates", "time_domain"]
+
+[[producer]]
+id = "criterion_linux_adaptive"
+kind = "criterion"
+state = "ready"
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-local.sh"]
+
+[[producer]]
+id = "criterion_fixed_native"
+kind = "criterion"
+state = "ready"
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-local.sh"]
+
+[[producer]]
+id = "criterion_linux_rare_no_default"
+kind = "criterion"
+state = "planned"
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-local.sh"]
+
+[[producer]]
+id = "criterion_macos_fixed_native"
+kind = "criterion"
+state = "ready"
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-local.sh"]
+
+[[producer]]
+id = "criterion_windows_availability_fallback"
+kind = "criterion"
+state = "ready"
+entrypoints = [".github/workflows/bench-speed-windows.yml", "benches/instant.rs", "benches/extract_speed.py"]
+
+[[producer]]
+id = "criterion_freebsd_fixed_native"
+kind = "criterion"
+state = "ready"
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-freebsd-aws.sh"]
+
+[[producer]]
+id = "lambda_x86_64"
+kind = "lambda"
+state = "ready"
+entrypoints = ["benches/lambda-speed/Cargo.toml", "benches/lambda-speed/src/main.rs", "benches/run-speed-lambda.sh"]
+
+[[producer]]
+id = "lambda_aarch64"
+kind = "lambda"
+state = "planned"
+entrypoints = ["benches/lambda-speed/Cargo.toml", "benches/lambda-speed/src/main.rs", "benches/run-speed-lambda.sh"]
+
+[[producer]]
+id = "wasm_node"
+kind = "host_runtime"
+state = "planned"
+entrypoints = ["src/arch/wasm.rs", "benches/instant.rs"]
+
+[[producer]]
+id = "wasm_browser"
+kind = "host_runtime"
+state = "planned"
+entrypoints = ["src/arch/wasm.rs", "benches/instant.rs"]
+
+[[producer]]
+id = "emscripten_node"
+kind = "host_runtime"
+state = "planned"
+entrypoints = ["src/arch/emscripten.rs", "benches/run-emscripten-reentry.sh"]
+
+[[producer]]
+id = "wasi_p1_node"
+kind = "host_runtime"
+state = "planned"
+entrypoints = ["src/arch/thread_cpu.rs", "benches/verify-target-providers.py"]
+
+[[producer]]
+id = "wasi_p1_wasmtime"
+kind = "host_runtime"
+state = "planned"
+entrypoints = ["src/arch/thread_cpu.rs", "benches/verify-target-providers.py"]
+
+[[producer]]
+id = "wasi_p2_wasmtime"
+kind = "host_runtime"
+state = "planned"
+entrypoints = ["src/arch/thread_cpu.rs", "benches/verify-target-providers.py"]
+
+[[producer]]
+id = "wasi_p1_threads_smoke"
+kind = "runtime_smoke"
+state = "planned"
+entrypoints = ["src/arch/thread_cpu.rs", "benches/verify-target-providers.py"]
+
+[[producer]]
+id = "wasm32v1_none_smoke"
+kind = "runtime_smoke"
+state = "planned"
+entrypoints = ["src/arch/wasm.rs", "benches/verify-target-providers.py"]
+
+[[case]]
+id = "linux_android_adaptive_default"
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "i686-unknown-linux-gnu", "s390x-unknown-linux-gnu", "loongarch64-unknown-linux-gnu", "riscv64gc-unknown-linux-gnu", "powerpc64-unknown-linux-gnu", "powerpc64le-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf", "x86_64-unknown-linux-musl", "x86_64-linux-android", "aarch64-linux-android"]
+modes = ["default"]
+runtime_profile = "native_criterion"
+producer = "criterion_linux_adaptive"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "runtime_tournament"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_runtime_tournament"
+
+[[case]]
+id = "linux_android_fixed_no_default"
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-linux-android", "aarch64-linux-android"]
+modes = ["no-default"]
+runtime_profile = "native_criterion"
+producer = "criterion_fixed_native"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "fixed_native"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_fixed_native"
+
+[[case]]
+id = "linux_rare_fixed_no_default"
+targets = ["i686-unknown-linux-gnu", "s390x-unknown-linux-gnu", "loongarch64-unknown-linux-gnu", "riscv64gc-unknown-linux-gnu", "powerpc64-unknown-linux-gnu", "powerpc64le-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf"]
+modes = ["no-default"]
+runtime_profile = "native_criterion"
+producer = "criterion_linux_rare_no_default"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "fixed_native"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_fixed_native"
+
+[[case]]
+id = "windows_availability_fallback"
+targets = ["x86_64-pc-windows-msvc", "i686-pc-windows-msvc", "aarch64-pc-windows-msvc"]
+modes = ["default", "no-default"]
+runtime_profile = "windows_criterion"
+producer = "criterion_windows_availability_fallback"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "fixed_native"
+ordered = "fixed_native"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_fixed_native"
+ordered = "wall_fixed_native"
+thread_cpu = "thread_cpu_availability_fallback"
+
+[[case]]
+id = "macos_fixed_native"
+targets = ["x86_64-apple-darwin", "aarch64-apple-darwin"]
+modes = ["default", "no-default"]
+runtime_profile = "macos_criterion"
+producer = "criterion_macos_fixed_native"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "fixed_native"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_fixed_native"
+
+[case.thread_cpu_selector]
+selection_kind = "fixed_native"
+selected_provider = "posix_thread_cpu_clock"
+selected_mechanism = "macos_clock_gettime_nsec_np_thread_cpu"
+selected_read_cost = "system call"
+selected_native_benchmark = "direct_selected_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu"
+eligible_direct_candidates = ["direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu"]
+
+[case.thread_cpu_selector.fixed_provider]
+native_primitive = "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)"
+time_domain = "thread CPU"
+
+[[case]]
+id = "freebsd_fixed_native"
+targets = ["x86_64-unknown-freebsd"]
+modes = ["default", "no-default"]
+runtime_profile = "freebsd_criterion"
+producer = "criterion_freebsd_fixed_native"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "fixed_native"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_fixed_native"
+
+[[case]]
+id = "lambda_x86_64_default"
+targets = ["x86_64-unknown-linux-gnu"]
+modes = ["default"]
+runtime_profile = "aws_lambda_x86_64"
+producer = "lambda_x86_64"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "runtime_tournament"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_runtime_tournament"
+
+[[case]]
+id = "lambda_aarch64_default"
+targets = ["aarch64-unknown-linux-gnu"]
+modes = ["default"]
+runtime_profile = "aws_lambda_aarch64"
+producer = "lambda_aarch64"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "runtime_tournament"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_runtime_tournament"
+
+[[case]]
+id = "wasm_node_availability_fallback"
+targets = ["wasm32-unknown-unknown"]
+modes = ["default", "no-default"]
+runtime_profile = "node_wasm_bindgen"
+producer = "wasm_node"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_availability_fallback"
+
+[[case]]
+id = "wasm_browser_fallback"
+targets = ["wasm32-unknown-unknown"]
+modes = ["default", "no-default"]
+runtime_profile = "browser_wasm_bindgen"
+producer = "wasm_browser"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_availability_fallback"
+
+[[case]]
+id = "wasi_p1_node_availability_fallback"
+targets = ["wasm32-wasip1"]
+modes = ["default", "no-default"]
+runtime_profile = "node_uvwasi"
+producer = "wasi_p1_node"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "fixed_native"
+ordered = "fixed_native"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_fixed_native"
+ordered = "wall_fixed_native"
+thread_cpu = "thread_cpu_availability_fallback"
+
+[[case]]
+id = "wasi_p1_wasmtime_fallback"
+targets = ["wasm32-wasip1"]
+modes = ["default", "no-default"]
+runtime_profile = "wasmtime"
+producer = "wasi_p1_wasmtime"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "fixed_native"
+ordered = "fixed_native"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_fixed_native"
+ordered = "wall_fixed_native"
+thread_cpu = "thread_cpu_availability_fallback"
+
+[[case]]
+id = "wasi_p2_fallback_only"
+targets = ["wasm32-wasip2"]
+modes = ["default", "no-default"]
+runtime_profile = "wasmtime_component"
+producer = "wasi_p2_wasmtime"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "fixed_native"
+ordered = "fixed_native"
+thread_cpu = "fallback_only"
+
+[case.profile_contracts]
+instant = "wall_fixed_native"
+ordered = "wall_fixed_native"
+thread_cpu = "thread_cpu_fallback_only"
+
+[[case]]
+id = "emscripten_node_availability_fallback"
+targets = ["wasm32-unknown-emscripten"]
+modes = ["default", "no-default", "emscripten-pthreads"]
+runtime_profile = "emcc_node"
+producer = "emscripten_node"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_availability_fallback"
+
+[[case]]
+id = "wasi_p1_threads_smoke"
+targets = ["wasm32-wasip1-threads"]
+modes = ["default", "no-default"]
+runtime_profile = "wasi_threads_smoke"
+producer = "wasi_p1_threads_smoke"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "runtime_smoke"
+codegen_now_elapsed_routes = ["instant_now_elapsed", "ordered_instant_now_elapsed", "thread_cpu_instant_now_elapsed"]
+
+[case.selection_profiles]
+instant = "fixed_native"
+ordered = "fixed_native"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_fixed_native"
+ordered = "wall_fixed_native"
+thread_cpu = "thread_cpu_availability_fallback"
+
+[[case]]
+id = "wasm32v1_none_smoke"
+targets = ["wasm32v1-none"]
+modes = ["default", "no-default"]
+runtime_profile = "wasm32v1_none_smoke"
+producer = "wasm32v1_none_smoke"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "runtime_smoke"
+codegen_now_elapsed_routes = ["instant_now_elapsed", "ordered_instant_now_elapsed", "thread_cpu_instant_now_elapsed"]
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_availability_fallback"

@@ -33,27 +33,18 @@ def validate(clocks: dict) -> None:
       raise ValueError(f"{key} missing fields: {', '.join(missing_fields)}")
     for field in ("now", "elapsed"):
       value = entry[field]
-      if not isinstance(value, (int, float)) or value < 0:
+      if not speed_evidence.finite_number(value) or value < 0:
         raise ValueError(f"{key}.{field} must be a non-negative number")
       interval = entry[f"{field}_ci95"]
       if (
         not isinstance(interval, list)
         or len(interval) != 2
-        or not all(isinstance(bound, (int, float)) for bound in interval)
+        or not all(speed_evidence.finite_number(bound) for bound in interval)
         or not interval[0] <= value <= interval[1]
       ):
         raise ValueError(f"{key}.{field}_ci95 must contain the point estimate")
     if key in THREAD_CPU_CLOCKS and entry["time_domain"] != "thread CPU":
       raise ValueError(f"{key} did not measure current-thread CPU time")
-  if "direct_thread_cpu" in clocks:
-    direct = clocks["direct_thread_cpu"]
-    required = (
-      "now", "elapsed", "now_ci95", "elapsed_ci95",
-      "provider", "read_cost", "time_domain",
-    )
-    missing_direct = [field for field in required if field not in direct]
-    if missing_direct:
-      raise ValueError(f"direct_thread_cpu missing fields: {', '.join(missing_direct)}")
 
 
 def main() -> None:
@@ -72,14 +63,12 @@ def main() -> None:
 
   clocks = json.loads(args.clocks.read_text())
   validate(clocks)
-  if "linux" in args.triple and args.triple.startswith(("x86_64", "aarch64")):
-    selection = clocks["tach_thread_cpu"].get("selection")
-    if selection is None:
-      raise ValueError("Linux inline target is missing selector measurement evidence")
-    if clocks["tach_thread_cpu"]["provider"] == "Linux perf mmap":
-      if "direct_thread_cpu" not in clocks:
-        raise ValueError("selected Linux perf target is missing direct-handle evidence")
-  failures, _ = speed_evidence.validate_cell(args.title, clocks)
+  if args.harness == "lambda":
+    lambda_failures = []
+    speed_evidence.validate_lambda_samples(args.title, clocks, lambda_failures)
+    if lambda_failures:
+      raise ValueError("Lambda samples do not reproduce:\n  " + "\n  ".join(lambda_failures))
+  failures, _ = speed_evidence.validate_cell(args.title, clocks, args.triple)
   if failures:
     raise ValueError("cell does not support the speed claim:\n  " + "\n  ".join(failures))
   cell = {
@@ -91,7 +80,7 @@ def main() -> None:
       "source_revision": args.source_revision,
       "rustc": args.rustc_version,
       "cargo_profile": args.cargo_profile,
-      "features": ["bench-internal", "thread-cpu-inline"],
+      "features": list(speed_evidence.BENCHMARK_FEATURES),
       "harness": args.harness,
     },
     "clocks": clocks,

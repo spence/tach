@@ -28,8 +28,11 @@ CRATES = [
 def compact_provider(label: str) -> str:
   return (
     label
-    .replace("clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime_nsec_np(thread CPU)")
-    .replace("clock_gettime(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime(thread CPU)")
+    .replace("POSIX thread CPU clock", "POSIX thread clock")
+    .replace("Windows GetThreadTimes", "GetThreadTimes")
+    .replace("clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime_nsec_np")
+    .replace("clock_gettime(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime")
+    .replace("inline syscall(CLOCK_THREAD_CPUTIME_ID)", "raw syscall")
   )
 
 
@@ -60,7 +63,7 @@ def groups(cells, kind: str):
     native_provider = compact_provider(str(native.get("provider", "unrecorded")))
     annotated_header = (
       *header,
-      f"tach provider: {provider} · {cost}",
+      f"tach: {provider} · {cost}",
       f"native: {native_provider}",
     )
     output.append((annotated_header, [tach[kind], native[kind]]))
@@ -74,7 +77,7 @@ def groups(cells, kind: str):
 
 
 def render(documents, output_dir: Path, png: bool = True) -> None:
-  report = speed_evidence.validate_campaign(documents)
+  report = speed_evidence.validate_campaign_for_checkout(documents, ROOT.parent)
   if not report["passed"]:
     raise ValueError("benchmark evidence failed:\n  " + "\n  ".join(report["failures"]))
   cells = [

@@ -1,0 +1,79 @@
+{
+  "schema": "tach-thread-cpu-negative-candidate-v1",
+  "candidate": "pinned PERF_COUNT_HW_CPU_CYCLES via PMCCNTR_EL0",
+  "status": "ineligible-production-candidate",
+  "reason": "not materially faster than task-clock on bare metal and catastrophically slower under virtualization",
+  "selection_rule": "a candidate must beat the incumbent by more than max(1 ns/read, 5%) in at least 8 of 9 paired batches",
+  "reproduction": {
+    "probe": "benches/probes/aarch64-thread-pmu.c",
+    "runner": "benches/run-thread-pmu-aws.sh",
+    "virtualized_command": "INSTANCE_TYPE=c7g.large benches/run-thread-pmu-aws.sh",
+    "bare_metal_command": "INSTANCE_TYPE=c7g.metal benches/run-thread-pmu-aws.sh"
+  },
+  "environment": {
+    "os": "Amazon Linux 2023",
+    "kernel": "6.12.94-123.180",
+    "perf_event_paranoid": -1,
+    "perf_user_access": 1,
+    "event": "pinned per-thread PERF_TYPE_HARDWARE/PERF_COUNT_HW_CPU_CYCLES",
+    "config1": 3,
+    "counting": "EL0+EL1, exclude HV",
+    "required_userpage_state": {
+      "index": 32,
+      "cap_user_rdpmc": true,
+      "pmc_width": 64,
+      "time_enabled_equals_time_running": true
+    },
+    "conversion": "Graviton3 fixed 2.6 GHz, nanoseconds = cycles * 5 / 13"
+  },
+  "measurements": [
+    {
+      "instance": "c7g.large",
+      "virtualization": "virtualized",
+      "task_clock_cntvct_ns_per_read": 37.022,
+      "pmccntr_ns_per_read": 850.226,
+      "pmccntr_over_task_ratio": 22.965,
+      "capability_was_profitable": false
+    },
+    {
+      "instance": "c7g.metal",
+      "virtualization": "bare-metal",
+      "task_clock_cntvct_ns_per_read": 37.106,
+      "pmccntr_ns_per_read": 36.994,
+      "pmccntr_advantage_ns": 0.112,
+      "pmccntr_advantage_percent": 0.30,
+      "material_result": "tie",
+      "busy_delta_ns": {
+        "clock_thread_cputime_id": 50018628,
+        "task_clock": 50020194,
+        "pmccntr": 50018098
+      },
+      "sleep_delta_ns": {
+        "clock_thread_cputime_id": 8311,
+        "task_clock": 7003,
+        "pmccntr": 5402
+      },
+      "capability_was_profitable": false
+    }
+  ],
+  "historical_probe_caveat": {
+    "affected_revisions": [
+      "de9eaf2",
+      "bc87882"
+    ],
+    "problem": "the old probe excluded kernel time and omitted arm64 config1=3, so it was not an eligible comparison",
+    "correction": "the recorded probe requests user access and 64-bit PMCCNTR with config1=3, includes user and kernel execution, excludes hypervisor time, checks the complete mmap capability state, uses the perf seqlock+offset protocol, converts at the fixed Graviton frequency, and checks busy/sleep parity"
+  },
+  "recorded_run_scope": {
+    "covered": [
+      "pinned start CPU",
+      "steady-state read cost",
+      "busy parity",
+      "deschedule freeze"
+    ],
+    "not_covered": [
+      "forced migration; the reproducible probe now includes it, but the recorded VM and metal runs predate that addition"
+    ]
+  },
+  "conclusion": "Do not add PMCCNTR_EL0 as an eligible ThreadCpuInstant production candidate. Capability is not profitability: cap_user_rdpmc was true in both cells, yet virtualization made the route about 23x slower and bare metal produced only a sub-nanosecond material tie."
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "tach-thread-cpu-negative-candidate-v1",
+  "candidate": "IA32_FIXED_CTR2 / CPU_CLK_UNHALTED.REF_TSC via perf RDPMC",
+  "status": "ineligible-production-candidate",
+  "reason": "the counter is not the same time domain as scheduler-delivered current-thread CPU time",
+  "primary_source": {
+    "title": "Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3B",
+    "revision": "092",
+    "date": "June 2026",
+    "chapter": "22",
+    "table": "22-1",
+    "pages": "22-8 to 22-9 (PDF page 238)",
+    "url": "https://cdrdv2.intel.com/v1/dl/getContent/671427"
+  },
+  "semantic_mismatch": [
+    "REF_TSC counts only while the logical processor is outside halt and TM stop-clock states",
+    "it stops during thermal-throttling duty-off periods",
+    "Intel describes it as able to approximate elapsed time rather than as scheduler-delivered runtime",
+    "Linux task-clock and CLOCK_THREAD_CPUTIME_ID continue to represent CPU time delivered to the scheduled thread"
+  ],
+  "conclusion": "Do not benchmark or select reference cycles as an eligible ThreadCpuInstant candidate. A cheaper read cannot compensate for measuring a different quantity."
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the six-cell evidence behind tach's three-use-case speed claim."""
+"""Validate all three clocks on hosted targets outside the six-cell campaign."""
 
 from __future__ import annotations
 
@@ -19,9 +19,8 @@ def main() -> None:
   parser.add_argument("--data-dir", type=Path, default=ROOT)
   parser.add_argument("--output", type=Path)
   args = parser.parse_args()
-  report = speed_evidence.validate_campaign_for_checkout(
-    bench_data.load_cell_documents(args.data_dir),
-    ROOT.parent,
+  report = speed_evidence.validate_supplemental_speed_campaign(
+    bench_data.load_supplemental_speed_documents(args.data_dir)
   )
   rendered = json.dumps(report, indent=2) + "\n"
   if args.output:

@@ -5,6 +5,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 paths=(
+  .github/workflows/bench-speed-windows.yml
   Cargo.lock
   Cargo.toml
   src
@@ -17,14 +18,22 @@ paths=(
   benches/lambda-speed/Cargo.toml
   benches/lambda-speed/src
   benches/require-clean-benchmark-source.sh
+  benches/probes/aarch64-thread-pmu.c
+  benches/route-coverage.toml
   benches/run-speed-aws.sh
+  benches/run-speed-freebsd-aws.sh
   benches/run-speed-lambda.sh
   benches/run-speed-local.sh
+  benches/run-thread-pmu-aws.sh
   benches/speed_evidence.py
   benches/summary.py
   benches/summary-thread-cpu.py
   benches/summary-use-cases.py
+  benches/test_extract_speed.py
+  benches/test_speed_evidence.py
   benches/validate-speed-evidence.py
+  benches/validate-release-evidence.py
+  benches/validate-supplemental-thread-cpu.py
   benches/verify-target-providers.py
 )
 dirty="$(git -C "$repo_root" status --porcelain=v1 --untracked-files=all -- "${paths[@]}")"

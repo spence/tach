@@ -1578,7 +1578,6 @@ fn bench_now(c: &mut Criterion) {
     #[cfg(target_arch = "x86_64")]
     {
       let provider = tach::bench::apple_wall_selected_provider();
-      let nanos_per_tick_q32 = tach::bench::apple_x86_selected_nanos_per_tick_q32();
       if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
         g.bench_function(format!("direct_wall__{}", commpage.provider()), |b| {
           b.iter(|| black_box(commpage.now_ticks()));
@@ -2385,6 +2384,7 @@ fn bench_elapsed(c: &mut Criterion) {
     #[cfg(target_arch = "x86_64")]
     {
       let provider = tach::bench::apple_wall_selected_provider();
+      let nanos_per_tick_q32 = tach::bench::apple_x86_selected_nanos_per_tick_q32();
       if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
         g.bench_function(format!("direct_wall__{}", commpage.provider()), |b| {
           b.iter(|| {
@@ -2874,6 +2874,24 @@ fn bench_thread_cpu_now(c: &mut Criterion) {
   g.bench_function(NATIVE_THREAD_CPU_BENCH_ID, |b| {
     b.iter(|| black_box(native_thread_cpu_now()));
   });
+  #[cfg(all(feature = "bench-internal", target_os = "macos"))]
+  {
+    assert_eq!(
+      ThreadCpuInstant::provider(),
+      ThreadCpuProvider::PosixThreadCpuClock,
+      "macOS ThreadCpuInstant must use its native current-thread CPU clock",
+    );
+    assert_eq!(
+      ThreadCpuInstant::read_cost_hint(),
+      ThreadCpuReadCost::SystemCall,
+      "macOS ThreadCpuInstant must retain its system-call cost classification",
+    );
+    for prefix in ["direct_thread_cpu", "direct_selected_thread_cpu"] {
+      g.bench_function(format!("{prefix}__{MACOS_THREAD_CPU_MECHANISM}"), |b| {
+        b.iter(|| black_box(native_thread_cpu_now()));
+      });
+    }
+  }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
     for prefix in ["direct_thread_cpu", "direct_selected_thread_cpu"] {
@@ -3171,6 +3189,27 @@ fn bench_thread_cpu_elapsed(c: &mut Criterion) {
       black_box(Duration::from_nanos(native_thread_cpu_now().saturating_sub(start)))
     });
   });
+  #[cfg(all(feature = "bench-internal", target_os = "macos"))]
+  {
+    assert_eq!(
+      ThreadCpuInstant::provider(),
+      ThreadCpuProvider::PosixThreadCpuClock,
+      "macOS ThreadCpuInstant must use its native current-thread CPU clock",
+    );
+    assert_eq!(
+      ThreadCpuInstant::read_cost_hint(),
+      ThreadCpuReadCost::SystemCall,
+      "macOS ThreadCpuInstant must retain its system-call cost classification",
+    );
+    for prefix in ["direct_thread_cpu", "direct_selected_thread_cpu"] {
+      g.bench_function(format!("{prefix}__{MACOS_THREAD_CPU_MECHANISM}"), |b| {
+        b.iter(|| {
+          let start = native_thread_cpu_now();
+          black_box(Duration::from_nanos(native_thread_cpu_now().saturating_sub(start)))
+        });
+      });
+    }
+  }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
     for prefix in ["direct_thread_cpu", "direct_selected_thread_cpu"] {
@@ -4014,6 +4053,56 @@ fn write_thread_cpu_selection() {
   .expect("write thread-CPU selector evidence");
 }
 
+#[cfg(all(feature = "bench-internal", target_os = "macos"))]
+fn write_thread_cpu_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  assert_eq!(
+    ThreadCpuInstant::provider(),
+    ThreadCpuProvider::PosixThreadCpuClock,
+    "macOS ThreadCpuInstant must retain its fixed native provider",
+  );
+  assert_eq!(
+    ThreadCpuInstant::read_cost_hint(),
+    ThreadCpuReadCost::SystemCall,
+    "macOS ThreadCpuInstant must retain its system-call cost classification",
+  );
+
+  let direct_candidate = format!("direct_thread_cpu__{MACOS_THREAD_CPU_MECHANISM}");
+  let selected_benchmark = format!("direct_selected_thread_cpu__{MACOS_THREAD_CPU_MECHANISM}");
+  let payload = serde_json::json!({
+    "selection_kind": "fixed_native",
+    "selected_provider": "posix_thread_cpu_clock",
+    "selected_mechanism": MACOS_THREAD_CPU_MECHANISM,
+    "selected_read_cost": "system call",
+    "selected_native_benchmark": selected_benchmark,
+    "fallback_provider": null,
+    "fallback_mechanism": null,
+    "fallback_read_cost": null,
+    "fallback_native_benchmark": null,
+    "eligible_direct_candidates": [direct_candidate],
+    "fixed_provider": {
+      "candidate": MACOS_THREAD_CPU_MECHANISM,
+      "supported_architectures": ["x86_64", "aarch64"],
+      "native_primitive": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+      "selection_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is macOS's direct current-thread CPU-time entry",
+      "time_domain": "thread CPU",
+    },
+    "read_cost_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is a native system-call tier for scheduled CPU time on the current macOS thread",
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("thread-cpu-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize macOS thread-CPU selector evidence"),
+  )
+  .expect("write macOS thread-CPU selector evidence");
+}
+
 #[cfg(not(all(
   feature = "bench-internal",
   any(
@@ -4024,6 +4113,7 @@ fn write_thread_cpu_selection() {
     all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
   ),
 )))]
+#[cfg(not(target_os = "macos"))]
 #[cfg(not(target_os = "windows"))]
 fn write_thread_cpu_selection() {}
 
@@ -4182,6 +4272,9 @@ fn native_thread_cpu_now() -> u64 {
 #[cfg(target_os = "macos")]
 const NATIVE_THREAD_CPU_BENCH_ID: &str =
   "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id";
+
+#[cfg(target_os = "macos")]
+const MACOS_THREAD_CPU_MECHANISM: &str = "macos_clock_gettime_nsec_np_thread_cpu";
 
 #[cfg(target_os = "macos")]
 #[inline(always)]

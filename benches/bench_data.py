@@ -30,6 +30,13 @@ def load_cell_documents(directory=_DIR):
     return documents
 
 
+def load_supplemental_speed_documents(directory=_DIR):
+    documents = {}
+    for path in sorted(Path(directory).glob("speed-supplemental-*.json")):
+        documents[path.name] = json.loads(path.read_text())
+    return documents
+
+
 def load_cells(directory=_DIR):
     return [
         ((d["title"], d["instance"], d["triple"]), d["clocks"])
