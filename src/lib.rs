@@ -2,103 +2,102 @@
 #![warn(clippy::undocumented_unsafe_blocks)]
 #![warn(rustdoc::broken_intra_doc_links)]
 
-//! Ultra-fast drop-in replacement for [`std::time::Instant`].
+//! Three Instant-shaped timers for three timing contracts.
 //!
-//! Each supported target compiles [`Instant::now()`] to a single architectural
-//! counter read — RDTSC on x86 / x86_64, CNTVCT_EL0 on aarch64, rdtime on
-//! riscv64 / loongarch64 — and falls back to the platform monotonic clock
-//! everywhere else. No runtime dispatch on the hot path.
+//! All three APIs compute elapsed time as [`core::time::Duration`]. They differ
+//! in the quantity that advances and where samples may be compared safely:
+//!
+//! | Job | Type | Contract |
+//! |---|---|---|
+//! | Same-thread elapsed | [`Instant`] | Wall-rate time; endpoints stay local |
+//! | Ordered elapsed | [`OrderedInstant`] | Wall time ordered after memory observations |
+//! | Thread CPU, where native | [`ThreadCpuInstant`] | CPU time or explicit wall fallback |
+//!
+//! With default features, each type selects the fastest eligible provider for
+//! its contract. Eligible wall providers must be monotonic, wall-rate, and
+//! high-resolution; deliberately coarsened clocks are a different contract.
+//! Disabling default features requests the syscall-only `no_std` thread-CPU
+//! implementation and can therefore trade speed for dependency surface.
+//!
+//! On six benchmark environments, each type has the fastest tested
+//! steady-state read and elapsed bracket for its contract, with
+//! `max(1 ns, 5%)` treated as a practical material tie. A separate 24-target
+//! compile and codegen matrix proves API availability and provider routing; it
+//! does not claim measured speed on unbenchmarked hardware.
 //!
 //! # Quick start
 //!
 //! ```
-//! use tach::Instant;
+//! use tach::{Instant, ThreadCpuInstant};
 //!
-//! let start = Instant::now();
-//! // ... work ...
-//! let elapsed = start.elapsed();
-//! println!("{elapsed:?}");
+//! let wall_start = Instant::now();
+//! let wall_elapsed = wall_start.elapsed();
+//!
+//! let cpu_start = ThreadCpuInstant::now();
+//! let cpu_elapsed = cpu_start.elapsed();
+//!
+//! assert!(wall_elapsed <= wall_start.elapsed());
+//! assert!(cpu_elapsed <= cpu_start.elapsed());
 //! ```
 //!
-//! # Two types, one decision
+//! # Choosing a type
 //!
-//! - **[`Instant`]** — the fastest timestamp (3.5–21 ns across platforms;
-//!   1.5–8× faster than [`std::time::Instant`]). Monotonic on a thread, and in
-//!   wall-clock order across threads. Use it for timing, profiling, latency,
-//!   local elapsed — anything **not** compared against another thread's
-//!   timestamp through shared state.
-//! - **[`OrderedInstant`]** — the same architectural-counter read, *ordered
-//!   against memory*. **Monotonic across threads** by construction, verified at
-//!   0 backward steps in ~10.9 billion reads across Apple Silicon, Graviton 3,
-//!   Intel and AMD x86 (single- and dual-socket NUMA). Use it the moment a
-//!   timestamp crosses a thread boundary and gets compared or ordered — trace
-//!   timelines, timestamp-as-version, a deadline read after an `Acquire`-load.
+//! Use [`Instant`] when both endpoints of an elapsed-time bracket stay local to
+//! one thread. Direct-counter providers do not order the sample after prior
+//! memory operations.
 //!
-//! If a timestamp ever leaves the thread that made it and gets compared, reach
-//! for [`OrderedInstant`]. Otherwise [`Instant`].
+//! Use [`OrderedInstant`] when a timestamp participates in a cross-thread
+//! happens-before relationship. Direct-counter targets select an architecture
+//! barrier; Windows and Intel macOS fence before their reliable platform
+//! clock. The load-then-now-then-check contract produced zero inversions in
+//! about 10.9 billion tested x86 and aarch64 reads. RISC-V's ratified Zicsr
+//! ordering rules cover `fence r, i; rdtime`. LoongArch Linux uses a raw
+//! system-call exception boundary before `rdtime.d`; Linux armv7 and s390x
+//! fence before `CLOCK_MONOTONIC`; Linux powerpc64 GNU uses `sync; mftb`.
 //!
-//! # Why [`OrderedInstant`] exists: one hazard, two faces
+//! Use [`ThreadCpuInstant`] for CPU delivered to the calling OS thread. Native
+//! providers freeze while the thread is sleeping or descheduled. Targets with
+//! no portable thread clock use an explicitly reported monotonic-wall fallback;
+//! check [`ThreadCpuInstant::measures_thread_cpu_time`] when that distinction is
+//! correctness-sensitive. Native candidates must retain the platform clock's
+//! full scheduled-runtime precision; a cheaper coarsened accounting API is not
+//! eligible for selection.
 //!
-//! [`Instant::now()`] is one counter-read instruction (`rdtsc` / `mrs
-//! cntvct_el0`). It is not a memory operation, and an out-of-order CPU can
-//! sample it *before* a prior `Acquire`-load completes. That single fact has
-//! two consequences:
+//! Linux providers use the native `CLOCK_THREAD_CPUTIME_ID` timeline. Targets
+//! with multiple equivalent syscall entry paths measure those paths once per
+//! process and retain the fastest reliable route on the hot path.
 //!
-//! - **Same thread**: the read can land before the load you meant to time
-//!   *after* — your measurement brackets the wrong region.
-//! - **Across threads**: the read can land before the load that joins you to
-//!   another thread, so two timestamps invert across a happens-before edge.
+//! # Hardware assumption
 //!
-//! ```ignore
-//! let deadline = scheduler.load(Ordering::Acquire);
-//! let now = tach::Instant::now();    // ← may be sampled BEFORE `deadline` is observed
-//! ```
+//! Direct-counter providers assume a coherent, monotonic architectural
+//! counter. Windows uses QPC because raw TSC/CNTVCT cost and frequency probes
+//! cannot establish Windows' cross-core, sleep, and VM-migration guarantees.
+//! Intel macOS also uses the platform-owned reliable timeline;
+//! on other hosts whose OS marks a TSC clocksource unstable because cores are
+//! genuinely desynchronized, use the platform clock instead.
 //!
-//! [`OrderedInstant`] emits the arch barrier that pins the read *after* prior
-//! memory operations, closing both faces at once:
-//!
-//! ```ignore
-//! let deadline = scheduler.load(Ordering::Acquire);
-//! let now = tach::OrderedInstant::now();   // sampled after `deadline` — safe to compare
-//! ```
-//!
-//! # The guarantee, precisely
-//!
-//! A timestamp taken on any thread, after an `Acquire`-load that observed
-//! another thread's published [`OrderedInstant`], is guaranteed `>=` that
-//! published value (the load-then-now-then-check contract). Verified: **0
-//! violations in ~10.9 billion reads** across x86 and aarch64, including
-//! 2-socket Intel and AMD NUMA where a bare [`Instant`] inverts from sub-ppm
-//! to ~12% of cross-thread reads (see `benches/ORDERED-VERIFICATION.md`).
-//!
-//! The barrier is `rdtscp` on x86 (Intel SDM: "waits until all previous
-//! instructions have executed and all previous loads are globally visible"),
-//! `isb sy` before `mrs cntvct_el0` on aarch64. On **riscv64 and loongarch64**
-//! it is the strongest barrier each ISA offers (`fence iorw, iorw` / `dbar 0`),
-//! but whether a memory fence constrains the time-CSR read is
-//! implementation-defined, and tach's cross-thread ordering is **not yet
-//! verified on native RISC-V / LoongArch hardware** — use [`std::time::Instant`]
-//! there if you need a bench-proven guarantee today.
-//!
-//! # The one assumption
-//!
-//! tach assumes a coherent, monotonic hardware counter. Where the OS marks the
-//! TSC clocksource unstable (genuinely desynchronized cores — exotic or broken
-//! multi-socket firmware), tach is off-contract for *every* type; use
-//! [`std::time::Instant`] on such hosts.
+//! Linux can explicitly configure architectural counter reads to fault on a
+//! per-thread basis. Initial selection fails closed when its calling thread is
+//! denied, but a process-wide direct or vDSO winner requires every reading
+//! thread to retain counter permission. Calling `PR_SET_TSC` to request a fault
+//! is an external fault boundary for tach, libc's vDSO clocks, and other direct
+//! counter readers.
 
 mod arch;
-// Calibration is needed wherever the architectural counter doesn't self-report
-// an NTP-corrected rate. That's: x86 / x86_64 on non-macOS (CPUID 15h is
-// nominal, kernel doesn't continuously correct), aarch64 Linux (cntfrq_el0 is
-// firmware-published nominal), and riscv64 / loongarch64. NOT needed on:
-// macOS (mach_timebase_info is measured per-die), Windows aarch64
-// (cntfrq_el0 is QPF-calibrated), wasm/WASI (host clock is the source).
+// Calibration is needed wherever the selected architectural counter doesn't
+// self-report an NTP-corrected rate: x86 outside Windows/macOS/FreeBSD,
+// aarch64 Linux, and riscv64 / loongarch64. FreeBSD uses the authoritative
+// kernel TSC rate or nanosecond CLOCK_MONOTONIC; Windows uses QPC/QPF, Intel
+// macOS uses the Mach timebase, and Apple Silicon uses cntfrq_el0.
 #[cfg(any(
-  all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")),
+  all(
+    any(target_arch = "x86_64", target_arch = "x86"),
+    not(any(target_os = "windows", target_os = "macos", target_os = "freebsd")),
+  ),
   all(target_arch = "aarch64", target_os = "linux"),
   target_arch = "riscv64",
   target_arch = "loongarch64",
+  all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
 ))]
 mod calibration;
 mod instant;
@@ -107,20 +106,33 @@ mod thread_cpu;
 pub use instant::{Instant, OrderedInstant};
 pub use thread_cpu::{ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
 
-// `#![no_std]` remains the crate root, and `--no-default-features` has a strict
-// no_std dependency surface. The default `thread-cpu-inline` feature links std
-// only on Linux x86_64 / aarch64 for native TLS. `recalibrate-background` and
-// `bench-internal` link std on every target for their thread and benchmark
-// support. The single `extern crate std` below covers those cases plus tests.
+// `#![no_std]` remains the crate root. The default thread-cpu-inline feature
+// links std only on the listed Linux-kernel perf targets for native TLS;
+// --no-default-features preserves the strict no_std dependency surface.
+// Recalibration, benchmark support, and tests also link std.
 #[cfg(any(
   test,
-  all(
-    feature = "thread-cpu-inline",
-    target_os = "linux",
-    any(target_arch = "x86_64", target_arch = "aarch64"),
-  ),
   feature = "recalibrate-background",
   feature = "bench-internal",
+  all(
+    feature = "thread-cpu-inline",
+    any(
+      all(
+        target_os = "linux",
+        any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+          target_arch = "s390x",
+          target_arch = "loongarch64",
+          target_arch = "powerpc64",
+        ),
+      ),
+      all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+    ),
+  ),
 ))]
 extern crate std;
 
@@ -182,21 +194,6 @@ mod tests {
     let elapsed = start.elapsed();
     assert!(elapsed.as_millis() >= 9, "ordered elapsed too short: {elapsed:?}");
     assert!(elapsed.as_millis() < 200, "ordered elapsed too long: {elapsed:?}");
-  }
-
-  // `as_unordered()` shares the same underlying tick value, so an elapsed
-  // measurement from the converted unordered handle should match an elapsed
-  // measurement from the original within bench-runtime noise.
-  #[test]
-  fn ordered_as_unordered_preserves_tick_value() {
-    let ordered = OrderedInstant::now();
-    let unordered = ordered.as_unordered();
-    let elapsed_from_ordered = ordered.elapsed_unordered();
-    let elapsed_from_unordered = unordered.elapsed();
-    let diff = elapsed_from_ordered.abs_diff(elapsed_from_unordered);
-    // The two .elapsed*() calls happen back-to-back; diff is whatever a
-    // single counter read costs. 1ms is generous noise budget.
-    assert!(diff.as_millis() < 1, "elapsed diverged after as_unordered: {diff:?}");
   }
 
   // Pairing OrderedInstant start with elapsed_unordered() end: end timestamp
@@ -297,9 +294,9 @@ mod tests {
     Instant::recalibrate();
     let elapsed = start.elapsed();
     // Recalibration itself spins for up to ~700 ms on platforms where it
-    // actually measures (Linux/Windows x86, aarch64 Linux); no-op on macOS
-    // and Windows aarch64 where cntfrq_el0 / mach_timebase_info are
-    // authoritative. The upper bound here is a sanity check that a buggy
+    // actually measures (direct-TSC x86 and aarch64 Linux); no-op on macOS
+    // and Windows where the selected platform clock has an authoritative
+    // scale. The upper bound here is a sanity check that a buggy
     // recalibration didn't jump the scaling so far that elapsed jumps to
     // multi-second values, not an assertion about the recalibrate cost
     // itself.
@@ -317,7 +314,10 @@ mod tests {
     let _ = Instant::now().elapsed();
   }
 
-  #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+  #[cfg(all(
+    any(target_arch = "x86_64", target_arch = "x86"),
+    not(any(target_os = "windows", target_os = "macos")),
+  ))]
   #[test]
   fn cpuid_15h_returns_something_or_none() {
     #[cfg(target_arch = "x86_64")]
@@ -328,8 +328,8 @@ mod tests {
 
   // Proving test: tach's elapsed() must track std's elapsed() within ±5%
   // across a 100ms sleep. Catches:
-  //  - Windows freq-vs-counter mismatch (was ~300× off; QPF Hz on RDTSC ticks)
-  //  - macOS mach_timebase_info numerator/denominator transposition
+  //  - Windows QPC/QPF counter-frequency mismatch
+  //  - Darwin timebase numerator/denominator transposition
   //  - CPUID 15h numerator/denominator transposition
   //  - aarch64 cntfrq misreporting (e.g. exposing crystal Hz instead of Hz)
   // ±5% is a generous noise budget over a 100 ms window — schedule jitter

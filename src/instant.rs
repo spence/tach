@@ -3,48 +3,31 @@ use core::time::Duration;
 
 use crate::arch;
 
-/// A sampled point in the process-wide counter timeline. The fast read.
+/// A sampled point in tach's local monotonic elapsed-time domain.
 ///
-/// Drop-in replacement for [`std::time::Instant`] backed by the architectural
-/// wall-clock counter (RDTSC, CNTVCT_EL0, rdtime, rdtime.d). One instruction
-/// on every native target; no runtime dispatch. **1.5–8× faster than
-/// `std::time::Instant`** on every supported platform.
+/// `Instant` is wall-clock-rate: it keeps ticking while the calling thread is
+/// parked or descheduled. Whether it advances during whole-system suspend
+/// follows the target's selected monotonic clock. Tach uses a direct
+/// architectural counter where that is the fastest reliable timeline, the
+/// OS-vetted QPC timeline on Windows, the measured fastest XNU Mach absolute-time implementation on
+/// Intel macOS, a kernel-eligible and measured TSC on FreeBSD/amd64, and the
+/// platform monotonic clock on fallback targets.
 ///
-/// `Instant` is wall-clock-rate: it keeps ticking through park, suspension, and
-/// descheduling. The same source is used across every thread in the process.
+/// Eligible providers expose a high-resolution timeline. Deliberately
+/// coarsened or approximate clocks such as Linux `CLOCK_MONOTONIC_COARSE` do
+/// not satisfy this contract even when their calls are cheaper.
 ///
 /// # When to use this
 ///
-/// Reach for `Instant` for the common case: pinned threads, or any code
-/// where ≤10 µs cross-thread sync slop is acceptable. That covers almost
-/// any tracing, profiling, latency measurement, or request-budget use case.
-///
-/// The moment a timestamp crosses a thread boundary and gets *compared or
-/// ordered* against another thread's — multi-thread ordered logs, distributed
-/// spans, lock-free version numbers, a deadline read after an `Acquire`-load —
-/// reach for [`OrderedInstant`] instead, which is monotonic across threads by
-/// construction.
+/// Use `Instant` when both endpoints of an elapsed-time bracket remain local to
+/// one thread. If a timestamp participates in a cross-thread happens-before
+/// relationship, use [`OrderedInstant`] instead.
 ///
 /// # Monotonicity contract
 ///
-/// **Per-thread**: strictly non-decreasing by hardware on every supported
-/// target. A pinned thread (or any thread the OS doesn't migrate between
-/// cores) reads a monotonically increasing sequence. Measured: 0 backward
-/// jumps across 33 billion reads in the 6-cell bench matrix.
-///
-/// **Cross-thread**: bounded by the hardware's per-core sync floor (≤10 µs
-/// on every tested cell, matching [`std::time::Instant`] on the same
-/// hardware — both read the same underlying counter). Empirically the bare
-/// counter shows non-zero contract violations on the strict
-/// load-then-now-then-check test on every multi-threaded platform tested.
-/// For cross-thread synchronization-order monotonicity, use [`OrderedInstant`].
-///
-/// # Cost
-///
-/// 3.5 ns on Apple Silicon M1, 7.3 ns on Graviton 3, 8.5 ns on Intel bare
-/// metal, 9.6 ns on Windows, 14.4 ns on Intel virtualized (Nitro), 21.2 ns
-/// on AWS Lambda Firecracker. Per-thread, single-thread tight loop. Full
-/// per-platform table in `BENCHMARKS.md`.
+/// Samples are non-decreasing on one thread. Direct counter reads are not
+/// ordered after prior memory operations, so they do not provide
+/// [`OrderedInstant`]'s synchronization-order guarantee.
 ///
 /// # Example
 ///
@@ -62,9 +45,7 @@ use crate::arch;
 pub struct Instant(u64);
 
 impl Instant {
-  /// Reads the current value of the process-wide tick counter.
-  ///
-  /// Compiles to a single architectural counter read on every supported target.
+  /// Reads the current value of the target's local tick counter.
   #[inline(always)]
   #[allow(clippy::inline_always)]
   pub fn now() -> Self {
@@ -73,11 +54,9 @@ impl Instant {
 
   /// Returns the duration that has elapsed since `self` was sampled.
   ///
-  /// Drop-in equivalent for [`std::time::Instant::elapsed()`]. Saturates to
-  /// zero rather than wrapping if the current read lands before `self` — the
-  /// only way that happens is a cross-thread read landing inside the counter's
-  /// sub-microsecond sync window; see [`crate::OrderedInstant`] for a
-  /// value that is monotone for cross-thread *ordering*, not just subtraction.
+  /// Saturates to zero rather than wrapping if the current read lands before
+  /// `self`. See [`crate::OrderedInstant`] when the endpoint must be ordered
+  /// after a cross-thread synchronization observation.
   #[inline]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
@@ -86,8 +65,7 @@ impl Instant {
   }
 
   /// Returns the duration elapsed from `earlier` to `self`, or zero if
-  /// `earlier` is later. Matches modern [`std::time::Instant::duration_since`]
-  /// (which saturates rather than panicking).
+  /// `earlier` is later. This matches modern `std::time::Instant` behavior.
   #[inline]
   #[must_use]
   pub fn duration_since(&self, earlier: Instant) -> Duration {
@@ -137,13 +115,10 @@ impl Instant {
   /// windows; preempted samples are discarded and don't contribute
   /// to the median); do not invoke from a hot path.
   ///
-  /// No-op on platforms where the frequency is exact: aarch64
-  /// (`cntfrq_el0`), macOS (`mach_timebase_info`), WASI, and the wasm host.
-  /// On x86 / x86_64 (Linux, other Unixes, and Windows) the kernel doesn't
-  /// continuously correct crystal drift, so recalibration measures the
-  /// actual rate against the platform monotonic clock
-  /// (`clock_gettime(CLOCK_MONOTONIC)` on Unix, `QueryPerformanceCounter`
-  /// on Windows).
+  /// No-op on platforms where the selected clock has an authoritative rate:
+  /// Windows QPC/QPF, the Darwin timebase, FreeBSD's selected wall provider,
+  /// aarch64 `cntfrq_el0`, WASI, and the wasm host. Other direct-TSC x86 targets
+  /// measure the actual rate against `clock_gettime(CLOCK_MONOTONIC)`.
   ///
   /// `recalibrate` itself is `#![no_std]`-compatible — it uses the same
   /// platform-monotonic spin-loop path the crate already calls during
@@ -156,15 +131,11 @@ impl Instant {
   /// and is incompatible with `#![no_std]` targets** — it pulls in
   /// `std::thread` and `std::sync::OnceLock`.
   ///
-  /// Affects both [`Instant`] and [`crate::OrderedInstant`]; they share
-  /// the same scaling cache.
+  /// Affects both [`Instant`] and [`crate::OrderedInstant`]. Each type owns
+  /// the scale for its selected provider, so independently selected wall
+  /// clocks remain in their own raw tick domains.
   pub fn recalibrate() {
     arch::recalibrate();
-  }
-
-  #[inline(always)]
-  pub(crate) fn from_raw_ticks(ticks: u64) -> Self {
-    Self(ticks)
   }
 }
 
@@ -201,73 +172,58 @@ impl Sub<Instant> for Instant {
   }
 }
 
-/// The architectural counter read, **ordered against memory** — sampled at its
-/// true position in program order, never earlier. This is the timestamp to use
-/// the moment a value crosses a thread boundary and gets compared or ordered.
+/// A monotonic elapsed-time sample ordered after prior memory observations.
 ///
-/// `OrderedInstant` is **monotonic across threads**: a timestamp taken on any
-/// thread, after an `Acquire`-load that observed another thread's published
-/// `OrderedInstant`, is guaranteed `>=` that published value. Verified at
-/// **0 backward steps in ~10.9 billion reads** across Apple Silicon, AWS
-/// Graviton 3, Intel and AMD x86 (single- and dual-socket NUMA) — see
-/// `benches/ORDERED-VERIFICATION.md`. On the same hardware, a bare [`Instant`]
-/// inverts from sub-ppm (Nitro VMs) to ~12% (Apple Silicon) of cross-thread
-/// reads.
-///
-/// ```ignore
-/// // Thread A:                          // Thread B:
-/// let t = OrderedInstant::now();         let seen = shared.load(Ordering::Acquire);
-/// shared.store(t, Ordering::Release);    let now = OrderedInstant::now();
-///                                        // now >= t, always.
-/// ```
+/// On x86 and aarch64, a sample taken after an `Acquire` load that observed a
+/// published `OrderedInstant` is at least that published value. The documented
+/// load-then-now-then-check harness produced zero inversions in about 10.9
+/// billion reads across the tested systems.
 ///
 /// # Why this exists
 ///
-/// [`Instant::now()`] is one counter-read instruction (`rdtsc` / `mrs
-/// cntvct_el0`). It is not a memory operation, and an out-of-order CPU can
-/// sample it *before* a prior `Acquire`-load completes. Two consequences, one
-/// cause: on the same thread the read can land before the load you meant to
-/// time after; across threads it can land before the load that joins you to
-/// another thread, inverting two timestamps across a happens-before edge.
-/// `OrderedInstant` emits the arch barrier that pins the read after prior
-/// memory operations, closing both at once.
+/// A direct counter read is not a memory operation, so an out-of-order CPU can
+/// sample [`Instant::now()`] before a prior `Acquire` load completes.
+/// `OrderedInstant` emits the architecture's ordering primitive before reading
+/// its selected wall-time domain. That provider can differ from [`Instant`]'s
+/// provider when the fastest ordered and unordered reads differ on a host.
 ///
 /// # Per-architecture barrier
 ///
-/// - **x86 / x86_64**: `rdtscp` — Intel SDM Vol 2B: "waits until all previous
-///   instructions have executed and all previous loads are globally visible."
-///   One instruction, unconditionally serializing for prior loads.
-/// - **aarch64**: `isb sy` before `mrs cntvct_el0` — drains the pipeline so the
-///   system-register read cannot be hoisted past prior memory access.
-/// - **riscv64**: `fence iorw, iorw` before `rdtime`. **Best-effort**: whether a
-///   memory fence constrains the `rdtime` CSR read is implementation-defined in
-///   the RISC-V spec, and tach's cross-thread guarantee is **not yet verified on
-///   native RISC-V hardware**. Use `std` there if you need a bench-proven
-///   ordering guarantee today.
-/// - **loongarch64**: `dbar 0` before `rdtime.d` — same best-effort caveat and
-///   the same "not yet verified on native hardware" status as riscv64.
-/// - **wasm / WASI / fallback paths**: the kernel / runtime / JS boundary
-///   already serializes the call site.
-///
-/// # Cost
-///
-/// Roughly 5–20 ns more than [`Instant::now()`] depending on architecture:
-/// 18.5 ns on Apple Silicon M1, 26.1 ns on Graviton 3, 16.8 ns on Intel bare
-/// metal, 25.4 ns on Windows, 40 ns on AWS Lambda Firecracker (per-thread).
-/// Still 1.5–4× faster than [`std::time::Instant::now()`], which reaches its
-/// own cross-thread correctness only by paying the vDSO / syscall path. And
-/// unlike an atomic-based approach, `OrderedInstant` holds **no shared state**,
-/// so its per-call cost is flat regardless of thread count — there is no
-/// contention cliff. (See `docs/WHY-NOT-AN-ATOMIC.md`.)
+/// - **Windows x86, x86_64, and aarch64**: a sequentially consistent hardware
+///   fence before `QueryPerformanceCounter`; tach never executes a separate
+///   TSC or CNTVCT read on this path.
+/// - **Intel macOS**: XNU's `lfence; rdtsc; lfence` Mach absolute-time protocol,
+///   either inlined from the commpage data or reached through the system
+///   function according to a runtime cost probe.
+/// - **Linux and Android x86 / x86_64**: an independently measured ordered TSC
+///   path or the platform monotonic clock. Other x86 targets use `lfence;
+///   rdtsc` on Intel, gated `rdtscp` elsewhere, and `cpuid; rdtsc` when
+///   `rdtscp` is unavailable.
+/// - **Linux and Android aarch64**: an independently measured `isb sy;
+///   cntvct_el0`, self-synchronizing `cntvctss_el0`, or platform monotonic
+///   provider. Other aarch64 targets use their OS-approved ordered counter.
+/// - **riscv64**: `fence r, i` before `rdtime`; ratified Zicsr classifies the
+///   observed memory read as `R` and the timer CSR read as device input `I`.
+/// - **loongarch64 Linux**: a raw `clock_gettime` syscall as a synchronous
+///   exception boundary, followed by `rdtime.d` in the same raw tick domain.
+/// - **Linux armv7 and s390x**: respectively `dmb ish; isb` and `bcr 15,0`
+///   immediately before `clock_gettime(CLOCK_MONOTONIC)`.
+/// - **Linux powerpc64 GNU**: heavyweight `sync` immediately before the
+///   64-bit Time Base read.
+/// - **JavaScript-hosted wasm**: non-threaded Emscripten uses its direct
+///   `performance.now()` host boundary. Emscripten pthread builds enabling the
+///   `emscripten-pthreads` feature use the selected performance-epoch or
+///   synchronized host timeline followed by a module-shared sequentially
+///   consistent atomic maximum.
+/// - **WASI and remaining fallback paths**: the host or OS clock boundary.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct OrderedInstant(u64);
 
 impl OrderedInstant {
-  /// Reads the counter with an instruction-ordering barrier so the
-  /// timestamp is sampled *after* any prior `Acquire`-or-stronger
-  /// observation.
+  /// Reads the counter with the target's ordering barrier so the timestamp is
+  /// sampled *after* any prior `Acquire`-or-stronger observation.
   #[inline(always)]
   #[allow(clippy::inline_always)]
   pub fn now() -> Self {
@@ -281,7 +237,7 @@ impl OrderedInstant {
   #[must_use]
   pub fn elapsed(&self) -> Duration {
     let delta = arch::ticks_ordered().saturating_sub(self.0);
-    ticks_to_duration(delta)
+    ordered_ticks_to_duration(delta)
   }
 
   /// Returns the elapsed duration with an *unordered* end read. Use this
@@ -291,23 +247,13 @@ impl OrderedInstant {
   #[inline]
   #[must_use]
   pub fn elapsed_unordered(&self) -> Duration {
-    let delta = arch::ticks().saturating_sub(self.0);
-    ticks_to_duration(delta)
+    let delta = arch::ticks_ordered_unordered().saturating_sub(self.0);
+    ordered_ticks_to_duration(delta)
   }
 
-  /// Discards the ordering guarantee and returns a plain [`Instant`] with
-  /// the same tick value. Useful when storing the timestamp in a struct
-  /// field typed as [`Instant`]. There is no inverse — an unordered
-  /// [`Instant`] cannot be promoted because the original read was not
-  /// ordered.
-  #[inline]
-  pub fn as_unordered(&self) -> Instant {
-    Instant::from_raw_ticks(self.0)
-  }
-
-  /// See [`Instant::duration_since`]. Cross-type calls (against a plain
-  /// `Instant`) are deliberately not provided — downgrade with
-  /// [`Self::as_unordered`] first if you need to compare.
+  /// See [`Instant::duration_since`]. Cross-type calls against a plain
+  /// [`Instant`] are deliberately not provided because the two types may use
+  /// different providers and raw tick domains.
   #[inline]
   #[must_use]
   pub fn duration_since(&self, earlier: OrderedInstant) -> Duration {
@@ -318,7 +264,7 @@ impl OrderedInstant {
   #[inline]
   #[must_use]
   pub fn checked_duration_since(&self, earlier: OrderedInstant) -> Option<Duration> {
-    self.0.checked_sub(earlier.0).map(ticks_to_duration)
+    self.0.checked_sub(earlier.0).map(ordered_ticks_to_duration)
   }
 
   /// See [`Instant::saturating_duration_since`].
@@ -334,7 +280,7 @@ impl OrderedInstant {
   #[inline]
   #[must_use]
   pub fn checked_add(&self, duration: Duration) -> Option<Self> {
-    let delta = duration_to_ticks(duration)?;
+    let delta = duration_to_ordered_ticks(duration)?;
     self.0.checked_add(delta).map(Self)
   }
 
@@ -342,7 +288,7 @@ impl OrderedInstant {
   #[inline]
   #[must_use]
   pub fn checked_sub(&self, duration: Duration) -> Option<Self> {
-    let delta = duration_to_ticks(duration)?;
+    let delta = duration_to_ordered_ticks(duration)?;
     self.0.checked_sub(delta).map(Self)
   }
 }
@@ -388,7 +334,17 @@ impl Sub<OrderedInstant> for OrderedInstant {
 // Lambda) — typical savings on those targets is 15-25 ns/call.
 #[inline]
 pub(crate) fn ticks_to_duration(ticks: u64) -> Duration {
-  let product = u128::from(ticks) * u128::from(arch::nanos_per_tick_q32());
+  ticks_to_duration_with_scale(ticks, arch::nanos_per_tick_q32())
+}
+
+#[inline]
+pub(crate) fn ordered_ticks_to_duration(ticks: u64) -> Duration {
+  ticks_to_duration_with_scale(ticks, arch::ordered_nanos_per_tick_q32())
+}
+
+#[inline]
+fn ticks_to_duration_with_scale(ticks: u64, scale: u64) -> Duration {
+  let product = u128::from(ticks) * u128::from(scale);
   let nanos = u64::try_from(product >> 32).unwrap_or(u64::MAX);
   // Common case for elapsed (< 1 second): build Duration directly from
   // secs=0 + subsec_nanos. The compiler can prove `nanos_u32 < 1e9` from
@@ -403,11 +359,36 @@ pub(crate) fn ticks_to_duration(ticks: u64) -> Duration {
 // overflow is theoretical, not practical.
 #[inline]
 pub(crate) fn duration_to_ticks(d: Duration) -> Option<u64> {
+  duration_to_ticks_with_scale(d, arch::nanos_per_tick_q32())
+}
+
+#[inline]
+fn duration_to_ordered_ticks(d: Duration) -> Option<u64> {
+  duration_to_ticks_with_scale(d, arch::ordered_nanos_per_tick_q32())
+}
+
+#[inline]
+fn duration_to_ticks_with_scale(d: Duration, q32: u64) -> Option<u64> {
   let nanos = d.as_nanos();
-  let q32 = arch::nanos_per_tick_q32();
   if q32 == 0 {
     return None;
   }
   // nanos = (ticks * q32) >> 32  ⇒  ticks = (nanos << 32) / q32
   nanos.checked_shl(32)?.checked_div(u128::from(q32))?.try_into().ok()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn conversion_helpers_keep_tick_scales_independent() {
+    let one_ns_per_tick = 1_u64 << 32;
+    let two_ns_per_tick = 2_u64 << 32;
+
+    assert_eq!(ticks_to_duration_with_scale(50, one_ns_per_tick), Duration::from_nanos(50));
+    assert_eq!(ticks_to_duration_with_scale(50, two_ns_per_tick), Duration::from_nanos(100));
+    assert_eq!(duration_to_ticks_with_scale(Duration::from_nanos(100), one_ns_per_tick), Some(100));
+    assert_eq!(duration_to_ticks_with_scale(Duration::from_nanos(100), two_ns_per_tick), Some(50));
+  }
 }

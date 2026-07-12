@@ -14,7 +14,7 @@ const DEFAULT_INTERVAL_SECS: u64 = 60;
 // ≈ 0.199. Effective averaging window ≈ 1/alpha ≈ 5 samples → 5 min at the
 // 60s default interval. Short enough to track real thermal-drift trends in
 // the underlying crystal, long enough that a single preempted calibration
-// window can't jolt the global scale by more than ~20% of its noise.
+// window can't jolt either scale by more than ~20% of its noise.
 const ALPHA_NUM: u128 = 51;
 const ONE_MINUS_ALPHA_NUM: u128 = 205;
 const ALPHA_DEN_SHIFT: u32 = 8;
@@ -39,23 +39,25 @@ pub fn set_recalibration_interval(interval: Duration) {
 pub(crate) fn ensure_thread() {
   THREAD.get_or_init(|| {
     let _ = thread::Builder::new().name("tach-recalibrate".into()).spawn(|| {
-      // ensure_thread() is called from nanos_per_tick_q32() right after the
-      // initial scale is stored, so this Acquire load sees a non-zero
-      // startup value to seed the EMA from.
-      let mut blended_q32 = crate::arch::NANOS_PER_TICK_Q32.load(Ordering::Acquire);
       loop {
         let secs = INTERVAL_SECS.load(Ordering::Relaxed);
         thread::sleep(Duration::from_secs(secs));
-        let Some(new_hz) = crate::arch::recalibrate_measure() else {
-          continue;
-        };
-        let new_q32 =
-          u64::try_from(crate::arch::NANOS_PER_SECOND_Q32 / u128::from(new_hz)).unwrap_or(u64::MAX);
-        blended_q32 = ema_blend_q32(blended_q32, new_q32);
-        crate::arch::NANOS_PER_TICK_Q32.store(blended_q32, Ordering::Release);
+        let update = crate::arch::recalibrate_measure();
+        blend_scale(&crate::arch::NANOS_PER_TICK_Q32, update.local);
+        blend_scale(&crate::arch::ORDERED_NANOS_PER_TICK_Q32, update.ordered);
       }
     });
   });
+}
+
+#[inline]
+fn blend_scale(cache: &AtomicU64, update: Option<u64>) {
+  let Some(new_q32) = update else {
+    return;
+  };
+  let previous = cache.load(Ordering::Acquire);
+  let blended = if previous == 0 { new_q32 } else { ema_blend_q32(previous, new_q32) };
+  cache.store(blended, Ordering::Release);
 }
 
 // Integer-only EMA: blended = (51 * new + 205 * prev) >> 8. With
@@ -69,6 +71,19 @@ fn ema_blend_q32(prev: u64, new: u64) -> u64 {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn late_initialized_scale_starts_from_its_first_measurement() {
+    let cache = AtomicU64::new(0);
+    blend_scale(&cache, None);
+    assert_eq!(cache.load(Ordering::Relaxed), 0);
+
+    blend_scale(&cache, Some(5_000_000_000));
+    assert_eq!(cache.load(Ordering::Relaxed), 5_000_000_000);
+
+    blend_scale(&cache, Some(6_000_000_000));
+    assert_eq!(cache.load(Ordering::Relaxed), ema_blend_q32(5_000_000_000, 6_000_000_000),);
+  }
 
   // Step-response convergence: starting from 0, feeding a constant target
   // value, the EMA should reach the target within 1 ppm in well under

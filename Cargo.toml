@@ -2,19 +2,30 @@
 name = "tach"
 version = "0.2.0"
 edition = "2024"
-rust-version = "1.85"
+# Stable PowerPC64 inline assembly is part of the default clock provider.
+rust-version = "1.95"
 license = "MIT OR Apache-2.0"
-readme = "README.crates-io.md"
+readme = "README.md"
 authors = ["Spencer Creasey"]
 repository = "https://github.com/spence/tach"
-description = "Replacement for std::time::Instant that reads the architectural counter directly"
-keywords = ["timer", "clock", "benchmark", "profiling", "rdtsc"]
+description = "Fast timers for local elapsed, ordered cross-thread, and current-thread CPU time"
+keywords = ["timer", "clock", "profiling", "instant", "thread-cpu"]
 categories = ["hardware-support", "development-tools::profiling"]
-exclude = [
-  "benches/*.svg",
-  "benches/*.png",
-  "benches/*.py",
-  "BENCHMARKS.md",
+include = [
+  "/src/**",
+  "/tests/**",
+  "/examples/**",
+  "/benches/instant.rs",
+  "/benches/skew.rs",
+  "/README.md",
+  "/BENCHMARKS.md",
+  "/benches/ORDERED-VERIFICATION.md",
+  "/benches/speed-*.json",
+  "/benches/three-clock-evidence.json",
+  "/benches/summary-thread-cpu.png",
+  "/benches/summary-use-cases.png",
+  "/LICENSE-MIT",
+  "/LICENSE-APACHE",
 ]
 
 [dependencies]
@@ -28,12 +39,21 @@ core_affinity = { version = "0.8", optional = true }
 
 [features]
 default = ["thread-cpu-inline"]
-# DEFAULT: on Linux x86_64 / aarch64, probe the perf task-clock mmap protocol
-# and select it only when its measured steady-state read is materially faster
-# than CLOCK_THREAD_CPUTIME_ID. On those Linux targets only, this feature
-# brings in std for native TLS. `--no-default-features` keeps the syscall-only
-# implementation and the crate's strict no_std dependency surface.
+# DEFAULT: Linux x86, x86_64, aarch64, armv7, riscv64, s390x, LoongArch64,
+# and PowerPC64 plus Android x86_64 and aarch64 measure each current thread's
+# complete perf task-clock mmap/read routes against its selected
+# CLOCK_THREAD_CPUTIME_ID route, then retain only a repeatable material winner
+# for that thread.
+# Other targets ignore this feature. Disable default features to keep those
+# targets on the syscall-only no_std implementation.
 thread-cpu-inline = []
+# OPT-IN: compile the cross-thread `OrderedInstant` provider for Emscripten
+# pthread/shared-memory builds. Stable rustc accepts `-C target-feature=+atomics`
+# for code generation but does not expose that unstable target feature through
+# `cfg(target_feature)`, so pthread consumers must enable this Cargo feature as
+# the source-level half of the build handshake. They remain responsible for
+# passing Emscripten's pthread and Wasm-atomics compile/link flags.
+emscripten-pthreads = []
 # OPTIONAL: spawn a background thread that periodically recalibrates the
 # tick-to-nanosecond scaling against the platform monotonic clock to correct
 # for crystal drift over long uptime. Default interval is 60 seconds;
@@ -60,6 +80,9 @@ serde_json = "1"
 [target.'cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))'.dependencies]
 wasm-bindgen = { version = "0.2", default-features = false }
 
+[target.'cfg(all(target_arch = "wasm32", target_os = "wasi", target_env = "p2"))'.dependencies]
+wasip2 = { version = "=1.0.1", default-features = false }
+
 [target.'cfg(unix)'.dependencies]
 libc = { version = "0.2", default-features = false }
 
@@ -76,5 +99,5 @@ required-features = ["bench-internal"]
 name = "basic"
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["recalibrate-background"]
 rustdoc-args = ["--cfg", "docsrs"]

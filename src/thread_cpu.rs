@@ -15,7 +15,7 @@ pub(crate) const fn encode_wall_ticks(ticks: u64) -> u64 {
 }
 
 #[inline]
-#[cfg(target_os = "windows")]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "emscripten"))))]
 pub(crate) const fn is_wall_value(value: u64) -> bool {
   value & WALL_DOMAIN_BIT != 0
 }
@@ -24,25 +24,39 @@ pub(crate) const fn is_wall_value(value: u64) -> bool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ThreadCpuProvider {
-  /// Linux `perf_event_open` metadata mapped into the process and read inline.
+  /// Linux `perf_event_open` task-clock metadata mapped and read in userspace.
   LinuxPerfMmap,
+  /// Linux `perf_event_open` task-clock read through its persistent file
+  /// descriptor.
+  LinuxPerfRead,
   /// The operating system's POSIX current-thread CPU clock.
   PosixThreadCpuClock,
   /// Windows `GetThreadTimes`, combining kernel and user execution time.
   WindowsThreadTimes,
-  /// The WASI host's current-thread CPU clock.
+  /// A WASIp1 host's optional current-thread CPU clock.
   WasiThreadCpuClock,
-  /// JavaScript `Performance.now()`, used when WebAssembly has no thread clock.
+  /// Node.js `process.threadCpuUsage()`, combining user and system CPU time for
+  /// the current main or worker thread.
+  NodeThreadCpuUsage,
+  /// The JavaScript host's monotonic `performance.now()` wall clock.
   ///
-  /// This is a monotonic wall-time fallback: it advances while the thread is
-  /// descheduled or sleeping.
+  /// This advances while the thread is descheduled or sleeping.
   PerformanceNow,
+  /// Node.js `process.hrtime.bigint()`, selected as a monotonic wall clock.
+  ///
+  /// This advances while the thread is descheduled or sleeping.
+  NodeHrtime,
   /// The target's fastest monotonic wall clock.
   ///
   /// This fallback is used when the target has no current-thread CPU clock, or
   /// if a native thread clock unexpectedly becomes unavailable. It advances
   /// while the thread is descheduled or sleeping.
   MonotonicWallClock,
+  /// No eligible monotonic clock is exposed by the host.
+  ///
+  /// Reads remain total and return a frozen value rather than substituting a
+  /// non-monotonic source.
+  Unavailable,
 }
 
 impl ThreadCpuProvider {
@@ -54,28 +68,49 @@ impl ThreadCpuProvider {
     matches!(
       self,
       Self::LinuxPerfMmap
+        | Self::LinuxPerfRead
         | Self::PosixThreadCpuClock
         | Self::WindowsThreadTimes
         | Self::WasiThreadCpuClock
+        | Self::NodeThreadCpuUsage
     )
   }
 }
 
-/// The expected steady-state cost class of the selected provider.
+/// A conservative steady-state cost class for the selected provider.
 ///
 /// This is categorical because exact nanosecond cost depends on the CPU,
-/// kernel, and virtualization environment. It lets applications require the
-/// inline production tier without treating a machine-specific benchmark as a
-/// stable API promise.
+/// kernel, and virtualization environment. It lets applications validate or
+/// report the selected mechanism without treating a machine-specific
+/// benchmark as a stable API promise. `Inline` means tach's selected hot path
+/// directly reads mapped metadata or an architectural counter without issuing
+/// an operating-system or host call. A hypervisor or compatibility kernel may
+/// still trap and emulate that instruction; the initialization tournament
+/// measures the resulting cost and retains the route only when its complete
+/// public path wins materially. A selected libc clock is conservatively
+/// classified as [`SystemCall`](Self::SystemCall) because its implementation
+/// may choose either a vDSO or kernel entry at runtime. An `Inline` result can
+/// describe an explicit wall-clock fallback; pair this hint with
+/// [`ThreadCpuInstant::measures_thread_cpu_time`] when CPU-time semantics are
+/// required.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ThreadCpuReadCost {
-  /// An inline userspace counter read.
+  /// Tach issues no operating-system or host call on the selected read path.
+  ///
+  /// Architectural instructions can still be virtualized. Provider selection
+  /// measures that effective path rather than inferring its cost from a
+  /// capability bit.
   Inline,
-  /// A call into the operating system.
+  /// A route that explicitly invokes an operating-system clock entry.
+  ///
+  /// This includes libc clocks whose runtime implementation may be either a
+  /// userspace vDSO or a kernel entry.
   SystemCall,
   /// A call across the WebAssembly host boundary.
   HostCall,
+  /// The host exposes no eligible provider, so reads return a frozen value.
+  Unavailable,
 }
 
 /// A sampled point in the current OS thread's scheduled CPU-time timeline.
@@ -83,7 +118,9 @@ pub enum ThreadCpuReadCost {
 /// On targets with a native current-thread CPU clock, this timeline advances
 /// only while the calling thread executes on a CPU and freezes while that
 /// thread is parked, descheduled, or sleeping. Values are normalized to
-/// nanoseconds.
+/// nanoseconds. Eligible native candidates must preserve the platform clock's
+/// native scheduled-runtime precision; tach never substitutes coarsened thread
+/// accounting merely because its read is cheaper.
 ///
 /// Targets without a native thread clock use their fastest monotonic wall
 /// source so this API remains available everywhere tach supports. That
@@ -91,9 +128,11 @@ pub enum ThreadCpuReadCost {
 /// [`ThreadCpuProvider::measures_thread_cpu_time`] when the distinction is
 /// correctness-sensitive.
 ///
-/// Provider choice is stable in normal operation. If a native read ever fails,
-/// tach returns a tagged wall sample rather than failing the call. Durations
-/// spanning a CPU/wall boundary return zero (or
+/// Provider choice is stable in normal operation. If Linux's selected perf
+/// mechanism becomes unreadable, tach aligns the native POSIX fallback to the
+/// last published sample before changing the reported provider. If no native
+/// thread clock remains available, tach returns a tagged wall sample rather
+/// than failing the call. Durations spanning a CPU/wall boundary return zero (or
 /// `None` from [`Self::checked_duration_since`]); partial comparisons across
 /// the boundary are unordered. This prevents the two domains from being mixed.
 /// The tag leaves 63 value bits: roughly 292 years of thread CPU nanoseconds;
@@ -132,7 +171,7 @@ impl PartialOrd for ThreadCpuInstant {
 }
 
 impl ThreadCpuInstant {
-  /// Reads the fastest available current-thread timeline.
+  /// Reads tach's selected current-thread timeline.
   ///
   /// This is scheduled CPU time where the target provides it and an explicitly
   /// reported monotonic-wall fallback otherwise. The call never fails.
@@ -144,21 +183,36 @@ impl ThreadCpuInstant {
 
   /// Reports the provider selected for the current OS thread.
   ///
-  /// With the default `thread-cpu-inline` feature, Linux measures the candidates
-  /// once per process. Each thread then installs the process-selected perf
-  /// event or falls back locally if setup is unavailable. Calling this method
-  /// initializes the calling thread if needed.
+  /// Targets with multiple semantically equivalent native entry paths measure
+  /// those complete paths at initialization. Linux-kernel perf candidates are
+  /// assessed separately for each OS thread because availability and cost can
+  /// differ by thread or CPU. Calling this method initializes the calling
+  /// thread's choice when needed.
   #[inline]
   pub fn provider() -> ThreadCpuProvider {
     arch::thread_cpu::provider()
   }
 
-  /// Reports the actual steady-state read-cost class selected for this thread.
+  /// Reports a conservative steady-state read-cost class for this thread.
   ///
   /// Calling this method initializes the current thread's provider if needed.
   #[inline]
   pub fn read_cost_hint() -> ThreadCpuReadCost {
     arch::thread_cpu::read_cost_hint()
+  }
+
+  /// Returns the maximum gap between reads required by a wrapping inline
+  /// provider, if the selected provider has such a constraint.
+  ///
+  /// Linux perf metadata can expose a shortened architectural counter. Tach
+  /// owns its wrap extension and returns a conservative half-window bound so a
+  /// read interrupted by a signal is distinguishable from a genuine wrap.
+  /// Callers must sample before that strict bound while continuously scheduled.
+  /// `None` means the selected provider has no practical read-gap constraint.
+  #[inline]
+  #[must_use]
+  pub fn max_read_gap() -> Option<Duration> {
+    arch::thread_cpu::max_read_gap()
   }
 
   /// Returns whether this sample came from a current-thread CPU-time provider.
@@ -185,7 +239,14 @@ impl ThreadCpuInstant {
   #[inline]
   #[must_use]
   pub fn duration_since(&self, earlier: Self) -> Duration {
-    self.checked_duration_since(earlier).unwrap_or_default()
+    #[cfg(all(target_os = "macos", not(test)))]
+    {
+      Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos))
+    }
+    #[cfg(any(not(target_os = "macos"), test))]
+    {
+      self.checked_duration_since(earlier).unwrap_or_default()
+    }
   }
 
   /// Returns the duration from `earlier` to `self`, or `None` if `earlier` is
@@ -195,14 +256,21 @@ impl ThreadCpuInstant {
   #[inline]
   #[must_use]
   pub fn checked_duration_since(&self, earlier: Self) -> Option<Duration> {
-    if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
-      return None;
+    #[cfg(all(target_os = "macos", not(test)))]
+    {
+      self.nanos.checked_sub(earlier.nanos).map(Duration::from_nanos)
     }
-    let delta = (self.nanos & VALUE_MASK).checked_sub(earlier.nanos & VALUE_MASK)?;
-    if self.measures_thread_cpu_time() {
-      Some(Duration::from_nanos(delta))
-    } else {
-      Some(crate::instant::ticks_to_duration(delta))
+    #[cfg(any(not(target_os = "macos"), test))]
+    {
+      if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
+        return None;
+      }
+      let delta = (self.nanos & VALUE_MASK).checked_sub(earlier.nanos & VALUE_MASK)?;
+      if self.measures_thread_cpu_time() {
+        Some(Duration::from_nanos(delta))
+      } else {
+        Some(crate::instant::ticks_to_duration(delta))
+      }
     }
   }
 
@@ -327,25 +395,63 @@ mod tests {
     let cost = ThreadCpuInstant::read_cost_hint();
     match provider {
       ThreadCpuProvider::LinuxPerfMmap => assert_eq!(cost, ThreadCpuReadCost::Inline),
+      ThreadCpuProvider::LinuxPerfRead => {
+        assert_eq!(cost, ThreadCpuReadCost::SystemCall);
+      }
       ThreadCpuProvider::PosixThreadCpuClock | ThreadCpuProvider::WindowsThreadTimes => {
         assert_eq!(cost, ThreadCpuReadCost::SystemCall);
       }
       ThreadCpuProvider::WasiThreadCpuClock
+      | ThreadCpuProvider::NodeThreadCpuUsage
       | ThreadCpuProvider::PerformanceNow
-      | ThreadCpuProvider::MonotonicWallClock => {}
+      | ThreadCpuProvider::NodeHrtime
+      | ThreadCpuProvider::MonotonicWallClock
+      | ThreadCpuProvider::Unavailable => {}
     }
 
     #[cfg(all(
-      any(target_os = "linux", target_os = "macos"),
-      not(all(
-        feature = "thread-cpu-inline",
+      feature = "thread-cpu-inline",
+      any(
         target_os = "linux",
-        any(target_arch = "x86_64", target_arch = "aarch64"),
-      )),
+        all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+      ),
+    ))]
+    assert!(matches!(
+      provider,
+      ThreadCpuProvider::LinuxPerfMmap
+        | ThreadCpuProvider::LinuxPerfRead
+        | ThreadCpuProvider::PosixThreadCpuClock
+    ));
+    #[cfg(any(
+      target_os = "macos",
+      all(target_os = "linux", not(feature = "thread-cpu-inline")),
+      all(
+        target_os = "android",
+        not(all(
+          feature = "thread-cpu-inline",
+          any(target_arch = "x86_64", target_arch = "aarch64"),
+        )),
+      ),
     ))]
     assert_eq!(provider, ThreadCpuProvider::PosixThreadCpuClock);
     #[cfg(target_os = "windows")]
     assert_eq!(provider, ThreadCpuProvider::WindowsThreadTimes);
+  }
+
+  #[test]
+  fn javascript_provider_domains_are_explicit() {
+    assert!(ThreadCpuProvider::NodeThreadCpuUsage.measures_thread_cpu_time());
+    assert!(!ThreadCpuProvider::PerformanceNow.measures_thread_cpu_time());
+    assert!(!ThreadCpuProvider::NodeHrtime.measures_thread_cpu_time());
+    assert!(!ThreadCpuProvider::Unavailable.measures_thread_cpu_time());
+  }
+
+  #[test]
+  fn selected_read_gap_is_positive_when_present() {
+    if let Some(gap) = ThreadCpuInstant::max_read_gap() {
+      assert!(!gap.is_zero());
+      assert_eq!(ThreadCpuInstant::provider(), ThreadCpuProvider::LinuxPerfMmap);
+    }
   }
 
   #[test]
