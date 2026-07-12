@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       complete Windows `GetThreadTimes` availability-fallback rows and metadata, then reuse the fixed-native profile for macOS.
+> Next:       finish the static direct/provider-scale repair, then add the declarative target/mode/runtime producer manifest before considering G1.
 > Blocked on you: nothing
-> Last verified: 2026-07-12 · Changed: recorded the target-by-target `ThreadCpuInstant` route contract in the coverage plan. · By: nsr · f9397d0
+> Last verified: 2026-07-12 · Changed: reviewed the route harness against direct-path, identity, sample-provenance, and stale-run failure modes. · By: nsr · 7a39595
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

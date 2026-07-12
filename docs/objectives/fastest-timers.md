@@ -57,12 +57,19 @@ selection-profile and target-family breakdown for `ThreadCpuInstant`.
 - [x] `OBJ-FASTEST-TIMERS.M1.T1` Repair FreeBSD and LoongArch route-schema drift.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T2` Add missing Apple, Windows, Lambda, and thread-CPU public/direct rows.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T3` Remove generated evidence from source-binding inputs.
+- [ ] `OBJ-FASTEST-TIMERS.M1.T4` Make every exact candidate row statically direct and
+  provider-scale-correct for both operations.
+- [ ] `OBJ-FASTEST-TIMERS.M1.T5` Bind every exact row to its identity, raw samples, and one
+  isolated benchmark invocation.
+- [ ] `OBJ-FASTEST-TIMERS.M1.T6` Declare a producer and typed route profile for all advertised
+  target/mode/runtime identities.
 
 ### Gate `OBJ-FASTEST-TIMERS.M1.G1` — exhaustive route schema passes
 
-Pass: `python3 -m unittest discover -s benches -p 'test_speed_evidence.py'` exits zero and its
-route-identity checks cover every declared eligible provider plus selected public `now` and elapsed
-paths.
+Pass: `python3 -m unittest discover -s benches -p 'test_speed_evidence.py'` exits zero, a
+declarative coverage manifest expands to every advertised target/mode identity, and each measured
+case declares a real producer, selected direct `now` and elapsed rows, exact candidate identities,
+and a typed selection profile. The static contract never substitutes for runtime speed evidence.
 - **Fallback.** Correct the provider map, extractor, or fixture before running any expensive
 campaign; do not substitute an incomplete evidence document.
 
@@ -122,6 +129,12 @@ decision; never silently omit a failing target.
 - Found: fixed-native, availability-fallback, runtime-tournament, and fallback-only providers need distinct exact-row and validation shapes; Windows is the active fixed-platform implementation slice.
 - Next: complete Windows `GetThreadTimes` availability-fallback rows and metadata, then reuse the fixed-native profile for macOS.
 - Board: M1 remains 🚧 with G1 declared ⚪; runtime speed proof is still deferred to OBJ-PROVE-TIMERS.
+
+### 2026-07-12 · codex · `OBJ-FASTEST-TIMERS.M1`
+- Did: reviewed the route harness against direct-path, identity, sample-provenance, and stale-run failure modes.
+- Found: a green synthetic schema suite did not prove every advertised build identity had a producer; generic candidate primitives also risked indirect reads and selected-provider conversion scales.
+- Next: finish the static direct/provider-scale repair, then add the declarative target/mode/runtime producer manifest before considering G1.
+- Board: M1 remains 🚧 with G1 declared ⚪; the coverage manifest and its route-profile fixtures are mandatory gate inputs.
 
 ## /goal
 
