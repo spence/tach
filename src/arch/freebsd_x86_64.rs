@@ -95,9 +95,14 @@ const REQUIRED_DECISIVE_WINS: usize = 8;
 static INSTANT_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static INSTANT_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static INSTANT_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
+// A direct timehands read and each fallback return CLOCK_MONOTONIC nanoseconds.
+// Retiring AT_TIMEKEEP only to this already-measured fallback preserves the
+// numeric domain of values sampled before the transition.
+static INSTANT_TIMEKEEP_FALLBACK: AtomicU8 = AtomicU8::new(PROVIDER_CLOCK_MONOTONIC);
 static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
+static ORDERED_TIMEKEEP_FALLBACK: AtomicU8 = AtomicU8::new(PROVIDER_CLOCK_MONOTONIC_CPUID);
 static TSC_FREQUENCY: AtomicU64 = AtomicU64::new(0);
 
 static TIMEKEEP_STATE: AtomicU8 = AtomicU8::new(TIMEKEEP_UNKNOWN);
@@ -370,7 +375,7 @@ static ORDERED_EVIDENCE_READY: AtomicBool = AtomicBool::new(false);
 pub fn ticks() -> u64 {
   match INSTANT_PROVIDER.load(Ordering::Relaxed) {
     PROVIDER_TSC => super::x86_64::rdtsc(),
-    PROVIDER_TIMEKEEP => timekeep_clock_monotonic(),
+    PROVIDER_TIMEKEEP => instant_timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
     _ => ticks_after_selection(),
@@ -382,7 +387,7 @@ pub fn ticks() -> u64 {
 fn ticks_after_selection() -> u64 {
   match selected_instant_provider() {
     PROVIDER_TSC => super::x86_64::rdtsc(),
-    PROVIDER_TIMEKEEP => timekeep_clock_monotonic(),
+    PROVIDER_TIMEKEEP => instant_timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
     _ => clock_monotonic_syscall(),
   }
@@ -436,7 +441,7 @@ fn ticks_ordered_after_selection() -> u64 {
 pub fn ticks_ordered_unordered() -> u64 {
   match ORDERED_PROVIDER.load(Ordering::Relaxed) {
     PROVIDER_TSC => super::x86_64::rdtsc(),
-    PROVIDER_TIMEKEEP => timekeep_clock_monotonic(),
+    PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic_unordered(),
     PROVIDER_CLOCK_MONOTONIC_MFENCE
     | PROVIDER_CLOCK_MONOTONIC_CPUID
     | PROVIDER_CLOCK_MONOTONIC_LFENCE
@@ -458,7 +463,7 @@ pub fn ticks_ordered_unordered() -> u64 {
 fn ticks_ordered_unordered_after_selection() -> u64 {
   match selected_ordered_provider() {
     PROVIDER_TSC => super::x86_64::rdtsc(),
-    PROVIDER_TIMEKEEP => timekeep_clock_monotonic(),
+    PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic_unordered(),
     PROVIDER_CLOCK_MONOTONIC_MFENCE
     | PROVIDER_CLOCK_MONOTONIC_CPUID
     | PROVIDER_CLOCK_MONOTONIC_LFENCE
@@ -609,10 +614,18 @@ fn serialize_barrier() {
 #[inline(always)]
 fn timekeep_clock_monotonic() -> u64 {
   let timekeep = TIMEKEEP_PTR.load(Ordering::Acquire) as *const VdsoTimekeep;
-  timekeep_nanos(timekeep)
-    .or_else(|| libc_clock_nanos(libc::CLOCK_MONOTONIC))
-    .or_else(|| raw_clock_nanos(libc::CLOCK_MONOTONIC))
-    .unwrap_or(0)
+  timekeep_nanos(timekeep).unwrap_or_else(clock_monotonic)
+}
+
+#[inline(always)]
+fn instant_timekeep_clock_monotonic() -> u64 {
+  let timekeep = TIMEKEEP_PTR.load(Ordering::Acquire) as *const VdsoTimekeep;
+  if let Some(nanos) = timekeep_nanos(timekeep) {
+    return nanos;
+  }
+
+  retier_instant_timekeep();
+  ticks_after_selection()
 }
 
 #[inline(always)]
@@ -626,11 +639,71 @@ fn ordered_timekeep_clock_monotonic() -> u64 {
     return nanos;
   }
 
-  // A runtime timecounter/device transition can make the selected direct
-  // reader unavailable. The fallback stays in the same clock domain, and the
-  // explicit serializer preserves ordering even when libc enters the kernel.
-  cpuid_barrier();
-  clock_monotonic()
+  retier_ordered_timekeep();
+  ticks_ordered_after_selection()
+}
+
+#[inline(always)]
+fn ordered_timekeep_clock_monotonic_unordered() -> u64 {
+  let timekeep = TIMEKEEP_PTR.load(Ordering::Acquire) as *const VdsoTimekeep;
+  if let Some(nanos) = timekeep_nanos(timekeep) {
+    return nanos;
+  }
+
+  retier_ordered_timekeep();
+  ticks_ordered_unordered_after_selection()
+}
+
+#[inline(always)]
+fn retier_instant_timekeep() {
+  let fallback = instant_fallback_provider(INSTANT_TIMEKEEP_FALLBACK.load(Ordering::Acquire));
+  let _ = retier_timekeep_provider(&INSTANT_PROVIDER, &TIMEKEEP_STATE, fallback);
+}
+
+#[inline(always)]
+fn retier_ordered_timekeep() {
+  let fallback = ordered_fallback_provider(ORDERED_TIMEKEEP_FALLBACK.load(Ordering::Acquire));
+  let _ = retier_timekeep_provider(&ORDERED_PROVIDER, &TIMEKEEP_STATE, fallback);
+}
+
+#[inline(always)]
+fn retier_timekeep_provider(provider: &AtomicU8, timekeep_state: &AtomicU8, fallback: u8) -> u8 {
+  match provider.compare_exchange(PROVIDER_TIMEKEEP, fallback, Ordering::AcqRel, Ordering::Acquire)
+  {
+    Ok(_) => {
+      // A direct reader can no longer be used after a timecounter or device
+      // transition. The selected fallback has the same nanosecond domain, so
+      // old and new samples remain comparable.
+      timekeep_state.store(TIMEKEEP_UNAVAILABLE, Ordering::Release);
+      fallback
+    }
+    Err(published) => published,
+  }
+}
+
+const fn instant_fallback_provider(provider: u8) -> u8 {
+  match provider {
+    PROVIDER_CLOCK_MONOTONIC | PROVIDER_CLOCK_MONOTONIC_SYSCALL => provider,
+    _ => PROVIDER_CLOCK_MONOTONIC,
+  }
+}
+
+const fn ordered_fallback_provider(provider: u8) -> u8 {
+  match provider {
+    PROVIDER_CLOCK_MONOTONIC_MFENCE
+    | PROVIDER_CLOCK_MONOTONIC_SYSCALL_MFENCE
+    | PROVIDER_CLOCK_MONOTONIC_CPUID
+    | PROVIDER_CLOCK_MONOTONIC_SYSCALL_CPUID
+    | PROVIDER_CLOCK_MONOTONIC_LFENCE
+    | PROVIDER_CLOCK_MONOTONIC_SYSCALL_LFENCE
+    | PROVIDER_CLOCK_MONOTONIC_RDTSCP
+    | PROVIDER_CLOCK_MONOTONIC_SYSCALL_RDTSCP
+    | PROVIDER_CLOCK_MONOTONIC_OS_OWNED
+    | PROVIDER_CLOCK_MONOTONIC_SYSCALL_OS_OWNED
+    | PROVIDER_CLOCK_MONOTONIC_SERIALIZE
+    | PROVIDER_CLOCK_MONOTONIC_SYSCALL_SERIALIZE => provider,
+    _ => PROVIDER_CLOCK_MONOTONIC_CPUID,
+  }
 }
 
 fn timekeep_available() -> bool {
@@ -1178,6 +1251,33 @@ fn instant_read_cost_only_marks_guaranteed_userspace_paths_inline() {
   );
 }
 
+#[cfg(test)]
+#[test]
+fn timekeep_retirement_updates_the_selected_read_cost() {
+  let provider = AtomicU8::new(PROVIDER_TIMEKEEP);
+  let timekeep_state = AtomicU8::new(TIMEKEEP_READY);
+  let selected =
+    retier_timekeep_provider(&provider, &timekeep_state, PROVIDER_CLOCK_MONOTONIC_SYSCALL);
+
+  assert_eq!(selected, PROVIDER_CLOCK_MONOTONIC_SYSCALL);
+  assert_eq!(provider.load(Ordering::Acquire), PROVIDER_CLOCK_MONOTONIC_SYSCALL);
+  assert_eq!(timekeep_state.load(Ordering::Acquire), TIMEKEEP_UNAVAILABLE);
+  assert_eq!(instant_read_cost_for(selected), crate::ThreadCpuReadCost::SystemCall);
+}
+
+#[cfg(test)]
+#[test]
+fn timekeep_retirement_keeps_the_measured_ordered_route() {
+  let provider = AtomicU8::new(PROVIDER_TIMEKEEP);
+  let timekeep_state = AtomicU8::new(TIMEKEEP_READY);
+  let selected =
+    retier_timekeep_provider(&provider, &timekeep_state, PROVIDER_CLOCK_MONOTONIC_LFENCE);
+
+  assert_eq!(ordered_fallback_provider(selected), PROVIDER_CLOCK_MONOTONIC_LFENCE);
+  assert_eq!(provider.load(Ordering::Acquire), PROVIDER_CLOCK_MONOTONIC_LFENCE);
+  assert_eq!(timekeep_state.load(Ordering::Acquire), TIMEKEEP_UNAVAILABLE);
+}
+
 #[inline]
 pub(crate) fn ordered_uses_tsc() -> bool {
   selected_ordered_provider() == PROVIDER_TSC
@@ -1244,6 +1344,11 @@ fn detect_provider(ordered: bool) -> u8 {
   let fallback_decision = prefer_challenger(samples.syscall, samples.clock);
   let fallback =
     if fallback_decision.challenger_selected { syscall_provider } else { clock_provider };
+  if ordered {
+    ORDERED_TIMEKEEP_FALLBACK.store(fallback, Ordering::Release);
+  } else {
+    INSTANT_TIMEKEEP_FALLBACK.store(fallback, Ordering::Release);
+  }
   let fallback_samples = if fallback == syscall_provider { samples.syscall } else { samples.clock };
   let timekeep_decision = if timekeep_available {
     prefer_challenger(samples.timekeep, fallback_samples)

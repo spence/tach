@@ -30,6 +30,9 @@ const LOCAL_SELECTING: u8 = 1;
 const LOCAL_PERFORMANCE_NOW: u8 = 2;
 const LOCAL_NODE_HRTIME: u8 = 3;
 const LOCAL_UNAVAILABLE: u8 = 4;
+const LOCAL_SELECTING_PERFORMANCE_NOW: u8 = 5;
+const LOCAL_SELECTING_NODE_HRTIME: u8 = 6;
+const LOCAL_SELECTING_UNAVAILABLE: u8 = 7;
 
 #[cfg(any(feature = "emscripten-pthreads", target_feature = "atomics"))]
 const ORDERED_SELECTING: u8 = 1;
@@ -218,9 +221,11 @@ static LINK_EMSCRIPTEN_GET_NOW: unsafe extern "C" fn() -> f64 = emscripten_get_n
 unsafe extern "C" {
   #[cfg(any(feature = "emscripten-pthreads", target_feature = "atomics"))]
   fn tach_emscripten_performance_now_millis() -> f64;
+  fn tach_emscripten_performance_last_millis() -> f64;
   fn tach_emscripten_performance_hot_millis() -> f64;
   fn tach_emscripten_performance_failed() -> i32;
   fn tach_emscripten_node_hrtime_now_millis() -> f64;
+  fn tach_emscripten_node_hrtime_last_millis() -> f64;
   fn tach_emscripten_node_hrtime_hot_millis() -> f64;
   fn tach_emscripten_node_hrtime_failed() -> i32;
   #[cfg(any(feature = "emscripten-pthreads", target_feature = "atomics"))]
@@ -468,14 +473,55 @@ fn selected_local_provider() -> u8 {
         {
           let outcome = detect_local_provider();
           record_local_bench_outcome(&outcome);
-          LOCAL_STATE.store(outcome.provider, Ordering::Release);
-          return outcome.provider;
+          return publish_local_provider(outcome.provider);
         }
       }
-      LOCAL_SELECTING => core::hint::spin_loop(),
+      LOCAL_SELECTING => return force_local_reentrant_provider(),
+      LOCAL_SELECTING_PERFORMANCE_NOW
+      | LOCAL_SELECTING_NODE_HRTIME
+      | LOCAL_SELECTING_UNAVAILABLE => return LOCAL_SELECTING,
       _ => return provider,
     }
   }
+}
+
+/// Publishes the tournament outcome unless a host callback has reentered the
+/// selector and fixed its current probe source as the local timeline.
+#[inline]
+fn publish_local_provider(provider: u8) -> u8 {
+  loop {
+    let (expected, selected) = match LOCAL_STATE.load(Ordering::Acquire) {
+      LOCAL_SELECTING => (LOCAL_SELECTING, provider),
+      LOCAL_SELECTING_PERFORMANCE_NOW => (LOCAL_SELECTING_PERFORMANCE_NOW, LOCAL_PERFORMANCE_NOW),
+      LOCAL_SELECTING_NODE_HRTIME => (LOCAL_SELECTING_NODE_HRTIME, LOCAL_NODE_HRTIME),
+      LOCAL_SELECTING_UNAVAILABLE => (LOCAL_SELECTING_UNAVAILABLE, LOCAL_UNAVAILABLE),
+      selected => return selected,
+    };
+    if LOCAL_STATE
+      .compare_exchange(expected, selected, Ordering::Release, Ordering::Acquire)
+      .is_ok()
+    {
+      return selected;
+    }
+  }
+}
+
+/// Prevents a synchronous JavaScript callback from waiting on the selector it
+/// interrupted. The probe source is already the source whose host call is in
+/// progress, so making it sticky preserves the nested sample's numeric domain.
+/// The nested caller receives `LOCAL_SELECTING` and reads only that source's
+/// cached value; it never invokes the callback again.
+#[inline]
+fn force_local_reentrant_provider() -> u8 {
+  let probing = PROBE_LOCAL_PROVIDER.load(Ordering::Acquire);
+  let fallback = match probing {
+    LOCAL_PERFORMANCE_NOW => LOCAL_SELECTING_PERFORMANCE_NOW,
+    LOCAL_NODE_HRTIME => LOCAL_SELECTING_NODE_HRTIME,
+    _ => LOCAL_SELECTING_UNAVAILABLE,
+  };
+  let _ =
+    LOCAL_STATE.compare_exchange(LOCAL_SELECTING, fallback, Ordering::AcqRel, Ordering::Acquire);
+  LOCAL_SELECTING
 }
 
 fn detect_local_provider() -> LocalSelectionOutcome {
@@ -617,7 +663,7 @@ fn warm_up_local_provider(provider: u8) -> bool {
 
 fn measure_local_provider(provider: u8) -> Result<u64, LocalMeasureFailure> {
   PROBE_LOCAL_PROVIDER.store(provider, Ordering::Release);
-  let start = node_hrtime_nanos().ok_or(LocalMeasureFailure::Timer)?;
+  let start = read_local_measurement_timer().ok_or(LocalMeasureFailure::Timer)?;
   let mut previous = 0;
   let mut sink = 0;
   for _ in 0..PROBE_READS {
@@ -632,11 +678,12 @@ fn measure_local_provider(provider: u8) -> Result<u64, LocalMeasureFailure> {
   if local_provider_failed(provider) {
     return Err(LocalMeasureFailure::Source);
   }
-  let end = node_hrtime_nanos().ok_or(LocalMeasureFailure::Timer)?;
+  let end = read_local_measurement_timer().ok_or(LocalMeasureFailure::Timer)?;
   end.checked_sub(start).ok_or(LocalMeasureFailure::Timer)
 }
 
 fn monotonic_local_pair(provider: u8) -> bool {
+  PROBE_LOCAL_PROVIDER.store(provider, Ordering::Release);
   let Some(first) = read_local_hot(provider) else {
     return false;
   };
@@ -650,8 +697,17 @@ fn read_probe_local() -> Option<u64> {
 }
 
 #[inline]
+fn read_local_measurement_timer() -> Option<u64> {
+  let previous = PROBE_LOCAL_PROVIDER.swap(LOCAL_NODE_HRTIME, Ordering::AcqRel);
+  let ticks = node_hrtime_nanos();
+  PROBE_LOCAL_PROVIDER.store(previous, Ordering::Release);
+  ticks
+}
+
+#[inline]
 fn read_local_hot(provider: u8) -> Option<u64> {
   let millis = match provider {
+    LOCAL_SELECTING => return Some(read_local_selecting_fallback()),
     LOCAL_PERFORMANCE_NOW => {
       // SAFETY: the linked shim catches host failures and freezes the provider.
       unsafe { tach_emscripten_performance_hot_millis() }
@@ -663,6 +719,28 @@ fn read_local_hot(provider: u8) -> Option<u64> {
     _ => return None,
   };
   millis_to_nanos(millis)
+}
+
+#[inline]
+fn read_local_selecting_fallback() -> u64 {
+  let state = LOCAL_STATE.load(Ordering::Acquire);
+  let provider = match state {
+    LOCAL_SELECTING_PERFORMANCE_NOW | LOCAL_PERFORMANCE_NOW => LOCAL_PERFORMANCE_NOW,
+    LOCAL_SELECTING_NODE_HRTIME | LOCAL_NODE_HRTIME => LOCAL_NODE_HRTIME,
+    _ => PROBE_LOCAL_PROVIDER.load(Ordering::Acquire),
+  };
+  let millis = match provider {
+    LOCAL_PERFORMANCE_NOW => {
+      // SAFETY: the linked shim reads the cached value without calling the host clock.
+      unsafe { tach_emscripten_performance_last_millis() }
+    }
+    LOCAL_NODE_HRTIME => {
+      // SAFETY: the linked shim reads the cached value without calling the host clock.
+      unsafe { tach_emscripten_node_hrtime_last_millis() }
+    }
+    _ => 0.0,
+  };
+  millis_to_nanos(millis).unwrap_or(0)
 }
 
 #[inline]
@@ -1325,5 +1403,23 @@ mod tests {
     assert_eq!(millis_to_nanos(-1.0), None);
     assert_eq!(millis_to_nanos(f64::INFINITY), None);
     assert_eq!(millis_to_nanos(f64::NAN), None);
+  }
+}
+
+#[cfg(all(test, target_os = "emscripten"))]
+mod local_selection_tests {
+  use super::*;
+
+  #[test]
+  fn reentrant_local_selection_forces_the_probed_domain() {
+    let previous_state = LOCAL_STATE.swap(LOCAL_SELECTING, Ordering::AcqRel);
+    let previous_probe = PROBE_LOCAL_PROVIDER.swap(LOCAL_PERFORMANCE_NOW, Ordering::AcqRel);
+
+    assert_eq!(selected_local_provider(), LOCAL_SELECTING);
+    assert_eq!(LOCAL_STATE.load(Ordering::Acquire), LOCAL_SELECTING_PERFORMANCE_NOW);
+    assert_eq!(publish_local_provider(LOCAL_NODE_HRTIME), LOCAL_PERFORMANCE_NOW);
+
+    LOCAL_STATE.store(previous_state, Ordering::Release);
+    PROBE_LOCAL_PROVIDER.store(previous_probe, Ordering::Release);
   }
 }
