@@ -850,6 +850,14 @@ pub(crate) fn bench_ordered_evidence() -> SelectionEvidence {
 pub(crate) struct BenchPrimitive {
   pub(crate) name: &'static str,
   pub(crate) read: fn() -> u64,
+  pub(crate) nanos_per_tick_q32: u64,
+}
+
+#[cfg(feature = "bench-internal")]
+#[inline]
+fn bench_nanos_per_tick_q32() -> u64 {
+  let (numer, denom) = super::fallback::mach_timebase();
+  crate::arch::scale_from_ratio(u64::from(numer), u64::from(denom))
 }
 
 #[cfg(feature = "bench-internal")]
@@ -900,7 +908,11 @@ fn instant_bench_primitive(provider: usize) -> BenchPrimitive {
     PROVIDER_CONTINUOUS_ACNTVCT => acntvct_continuous_time,
     _ => mach_absolute,
   };
-  BenchPrimitive { name: provider_name::<false>(provider), read }
+  BenchPrimitive {
+    name: provider_name::<false>(provider),
+    read,
+    nanos_per_tick_q32: bench_nanos_per_tick_q32(),
+  }
 }
 
 #[cfg(feature = "bench-internal")]
@@ -915,33 +927,44 @@ fn ordered_bench_primitive(provider: usize) -> BenchPrimitive {
     PROVIDER_CONTINUOUS_ACNTVCT => acntvct_continuous_time,
     _ => mach_absolute,
   };
-  BenchPrimitive { name: provider_name::<true>(provider), read }
-}
-
-#[cfg(feature = "bench-internal")]
-pub(crate) fn bench_mode() -> u8 {
-  user_timebase_mode()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub(crate) fn bench_ticks_for_mode(mode: u8) -> u64 {
-  match absolute_direct_provider(mode) {
-    Some(provider) => read_ordered_provider(provider),
-    None => mach_absolute(),
+  BenchPrimitive {
+    name: provider_name::<true>(provider),
+    read,
+    nanos_per_tick_q32: bench_nanos_per_tick_q32(),
   }
 }
 
 #[cfg(feature = "bench-internal")]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub(crate) fn bench_instant_ticks_for_mode(mode: u8) -> u64 {
-  match absolute_direct_provider(mode) {
-    Some(provider) => read_instant_provider(provider),
-    None => mach_absolute(),
-  }
+macro_rules! exact_bench_reader {
+  ($name:ident, $reader:ident) => {
+    #[inline(always)]
+    #[allow(dead_code)] // The benchmark harness calls each eligible reader directly.
+    pub(crate) fn $name() -> u64 {
+      $reader()
+    }
+  };
 }
+
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_mach_absolute, mach_absolute);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_mach_continuous, mach_continuous);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_cntvct_absolute, cntvct_absolute_time);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_cntvct_ordered_absolute, cntvct_ordered_absolute_time);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_cntvctss_absolute, cntvctss_absolute_time);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_acntvct_absolute, acntvct_absolute_time);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_cntvct_continuous, cntvct_continuous_time);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_cntvct_ordered_continuous, cntvct_ordered_continuous_time);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_cntvctss_continuous, cntvctss_continuous_time);
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_acntvct_continuous, acntvct_continuous_time);
 
 #[cfg(test)]
 mod tests {

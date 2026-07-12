@@ -378,7 +378,7 @@ pub fn ordered_nanos_per_tick_q32() -> u64 {
 }
 
 #[inline]
-fn scale_from_ratio(nanos_numerator: u64, ticks_denominator: u64) -> u64 {
+pub(crate) fn scale_from_ratio(nanos_numerator: u64, ticks_denominator: u64) -> u64 {
   let denominator = u128::from(ticks_denominator.max(1));
   let scale = (u128::from(nanos_numerator) << 32) / denominator;
   u64::try_from(scale).unwrap_or(u64::MAX).max(1)

@@ -1786,6 +1786,18 @@ pub(crate) fn bench_ordered_provider() -> &'static str {
 pub(crate) struct BenchPrimitive {
   pub(crate) name: &'static str,
   pub(crate) read: fn() -> u64,
+  pub(crate) nanos_per_tick_q32: u64,
+}
+
+#[cfg(feature = "bench-internal")]
+#[inline]
+fn bench_nanos_per_tick_q32(provider: u8) -> u64 {
+  let frequency = if matches!(provider, PROVIDER_CNTVCT | PROVIDER_ISB_CNTVCT | PROVIDER_CNTVCTSS) {
+    direct_frequency()
+  } else {
+    1_000_000_000
+  };
+  crate::arch::scale_from_ratio(1_000_000_000, frequency)
 }
 
 #[cfg(feature = "bench-internal")]
@@ -1809,7 +1821,11 @@ fn instant_bench_primitive(provider: u8) -> BenchPrimitive {
     PROVIDER_CLOCK_BOOTTIME_VDSO => bench_direct_clock_boottime_vdso,
     _ => bench_direct_clock_monotonic,
   };
-  BenchPrimitive { name: provider_name(provider), read }
+  BenchPrimitive {
+    name: provider_name(provider),
+    read,
+    nanos_per_tick_q32: bench_nanos_per_tick_q32(provider),
+  }
 }
 
 #[cfg(feature = "bench-internal")]
@@ -1834,7 +1850,11 @@ fn ordered_bench_primitive(provider: u8) -> BenchPrimitive {
     PROVIDER_CLOCK_BOOTTIME_VDSO => bench_direct_clock_boottime_vdso_ordered,
     _ => bench_direct_clock_monotonic_ordered,
   };
-  BenchPrimitive { name: provider_name(provider), read }
+  BenchPrimitive {
+    name: provider_name(provider),
+    read,
+    nanos_per_tick_q32: bench_nanos_per_tick_q32(provider),
+  }
 }
 
 #[cfg(feature = "bench-internal")]

@@ -1,19 +1,1397 @@
 #![allow(clippy::cast_precision_loss)]
 
+#[cfg(all(
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86_64", target_arch = "aarch64"),
+))]
+use std::arch::asm;
 use std::hint::black_box;
-#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[cfg(any(
+  target_os = "android",
+  target_os = "freebsd",
+  target_os = "linux",
+  target_os = "windows",
+))]
 use std::mem::MaybeUninit;
 use std::time::{Duration, Instant as StdInstant};
 
 use criterion::{Criterion, criterion_group, criterion_main};
+#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "macos"))]
+use tach::bench::AppleX86CommpageDirect;
+#[cfg(all(feature = "bench-internal", target_os = "macos"))]
+use tach::bench::MachAbsoluteTimeDirect;
 #[cfg(all(
   feature = "bench-internal",
   feature = "thread-cpu-inline",
-  target_os = "linux",
-  any(target_arch = "x86_64", target_arch = "aarch64"),
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
 ))]
 use tach::bench::ThreadCpuPerfHandle;
+#[cfg(all(feature = "bench-internal", target_os = "windows"))]
+use tach::bench::WindowsQpcDirect;
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+))]
+use tach::bench::{OrderedAarch64CntvctssDirect, OrderedAarch64IsbDirect};
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_arch = "x86_64", target_arch = "x86"),
+  not(target_os = "windows"),
+  not(all(target_arch = "x86_64", target_os = "macos")),
+))]
+use tach::bench::{
+  OrderedX86CpuidDirect, OrderedX86LfenceDirect, OrderedX86MfenceDirect, OrderedX86RdtscpDirect,
+  OrderedX86SerializeDirect,
+};
+#[cfg(all(
+  feature = "bench-internal",
+  feature = "thread-cpu-inline",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
+))]
+use tach::bench::{ThreadCpuPerfPathHandle, ThreadCpuPerfReadHandle};
 use tach::{Instant, OrderedInstant, ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
+
+#[cfg(feature = "bench-internal")]
+#[allow(unused_macros)]
+macro_rules! register_selected_now {
+  ($group:ident, $prefix:literal, $provider:expr, $read:path) => {{
+    $group.bench_function(format!("{}__{}", $prefix, $provider), |b| {
+      b.iter(|| black_box($read()));
+    });
+  }};
+}
+
+#[cfg(feature = "bench-internal")]
+#[allow(unused_macros)]
+macro_rules! register_selected_elapsed {
+  ($group:ident, $prefix:literal, $provider:expr, $nanos_per_tick_q32:expr, $read:path) => {{
+    $group.bench_function(format!("{}__{}", $prefix, $provider), |b| {
+      b.iter(|| {
+        let start = $read();
+        let elapsed = $read().saturating_sub(start);
+        black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, $nanos_per_tick_q32))
+      });
+    });
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86", target_arch = "x86_64"),
+))]
+macro_rules! with_linux_x86_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "linux_kernel_eligible_tsc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc)
+      }
+      "linux_clock_monotonic_libc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic)
+      }
+      "linux_clock_monotonic_raw_libc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw)
+      }
+      "linux_clock_boottime_libc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime)
+      }
+      "linux_clock_monotonic_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic)
+      }
+      "linux_clock_monotonic_raw_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw)
+      }
+      "linux_clock_boottime_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_vdso_time64_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_vdso_time64_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_vdso_time64_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_syscall_x86_64" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_raw_syscall_x86_64" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_boottime_syscall_x86_64" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time32" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time32" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time32" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time64" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time64" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time64" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime)
+      }
+      _ => panic!("unsupported selected Linux x86 Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86", target_arch = "x86_64"),
+))]
+macro_rules! with_linux_x86_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "linux_kernel_eligible_tsc_x86_lfence_rdtsc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_lfence)
+      }
+      "linux_kernel_eligible_tsc_x86_mfence_rdtsc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_mfence)
+      }
+      "linux_kernel_eligible_tsc_x86_rdtscp" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_rdtscp)
+      }
+      "linux_kernel_eligible_tsc_x86_cpuid_rdtsc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_cpuid)
+      }
+      "linux_kernel_eligible_tsc_x86_serialize_rdtsc" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_serialize)
+      }
+      "linux_clock_monotonic_libc_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_lfence)
+      }
+      "linux_clock_monotonic_libc_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_os_owned)
+      }
+      "linux_clock_monotonic_libc_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_rdtscp)
+      }
+      "linux_clock_monotonic_libc_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_mfence)
+      }
+      "linux_clock_monotonic_libc_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_cpuid)
+      }
+      "linux_clock_monotonic_libc_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_serialize)
+      }
+      "linux_clock_monotonic_raw_libc_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_lfence)
+      }
+      "linux_clock_monotonic_raw_libc_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_os_owned)
+      }
+      "linux_clock_monotonic_raw_libc_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_rdtscp)
+      }
+      "linux_clock_monotonic_raw_libc_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_mfence)
+      }
+      "linux_clock_monotonic_raw_libc_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_cpuid)
+      }
+      "linux_clock_monotonic_raw_libc_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_serialize)
+      }
+      "linux_clock_monotonic_vdso_direct_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_os_owned)
+      }
+      "linux_clock_monotonic_vdso_direct_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_lfence)
+      }
+      "linux_clock_monotonic_vdso_direct_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_rdtscp)
+      }
+      "linux_clock_monotonic_vdso_direct_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_mfence)
+      }
+      "linux_clock_monotonic_vdso_direct_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_cpuid)
+      }
+      "linux_clock_monotonic_vdso_direct_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_serialize)
+      }
+      "linux_clock_monotonic_raw_vdso_direct_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_os_owned)
+      }
+      "linux_clock_monotonic_raw_vdso_direct_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_lfence)
+      }
+      "linux_clock_monotonic_raw_vdso_direct_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_rdtscp)
+      }
+      "linux_clock_monotonic_raw_vdso_direct_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_mfence)
+      }
+      "linux_clock_monotonic_raw_vdso_direct_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_cpuid)
+      }
+      "linux_clock_monotonic_raw_vdso_direct_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_serialize)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_syscall_x86_64_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_lfence)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_syscall_x86_64_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_os_owned)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_syscall_x86_64_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_rdtscp)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_syscall_x86_64_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_mfence)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_syscall_x86_64_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_cpuid)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_syscall_x86_64_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_serialize)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_raw_syscall_x86_64_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_lfence)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_raw_syscall_x86_64_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_os_owned)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_raw_syscall_x86_64_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_rdtscp)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_raw_syscall_x86_64_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_mfence)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_raw_syscall_x86_64_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_cpuid)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_monotonic_raw_syscall_x86_64_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time32_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time32_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time32_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time32_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time32_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time32_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time32_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time32_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time32_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time32_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time32_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time32_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time64_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time64_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time64_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time64_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time64_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_syscall_i686_time64_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time64_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time64_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time64_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time64_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time64_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_syscall_i686_time64_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_vdso_time64_direct_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_vdso_time64_direct_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_vdso_time64_direct_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_vdso_time64_direct_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_vdso_time64_direct_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_vdso_time64_direct_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_vdso_time64_direct_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_vdso_time64_direct_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_vdso_time64_direct_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_vdso_time64_direct_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_vdso_time64_direct_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_monotonic_raw_vdso_time64_direct_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_serialize)
+      }
+      "linux_clock_boottime_libc_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_os_owned)
+      }
+      "linux_clock_boottime_libc_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_lfence)
+      }
+      "linux_clock_boottime_libc_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_rdtscp)
+      }
+      "linux_clock_boottime_libc_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_mfence)
+      }
+      "linux_clock_boottime_libc_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_cpuid)
+      }
+      "linux_clock_boottime_libc_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_serialize)
+      }
+      "linux_clock_boottime_vdso_direct_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_os_owned)
+      }
+      "linux_clock_boottime_vdso_direct_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_lfence)
+      }
+      "linux_clock_boottime_vdso_direct_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_rdtscp)
+      }
+      "linux_clock_boottime_vdso_direct_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_mfence)
+      }
+      "linux_clock_boottime_vdso_direct_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_cpuid)
+      }
+      "linux_clock_boottime_vdso_direct_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_serialize)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_boottime_syscall_x86_64_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_os_owned)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_boottime_syscall_x86_64_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_lfence)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_boottime_syscall_x86_64_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_rdtscp)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_boottime_syscall_x86_64_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_mfence)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_boottime_syscall_x86_64_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_cpuid)
+      }
+      #[cfg(target_pointer_width = "64")]
+      "linux_clock_boottime_syscall_x86_64_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time32_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time32_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time32_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time32_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time32_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time32_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time64_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time64_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time64_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time64_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time64_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_syscall_i686_time64_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_serialize)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_vdso_time64_direct_os_owned" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_os_owned)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_vdso_time64_direct_x86_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_lfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_vdso_time64_direct_x86_rdtscp_lfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_rdtscp)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_vdso_time64_direct_x86_mfence" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_mfence)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_vdso_time64_direct_x86_cpuid" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_cpuid)
+      }
+      #[cfg(target_pointer_width = "32")]
+      "linux_clock_boottime_vdso_time64_direct_x86_serialize" => {
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_serialize)
+      }
+      _ => panic!("unsupported selected Linux x86 Ordered provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+))]
+macro_rules! with_linux_aarch64_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "aarch64_cntvct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_cntvct)
+      }
+      "linux_clock_monotonic" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_monotonic)
+      }
+      "linux_clock_monotonic_raw" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_raw)
+      }
+      "linux_clock_boottime" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_boottime)
+      }
+      "linux_clock_monotonic_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_monotonic)
+      }
+      "linux_clock_monotonic_raw_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_raw)
+      }
+      "linux_clock_boottime_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_boottime)
+      }
+      "linux_clock_monotonic_syscall" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_monotonic)
+      }
+      "linux_clock_monotonic_raw_syscall" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_raw)
+      }
+      "linux_clock_boottime_syscall" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_boottime)
+      }
+      _ => panic!("unsupported selected Linux aarch64 Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+))]
+macro_rules! with_linux_aarch64_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "aarch64_isb_cntvct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_isb_cntvct)
+      }
+      "aarch64_cntvctss" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_cntvctss)
+      }
+      "linux_clock_monotonic" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_monotonic)
+      }
+      "linux_clock_monotonic_raw" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_raw)
+      }
+      "linux_clock_boottime" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_boottime)
+      }
+      "linux_clock_monotonic_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_monotonic)
+      }
+      "linux_clock_monotonic_raw_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_raw)
+      }
+      "linux_clock_boottime_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_boottime)
+      }
+      "linux_clock_monotonic_syscall" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_monotonic)
+      }
+      "linux_clock_monotonic_raw_syscall" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_raw)
+      }
+      "linux_clock_boottime_syscall" => {
+        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_boottime)
+      }
+      _ => panic!("unsupported selected Linux aarch64 Ordered provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_os = "linux",
+  any(target_arch = "arm", target_arch = "s390x"),
+))]
+macro_rules! with_residual_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      #[cfg(target_arch = "arm")]
+      "linux_arm_cntvct" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_arm_cntvct)
+      }
+      "linux_clock_monotonic" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic)
+      }
+      "linux_clock_monotonic_syscall" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_syscall)
+      }
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_time64_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_time64_syscall
+      ),
+      "linux_clock_monotonic_raw" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_raw)
+      }
+      "linux_clock_monotonic_raw_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_raw_time64_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_time64_syscall
+      ),
+      "linux_clock_monotonic_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_vdso)
+      }
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_vdso
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_vdso_time64_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_time64_vdso
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_raw_vdso_time64_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_time64_vdso
+      ),
+      "linux_clock_boottime" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_boottime)
+      }
+      "linux_clock_boottime_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_boottime_time64_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_time64_syscall
+      ),
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_vdso
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_boottime_vdso_time64_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_time64_vdso
+      ),
+      _ => panic!("unsupported residual Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_os = "linux",
+  any(target_arch = "arm", target_arch = "s390x"),
+))]
+macro_rules! with_residual_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      #[cfg(target_arch = "arm")]
+      "linux_arm_dmb_ish_isb_cntvct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_arm_cntvct
+      ),
+      "linux_clock_monotonic" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic
+      ),
+      "linux_clock_monotonic_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_syscall
+      ),
+      "linux_clock_monotonic_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_time64_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_time64_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_time64_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_time64_syscall
+      ),
+      "linux_clock_monotonic_raw" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw
+      ),
+      "linux_clock_monotonic_raw_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_syscall
+      ),
+      "linux_clock_monotonic_raw_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_raw_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_raw_time64_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_time64_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_raw_time64_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_raw_time64_syscall
+      ),
+      "linux_clock_monotonic_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_vdso
+      ),
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_vdso
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_vdso_time64_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_time64_vdso
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_monotonic_raw_vdso_time64_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_time64_vdso
+      ),
+      "linux_clock_boottime" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime
+      ),
+      "linux_clock_boottime_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_syscall
+      ),
+      "linux_clock_boottime_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_boottime_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_boottime_time64_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_time64_syscall
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_boottime_time64_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_boottime_time64_syscall
+      ),
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_vdso
+      ),
+      #[cfg(target_arch = "arm")]
+      "linux_clock_boottime_vdso_time64_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_time64_vdso
+      ),
+      _ => panic!("unsupported residual Ordered provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "riscv64", target_os = "linux"))]
+macro_rules! with_residual_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "riscv_rdtime" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_riscv_rdtime)
+      }
+      "linux_clock_monotonic" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic)
+      }
+      "linux_clock_monotonic_syscall" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_syscall)
+      }
+      "linux_clock_monotonic_raw" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_raw)
+      }
+      "linux_clock_monotonic_raw_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_syscall
+      ),
+      "linux_clock_monotonic_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_vdso)
+      }
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_vdso
+      ),
+      "linux_clock_boottime" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_boottime)
+      }
+      "linux_clock_boottime_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_syscall
+      ),
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_vdso
+      ),
+      _ => panic!("unsupported residual Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "riscv64", target_os = "linux"))]
+macro_rules! with_residual_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "riscv_rdtime" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_riscv_rdtime
+      ),
+      "linux_clock_monotonic" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic
+      ),
+      "linux_clock_monotonic_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_syscall
+      ),
+      "linux_clock_monotonic_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_syscall
+      ),
+      "linux_clock_monotonic_raw" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw
+      ),
+      "linux_clock_monotonic_raw_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_syscall
+      ),
+      "linux_clock_monotonic_raw_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_raw_syscall
+      ),
+      "linux_clock_monotonic_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_vdso
+      ),
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_vdso
+      ),
+      "linux_clock_boottime" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime
+      ),
+      "linux_clock_boottime_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_syscall
+      ),
+      "linux_clock_boottime_syscall_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_boottime_syscall
+      ),
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_vdso
+      ),
+      _ => panic!("unsupported residual Ordered provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "loongarch64", target_os = "linux"))]
+macro_rules! with_residual_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "loongarch_stable_counter" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_loong_stable_counter)
+      }
+      "linux_clock_monotonic" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic)
+      }
+      "linux_clock_monotonic_syscall" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_syscall)
+      }
+      "linux_clock_monotonic_raw" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_raw)
+      }
+      "linux_clock_monotonic_raw_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_syscall
+      ),
+      "linux_clock_monotonic_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_vdso)
+      }
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_vdso
+      ),
+      "linux_clock_boottime" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_boottime)
+      }
+      "linux_clock_boottime_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_syscall
+      ),
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_vdso
+      ),
+      _ => panic!("unsupported residual Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "loongarch64", target_os = "linux"))]
+macro_rules! with_residual_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "loongarch_stable_counter" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_loong_stable_counter
+      ),
+      "linux_clock_monotonic" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic
+      ),
+      "linux_clock_monotonic_syscall" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_syscall)
+      }
+      "linux_clock_monotonic_raw" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw
+      ),
+      "linux_clock_monotonic_raw_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_syscall
+      ),
+      "linux_clock_monotonic_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_vdso
+      ),
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_vdso
+      ),
+      "linux_clock_boottime" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime
+      ),
+      "linux_clock_boottime_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_syscall
+      ),
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_vdso
+      ),
+      _ => panic!("unsupported residual Ordered provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "powerpc64",
+  target_os = "linux",
+  target_env = "gnu",
+))]
+macro_rules! with_residual_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "power_timebase" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_power_timebase)
+      }
+      "linux_clock_monotonic" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic)
+      }
+      "linux_clock_monotonic_sc" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_sc)
+      }
+      "linux_clock_monotonic_scv" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_scv)
+      }
+      "linux_clock_monotonic_raw" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_raw)
+      }
+      "linux_clock_monotonic_raw_sc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_sc
+      ),
+      "linux_clock_monotonic_raw_scv" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_scv
+      ),
+      "linux_clock_monotonic_vdso_direct" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_monotonic_vdso)
+      }
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_monotonic_raw_vdso
+      ),
+      "linux_clock_boottime" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_boottime)
+      }
+      "linux_clock_boottime_sc" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_boottime_sc)
+      }
+      "linux_clock_boottime_scv" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_clock_boottime_scv)
+      }
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_clock_boottime_vdso
+      ),
+      _ => panic!("unsupported residual Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "powerpc64",
+  target_os = "linux",
+  target_env = "gnu",
+))]
+macro_rules! with_residual_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "power_timebase" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_power_timebase
+      ),
+      "linux_clock_monotonic" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic
+      ),
+      "linux_clock_monotonic_sc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_sc
+      ),
+      "linux_clock_monotonic_sc_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_sc
+      ),
+      "linux_clock_monotonic_scv" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_scv
+      ),
+      "linux_clock_monotonic_scv_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_scv
+      ),
+      "linux_clock_monotonic_raw" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw
+      ),
+      "linux_clock_monotonic_raw_sc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_sc
+      ),
+      "linux_clock_monotonic_raw_sc_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_raw_sc
+      ),
+      "linux_clock_monotonic_raw_scv" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_scv
+      ),
+      "linux_clock_monotonic_raw_scv_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_monotonic_raw_scv
+      ),
+      "linux_clock_monotonic_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_vdso
+      ),
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_monotonic_raw_vdso
+      ),
+      "linux_clock_boottime" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime
+      ),
+      "linux_clock_boottime_sc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_sc
+      ),
+      "linux_clock_boottime_sc_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_boottime_sc
+      ),
+      "linux_clock_boottime_scv" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_scv
+      ),
+      "linux_clock_boottime_scv_os_ordered" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_os_ordered_clock_boottime_scv
+      ),
+      "linux_clock_boottime_vdso_direct" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_ordered_clock_boottime_vdso
+      ),
+      _ => panic!("unsupported residual Ordered provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd"))]
+macro_rules! with_residual_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "freebsd_kernel_eligible_tsc" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_freebsd_tsc)
+      }
+      "freebsd_at_timekeep" => {
+        $callback!($($arguments)*, tach::bench::residual_exact_freebsd_timekeep)
+      }
+      "freebsd_clock_monotonic" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic
+      ),
+      "freebsd_clock_monotonic_syscall" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_syscall
+      ),
+      _ => panic!("unsupported residual Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd"))]
+macro_rules! with_residual_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_tsc_lfence
+      ),
+      "freebsd_kernel_eligible_tsc_x86_mfence_rdtsc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_tsc_mfence
+      ),
+      "freebsd_kernel_eligible_tsc_x86_rdtscp" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_tsc_rdtscp
+      ),
+      "freebsd_kernel_eligible_tsc_x86_cpuid_rdtsc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_tsc_cpuid
+      ),
+      "freebsd_kernel_eligible_tsc_x86_serialize_rdtsc" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_tsc_serialize
+      ),
+      "freebsd_at_timekeep_os_owned" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_timekeep_os_owned
+      ),
+      "freebsd_clock_monotonic_x86_mfence" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_mfence
+      ),
+      "freebsd_clock_monotonic_syscall_x86_mfence" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_mfence
+      ),
+      "freebsd_clock_monotonic_x86_cpuid" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_cpuid
+      ),
+      "freebsd_clock_monotonic_syscall_x86_cpuid" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_cpuid
+      ),
+      "freebsd_clock_monotonic_x86_lfence" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_lfence
+      ),
+      "freebsd_clock_monotonic_syscall_x86_lfence" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_lfence
+      ),
+      "freebsd_clock_monotonic_x86_rdtscp_lfence" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_rdtscp
+      ),
+      "freebsd_clock_monotonic_syscall_x86_rdtscp_lfence" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_rdtscp
+      ),
+      "freebsd_clock_monotonic_os_owned" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_os_owned
+      ),
+      "freebsd_clock_monotonic_syscall_os_owned" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_os_owned
+      ),
+      "freebsd_clock_monotonic_x86_serialize" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_serialize
+      ),
+      "freebsd_clock_monotonic_syscall_x86_serialize" => $callback!(
+        $($arguments)*,
+        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_serialize
+      ),
+      _ => panic!("unsupported residual Ordered provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+macro_rules! with_apple_aarch64_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "apple_commpage_cntvct_offset" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvct_absolute)
+      }
+      "apple_commpage_cntvctss_offset" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvctss_absolute)
+      }
+      "apple_commpage_acntvct_offset" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_absolute)
+      }
+      "apple_mach_continuous_time" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_continuous)
+      }
+      "apple_continuous_hw_cntvct_base" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvct_continuous)
+      }
+      "apple_continuous_hw_cntvctss_base" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvctss_continuous)
+      }
+      "apple_continuous_hw_acntvct_base" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_continuous)
+      }
+      _ => $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_absolute),
+    }
+  }};
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+macro_rules! with_apple_aarch64_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "apple_commpage_isb_cntvct_offset" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvct_ordered_absolute)
+      }
+      "apple_commpage_cntvctss_offset" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvctss_absolute)
+      }
+      "apple_commpage_acntvct_offset" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_absolute)
+      }
+      "apple_mach_continuous_time" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_continuous)
+      }
+      "apple_continuous_hw_isb_cntvct_base" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvct_ordered_continuous)
+      }
+      "apple_continuous_hw_cntvctss_base" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvctss_continuous)
+      }
+      "apple_continuous_hw_acntvct_base" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_continuous)
+      }
+      _ => $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_absolute),
+    }
+  }};
+}
 
 fn bench_now(c: &mut Criterion) {
   // Prime the lazy frequency calibration so it doesn't land in the first
@@ -25,12 +1403,785 @@ fn bench_now(c: &mut Criterion) {
   let mut g = c.benchmark_group("Instant::now()");
   g.bench_function("tach", |b| b.iter(|| black_box(Instant::now())));
   g.bench_function("tach_ordered", |b| b.iter(|| black_box(OrderedInstant::now())));
+  #[cfg(all(
+    feature = "bench-internal",
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86_64", target_arch = "x86"),
+  ))]
+  {
+    for candidate in tach::bench::linux_x86_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      with_linux_x86_instant_read!(provider, register_selected_now, g, "direct_wall", provider);
+    }
+    for candidate in tach::bench::linux_x86_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      with_linux_x86_ordered_read!(
+        provider,
+        register_selected_now,
+        g,
+        "direct_ordered_wall",
+        provider
+      );
+    }
+    let selected = tach::bench::linux_x86_selected_instant_primitive();
+    let provider = selected.provider();
+    with_linux_x86_instant_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_wall",
+      provider
+    );
+
+    let selected = tach::bench::linux_x86_selected_ordered_primitive();
+    let provider = selected.provider();
+    with_linux_x86_ordered_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_ordered_wall",
+      provider
+    );
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    any(target_arch = "x86_64", target_arch = "x86"),
+    not(target_os = "windows"),
+    not(all(target_arch = "x86_64", target_os = "macos")),
+  ))]
+  {
+    if let Some(direct) = OrderedX86CpuidDirect::try_for_current_machine() {
+      g.bench_function("direct_ordered__x86_cpuid_rdtsc", |b| {
+        b.iter(|| black_box(direct.now_ticks()));
+      });
+    }
+    if let Some(direct) = OrderedX86LfenceDirect::try_for_current_machine() {
+      g.bench_function("direct_ordered__x86_lfence_rdtsc", |b| {
+        b.iter(|| black_box(direct.now_ticks()));
+      });
+    }
+    if let Some(direct) = OrderedX86MfenceDirect::try_for_current_machine() {
+      g.bench_function("direct_ordered__x86_mfence_rdtsc", |b| {
+        b.iter(|| black_box(direct.now_ticks()));
+      });
+    }
+    if let Some(direct) = OrderedX86RdtscpDirect::try_for_current_machine() {
+      g.bench_function("direct_ordered__x86_rdtscp", |b| {
+        b.iter(|| black_box(direct.now_ticks()));
+      });
+    }
+    if let Some(direct) = OrderedX86SerializeDirect::try_for_current_machine() {
+      g.bench_function("direct_ordered__x86_serialize_rdtsc", |b| {
+        b.iter(|| black_box(direct.now_ticks()));
+      });
+    }
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    target_arch = "aarch64",
+    any(target_os = "android", target_os = "linux"),
+  ))]
+  {
+    for candidate in tach::bench::linux_aarch64_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      with_linux_aarch64_instant_read!(provider, register_selected_now, g, "direct_wall", provider);
+    }
+    for candidate in tach::bench::linux_aarch64_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      with_linux_aarch64_ordered_read!(
+        provider,
+        register_selected_now,
+        g,
+        "direct_ordered_wall",
+        provider
+      );
+    }
+    if let Some(direct) = OrderedAarch64IsbDirect::try_for_current_machine() {
+      g.bench_function("direct_ordered__aarch64_isb_cntvct", |b| {
+        b.iter(|| black_box(direct.now_ticks()));
+      });
+    }
+    if let Some(direct) = OrderedAarch64CntvctssDirect::try_for_current_machine() {
+      g.bench_function("direct_ordered__aarch64_cntvctss", |b| {
+        b.iter(|| black_box(direct.now_ticks()));
+      });
+    }
+    let selected = tach::bench::linux_aarch64_selected_instant_primitive();
+    let provider = selected.provider();
+    with_linux_aarch64_instant_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_wall",
+      provider
+    );
+    let selected = tach::bench::linux_aarch64_selected_ordered_primitive();
+    let provider = selected.provider();
+    with_linux_aarch64_ordered_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_ordered_wall",
+      provider
+    );
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    any(
+      all(target_arch = "riscv64", target_os = "linux"),
+      all(target_arch = "loongarch64", target_os = "linux"),
+      all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
+      all(target_arch = "x86_64", target_os = "freebsd"),
+      all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
+    ),
+  ))]
+  {
+    for candidate in tach::bench::residual_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      with_residual_instant_read!(provider, register_selected_now, g, "direct_wall", provider);
+    }
+    for candidate in tach::bench::residual_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      with_residual_ordered_read!(
+        provider,
+        register_selected_now,
+        g,
+        "direct_ordered_wall",
+        provider
+      );
+    }
+    let selected = tach::bench::residual_selected_instant_primitive();
+    let provider = selected.provider();
+    with_residual_instant_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_wall",
+      provider
+    );
+    let selected = tach::bench::residual_selected_ordered_primitive();
+    let provider = selected.provider();
+    with_residual_ordered_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_ordered_wall",
+      provider
+    );
+  }
+  #[cfg(all(feature = "bench-internal", target_os = "macos"))]
+  {
+    let native = MachAbsoluteTimeDirect::for_current_machine();
+    g.bench_function("native_wall__mach_absolute_time", |b| {
+      b.iter(|| black_box(native.now_ticks()));
+    });
+    #[cfg(target_arch = "x86_64")]
+    {
+      let provider = tach::bench::apple_wall_selected_provider();
+      let nanos_per_tick_q32 = tach::bench::apple_x86_selected_nanos_per_tick_q32();
+      if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
+        g.bench_function(format!("direct_wall__{}", commpage.provider()), |b| {
+          b.iter(|| black_box(commpage.now_ticks()));
+        });
+        g.bench_function(format!("direct_ordered_wall__{}", commpage.provider()), |b| {
+          b.iter(|| black_box(commpage.now_ticks()));
+        });
+      }
+      g.bench_function(format!("direct_selected_wall__{provider}"), |b| {
+        b.iter(|| black_box(tach::bench::apple_x86_selected_ticks()));
+      });
+      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+        b.iter(|| black_box(tach::bench::apple_x86_selected_ticks()));
+      });
+    }
+  }
+  #[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+  {
+    for candidate in tach::bench::apple_aarch64_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      with_apple_aarch64_instant_read!(provider, register_selected_now, g, "direct_wall", provider);
+    }
+    for candidate in tach::bench::apple_aarch64_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      with_apple_aarch64_ordered_read!(
+        provider,
+        register_selected_now,
+        g,
+        "direct_ordered_wall",
+        provider
+      );
+    }
+    let selected = tach::bench::apple_aarch64_selected_instant_primitive();
+    let provider = selected.provider();
+    with_apple_aarch64_instant_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_wall",
+      provider
+    );
+    let selected = tach::bench::apple_aarch64_selected_ordered_primitive();
+    let provider = selected.provider();
+    with_apple_aarch64_ordered_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_ordered_wall",
+      provider
+    );
+  }
+  #[cfg(all(feature = "bench-internal", target_os = "windows"))]
+  {
+    let direct = WindowsQpcDirect::for_current_machine();
+    g.bench_function("direct_wall__windows_qpc", |b| {
+      b.iter(|| black_box(direct.now_ticks()));
+    });
+    g.bench_function("direct_selected_wall__windows_qpc", |b| {
+      b.iter(|| black_box(direct.now_ticks()));
+    });
+    let provider = tach::bench::windows_ordered_wall_selected_provider();
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+      let evidence = tach::bench::windows_qpc_ordered_selection_measurements();
+      g.bench_function("direct_ordered_wall__windows_qpc_x86_cpuid", |b| {
+        b.iter(|| black_box(tach::bench::windows_qpc_ordered_cpuid_ticks()));
+      });
+      if evidence.lfence_eligible {
+        g.bench_function("direct_ordered_wall__windows_qpc_x86_lfence", |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_lfence_ticks()));
+        });
+      }
+      if evidence.rdtscp_eligible {
+        g.bench_function("direct_ordered_wall__windows_qpc_x86_rdtscp_lfence", |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_rdtscp_ticks()));
+        });
+      }
+      if evidence.mfence_eligible {
+        g.bench_function("direct_ordered_wall__windows_qpc_x86_mfence", |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_mfence_ticks()));
+        });
+      }
+      if evidence.serialize_eligible {
+        g.bench_function("direct_ordered_wall__windows_qpc_x86_serialize", |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_serialize_ticks()));
+        });
+      }
+    }
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    match provider {
+      "windows_qpc_x86_lfence" => g
+        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_lfence_ticks()))
+        }),
+      "windows_qpc_x86_rdtscp_lfence" => g
+        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_rdtscp_ticks()))
+        }),
+      "windows_qpc_x86_mfence" => g
+        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_mfence_ticks()))
+        }),
+      "windows_qpc_x86_serialize" => g
+        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+          b.iter(|| black_box(tach::bench::windows_qpc_ordered_serialize_ticks()))
+        }),
+      _ => g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+        b.iter(|| black_box(tach::bench::windows_qpc_ordered_cpuid_ticks()))
+      }),
+    };
+    #[cfg(target_arch = "aarch64")]
+    {
+      g.bench_function(format!("direct_ordered_wall__{provider}"), |b| {
+        b.iter(|| black_box(direct.now_ordered_ticks()));
+      });
+      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+        b.iter(|| black_box(direct.now_ordered_ticks()));
+      });
+    }
+  }
   g.bench_function("quanta", |b| b.iter(|| black_box(quanta::Instant::now())));
   g.bench_function("fastant", |b| b.iter(|| black_box(fastant::Instant::now())));
   g.bench_function("minstant", |b| b.iter(|| black_box(minstant::Instant::now())));
   g.bench_function("std", |b| b.iter(|| black_box(StdInstant::now())));
   g.finish();
+  write_ordered_selection();
+  write_linux_x86_wall_selection();
+  write_linux_aarch64_wall_selection();
+  write_residual_wall_selection();
+  write_apple_wall_selection();
+  write_windows_wall_selection();
 }
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(
+    all(target_arch = "riscv64", target_os = "linux"),
+    all(target_arch = "loongarch64", target_os = "linux"),
+    all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
+    all(target_arch = "x86_64", target_os = "freebsd"),
+    all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
+  ),
+))]
+fn write_residual_wall_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  let (architecture, probe, ordering) = (
+    "riscv64-linux",
+    serde_json::to_value(tach::bench::riscv64_wall_selection_measurements())
+      .expect("serialize RISC-V wall selector probe"),
+    "the measured winner is either fence r,i before the read or a precise ECALL boundary that owns prior-read ordering",
+  );
+  #[cfg(all(target_arch = "loongarch64", target_os = "linux"))]
+  let (architecture, probe, ordering) = (
+    "loongarch64-linux",
+    serde_json::to_value(tach::bench::loongarch64_wall_selection_measurements())
+      .expect("serialize LoongArch wall selector probe"),
+    "a precise getpid exception orders the direct counter; the raw clock syscall owns the OS-domain ordered sample",
+  );
+  #[cfg(all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"))]
+  let (architecture, probe, ordering) = (
+    "powerpc64-linux-gnu",
+    serde_json::to_value(tach::bench::power_wall_selection_measurements())
+      .expect("serialize Power wall selector probe"),
+    "the measured winner is either heavyweight sync before the read or context-synchronizing SC/SCV that owns prior-read ordering",
+  );
+  #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
+  let (architecture, probe, ordering) = (
+    "x86_64-freebsd",
+    serde_json::to_value(tach::bench::freebsd_wall_selection_measurements())
+      .expect("serialize FreeBSD wall selector probe"),
+    "the runtime winner among every eligible x86 barrier and the FreeBSD-owned vDSO/syscall ordering boundary precedes the wall read",
+  );
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  let (architecture, probe, ordering) = (
+    "armv7-linux",
+    serde_json::to_value(tach::bench::linux_clock_wall_selection_measurements())
+      .expect("serialize Armv7 wall selector probe"),
+    "the measured winner is either dmb ish; isb before the path or an Arm SVC context-synchronization boundary that owns prior-read ordering",
+  );
+  #[cfg(all(target_arch = "s390x", target_os = "linux"))]
+  let (architecture, probe, ordering) = (
+    "s390x-linux",
+    serde_json::to_value(tach::bench::linux_clock_wall_selection_measurements())
+      .expect("serialize s390x wall selector probe"),
+    "the measured winner is either bcr 15,0 before the path or a serializing s390 SVC boundary that owns prior-read ordering",
+  );
+
+  let instant_candidates: Vec<_> = tach::bench::residual_instant_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
+    .collect();
+  let ordered_candidates: Vec<_> = tach::bench::residual_ordered_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
+    .collect();
+  let instant_selected = tach::bench::residual_selected_instant_primitive();
+  let ordered_selected = tach::bench::residual_selected_ordered_primitive();
+  let payload = serde_json::json!({
+    "architecture": architecture,
+    "selected_provider": {
+      "instant": instant_selected.provider(),
+      "ordered": ordered_selected.provider(),
+    },
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
+      "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
+    },
+    "eligible_direct_candidates": {
+      "instant": instant_candidates,
+      "ordered": ordered_candidates,
+    },
+    "decision_rule": "each contract independently retains an incumbent unless a challenger wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins",
+    "ordering": ordering,
+    "probe": probe,
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("residual-wall-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize residual wall selector evidence"),
+  )
+  .expect("write residual wall selector evidence");
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  any(
+    all(target_arch = "riscv64", target_os = "linux"),
+    all(target_arch = "loongarch64", target_os = "linux"),
+    all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
+    all(target_arch = "x86_64", target_os = "freebsd"),
+    all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
+  ),
+)))]
+fn write_residual_wall_selection() {}
+
+#[cfg(all(feature = "bench-internal", target_os = "macos"))]
+fn write_apple_wall_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let instant_provider = tach::bench::apple_wall_selected_provider();
+  let ordered_provider = tach::bench::apple_ordered_wall_selected_provider();
+  #[cfg(target_arch = "aarch64")]
+  let instant_candidates: Vec<_> = tach::bench::apple_aarch64_instant_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
+    .collect();
+  #[cfg(target_arch = "aarch64")]
+  let ordered_candidates: Vec<_> = tach::bench::apple_aarch64_ordered_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
+    .collect();
+  #[cfg(target_arch = "x86_64")]
+  let mut instant_candidates = vec!["native_wall__mach_absolute_time"];
+  #[cfg(target_arch = "x86_64")]
+  let mut ordered_candidates = vec!["native_wall__mach_absolute_time"];
+  #[cfg(target_arch = "x86_64")]
+  if AppleX86CommpageDirect::try_for_current_machine().is_some() {
+    instant_candidates.push("direct_wall__apple_commpage_lfence_rdtsc_nanotime");
+    ordered_candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
+  }
+  #[cfg(target_arch = "x86_64")]
+  let decision_rule = "retain mach_absolute_time unless the inline commpage dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins";
+  #[cfg(target_arch = "x86_64")]
+  let probe = serde_json::to_value(tach::bench::apple_x86_wall_selection_measurements())
+    .expect("serialize Intel Apple wall selector probe");
+  #[cfg(target_arch = "aarch64")]
+  let decision_rule = "Instant and OrderedInstant independently tournament every eligible Mach absolute, Mach continuous, and direct commpage path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches";
+  #[cfg(target_arch = "aarch64")]
+  let probe = serde_json::json!({
+    "instant": tach::bench::apple_aarch64_instant_selection_measurements(),
+    "ordered": tach::bench::apple_aarch64_ordered_selection_measurements(),
+  });
+
+  let payload = serde_json::json!({
+    "selected_provider": {
+      "instant": instant_provider,
+      "ordered": ordered_provider,
+    },
+    "eligible_direct_candidates": {
+      "instant": instant_candidates,
+      "ordered": ordered_candidates,
+    },
+    "decision_rule": decision_rule,
+    "probe": probe,
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{instant_provider}"),
+      "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
+    },
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("apple-wall-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize Apple wall evidence"),
+  )
+  .expect("write Apple wall evidence");
+}
+
+#[cfg(not(all(feature = "bench-internal", target_os = "macos")))]
+fn write_apple_wall_selection() {}
+
+#[cfg(all(feature = "bench-internal", target_os = "windows"))]
+fn write_windows_wall_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let instant_provider = tach::bench::windows_wall_selected_provider();
+  let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
+  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+  let (ordered_probe, ordered_candidates) = {
+    let evidence = tach::bench::windows_qpc_ordered_selection_measurements();
+    let mut candidates = vec!["direct_ordered_wall__windows_qpc_x86_cpuid"];
+    if evidence.lfence_eligible {
+      candidates.push("direct_ordered_wall__windows_qpc_x86_lfence");
+    }
+    if evidence.rdtscp_eligible {
+      candidates.push("direct_ordered_wall__windows_qpc_x86_rdtscp_lfence");
+    }
+    if evidence.mfence_eligible {
+      candidates.push("direct_ordered_wall__windows_qpc_x86_mfence");
+    }
+    if evidence.serialize_eligible {
+      candidates.push("direct_ordered_wall__windows_qpc_x86_serialize");
+    }
+    (serde_json::to_value(evidence).expect("serialize Windows QPC Ordered selector"), candidates)
+  };
+  #[cfg(target_arch = "aarch64")]
+  let ordered_probe = serde_json::json!({
+    "selected_provider": ordered_provider,
+    "eligibility": "Arm load-Acquire ordering requires dmb ishld; isb before QPC",
+  });
+  #[cfg(target_arch = "aarch64")]
+  let ordered_candidates = vec![format!("direct_ordered_wall__{ordered_provider}")];
+  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+  let ineligible_direct_candidates = serde_json::json!({
+    "windows_raw_tsc": {
+      "contracts": ["instant", "ordered"],
+      "eligibility": "ineligible",
+      "reason": "CPUID invariance and local measurement cannot prove Windows cross-core synchronization, platform-counter substitution, hypervisor bias, or live-migration continuity",
+      "authority": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
+    }
+  });
+  #[cfg(target_arch = "aarch64")]
+  let ineligible_direct_candidates = serde_json::json!({
+    "windows_raw_cntvct_el0": {
+      "contracts": ["instant", "ordered"],
+      "eligibility": "ineligible",
+      "reason": "Windows may back QPC with a proprietary platform counter or the Arm Generic Timer and does not document CNTVCT_EL0 as an always-readable user-mode wall-clock ABI",
+      "authority": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
+    }
+  });
+  #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
+  let ineligible_direct_candidates = serde_json::json!({});
+  let payload = serde_json::json!({
+    "selected_provider": {
+      "instant": instant_provider,
+      "ordered": ordered_provider,
+    },
+    "eligible_direct_candidates": {
+      "instant": ["direct_wall__windows_qpc"],
+      "ordered": ordered_candidates,
+    },
+    "ineligible_direct_candidates": ineligible_direct_candidates,
+    "decision_rule": "QPC is Windows' supported high-resolution reliable process-wide interval timeline; x86 barriers are measured as complete barrier+QPC paths, while Arm64 uses the minimal architecturally sufficient dmb ishld; isb sequence",
+    "ordered_probe": ordered_probe,
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("windows-wall-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize Windows wall evidence"),
+  )
+  .expect("write Windows wall evidence");
+}
+
+#[cfg(not(all(feature = "bench-internal", target_os = "windows")))]
+fn write_windows_wall_selection() {}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86_64", target_arch = "x86"),
+))]
+fn write_linux_x86_wall_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let instant_candidates: Vec<_> = tach::bench::linux_x86_instant_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
+    .collect();
+  let ordered_candidates: Vec<_> = tach::bench::linux_x86_ordered_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
+    .collect();
+  let instant_selected = tach::bench::linux_x86_selected_instant_primitive();
+  let ordered_selected = tach::bench::linux_x86_selected_ordered_primitive();
+  let payload = serde_json::json!({
+    "selected_provider": {
+      "instant": instant_selected.provider(),
+      "ordered": ordered_selected.provider(),
+    },
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
+      "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
+    },
+    "eligible_direct_candidates": {
+      "instant": instant_candidates,
+      "ordered": ordered_candidates,
+    },
+    "decision_rule": "each contract independently tournaments every eligible complete clock-id, entry-ABI, ordering-barrier, and direct-TSC path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
+    "probe": tach::bench::linux_x86_wall_selection_measurements(),
+    "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke TSC access after direct-provider selection",
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("linux-x86-wall-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize Linux x86 wall selector evidence"),
+  )
+  .expect("write Linux x86 wall selector evidence");
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86_64", target_arch = "x86"),
+)))]
+fn write_linux_x86_wall_selection() {}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+))]
+fn write_linux_aarch64_wall_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let instant_candidates: Vec<_> = tach::bench::linux_aarch64_instant_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
+    .collect();
+  let ordered_candidates: Vec<_> = tach::bench::linux_aarch64_ordered_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
+    .collect();
+  let instant_selected = tach::bench::linux_aarch64_selected_instant_primitive();
+  let ordered_selected = tach::bench::linux_aarch64_selected_ordered_primitive();
+  let payload = serde_json::json!({
+    "selected_provider": {
+      "instant": instant_selected.provider(),
+      "ordered": ordered_selected.provider(),
+    },
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
+      "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
+    },
+    "eligible_direct_candidates": {
+      "instant": instant_candidates,
+      "ordered": ordered_candidates,
+    },
+    "decision_rule": "each contract independently tournaments every eligible complete MONOTONIC, MONOTONIC_RAW, raw-syscall, and architectural-counter path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
+    "instant_probe": tach::bench::linux_aarch64_instant_selection_measurements(),
+    "ordered_probe": tach::bench::linux_aarch64_ordered_selection_measurements(),
+    "permission_rule": "PR_GET_TSC is authoritative when implemented, including Android/vendor backports; only exact -EINVAL plus a parsed upstream-pre-6.12 arm64 uname release infers legacy-safe counter access; newer, unknown, and other failed queries remain syscall-only",
+    "feat_sb": "ineligible: Arm SB constrains side-channel-observable speculation but does not order architectural counter sampling after a prior Acquire observation",
+    "kernel_errata": "trapped CNTVCT/CNTVCTSS reads remain eligible because arm64 emulates them with its workaround-aware counter reader; exact-path measurement determines profitability",
+    "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke counter access after direct-provider selection",
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("linux-aarch64-wall-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize Linux aarch64 wall selector evidence"),
+  )
+  .expect("write Linux aarch64 wall selector evidence");
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+)))]
+fn write_linux_aarch64_wall_selection() {}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(
+    all(
+      any(target_arch = "x86_64", target_arch = "x86"),
+      not(target_os = "windows"),
+      not(all(target_arch = "x86_64", target_os = "macos")),
+    ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),),
+    target_os = "macos",
+  ),
+))]
+fn write_ordered_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let mut candidates = Vec::new();
+  #[cfg(all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")))]
+  {
+    if OrderedX86CpuidDirect::try_for_current_machine().is_some() {
+      candidates.push("direct_ordered__x86_cpuid_rdtsc");
+    }
+    if OrderedX86LfenceDirect::try_for_current_machine().is_some() {
+      candidates.push("direct_ordered__x86_lfence_rdtsc");
+    }
+    if OrderedX86MfenceDirect::try_for_current_machine().is_some() {
+      candidates.push("direct_ordered__x86_mfence_rdtsc");
+    }
+    if OrderedX86RdtscpDirect::try_for_current_machine().is_some() {
+      candidates.push("direct_ordered__x86_rdtscp");
+    }
+    if OrderedX86SerializeDirect::try_for_current_machine().is_some() {
+      candidates.push("direct_ordered__x86_serialize_rdtsc");
+    }
+  }
+  #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
+  {
+    candidates.push("direct_ordered__aarch64_isb_cntvct");
+    if OrderedAarch64CntvctssDirect::try_for_current_machine().is_some() {
+      candidates.push("direct_ordered__aarch64_cntvctss");
+    }
+  }
+  #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+  candidates.push("native_wall__mach_absolute_time");
+  #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+  if AppleX86CommpageDirect::try_for_current_machine().is_some() {
+    candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
+  }
+  #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+  candidates.extend(
+    tach::bench::apple_aarch64_ordered_candidate_primitives()
+      .iter()
+      .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider())),
+  );
+
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  let decision_rule = "every eligible Mach absolute, Mach continuous, and direct commpage path competes by repeatable material wins";
+  #[cfg(any(not(target_os = "macos"), all(target_os = "macos", target_arch = "x86_64")))]
+  let decision_rule = "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins";
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  let probe = serde_json::to_value(tach::bench::apple_aarch64_ordered_selection_measurements())
+    .expect("serialize Apple aarch64 Ordered selector evidence");
+  #[cfg(any(not(target_os = "macos"), all(target_os = "macos", target_arch = "x86_64")))]
+  let probe = serde_json::to_value(tach::bench::ordered_selection_measurements())
+    .expect("serialize Ordered selector evidence");
+
+  let payload = serde_json::json!({
+    "selected_provider": tach::bench::ordered_selected_provider(),
+    "eligible_direct_candidates": candidates,
+    "decision_rule": decision_rule,
+    "probe": probe,
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("ordered-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize ordered selector evidence"),
+  )
+  .expect("write ordered selector evidence");
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  any(
+    all(
+      any(target_arch = "x86_64", target_arch = "x86"),
+      not(target_os = "windows"),
+      not(all(target_arch = "x86_64", target_os = "macos")),
+    ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),),
+    target_os = "macos",
+  ),
+)))]
+fn write_ordered_selection() {}
 
 fn bench_elapsed(c: &mut Criterion) {
   quanta::Instant::now();
@@ -50,6 +2201,373 @@ fn bench_elapsed(c: &mut Criterion) {
       black_box(start.elapsed())
     });
   });
+  #[cfg(all(
+    feature = "bench-internal",
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86_64", target_arch = "x86"),
+  ))]
+  {
+    for candidate in tach::bench::linux_x86_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_linux_x86_instant_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    for candidate in tach::bench::linux_x86_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_linux_x86_ordered_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_ordered_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    let selected = tach::bench::linux_x86_selected_instant_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_linux_x86_instant_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86_64", target_arch = "x86"),
+  ))]
+  {
+    let selected = tach::bench::linux_x86_selected_ordered_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_linux_x86_ordered_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_ordered_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    target_arch = "aarch64",
+    any(target_os = "android", target_os = "linux"),
+  ))]
+  {
+    for candidate in tach::bench::linux_aarch64_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_linux_aarch64_instant_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    for candidate in tach::bench::linux_aarch64_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_linux_aarch64_ordered_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_ordered_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    let selected = tach::bench::linux_aarch64_selected_instant_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_linux_aarch64_instant_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+
+    let selected = tach::bench::linux_aarch64_selected_ordered_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_linux_aarch64_ordered_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_ordered_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    any(
+      all(target_arch = "riscv64", target_os = "linux"),
+      all(target_arch = "loongarch64", target_os = "linux"),
+      all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
+      all(target_arch = "x86_64", target_os = "freebsd"),
+      all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
+    ),
+  ))]
+  {
+    for candidate in tach::bench::residual_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_residual_instant_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    for candidate in tach::bench::residual_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_residual_ordered_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_ordered_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    let selected = tach::bench::residual_selected_instant_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_residual_instant_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+    let selected = tach::bench::residual_selected_ordered_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_residual_ordered_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_ordered_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+  }
+  #[cfg(all(feature = "bench-internal", target_os = "macos"))]
+  {
+    let native = MachAbsoluteTimeDirect::for_current_machine();
+    g.bench_function("native_wall__mach_absolute_time", |b| {
+      b.iter(|| {
+        let start = native.now_ticks();
+        black_box(native.elapsed_since(start))
+      });
+    });
+    #[cfg(target_arch = "x86_64")]
+    {
+      let provider = tach::bench::apple_wall_selected_provider();
+      if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
+        g.bench_function(format!("direct_wall__{}", commpage.provider()), |b| {
+          b.iter(|| {
+            let start = commpage.now_ticks();
+            black_box(commpage.elapsed_since(start))
+          });
+        });
+        g.bench_function(format!("direct_ordered_wall__{}", commpage.provider()), |b| {
+          b.iter(|| {
+            let start = commpage.now_ticks();
+            black_box(commpage.elapsed_since(start))
+          });
+        });
+      }
+      g.bench_function(format!("direct_selected_wall__{provider}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::apple_x86_selected_ticks();
+          let elapsed = tach::bench::apple_x86_selected_ticks().saturating_sub(start);
+          black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, nanos_per_tick_q32))
+        });
+      });
+      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::apple_x86_selected_ticks();
+          let elapsed = tach::bench::apple_x86_selected_ticks().saturating_sub(start);
+          black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, nanos_per_tick_q32))
+        });
+      });
+    }
+  }
+  #[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+  {
+    for candidate in tach::bench::apple_aarch64_instant_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_apple_aarch64_instant_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    for candidate in tach::bench::apple_aarch64_ordered_candidate_primitives() {
+      let provider = candidate.provider();
+      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
+      with_apple_aarch64_ordered_read!(
+        provider,
+        register_selected_elapsed,
+        g,
+        "direct_ordered_wall",
+        provider,
+        nanos_per_tick_q32
+      );
+    }
+    let selected = tach::bench::apple_aarch64_selected_instant_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_apple_aarch64_instant_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+    let selected = tach::bench::apple_aarch64_selected_ordered_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_apple_aarch64_ordered_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_ordered_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+  }
+  #[cfg(all(feature = "bench-internal", target_os = "windows"))]
+  {
+    let direct = WindowsQpcDirect::for_current_machine();
+    g.bench_function("direct_wall__windows_qpc", |b| {
+      b.iter(|| {
+        let start = direct.now_ticks();
+        black_box(direct.elapsed_since(start))
+      });
+    });
+    g.bench_function("direct_selected_wall__windows_qpc", |b| {
+      b.iter(|| {
+        let start = direct.now_ticks();
+        black_box(direct.elapsed_since(start))
+      });
+    });
+    let provider = tach::bench::windows_ordered_wall_selected_provider();
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    macro_rules! bench_windows_ordered_candidate_elapsed {
+      ($candidate:expr, $read:path) => {{
+        g.bench_function($candidate, |b| {
+          b.iter(|| {
+            let start = $read();
+            let elapsed = $read().saturating_sub(start);
+            black_box(tach::bench::windows_ordered_ticks_to_duration(elapsed))
+          });
+        });
+      }};
+    }
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+      let evidence = tach::bench::windows_qpc_ordered_selection_measurements();
+      bench_windows_ordered_candidate_elapsed!(
+        "direct_ordered_wall__windows_qpc_x86_cpuid",
+        tach::bench::windows_qpc_ordered_cpuid_ticks
+      );
+      if evidence.lfence_eligible {
+        bench_windows_ordered_candidate_elapsed!(
+          "direct_ordered_wall__windows_qpc_x86_lfence",
+          tach::bench::windows_qpc_ordered_lfence_ticks
+        );
+      }
+      if evidence.rdtscp_eligible {
+        bench_windows_ordered_candidate_elapsed!(
+          "direct_ordered_wall__windows_qpc_x86_rdtscp_lfence",
+          tach::bench::windows_qpc_ordered_rdtscp_ticks
+        );
+      }
+      if evidence.mfence_eligible {
+        bench_windows_ordered_candidate_elapsed!(
+          "direct_ordered_wall__windows_qpc_x86_mfence",
+          tach::bench::windows_qpc_ordered_mfence_ticks
+        );
+      }
+      if evidence.serialize_eligible {
+        bench_windows_ordered_candidate_elapsed!(
+          "direct_ordered_wall__windows_qpc_x86_serialize",
+          tach::bench::windows_qpc_ordered_serialize_ticks
+        );
+      }
+    }
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    macro_rules! bench_windows_ordered_elapsed {
+      ($read:path) => {{
+        g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+          b.iter(|| {
+            let start = $read();
+            let elapsed = $read().saturating_sub(start);
+            black_box(tach::bench::windows_ordered_ticks_to_duration(elapsed))
+          });
+        });
+      }};
+    }
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    match provider {
+      "windows_qpc_x86_lfence" => {
+        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_lfence_ticks)
+      }
+      "windows_qpc_x86_rdtscp_lfence" => {
+        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_rdtscp_ticks)
+      }
+      "windows_qpc_x86_mfence" => {
+        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_mfence_ticks)
+      }
+      "windows_qpc_x86_serialize" => {
+        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_serialize_ticks)
+      }
+      _ => bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_cpuid_ticks),
+    }
+    #[cfg(target_arch = "aarch64")]
+    {
+      g.bench_function(format!("direct_ordered_wall__{provider}"), |b| {
+        b.iter(|| {
+          let start = direct.now_ordered_ticks();
+          black_box(direct.ordered_elapsed_since(start))
+        });
+      });
+      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+        b.iter(|| {
+          let start = direct.now_ordered_ticks();
+          black_box(direct.ordered_elapsed_since(start))
+        });
+      });
+    }
+  }
   g.bench_function("quanta", |b| {
     b.iter(|| {
       let start = quanta::Instant::now();
@@ -82,6 +2600,12 @@ fn thread_cpu_bench_id() -> &'static str {
     (ThreadCpuProvider::LinuxPerfMmap, ThreadCpuReadCost::Inline) => {
       "tach_thread_cpu__linux_perf_mmap__inline"
     }
+    (ThreadCpuProvider::LinuxPerfMmap, ThreadCpuReadCost::SystemCall) => {
+      "tach_thread_cpu__linux_perf_mmap__system_call"
+    }
+    (ThreadCpuProvider::LinuxPerfRead, ThreadCpuReadCost::SystemCall) => {
+      "tach_thread_cpu__linux_perf_read__system_call"
+    }
     (ThreadCpuProvider::PosixThreadCpuClock, ThreadCpuReadCost::SystemCall) => {
       "tach_thread_cpu__posix_thread_cpu_clock__system_call"
     }
@@ -91,8 +2615,14 @@ fn thread_cpu_bench_id() -> &'static str {
     (ThreadCpuProvider::WasiThreadCpuClock, ThreadCpuReadCost::HostCall) => {
       "tach_thread_cpu__wasi_thread_cpu_clock__host_call"
     }
+    (ThreadCpuProvider::NodeThreadCpuUsage, ThreadCpuReadCost::HostCall) => {
+      "tach_thread_cpu__node_thread_cpu_usage__host_call"
+    }
     (ThreadCpuProvider::PerformanceNow, ThreadCpuReadCost::HostCall) => {
       "tach_thread_cpu__performance_now__host_call"
+    }
+    (ThreadCpuProvider::NodeHrtime, ThreadCpuReadCost::HostCall) => {
+      "tach_thread_cpu__node_hrtime__host_call"
     }
     (ThreadCpuProvider::MonotonicWallClock, ThreadCpuReadCost::Inline) => {
       "tach_thread_cpu__monotonic_wall_clock__inline"
@@ -106,32 +2636,523 @@ fn thread_cpu_bench_id() -> &'static str {
     (_, ThreadCpuReadCost::Inline) => "tach_thread_cpu__other__inline",
     (_, ThreadCpuReadCost::SystemCall) => "tach_thread_cpu__other__system_call",
     (_, ThreadCpuReadCost::HostCall) => "tach_thread_cpu__other__host_call",
+    (_, ThreadCpuReadCost::Unavailable) => "tach_thread_cpu__unavailable",
     (_, _) => "tach_thread_cpu__other__unknown_cost",
+  }
+}
+
+#[allow(dead_code)]
+fn thread_cpu_selected_path_is(path: &str) -> bool {
+  matches!(
+    (path, ThreadCpuInstant::provider()),
+    ("linux_perf_mmap", ThreadCpuProvider::LinuxPerfMmap)
+      | ("linux_perf_read", ThreadCpuProvider::LinuxPerfRead)
+      | ("posix_thread_cpu", ThreadCpuProvider::PosixThreadCpuClock)
+  ) && (path != "posix_thread_cpu" || !measured_thread_cpu_path_available())
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  feature = "thread-cpu-inline",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
+))]
+#[allow(dead_code)]
+fn thread_cpu_fallback_path_is(path: &str) -> bool {
+  let _ = path;
+  false
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  feature = "thread-cpu-inline",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
+)))]
+#[allow(dead_code)]
+const fn thread_cpu_fallback_path_is(_path: &str) -> bool {
+  false
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  feature = "thread-cpu-inline",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
+))]
+#[allow(dead_code)]
+fn measured_thread_cpu_path_available() -> bool {
+  tach::bench::thread_cpu_perf_path_evidence().is_some()
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  feature = "thread-cpu-inline",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
+)))]
+#[allow(dead_code)]
+const fn measured_thread_cpu_path_available() -> bool {
+  false
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  feature = "thread-cpu-inline",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
+))]
+fn native_thread_cpu_mechanism() -> &'static str {
+  #[cfg(any(
+    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ))]
+  {
+    return tach::bench::thread_cpu_native64_selection_measurements().selected_provider;
+  }
+  #[cfg(all(target_arch = "x86", target_os = "linux"))]
+  {
+    return tach::bench::thread_cpu_i686_native_provider();
+  }
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  {
+    return tach::bench::thread_cpu_arm_native_provider();
+  }
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  {
+    return tach::bench::thread_cpu_riscv64_native_provider();
+  }
+  #[cfg(all(
+    target_os = "linux",
+    any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+  ))]
+  {
+    return tach::bench::thread_cpu_rare_linux_native_provider();
+  }
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  feature = "thread-cpu-inline",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
+))]
+fn thread_cpu_path_mechanism(path: &str) -> Option<String> {
+  match path {
+    "posix_thread_cpu" => Some(native_thread_cpu_mechanism().to_owned()),
+    "linux_perf_read" => tach::bench::thread_cpu_perf_read_entry_evidence()
+      .map(|evidence| format!("linux_perf_read__{}", evidence.selected_candidate)),
+    "linux_perf_mmap" => {
+      #[cfg(any(
+        all(
+          target_os = "linux",
+          any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "riscv64",
+          ),
+        ),
+        all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+      ))]
+      {
+        let handle = ThreadCpuPerfHandle::try_for_current_thread()?;
+        Some(format!("linux_perf_mmap__{}", handle.selected_candidate_name()))
+      }
+      #[cfg(not(any(
+        all(
+          target_os = "linux",
+          any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "riscv64",
+          ),
+        ),
+        all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+      )))]
+      {
+        None
+      }
+    }
+    _ => None,
   }
 }
 
 fn bench_thread_cpu_now(c: &mut Criterion) {
   // Provider selection is intentionally outside the measured loop: the API's
-  // contract is steady-state `now()`, after its once-per-process assessment.
+  // contract is steady-state `now()`, after the calling thread's assessment.
   let tach_id = thread_cpu_bench_id();
   let mut g = c.benchmark_group("ThreadCpuInstant::now()");
   g.bench_function(tach_id, |b| b.iter(|| black_box(ThreadCpuInstant::now())));
   g.bench_function(NATIVE_THREAD_CPU_BENCH_ID, |b| {
     b.iter(|| black_box(native_thread_cpu_now()));
   });
+  #[cfg(all(feature = "bench-internal", target_os = "windows"))]
+  {
+    for prefix in ["direct_thread_cpu", "direct_selected_thread_cpu"] {
+      g.bench_function(format!("{prefix}__{WINDOWS_THREAD_CPU_MECHANISM}"), |b| {
+        b.iter(|| black_box(native_thread_cpu_now()));
+      });
+    }
+    let _ = tach::bench::windows_thread_cpu_wall_fallback_now();
+    g.bench_function(
+      format!("direct_fallback_thread_cpu__{WINDOWS_THREAD_CPU_WALL_FALLBACK_MECHANISM}"),
+      |b| b.iter(|| black_box(tach::bench::windows_thread_cpu_wall_fallback_now())),
+    );
+  }
   #[cfg(all(
     feature = "bench-internal",
     feature = "thread-cpu-inline",
-    target_os = "linux",
-    any(target_arch = "x86_64", target_arch = "aarch64"),
+    any(
+      all(
+        target_os = "linux",
+        any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+        ),
+      ),
+      all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+    ),
   ))]
-  if let Some(direct) = ThreadCpuPerfHandle::try_for_current_thread() {
-    g.bench_function("direct_thread_cpu__linux_perf_mmap", |b| {
-      b.iter(|| black_box(direct.now_nanos()));
-    });
+  {
+    if let Some(perf) = ThreadCpuPerfHandle::try_for_current_thread() {
+      for candidate in 0..perf.candidate_count() {
+        let Some(name) = perf.candidate_name(candidate) else {
+          continue;
+        };
+        if !perf.select_candidate(candidate) {
+          continue;
+        }
+        g.bench_function(format!("direct_thread_cpu__linux_perf_mmap__{name}"), |b| {
+          b.iter(|| black_box(perf.now_nanos()));
+        });
+      }
+    }
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    feature = "thread-cpu-inline",
+    any(
+      all(
+        target_os = "linux",
+        any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+          target_arch = "s390x",
+          target_arch = "loongarch64",
+          target_arch = "powerpc64",
+        ),
+      ),
+      all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+    ),
+  ))]
+  {
+    if let Some(perf) = ThreadCpuPerfReadHandle::try_for_current_thread() {
+      for candidate in 0..perf.candidate_count() {
+        let Some(name) = perf.candidate_name(candidate) else {
+          continue;
+        };
+        if !perf.select_candidate(candidate) {
+          continue;
+        }
+        g.bench_function(format!("direct_thread_cpu__linux_perf_read__{name}"), |b| {
+          b.iter(|| black_box(perf.direct_nanos()));
+        });
+      }
+    }
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    feature = "thread-cpu-inline",
+    any(
+      all(
+        target_os = "linux",
+        any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+          target_arch = "s390x",
+          target_arch = "loongarch64",
+          target_arch = "powerpc64",
+        ),
+      ),
+      all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+    ),
+  ))]
+  {
+    if let (Some(evidence), Some(paths)) = (
+      tach::bench::thread_cpu_perf_path_evidence(),
+      ThreadCpuPerfPathHandle::try_for_current_thread(),
+    ) {
+      let selected_mechanism = thread_cpu_path_mechanism(evidence.selected_path)
+        .expect("selected measured thread-CPU path must identify its exact mechanism");
+      let fallback_mechanism = thread_cpu_path_mechanism(evidence.fallback_path)
+        .expect("fallback measured thread-CPU path must identify its exact mechanism");
+      for (prefix, path, mechanism) in [
+        ("direct_selected_thread_cpu", evidence.selected_path, selected_mechanism),
+        ("direct_fallback_thread_cpu", evidence.fallback_path, fallback_mechanism),
+      ] {
+        let mut registered = false;
+        for candidate in 0..paths.candidate_count() {
+          if paths.candidate_name(candidate) == Some(path)
+            && paths.candidate_available(candidate)
+            && paths.select_candidate(candidate)
+          {
+            g.bench_function(format!("{prefix}__{mechanism}"), |b| {
+              b.iter(|| black_box(paths.now_nanos()));
+            });
+            registered = true;
+            break;
+          }
+        }
+        assert!(registered, "measured {path} path lacks its exact public-dispatch row");
+      }
+    }
+  }
+  #[cfg(any(
+    all(
+      target_arch = "x86_64",
+      any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+    ),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ))]
+  {
+    let evidence = tach::bench::thread_cpu_native64_selection_measurements();
+    if evidence.libc_available {
+      g.bench_function(format!("direct_thread_cpu__{}", evidence.libc_provider), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_libc_nanos()))
+      });
+    }
+    if evidence.raw_available {
+      g.bench_function(format!("direct_thread_cpu__{}", evidence.raw_provider), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_raw_nanos()))
+      });
+    }
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      if evidence.selected_provider == evidence.libc_provider {
+        g.bench_function(format!("{prefix}__{}", evidence.selected_provider), |b| {
+          b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_libc_nanos()))
+        });
+      } else {
+        g.bench_function(format!("{prefix}__{}", evidence.selected_provider), |b| {
+          b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_raw_nanos()))
+        });
+      }
+    }
+  }
+  #[cfg(all(target_arch = "x86", target_os = "linux"))]
+  {
+    let evidence = tach::bench::thread_cpu_i686_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = match name {
+        "libc_clock_gettime" => 0,
+        "linux_i686_time32_syscall" => 1,
+        "linux_i686_time64_syscall" => 2,
+        _ => continue,
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_i686_exact_candidate(index)))
+      });
+    }
+    let selected = tach::bench::thread_cpu_i686_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_i686_selected_native_nanos()))
+      });
+    }
+  }
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  {
+    let evidence = tach::bench::thread_cpu_arm_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = match name {
+        "libc_clock_gettime" => 0,
+        "linux_arm_time32_syscall" => 1,
+        "linux_arm_time64_syscall" => 2,
+        _ => continue,
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_arm_exact_candidate(index)))
+      });
+    }
+    let selected = tach::bench::thread_cpu_arm_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_arm_selected_native_nanos()))
+      });
+    }
+  }
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  {
+    let evidence = tach::bench::thread_cpu_riscv64_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = match name {
+        "libc_clock_gettime" => 0,
+        "linux_riscv64_syscall" => 1,
+        _ => continue,
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_riscv64_exact_candidate(index)))
+      });
+    }
+    let selected = tach::bench::thread_cpu_riscv64_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_riscv64_selected_native_nanos()))
+      });
+    }
+  }
+  #[cfg(all(
+    target_os = "linux",
+    any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+  ))]
+  {
+    let evidence = tach::bench::thread_cpu_rare_linux_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = if name == "libc_clock_gettime" {
+        0
+      } else if name.contains("raw_scv") {
+        2
+      } else {
+        1
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_rare_linux_exact_candidate(index)))
+      });
+    }
+    let selected = tach::bench::thread_cpu_rare_linux_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_rare_linux_selected_native_nanos()))
+      });
+    }
   }
   g.finish();
-  write_thread_cpu_selection();
   assert_eq!(tach_id, thread_cpu_bench_id(), "thread-CPU provider changed during now() bench");
 }
 
@@ -150,134 +3171,1012 @@ fn bench_thread_cpu_elapsed(c: &mut Criterion) {
       black_box(Duration::from_nanos(native_thread_cpu_now().saturating_sub(start)))
     });
   });
+  #[cfg(all(feature = "bench-internal", target_os = "windows"))]
+  {
+    for prefix in ["direct_thread_cpu", "direct_selected_thread_cpu"] {
+      g.bench_function(format!("{prefix}__{WINDOWS_THREAD_CPU_MECHANISM}"), |b| {
+        b.iter(|| {
+          let start = native_thread_cpu_now();
+          black_box(Duration::from_nanos(native_thread_cpu_now().saturating_sub(start)))
+        });
+      });
+    }
+    let _ = tach::bench::windows_thread_cpu_wall_fallback_now();
+    g.bench_function(
+      format!("direct_fallback_thread_cpu__{WINDOWS_THREAD_CPU_WALL_FALLBACK_MECHANISM}"),
+      |b| {
+        b.iter(|| {
+          let start = tach::bench::windows_thread_cpu_wall_fallback_now();
+          black_box(tach::bench::windows_thread_cpu_wall_fallback_now().duration_since(start))
+        });
+      },
+    );
+  }
   #[cfg(all(
     feature = "bench-internal",
     feature = "thread-cpu-inline",
-    target_os = "linux",
-    any(target_arch = "x86_64", target_arch = "aarch64"),
+    any(
+      all(
+        target_os = "linux",
+        any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+        ),
+      ),
+      all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+    ),
   ))]
-  if let Some(direct) = ThreadCpuPerfHandle::try_for_current_thread() {
-    g.bench_function("direct_thread_cpu__linux_perf_mmap", |b| {
-      b.iter(|| {
-        let start = direct.now_nanos();
-        black_box(Duration::from_nanos(direct.now_nanos().saturating_sub(start)))
+  {
+    if let Some(perf) = ThreadCpuPerfHandle::try_for_current_thread() {
+      for candidate in 0..perf.candidate_count() {
+        let Some(name) = perf.candidate_name(candidate) else {
+          continue;
+        };
+        if !perf.select_candidate(candidate) {
+          continue;
+        }
+        g.bench_function(format!("direct_thread_cpu__linux_perf_mmap__{name}"), |b| {
+          b.iter(|| {
+            let start = perf.now_nanos();
+            black_box(Duration::from_nanos(perf.now_nanos().saturating_sub(start)))
+          });
+        });
+      }
+    }
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    feature = "thread-cpu-inline",
+    any(
+      all(
+        target_os = "linux",
+        any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+          target_arch = "s390x",
+          target_arch = "loongarch64",
+          target_arch = "powerpc64",
+        ),
+      ),
+      all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+    ),
+  ))]
+  {
+    if let Some(perf) = ThreadCpuPerfReadHandle::try_for_current_thread() {
+      for candidate in 0..perf.candidate_count() {
+        let Some(name) = perf.candidate_name(candidate) else {
+          continue;
+        };
+        if !perf.select_candidate(candidate) {
+          continue;
+        }
+        g.bench_function(format!("direct_thread_cpu__linux_perf_read__{name}"), |b| {
+          b.iter(|| {
+            let start = perf.direct_nanos();
+            black_box(Duration::from_nanos(perf.direct_nanos().saturating_sub(start)))
+          });
+        });
+      }
+    }
+  }
+  #[cfg(all(
+    feature = "bench-internal",
+    feature = "thread-cpu-inline",
+    any(
+      all(
+        target_os = "linux",
+        any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+          target_arch = "s390x",
+          target_arch = "loongarch64",
+          target_arch = "powerpc64",
+        ),
+      ),
+      all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+    ),
+  ))]
+  {
+    if let (Some(evidence), Some(paths)) = (
+      tach::bench::thread_cpu_perf_path_evidence(),
+      ThreadCpuPerfPathHandle::try_for_current_thread(),
+    ) {
+      let selected_mechanism = thread_cpu_path_mechanism(evidence.selected_path)
+        .expect("selected measured thread-CPU path must identify its exact mechanism");
+      let fallback_mechanism = thread_cpu_path_mechanism(evidence.fallback_path)
+        .expect("fallback measured thread-CPU path must identify its exact mechanism");
+      for (prefix, path, mechanism) in [
+        ("direct_selected_thread_cpu", evidence.selected_path, selected_mechanism),
+        ("direct_fallback_thread_cpu", evidence.fallback_path, fallback_mechanism),
+      ] {
+        let mut registered = false;
+        for candidate in 0..paths.candidate_count() {
+          if paths.candidate_name(candidate) == Some(path)
+            && paths.candidate_available(candidate)
+            && paths.select_candidate(candidate)
+          {
+            g.bench_function(format!("{prefix}__{mechanism}"), |b| {
+              b.iter(|| {
+                let start = paths.now_nanos();
+                black_box(Duration::from_nanos(paths.now_nanos().saturating_sub(start)))
+              });
+            });
+            registered = true;
+            break;
+          }
+        }
+        assert!(registered, "measured {path} path lacks its exact public-dispatch row");
+      }
+    }
+  }
+  #[cfg(any(
+    all(
+      target_arch = "x86_64",
+      any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+    ),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ))]
+  {
+    let evidence = tach::bench::thread_cpu_native64_selection_measurements();
+    if evidence.libc_available {
+      g.bench_function(format!("direct_thread_cpu__{}", evidence.libc_provider), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_native64_exact_libc_nanos();
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_native64_exact_libc_nanos().saturating_sub(start),
+          ))
+        })
       });
-    });
+    }
+    if evidence.raw_available {
+      g.bench_function(format!("direct_thread_cpu__{}", evidence.raw_provider), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_native64_exact_raw_nanos();
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_native64_exact_raw_nanos().saturating_sub(start),
+          ))
+        })
+      });
+    }
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      if evidence.selected_provider == evidence.libc_provider {
+        g.bench_function(format!("{prefix}__{}", evidence.selected_provider), |b| {
+          b.iter(|| {
+            let start = tach::bench::thread_cpu_native64_exact_libc_nanos();
+            black_box(Duration::from_nanos(
+              tach::bench::thread_cpu_native64_exact_libc_nanos().saturating_sub(start),
+            ))
+          })
+        });
+      } else {
+        g.bench_function(format!("{prefix}__{}", evidence.selected_provider), |b| {
+          b.iter(|| {
+            let start = tach::bench::thread_cpu_native64_exact_raw_nanos();
+            black_box(Duration::from_nanos(
+              tach::bench::thread_cpu_native64_exact_raw_nanos().saturating_sub(start),
+            ))
+          })
+        });
+      }
+    }
+  }
+  #[cfg(all(target_arch = "x86", target_os = "linux"))]
+  {
+    let evidence = tach::bench::thread_cpu_i686_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = match name {
+        "libc_clock_gettime" => 0,
+        "linux_i686_time32_syscall" => 1,
+        "linux_i686_time64_syscall" => 2,
+        _ => continue,
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_i686_exact_candidate(index);
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_i686_exact_candidate(index).saturating_sub(start),
+          ))
+        })
+      });
+    }
+    let selected = tach::bench::thread_cpu_i686_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_i686_selected_native_nanos();
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_i686_selected_native_nanos().saturating_sub(start),
+          ))
+        })
+      });
+    }
+  }
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  {
+    let evidence = tach::bench::thread_cpu_arm_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = match name {
+        "libc_clock_gettime" => 0,
+        "linux_arm_time32_syscall" => 1,
+        "linux_arm_time64_syscall" => 2,
+        _ => continue,
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_arm_exact_candidate(index);
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_arm_exact_candidate(index).saturating_sub(start),
+          ))
+        })
+      });
+    }
+    let selected = tach::bench::thread_cpu_arm_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_arm_selected_native_nanos();
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_arm_selected_native_nanos().saturating_sub(start),
+          ))
+        })
+      });
+    }
+  }
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  {
+    let evidence = tach::bench::thread_cpu_riscv64_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = match name {
+        "libc_clock_gettime" => 0,
+        "linux_riscv64_syscall" => 1,
+        _ => continue,
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_riscv64_exact_candidate(index);
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_riscv64_exact_candidate(index).saturating_sub(start),
+          ))
+        })
+      });
+    }
+    let selected = tach::bench::thread_cpu_riscv64_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_riscv64_selected_native_nanos();
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_riscv64_selected_native_nanos().saturating_sub(start),
+          ))
+        })
+      });
+    }
+  }
+  #[cfg(all(
+    target_os = "linux",
+    any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+  ))]
+  {
+    let evidence = tach::bench::thread_cpu_rare_linux_native_selection_evidence();
+    for name in evidence.candidate_names {
+      let index = if name == "libc_clock_gettime" {
+        0
+      } else if name.contains("raw_scv") {
+        2
+      } else {
+        1
+      };
+      g.bench_function(format!("direct_thread_cpu__{name}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_rare_linux_exact_candidate(index);
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_rare_linux_exact_candidate(index).saturating_sub(start),
+          ))
+        })
+      });
+    }
+    let selected = tach::bench::thread_cpu_rare_linux_native_provider();
+    for prefix in [
+      thread_cpu_selected_path_is("posix_thread_cpu").then_some("direct_selected_thread_cpu"),
+      thread_cpu_fallback_path_is("posix_thread_cpu").then_some("direct_fallback_thread_cpu"),
+    ]
+    .into_iter()
+    .flatten()
+    {
+      g.bench_function(format!("{prefix}__{selected}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_rare_linux_selected_native_nanos();
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_rare_linux_selected_native_nanos().saturating_sub(start),
+          ))
+        })
+      });
+    }
   }
   g.finish();
   assert_eq!(tach_id, thread_cpu_bench_id(), "thread-CPU provider changed during elapsed() bench");
+  write_thread_cpu_selection();
+  write_thread_cpu_perf_selection();
 }
 
 #[cfg(all(
   feature = "bench-internal",
   feature = "thread-cpu-inline",
-  target_os = "linux",
-  any(target_arch = "x86_64", target_arch = "aarch64"),
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
 ))]
-fn write_thread_cpu_selection() {
+fn write_thread_cpu_perf_selection() {
   use std::fs;
   use std::path::PathBuf;
 
-  let measurement = tach::bench::thread_cpu_selection_measurements();
-  let provider = format!("{:?}", ThreadCpuInstant::provider());
-  let payload = match measurement {
-    Some((mut perf_samples, mut syscall_samples, iterations)) => {
-      let perf_raw_samples = perf_samples;
-      let syscall_raw_samples = syscall_samples;
-      perf_samples.sort_unstable();
-      syscall_samples.sort_unstable();
-      let perf_total_ns = perf_samples[perf_samples.len() / 2];
-      let syscall_total_ns = syscall_samples[syscall_samples.len() / 2];
-      let allowance_total_ns = (iterations as u64).max(syscall_total_ns / 20);
-      let decisive_wins = perf_raw_samples
-        .iter()
-        .zip(syscall_raw_samples)
-        .filter(|(perf, syscall)| (**perf).saturating_add(allowance_total_ns) < *syscall)
-        .count();
-      let decision = if perf_total_ns.saturating_add(allowance_total_ns) < syscall_total_ns
-        && decisive_wins >= 8
-      {
-        "perf"
-      } else {
-        "syscall"
-      };
-      serde_json::json!({
-        "available": true,
-        "iterations": iterations,
-        "perf_total_ns_samples": perf_raw_samples,
-        "syscall_total_ns_samples": syscall_raw_samples,
-        "perf_median_total_ns": perf_total_ns,
-        "syscall_median_total_ns": syscall_total_ns,
-        "perf_estimated_ns": perf_total_ns as f64 / iterations as f64,
-        "syscall_estimated_ns": syscall_total_ns as f64 / iterations as f64,
-        "equivalence_allowance_total_ns": allowance_total_ns,
-        "equivalence_allowance_ns": allowance_total_ns as f64 / iterations as f64,
-        "decisive_paired_wins": decisive_wins,
-        "required_decisive_paired_wins": 8,
-        "decision_rule": "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins",
-        "selected_provider": if provider == "LinuxPerfMmap" { "perf" } else { "syscall" },
-        "decision": decision,
-      })
+  let path_evidence = tach::bench::thread_cpu_perf_path_evidence();
+  let mmap_available = path_evidence.as_ref().is_some_and(|probe| probe.mmap_batches_ns.is_some());
+  #[allow(unused_mut)]
+  let mut mmap_candidates = Vec::new();
+  #[allow(unused_mut)]
+  let mut mmap_mechanism = None;
+  #[cfg(any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ))]
+  if mmap_available {
+    if let Some(perf) = ThreadCpuPerfHandle::try_for_current_thread() {
+      let selected = perf.selected_candidate_name();
+      mmap_mechanism = Some(format!("linux_perf_mmap__{selected}"));
+      for index in 0..perf.candidate_count() {
+        let Some(name) = perf.candidate_name(index) else {
+          continue;
+        };
+        if perf.select_candidate(index) {
+          mmap_candidates.push(format!("direct_thread_cpu__linux_perf_mmap__{name}"));
+        }
+      }
     }
-    None => serde_json::json!({
-      "available": false,
-      "selected_provider": "syscall",
-      "decision": "syscall",
-      "reason": "perf task-clock mmap was unavailable or became unreadable",
-    }),
+  }
+
+  #[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
+  let counter_probe = tach::bench::thread_cpu_perf_counter_evidence()
+    .filter(|_| mmap_available)
+    .map(|probe| {
+      let count = probe.candidate_count;
+      serde_json::json!({
+        "selection_kind": "tournament",
+        "candidate_names": &probe.candidate_names[..count],
+        "candidate_eligible": &probe.candidate_eligible[..count],
+        "candidate_batches_ns": &probe.candidate_batches_ns[..count],
+        "selected_candidate": probe.selected_candidate,
+        "reads_per_batch": probe.reads_per_batch,
+        "required_decisive_wins": probe.required_decisive_wins,
+        "equivalence_band": {
+          "floor_ns_per_read": 1,
+          "relative_denominator": 20,
+        },
+      })
+    });
+  #[cfg(target_arch = "arm")]
+  let counter_probe = mmap_available.then(|| {
+    serde_json::json!({
+      "selection_kind": "fixed_candidate",
+      "candidate_names": ["arm_isb_mrrc_cntvct_isb"],
+      "candidate_eligible": [true],
+      "candidate_batches_ns": null,
+      "selected_candidate": "arm_isb_mrrc_cntvct_isb",
+      "eligibility_gate": "perf cap_user_time observed under the mmap seqlock before the first MRRC; AArch32 exposes no FEAT_ECV HWCAP, so CNTVCTSS is fail-closed",
+    })
+  });
+  #[cfg(target_arch = "riscv64")]
+  let counter_probe = mmap_available.then(|| {
+    serde_json::json!({
+      "selection_kind": "fixed_candidate",
+      "candidate_names": ["riscv_fence_rdtime_fence"],
+      "candidate_eligible": [true],
+      "candidate_batches_ns": null,
+      "selected_candidate": "riscv_fence_rdtime_fence",
+    })
+  });
+  #[cfg(any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"))]
+  let counter_probe: Option<serde_json::Value> = None;
+
+  let read_entry_evidence = path_evidence
+    .as_ref()
+    .and_then(|_| tach::bench::thread_cpu_perf_read_entry_evidence());
+  let mut read_candidates = Vec::new();
+  let mut read_mechanism = None;
+  let read_entry_probe = read_entry_evidence.as_ref().map(|probe| {
+    let count = probe.candidate_count;
+    read_mechanism = Some(format!("linux_perf_read__{}", probe.selected_candidate));
+    for index in 0..count {
+      if probe.candidate_eligible[index] {
+        read_candidates
+          .push(format!("direct_thread_cpu__linux_perf_read__{}", probe.candidate_names[index],));
+      }
+    }
+    let measured_count = probe.candidate_measured[..count].iter().filter(|value| **value).count();
+    serde_json::json!({
+      "selection_kind": if measured_count > 1 { "tournament" } else { "fixed_candidate" },
+      "candidate_names": &probe.candidate_names[..count],
+      "candidate_eligible": &probe.candidate_eligible[..count],
+      "candidate_measured": &probe.candidate_measured[..count],
+      "candidate_batches_ns": if measured_count > 1 {
+        serde_json::to_value(&probe.candidate_batches_ns[..count])
+          .expect("serialize perf-read candidate batches")
+      } else {
+        serde_json::Value::Null
+      },
+      "selected_candidate": probe.selected_candidate,
+      "reads_per_batch": probe.reads_per_batch,
+      "required_decisive_wins": probe.required_decisive_wins,
+      "equivalence_band": {
+        "floor_ns_per_read": 1,
+        "relative_denominator": 20,
+      },
+    })
+  });
+
+  #[cfg(any(
+    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ))]
+  let native_evidence = tach::bench::thread_cpu_native64_selection_measurements();
+  #[cfg(any(
+    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ))]
+  let native_entry_probe =
+    serde_json::to_value(&native_evidence).expect("serialize native thread-CPU selector");
+  #[cfg(not(any(
+    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "x86", target_os = "linux"),
+    all(target_arch = "arm", target_os = "linux"),
+    all(target_arch = "riscv64", target_os = "linux"),
+    all(
+      target_os = "linux",
+      any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+    ),
+  )))]
+  let native_entry_probe = serde_json::Value::Null;
+  #[cfg(all(target_arch = "x86", target_os = "linux"))]
+  let native_evidence = tach::bench::thread_cpu_i686_native_selection_evidence();
+  #[cfg(all(target_arch = "x86", target_os = "linux"))]
+  let native_entry_probe =
+    serde_json::to_value(&native_evidence).expect("serialize i686 native thread-CPU selector");
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  let native_evidence = tach::bench::thread_cpu_arm_native_selection_evidence();
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  let native_entry_probe =
+    serde_json::to_value(&native_evidence).expect("serialize Arm native thread-CPU selector");
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  let native_evidence = tach::bench::thread_cpu_riscv64_native_selection_evidence();
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  let native_entry_probe =
+    serde_json::to_value(&native_evidence).expect("serialize RISC-V native thread-CPU selector");
+  #[cfg(all(
+    target_os = "linux",
+    any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+  ))]
+  let native_evidence = tach::bench::thread_cpu_rare_linux_native_selection_evidence();
+  #[cfg(all(
+    target_os = "linux",
+    any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+  ))]
+  let native_entry_probe = serde_json::to_value(&native_evidence)
+    .expect("serialize rare Linux native thread-CPU selector");
+
+  #[cfg(any(
+    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ))]
+  let (native_provider, mut eligible_direct_candidates) = {
+    let mut candidates = Vec::with_capacity(2 + mmap_candidates.len() + read_candidates.len());
+    if native_evidence.libc_available {
+      candidates.push(format!("direct_thread_cpu__{}", native_evidence.libc_provider));
+    }
+    if native_evidence.raw_available {
+      candidates.push(format!("direct_thread_cpu__{}", native_evidence.raw_provider));
+    }
+    (native_evidence.selected_provider, candidates)
   };
+  #[cfg(all(target_arch = "x86", target_os = "linux"))]
+  let (native_provider, mut eligible_direct_candidates) = {
+    let provider = tach::bench::thread_cpu_i686_native_provider();
+    let candidates: Vec<String> = native_evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (provider, candidates)
+  };
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  let (native_provider, mut eligible_direct_candidates) = {
+    let provider = tach::bench::thread_cpu_arm_native_provider();
+    let candidates: Vec<String> = native_evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (provider, candidates)
+  };
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  let (native_provider, mut eligible_direct_candidates) = {
+    let provider = tach::bench::thread_cpu_riscv64_native_provider();
+    let candidates: Vec<String> = native_evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (provider, candidates)
+  };
+  #[cfg(all(
+    target_os = "linux",
+    any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+  ))]
+  let (native_provider, mut eligible_direct_candidates) = {
+    let provider = tach::bench::thread_cpu_rare_linux_native_provider();
+    let candidates: Vec<String> = native_evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (provider, candidates)
+  };
+  eligible_direct_candidates.extend(mmap_candidates.iter().cloned());
+  eligible_direct_candidates.extend(read_candidates.iter().cloned());
+
+  let mechanism_for_path = |path: &str| match path {
+    "linux_perf_mmap" => mmap_mechanism
+      .clone()
+      .expect("available perf-mmap path must identify its selected counter"),
+    "linux_perf_read" => read_mechanism
+      .clone()
+      .expect("available perf-read path must identify its selected read ABI"),
+    "posix_thread_cpu" => native_provider.to_owned(),
+    _ => panic!("unknown measured thread-CPU path: {path}"),
+  };
+  let provider_for_path = |path: &str| match path {
+    "linux_perf_mmap" => "linux_perf_mmap",
+    "linux_perf_read" => "linux_perf_read",
+    "posix_thread_cpu" => "posix_thread_cpu_clock",
+    _ => panic!("unknown measured thread-CPU path: {path}"),
+  };
+  let cost_for_path = |path: &str| match path {
+    "linux_perf_mmap" => "inline",
+    "linux_perf_read" | "posix_thread_cpu" => "system call",
+    _ => panic!("unknown measured thread-CPU path: {path}"),
+  };
+
+  let selected_path =
+    path_evidence.as_ref().map_or("posix_thread_cpu", |probe| probe.selected_path);
+  let selected_provider = provider_for_path(selected_path);
+  let selected_mechanism = mechanism_for_path(selected_path);
+  let selected_read_cost = cost_for_path(selected_path);
+  let selected_native_benchmark = format!("direct_selected_thread_cpu__{selected_mechanism}");
+  let expected_public_provider = match selected_path {
+    "linux_perf_mmap" => ThreadCpuProvider::LinuxPerfMmap,
+    "linux_perf_read" => ThreadCpuProvider::LinuxPerfRead,
+    "posix_thread_cpu" => ThreadCpuProvider::PosixThreadCpuClock,
+    _ => unreachable!(),
+  };
+  assert_eq!(
+    ThreadCpuInstant::provider(),
+    expected_public_provider,
+    "measured thread-CPU selector and public provider disagree",
+  );
+  let introspected_read_cost = match ThreadCpuInstant::read_cost_hint() {
+    ThreadCpuReadCost::Inline => "inline",
+    ThreadCpuReadCost::SystemCall => "system call",
+    ThreadCpuReadCost::HostCall => "host call",
+    ThreadCpuReadCost::Unavailable => "unavailable",
+    _ => "unknown",
+  };
+  assert_eq!(
+    introspected_read_cost, selected_read_cost,
+    "measured thread-CPU selector and public read-cost hint disagree",
+  );
+
+  let fallback_path = path_evidence.as_ref().map(|probe| probe.fallback_path);
+  let fallback_provider = fallback_path.map(provider_for_path);
+  let fallback_mechanism = fallback_path.map(mechanism_for_path);
+  let fallback_read_cost = fallback_path.map(cost_for_path);
+  let fallback_native_benchmark = fallback_mechanism
+    .as_ref()
+    .map(|mechanism| format!("direct_fallback_thread_cpu__{mechanism}"));
+  let path_probe = path_evidence.as_ref().map(|probe| {
+    serde_json::json!({
+      "selection_kind": "tournament_with_measured_runner_up",
+      "candidate_names": ["posix_thread_cpu", "linux_perf_mmap", "linux_perf_read"],
+      "candidate_eligible": [true, probe.mmap_batches_ns.is_some(), true],
+      "candidate_batches_ns": [
+        probe.posix_batches_ns,
+        probe.mmap_batches_ns.unwrap_or([0; 9]),
+        probe.read_batches_ns,
+      ],
+      "selected_candidate": probe.selected_path,
+      "fallback_candidate": probe.fallback_path,
+      "reads_per_batch": probe.reads_per_batch,
+      "required_decisive_wins": probe.required_decisive_wins,
+      "equivalence_band": {
+        "floor_ns_per_read": 1,
+        "relative_denominator": 20,
+      },
+      "capability_was_not_profitable": probe.mmap_batches_ns.is_some()
+        && probe.selected_path != "linux_perf_mmap",
+    })
+  });
+  let payload = serde_json::json!({
+    "selected_provider": selected_provider,
+    "selected_mechanism": selected_mechanism,
+    "selected_read_cost": selected_read_cost,
+    "selected_native_benchmark": selected_native_benchmark,
+    "fallback_provider": fallback_provider,
+    "fallback_mechanism": fallback_mechanism,
+    "fallback_read_cost": fallback_read_cost,
+    "fallback_native_benchmark": fallback_native_benchmark,
+    "eligible_direct_candidates": eligible_direct_candidates,
+    "native_entry_probe": native_entry_probe,
+    "perf": {
+      "event_available": path_evidence.is_some(),
+      "path_probe": path_probe,
+      "mmap": {
+        "supported_on_target": cfg!(any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+        )),
+        "available": mmap_available,
+        "read_cost": "inline",
+        "selected_mechanism": mmap_mechanism,
+        "selected_candidate_benchmark": mmap_mechanism
+          .as_ref()
+          .map(|mechanism| format!("direct_thread_cpu__{mechanism}")),
+        "eligible_benchmarks": mmap_candidates,
+        "counter_probe": counter_probe,
+      },
+      "read": {
+        "supported_on_target": true,
+        "available": read_entry_evidence.is_some(),
+        "read_cost": "system call",
+        "selected_mechanism": read_mechanism,
+        "selected_candidate_benchmark": read_mechanism
+          .as_ref()
+          .map(|mechanism| format!("direct_thread_cpu__{mechanism}")),
+        "eligible_benchmarks": read_candidates,
+        "entry_probe": read_entry_probe,
+      },
+      "decision_rule": "POSIX, eligible perf-mmap, and persistent perf-read complete public-dispatch paths compete in order; a challenger replaces the incumbent only by > max(1 ns/read, 5%) in >=8/9 paired batches, and the same tournament excluding the winner selects the measured fallback",
+      "measurement_clock": "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the candidate under test",
+    },
+    "read_cost_basis": "perf mmap is Inline because tach issues no OS or host call on the hot path; persistent perf read and every CLOCK_THREAD_CPUTIME_ID entry route are SystemCall",
+  });
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
   let directory = target.join("criterion");
-  fs::create_dir_all(&directory).expect("create criterion output directory");
+  fs::create_dir_all(&directory).expect("create criterion directory");
   fs::write(
     directory.join("thread-cpu-selection.json"),
-    serde_json::to_vec_pretty(&payload).expect("serialize thread CPU selection"),
+    serde_json::to_vec_pretty(&payload).expect("serialize perf selector evidence"),
   )
-  .expect("write thread CPU selection evidence");
+  .expect("write perf selector evidence");
 }
 
 #[cfg(not(all(
   feature = "bench-internal",
   feature = "thread-cpu-inline",
-  target_os = "linux",
-  any(target_arch = "x86_64", target_arch = "aarch64"),
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64"),),
+  ),
 )))]
+fn write_thread_cpu_perf_selection() {}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(
+    all(
+      target_arch = "x86_64",
+      any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+    ),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ),
+))]
 fn write_thread_cpu_selection() {
   use std::fs;
+  use std::path::PathBuf;
+
+  let evidence = tach::bench::thread_cpu_native64_selection_measurements();
+  let mut candidates = Vec::with_capacity(2);
+  if evidence.libc_available {
+    candidates.push(format!("direct_thread_cpu__{}", evidence.libc_provider));
+  }
+  if evidence.raw_available {
+    candidates.push(format!("direct_thread_cpu__{}", evidence.raw_provider));
+  }
+  let payload = serde_json::json!({
+    "selected_provider": "posix_thread_cpu_clock",
+    "selected_mechanism": evidence.selected_provider,
+    "selected_read_cost": "system call",
+    "selected_native_benchmark": format!(
+      "direct_selected_thread_cpu__{}",
+      evidence.selected_provider,
+    ),
+    "fallback_provider": null,
+    "fallback_mechanism": null,
+    "fallback_read_cost": null,
+    "fallback_native_benchmark": null,
+    "eligible_direct_candidates": candidates,
+    "native_entry_probe": evidence,
+    "perf": {
+      "event_available": false,
+      "path_probe": null,
+      "mmap": {
+        "supported_on_target": false,
+        "available": false,
+        "read_cost": "inline",
+        "selected_mechanism": null,
+        "selected_candidate_benchmark": null,
+        "eligible_benchmarks": [],
+        "counter_probe": null,
+      },
+      "read": {
+        "supported_on_target": false,
+        "available": false,
+        "read_cost": "system call",
+        "selected_mechanism": null,
+        "selected_candidate_benchmark": null,
+        "eligible_benchmarks": [],
+        "entry_probe": null,
+      },
+      "decision_rule": "no perf provider exists on this target; the measured native CLOCK_THREAD_CPUTIME_ID entry winner is the complete public path",
+      "measurement_clock": "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the candidate under test",
+    },
+    "read_cost_basis": "CLOCK_THREAD_CPUTIME_ID remains a kernel-entry SystemCall tier through either the libc wrapper or raw ABI; relative wrapper speed does not change mechanism class",
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("thread-cpu-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize thread-CPU selector evidence"),
+  )
+  .expect("write thread-CPU selector evidence");
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  any(
+    all(
+      target_arch = "x86_64",
+      any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+    ),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ),
+)))]
+#[cfg(not(target_os = "windows"))]
+fn write_thread_cpu_selection() {}
+
+#[cfg(all(feature = "bench-internal", target_os = "windows"))]
+fn write_thread_cpu_selection() {
+  use std::fs;
+  use std::io::ErrorKind;
   use std::path::PathBuf;
 
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
-  let _ = fs::remove_file(target.join("criterion/thread-cpu-selection.json"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  let selection_path = directory.join("thread-cpu-selection.json");
+  match fs::remove_file(&selection_path) {
+    Ok(()) => {}
+    Err(error) if error.kind() == ErrorKind::NotFound => {}
+    Err(error) => panic!("remove stale Windows thread-CPU selector evidence: {error}"),
+  }
+
+  assert_eq!(
+    ThreadCpuInstant::provider(),
+    ThreadCpuProvider::WindowsThreadTimes,
+    "Windows thread-CPU evidence requires the documented GetThreadTimes provider",
+  );
+  assert_eq!(
+    ThreadCpuInstant::read_cost_hint(),
+    ThreadCpuReadCost::SystemCall,
+    "Windows GetThreadTimes must retain its system-call cost classification",
+  );
+
+  let direct_candidate = format!("direct_thread_cpu__{WINDOWS_THREAD_CPU_MECHANISM}");
+  let selected_benchmark = format!("direct_selected_thread_cpu__{WINDOWS_THREAD_CPU_MECHANISM}");
+  let failure_fallback_benchmark =
+    format!("direct_fallback_thread_cpu__{WINDOWS_THREAD_CPU_WALL_FALLBACK_MECHANISM}");
+  let payload = serde_json::json!({
+    "selection_kind": "fixed_windows_thread_times",
+    "selected_provider": "windows_thread_times",
+    "selected_mechanism": WINDOWS_THREAD_CPU_MECHANISM,
+    "selected_read_cost": "system call",
+    "selected_native_benchmark": selected_benchmark,
+    "fallback_provider": null,
+    "fallback_mechanism": null,
+    "fallback_read_cost": null,
+    "fallback_native_benchmark": null,
+    "eligible_direct_candidates": [direct_candidate],
+    "native_campaign_guard": {
+      "required_provider": "windows_thread_times",
+      "required_read_cost": "system call",
+      "stale_selection_removed_before_guard": true,
+      "on_mismatch": "panic before thread-cpu-selection.json is written",
+    },
+    "fixed_provider": {
+      "candidate": WINDOWS_THREAD_CPU_MECHANISM,
+      "supported_architectures": ["x86", "x86_64", "aarch64"],
+      "selection_basis": "GetThreadTimes is Windows' documented elapsed current-thread CPU timeline",
+      "authority": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes",
+    },
+    "failure_fallback": {
+      "provider": "monotonic_wall_clock",
+      "mechanism": WINDOWS_THREAD_CPU_WALL_FALLBACK_MECHANISM,
+      "read_cost": "system call",
+      "time_domain": "monotonic wall fallback",
+      "trigger": "GetThreadTimes(current-thread pseudo-handle) returns zero",
+      "state_transition": "sticky process-wide fallback",
+      "eligible_for_thread_cpu_speed_claim": false,
+      "exact_route_measured": true,
+      "exact_benchmark": failure_fallback_benchmark,
+      "observed_as_public_provider_during_campaign": false,
+      "campaign_behavior": "an observed fallback aborts the native benchmark before extraction instead of emitting thread-CPU parity evidence",
+    },
+    "ineligible_direct_candidates": {
+      "query_thread_cycle_time": {
+        "eligibility": "ineligible",
+        "reason": "implementation-dependent cycles cannot be converted to elapsed thread CPU time",
+        "authority": "https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-querythreadcycletime",
+      },
+      "nt_query_information_thread": {
+        "eligibility": "ineligible",
+        "reason": "the documented THREADINFOCLASS contract exposes no stable ThreadTimes class",
+        "authority": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationthread",
+      },
+    },
+  });
+  fs::write(
+    selection_path,
+    serde_json::to_vec_pretty(&payload).expect("serialize Windows thread-CPU selector evidence"),
+  )
+  .expect("write Windows thread-CPU selector evidence");
 }
 
-#[cfg(target_os = "linux")]
-const NATIVE_THREAD_CPU_BENCH_ID: &str = "native_thread_cpu__clock_gettime_clock_thread_cputime_id";
+#[cfg(all(not(feature = "bench-internal"), target_os = "windows"))]
+fn write_thread_cpu_selection() {}
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const NATIVE_THREAD_CPU_BENCH_ID: &str =
+  "native_thread_cpu__inline_syscall_clock_thread_cputime_id";
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[inline(always)]
 fn native_thread_cpu_now() -> u64 {
   let mut value = MaybeUninit::<libc::timespec>::uninit();
-  // SAFETY: the pointer is writable timespec storage and the clock ID names
-  // the calling thread's CPU-time clock.
-  if unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, value.as_mut_ptr()) } != 0 {
-    return 0;
-  }
+  #[cfg(target_arch = "x86_64")]
+  let status = {
+    let mut status = libc::SYS_clock_gettime;
+    // SAFETY: this is the Linux x86_64 syscall ABI and value is writable
+    // timespec storage.
+    unsafe {
+      asm!(
+        "syscall",
+        inlateout("rax") status,
+        in("rdi") libc::CLOCK_THREAD_CPUTIME_ID,
+        in("rsi") value.as_mut_ptr(),
+        lateout("rcx") _,
+        lateout("r11") _,
+        options(nostack),
+      );
+    }
+    status
+  };
+  #[cfg(target_arch = "aarch64")]
+  let status = {
+    let mut status = libc::c_long::from(libc::CLOCK_THREAD_CPUTIME_ID);
+    // SAFETY: this is the Linux-kernel aarch64 syscall ABI and value is writable
+    // timespec storage.
+    unsafe {
+      asm!(
+        "svc 0",
+        inlateout("x0") status,
+        in("x1") value.as_mut_ptr(),
+        in("x8") libc::SYS_clock_gettime,
+        options(nostack),
+      );
+    }
+    status
+  };
+  #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+  let status: libc::c_long = {
+    // SAFETY: the pointer is writable timespec storage and the clock ID names
+    // the calling thread's CPU-time clock.
+    unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, value.as_mut_ptr()).into() }
+  };
+  assert_eq!(status, 0, "native CLOCK_THREAD_CPUTIME_ID syscall failed");
   // SAFETY: clock_gettime initialized the timespec on success.
   let value = unsafe { value.assume_init() };
-  let Ok(seconds) = u64::try_from(value.tv_sec) else {
-    return 0;
-  };
-  let Ok(nanos) = u32::try_from(value.tv_nsec) else {
-    return 0;
-  };
+  let seconds = u64::try_from(value.tv_sec).expect("native thread CPU seconds were negative");
+  let nanos = u32::try_from(value.tv_nsec).expect("native thread CPU nanoseconds were invalid");
+  assert!(nanos < 1_000_000_000, "native thread CPU nanoseconds were out of range");
   seconds
     .checked_mul(1_000_000_000)
     .and_then(|base| base.checked_add(u64::from(nanos)))
-    .unwrap_or(0)
+    .expect("native thread CPU timestamp overflowed")
 }
 
 #[cfg(target_os = "macos")]
@@ -295,8 +4194,37 @@ fn native_thread_cpu_now() -> u64 {
   unsafe { clock_gettime_nsec_np(libc::CLOCK_THREAD_CPUTIME_ID) }
 }
 
+#[cfg(target_os = "freebsd")]
+const NATIVE_THREAD_CPU_BENCH_ID: &str = "native_thread_cpu__clock_gettime_clock_thread_cputime_id";
+
+#[cfg(target_os = "freebsd")]
+#[inline(always)]
+fn native_thread_cpu_now() -> u64 {
+  let mut value = MaybeUninit::<libc::timespec>::uninit();
+  // SAFETY: the output is writable and CLOCK_THREAD_CPUTIME_ID names the
+  // calling thread's CPU clock on FreeBSD.
+  let status = unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, value.as_mut_ptr()) };
+  assert_eq!(status, 0, "native CLOCK_THREAD_CPUTIME_ID call failed");
+  // SAFETY: successful clock_gettime initialized the output.
+  let value = unsafe { value.assume_init() };
+  let seconds = u64::try_from(value.tv_sec).expect("native thread CPU seconds were negative");
+  let nanos = u32::try_from(value.tv_nsec).expect("native thread CPU nanoseconds were invalid");
+  assert!(nanos < 1_000_000_000, "native thread CPU nanoseconds were out of range");
+  seconds
+    .checked_mul(1_000_000_000)
+    .and_then(|base| base.checked_add(u64::from(nanos)))
+    .expect("native thread CPU timestamp overflowed")
+}
+
 #[cfg(target_os = "windows")]
-const NATIVE_THREAD_CPU_BENCH_ID: &str = "native_thread_cpu__get_thread_times";
+const WINDOWS_THREAD_CPU_MECHANISM: &str = "get_thread_times_current_thread_pseudohandle";
+
+#[cfg(target_os = "windows")]
+const WINDOWS_THREAD_CPU_WALL_FALLBACK_MECHANISM: &str = "windows_selected_monotonic_wall_fallback";
+
+#[cfg(target_os = "windows")]
+const NATIVE_THREAD_CPU_BENCH_ID: &str =
+  "native_thread_cpu__get_thread_times_current_thread_pseudohandle";
 
 #[cfg(target_os = "windows")]
 #[inline(always)]
@@ -311,7 +4239,6 @@ fn native_thread_cpu_now() -> u64 {
 
   #[link(name = "kernel32")]
   unsafe extern "system" {
-    fn GetCurrentThread() -> *mut c_void;
     fn GetThreadTimes(
       thread: *mut c_void,
       creation_time: *mut FileTime,
@@ -329,16 +4256,14 @@ fn native_thread_cpu_now() -> u64 {
   // writable FILETIME storage.
   let status = unsafe {
     GetThreadTimes(
-      GetCurrentThread(),
+      (-2_isize) as *mut c_void,
       creation.as_mut_ptr(),
       exit.as_mut_ptr(),
       kernel.as_mut_ptr(),
       user.as_mut_ptr(),
     )
   };
-  if status == 0 {
-    return 0;
-  }
+  assert_ne!(status, 0, "native GetThreadTimes call failed");
   // SAFETY: GetThreadTimes initialized both values on success.
   let kernel = unsafe { kernel.assume_init() };
   // SAFETY: GetThreadTimes initialized both values on success.

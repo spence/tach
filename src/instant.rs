@@ -343,7 +343,7 @@ pub(crate) fn ordered_ticks_to_duration(ticks: u64) -> Duration {
 }
 
 #[inline]
-fn ticks_to_duration_with_scale(ticks: u64, scale: u64) -> Duration {
+pub(crate) fn ticks_to_duration_with_scale(ticks: u64, scale: u64) -> Duration {
   let product = u128::from(ticks) * u128::from(scale);
   let nanos = u64::try_from(product >> 32).unwrap_or(u64::MAX);
   // Common case for elapsed (< 1 second): build Duration directly from

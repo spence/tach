@@ -181,6 +181,13 @@ impl ThreadCpuInstant {
     Self::from_nanos(arch::thread_cpu::now_nanos())
   }
 
+  #[cfg(all(feature = "bench-internal", target_os = "windows"))]
+  #[inline(always)]
+  #[allow(clippy::inline_always)]
+  pub(crate) fn bench_windows_wall_fallback_now() -> Self {
+    Self::from_nanos(encode_wall_ticks(arch::ticks()))
+  }
+
   /// Reports the provider selected for the current OS thread.
   ///
   /// Targets with multiple semantically equivalent native entry paths measure

@@ -23,6 +23,14 @@ use serde::Serialize;
 use crate::Instant as TachInstantTy;
 use crate::OrderedInstant as TachOrderedInstantTy;
 
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn windows_thread_cpu_wall_fallback_now() -> crate::ThreadCpuInstant {
+  crate::ThreadCpuInstant::bench_windows_wall_fallback_now()
+}
+
 #[cfg(all(
   feature = "thread-cpu-inline",
   any(
@@ -573,18 +581,22 @@ pub fn emscripten_exact_ordered_aligned_get_now_ticks() -> u64 {
   crate::arch::emscripten::bench_exact_ordered_aligned_get_now_ticks()
 }
 
-/// An exact selected wall-clock primitive captured outside a benchmark loop.
+/// Metadata for an exact wall-clock provider selected outside a benchmark loop.
+///
+/// The benchmark harness matches this provider name before it enters the timed
+/// closure, so the closure calls a statically named reader rather than this
+/// descriptor through an indirect function pointer.
 #[doc(hidden)]
 #[derive(Clone, Copy)]
-pub struct SelectedWallPrimitive {
+pub struct ExactWallProvider {
   provider: &'static str,
-  read: fn() -> u64,
+  nanos_per_tick_q32: u64,
 }
 
-impl SelectedWallPrimitive {
+impl ExactWallProvider {
   #[allow(dead_code)] // Selector-backed targets construct this in cfg-specific factories.
-  fn new(provider: &'static str, read: fn() -> u64) -> Self {
-    Self { provider, read }
+  fn new(provider: &'static str, nanos_per_tick_q32: u64) -> Self {
+    Self { provider, nanos_per_tick_q32 }
   }
 
   #[doc(hidden)]
@@ -593,45 +605,125 @@ impl SelectedWallPrimitive {
   }
 
   #[doc(hidden)]
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now_ticks(&self) -> u64 {
-    (self.read)()
-  }
-
   #[doc(hidden)]
-  #[inline]
-  pub fn elapsed_since(&self, start: u64) -> Duration {
-    crate::instant::ticks_to_duration(self.now_ticks().saturating_sub(start))
-  }
-
-  #[doc(hidden)]
-  #[inline]
-  pub fn ordered_elapsed_since(&self, start: u64) -> Duration {
-    crate::instant::ordered_ticks_to_duration(self.now_ticks().saturating_sub(start))
+  pub fn nanos_per_tick_q32(&self) -> u64 {
+    self.nanos_per_tick_q32
   }
 }
 
 #[doc(hidden)]
-#[inline]
-pub fn instant_ticks_to_duration(ticks: u64) -> Duration {
-  crate::instant::ticks_to_duration(ticks)
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn exact_ticks_to_duration_with_scale(ticks: u64, nanos_per_tick_q32: u64) -> Duration {
+  crate::instant::ticks_to_duration_with_scale(ticks, nanos_per_tick_q32)
 }
 
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 #[doc(hidden)]
-#[inline]
-pub fn ordered_instant_ticks_to_duration(ticks: u64) -> Duration {
-  crate::instant::ordered_ticks_to_duration(ticks)
+pub fn apple_aarch64_selected_instant_primitive() -> ExactWallProvider {
+  let primitive = crate::arch::apple_aarch64::bench_selected_instant_primitive();
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
+
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+#[doc(hidden)]
+pub fn apple_aarch64_selected_ordered_primitive() -> ExactWallProvider {
+  let primitive = crate::arch::apple_aarch64::bench_selected_ordered_primitive();
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
+}
+
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+#[doc(hidden)]
+pub fn apple_aarch64_instant_candidate_primitives() -> Vec<ExactWallProvider> {
+  let (primitives, count) = crate::arch::apple_aarch64::bench_instant_candidate_primitives();
+  primitives
+    .into_iter()
+    .take(count)
+    .map(|primitive| {
+      let primitive =
+        primitive.expect("eligible Apple Instant candidate must have an exact reader");
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
+    })
+    .collect()
+}
+
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+#[doc(hidden)]
+pub fn apple_aarch64_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
+  let (primitives, count) = crate::arch::apple_aarch64::bench_ordered_candidate_primitives();
+  primitives
+    .into_iter()
+    .take(count)
+    .map(|primitive| {
+      let primitive =
+        primitive.expect("eligible Apple Ordered candidate must have an exact reader");
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
+    })
+    .collect()
+}
+
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+macro_rules! expose_apple_aarch64_exact_read {
+  ($name:ident, $source:ident) => {
+    #[doc(hidden)]
+    #[inline(always)]
+    #[allow(clippy::inline_always)]
+    pub fn $name() -> u64 {
+      crate::arch::apple_aarch64::$source()
+    }
+  };
+}
+
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(apple_aarch64_exact_mach_absolute, bench_exact_mach_absolute);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(apple_aarch64_exact_mach_continuous, bench_exact_mach_continuous);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(apple_aarch64_exact_cntvct_absolute, bench_exact_cntvct_absolute);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(
+  apple_aarch64_exact_cntvct_ordered_absolute,
+  bench_exact_cntvct_ordered_absolute
+);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(
+  apple_aarch64_exact_cntvctss_absolute,
+  bench_exact_cntvctss_absolute
+);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(
+  apple_aarch64_exact_acntvct_absolute,
+  bench_exact_acntvct_absolute
+);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(
+  apple_aarch64_exact_cntvct_continuous,
+  bench_exact_cntvct_continuous
+);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(
+  apple_aarch64_exact_cntvct_ordered_continuous,
+  bench_exact_cntvct_ordered_continuous
+);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(
+  apple_aarch64_exact_cntvctss_continuous,
+  bench_exact_cntvctss_continuous
+);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(
+  apple_aarch64_exact_acntvct_continuous,
+  bench_exact_acntvct_continuous
+);
 
 #[cfg(all(
   any(target_os = "android", target_os = "linux"),
   any(target_arch = "x86_64", target_arch = "x86"),
 ))]
 #[doc(hidden)]
-pub fn linux_x86_selected_instant_primitive() -> SelectedWallPrimitive {
+pub fn linux_x86_selected_instant_primitive() -> ExactWallProvider {
   let primitive = crate::arch::linux_x86_wall::bench_selected_instant_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(
@@ -639,9 +731,9 @@ pub fn linux_x86_selected_instant_primitive() -> SelectedWallPrimitive {
   any(target_arch = "x86_64", target_arch = "x86"),
 ))]
 #[doc(hidden)]
-pub fn linux_x86_selected_ordered_primitive() -> SelectedWallPrimitive {
+pub fn linux_x86_selected_ordered_primitive() -> ExactWallProvider {
   let primitive = crate::arch::linux_x86_wall::bench_selected_ordered_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(
@@ -649,14 +741,14 @@ pub fn linux_x86_selected_ordered_primitive() -> SelectedWallPrimitive {
   any(target_arch = "x86_64", target_arch = "x86"),
 ))]
 #[doc(hidden)]
-pub fn linux_x86_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn linux_x86_instant_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::linux_x86_wall::bench_instant_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
@@ -666,14 +758,14 @@ pub fn linux_x86_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
   any(target_arch = "x86_64", target_arch = "x86"),
 ))]
 #[doc(hidden)]
-pub fn linux_x86_ordered_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn linux_x86_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::linux_x86_wall::bench_ordered_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
@@ -1116,42 +1208,42 @@ expose_linux_x86_six_exact_reads!(
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 #[doc(hidden)]
-pub fn linux_aarch64_selected_instant_primitive() -> SelectedWallPrimitive {
+pub fn linux_aarch64_selected_instant_primitive() -> ExactWallProvider {
   let primitive = crate::arch::linux_aarch64_wall::bench_selected_instant_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 #[doc(hidden)]
-pub fn linux_aarch64_selected_ordered_primitive() -> SelectedWallPrimitive {
+pub fn linux_aarch64_selected_ordered_primitive() -> ExactWallProvider {
   let primitive = crate::arch::linux_aarch64_wall::bench_selected_ordered_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 #[doc(hidden)]
-pub fn linux_aarch64_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn linux_aarch64_instant_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::linux_aarch64_wall::bench_instant_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 #[doc(hidden)]
-pub fn linux_aarch64_ordered_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn linux_aarch64_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::linux_aarch64_wall::bench_ordered_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
@@ -1243,204 +1335,204 @@ expose_linux_aarch64_exact_read!(
 
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 #[doc(hidden)]
-pub fn residual_selected_instant_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_instant_primitive() -> ExactWallProvider {
   let primitive = crate::arch::linux_clock_wall::bench_selected_instant_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 #[doc(hidden)]
-pub fn residual_selected_ordered_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_ordered_primitive() -> ExactWallProvider {
   let primitive = crate::arch::linux_clock_wall::bench_selected_ordered_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 #[doc(hidden)]
-pub fn residual_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_instant_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::linux_clock_wall::bench_instant_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 #[doc(hidden)]
-pub fn residual_ordered_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::linux_clock_wall::bench_ordered_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_selected_instant_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_instant_primitive() -> ExactWallProvider {
   let primitive = crate::arch::riscv64::bench_selected_instant_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_selected_ordered_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_ordered_primitive() -> ExactWallProvider {
   let primitive = crate::arch::riscv64::bench_selected_ordered_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_instant_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::riscv64::bench_instant_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_ordered_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::riscv64::bench_ordered_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_arch = "loongarch64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_selected_instant_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_instant_primitive() -> ExactWallProvider {
   let primitive = crate::arch::loongarch64::bench_selected_instant_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "loongarch64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_selected_ordered_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_ordered_primitive() -> ExactWallProvider {
   let primitive = crate::arch::loongarch64::bench_selected_ordered_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "loongarch64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_instant_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::loongarch64::bench_instant_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_arch = "loongarch64", target_os = "linux"))]
 #[doc(hidden)]
-pub fn residual_ordered_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::loongarch64::bench_ordered_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"))]
 #[doc(hidden)]
-pub fn residual_selected_instant_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_instant_primitive() -> ExactWallProvider {
   let primitive = crate::arch::powerpc64::bench_selected_instant_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"))]
 #[doc(hidden)]
-pub fn residual_selected_ordered_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_ordered_primitive() -> ExactWallProvider {
   let primitive = crate::arch::powerpc64::bench_selected_ordered_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"))]
 #[doc(hidden)]
-pub fn residual_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_instant_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::powerpc64::bench_instant_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
-    .map(|primitive| SelectedWallPrimitive::new(primitive.name, primitive.read))
+    .map(|primitive| ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32))
     .collect()
 }
 
 #[cfg(all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"))]
 #[doc(hidden)]
-pub fn residual_ordered_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::powerpc64::bench_ordered_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
-    .map(|primitive| SelectedWallPrimitive::new(primitive.name, primitive.read))
+    .map(|primitive| ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32))
     .collect()
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 #[doc(hidden)]
-pub fn residual_selected_instant_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_instant_primitive() -> ExactWallProvider {
   let primitive = crate::arch::freebsd_x86_64::bench_selected_instant_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 #[doc(hidden)]
-pub fn residual_selected_ordered_primitive() -> SelectedWallPrimitive {
+pub fn residual_selected_ordered_primitive() -> ExactWallProvider {
   let primitive = crate::arch::freebsd_x86_64::bench_selected_ordered_primitive();
-  SelectedWallPrimitive::new(primitive.name, primitive.read)
+  ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 #[doc(hidden)]
-pub fn residual_instant_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_instant_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::freebsd_x86_64::bench_instant_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 #[doc(hidden)]
-pub fn residual_ordered_candidate_primitives() -> Vec<SelectedWallPrimitive> {
+pub fn residual_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
   let (primitives, count) = crate::arch::freebsd_x86_64::bench_ordered_candidate_primitives();
   primitives
     .into_iter()
     .take(count)
     .map(|primitive| {
       let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      SelectedWallPrimitive::new(primitive.name, primitive.read)
+      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
     })
     .collect()
 }
@@ -4202,13 +4294,22 @@ impl OrderedAarch64CntvctssDirect {
 
 #[cfg(target_os = "macos")]
 #[doc(hidden)]
-pub struct MachAbsoluteTimeDirect;
+pub struct MachAbsoluteTimeDirect {
+  nanos_per_tick_q32: u64,
+}
+
+#[cfg(target_os = "macos")]
+#[inline]
+fn apple_mach_nanos_per_tick_q32() -> u64 {
+  let (numer, denom) = crate::arch::fallback::mach_timebase();
+  crate::arch::scale_from_ratio(u64::from(numer), u64::from(denom))
+}
 
 #[cfg(target_os = "macos")]
 impl MachAbsoluteTimeDirect {
   #[doc(hidden)]
   pub fn for_current_machine() -> Self {
-    Self
+    Self { nanos_per_tick_q32: apple_mach_nanos_per_tick_q32() }
   }
 
   #[doc(hidden)]
@@ -4221,7 +4322,10 @@ impl MachAbsoluteTimeDirect {
   #[doc(hidden)]
   #[inline]
   pub fn elapsed_since(&self, earlier: u64) -> Duration {
-    crate::instant::ticks_to_duration(self.now_ticks().saturating_sub(earlier))
+    exact_ticks_to_duration_with_scale(
+      self.now_ticks().saturating_sub(earlier),
+      self.nanos_per_tick_q32,
+    )
   }
 }
 
@@ -4246,7 +4350,7 @@ impl AppleX86CommpageDirect {
   #[doc(hidden)]
   #[inline]
   pub fn elapsed_since(&self, earlier: u64) -> Duration {
-    crate::instant::ticks_to_duration(self.now_ticks().saturating_sub(earlier))
+    exact_ticks_to_duration_with_scale(self.now_ticks().saturating_sub(earlier), 1_u64 << 32)
   }
 
   #[doc(hidden)]
@@ -4261,6 +4365,15 @@ impl AppleX86CommpageDirect {
 #[allow(clippy::inline_always)]
 pub fn apple_x86_selected_ticks() -> u64 {
   crate::arch::apple_x86_64::bench_selected_ticks()
+}
+
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+#[doc(hidden)]
+pub fn apple_x86_selected_nanos_per_tick_q32() -> u64 {
+  match crate::arch::apple_x86_64::bench_provider() {
+    "apple_commpage_lfence_rdtsc_nanotime" => 1_u64 << 32,
+    _ => apple_mach_nanos_per_tick_q32(),
+  }
 }
 
 #[cfg(target_os = "windows")]
@@ -4406,82 +4519,6 @@ pub fn windows_ordered_ticks_to_duration(ticks: u64) -> Duration {
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 #[doc(hidden)]
-pub struct AppleAarch64CommpageDirect {
-  mode: u8,
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-impl AppleAarch64CommpageDirect {
-  #[doc(hidden)]
-  pub fn try_for_current_machine() -> Option<Self> {
-    let mode = crate::arch::apple_aarch64::bench_mode();
-    (1..=3).contains(&mode).then_some(Self { mode })
-  }
-
-  #[doc(hidden)]
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now_ticks(&self) -> u64 {
-    crate::arch::apple_aarch64::bench_ticks_for_mode(self.mode)
-  }
-
-  #[doc(hidden)]
-  #[inline]
-  pub fn elapsed_since(&self, earlier: u64) -> Duration {
-    crate::instant::ticks_to_duration(self.now_ticks().saturating_sub(earlier))
-  }
-
-  #[doc(hidden)]
-  pub fn provider(&self) -> &'static str {
-    match self.mode {
-      1 => "apple_commpage_isb_cntvct",
-      2 => "apple_commpage_cntvctss",
-      3 => "apple_commpage_acntvct",
-      _ => "apple_mach_absolute_time_fallback",
-    }
-  }
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-pub struct AppleAarch64InstantDirect {
-  mode: u8,
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-impl AppleAarch64InstantDirect {
-  #[doc(hidden)]
-  pub fn try_for_current_machine() -> Option<Self> {
-    let mode = crate::arch::apple_aarch64::bench_mode();
-    (1..=3).contains(&mode).then_some(Self { mode })
-  }
-
-  #[doc(hidden)]
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now_ticks(&self) -> u64 {
-    crate::arch::apple_aarch64::bench_instant_ticks_for_mode(self.mode)
-  }
-
-  #[doc(hidden)]
-  #[inline]
-  pub fn elapsed_since(&self, earlier: u64) -> Duration {
-    crate::instant::ticks_to_duration(self.now_ticks().saturating_sub(earlier))
-  }
-
-  #[doc(hidden)]
-  pub fn provider(&self) -> &'static str {
-    match self.mode {
-      1 => "apple_commpage_cntvct_offset",
-      2 => "apple_commpage_cntvctss_offset",
-      3 => "apple_commpage_acntvct_offset",
-      _ => "apple_mach_absolute_time_fallback",
-    }
-  }
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
 pub fn apple_wall_selected_provider() -> &'static str {
   crate::arch::apple_aarch64::bench_instant_provider()
 }
@@ -4494,64 +4531,69 @@ pub fn apple_ordered_wall_selected_provider() -> &'static str {
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 #[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn apple_instant_cntvct_ticks() -> u64 {
-  crate::arch::apple_aarch64::bench_instant_ticks_for_mode(1)
+#[derive(Serialize, Clone, Debug)]
+pub struct AppleAarch64WallCandidateMeasurements {
+  pub provider: &'static str,
+  pub batches_ticks: [u64; 9],
+  pub median_ticks: u64,
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 #[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn apple_instant_cntvctss_ticks() -> u64 {
-  crate::arch::apple_aarch64::bench_instant_ticks_for_mode(2)
+#[derive(Serialize, Clone, Debug)]
+pub struct AppleAarch64WallSelectionMeasurements {
+  pub ready: bool,
+  pub user_timebase_mode: u8,
+  pub continuous_hwclock: bool,
+  pub reads_per_batch: u64,
+  pub candidate_count: usize,
+  pub candidates: [AppleAarch64WallCandidateMeasurements; 4],
+  pub required_decisive_wins: usize,
+  pub equivalence_floor_ticks_per_batch: u64,
+  pub equivalence_relative_denominator: u64,
+  pub measured_winner: &'static str,
+  pub selected_provider: &'static str,
+  pub selection_basis: &'static str,
+}
+
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+fn apple_aarch64_selection_measurements(
+  evidence: crate::arch::apple_aarch64::SelectionEvidence,
+) -> AppleAarch64WallSelectionMeasurements {
+  let (numer, denom) = crate::arch::fallback::mach_timebase();
+  let floor_ticks = (u128::from(evidence.reads_per_batch) * u128::from(denom))
+    .div_ceil(u128::from(numer))
+    .min(u128::from(u64::MAX)) as u64;
+  AppleAarch64WallSelectionMeasurements {
+    ready: evidence.ready,
+    user_timebase_mode: evidence.user_timebase_mode,
+    continuous_hwclock: evidence.continuous_hwclock,
+    reads_per_batch: evidence.reads_per_batch,
+    candidate_count: evidence.candidate_count,
+    candidates: evidence.candidates.map(|candidate| AppleAarch64WallCandidateMeasurements {
+      provider: candidate.name,
+      batches_ticks: candidate.batches_ticks,
+      median_ticks: candidate.median_ticks,
+    }),
+    required_decisive_wins: evidence.required_decisive_wins,
+    equivalence_floor_ticks_per_batch: floor_ticks,
+    equivalence_relative_denominator: 20,
+    measured_winner: evidence.measured_winner,
+    selected_provider: evidence.selected_provider,
+    selection_basis: evidence.selection_basis,
+  }
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 #[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn apple_instant_acntvct_ticks() -> u64 {
-  crate::arch::apple_aarch64::bench_instant_ticks_for_mode(3)
+pub fn apple_aarch64_instant_selection_measurements() -> AppleAarch64WallSelectionMeasurements {
+  apple_aarch64_selection_measurements(crate::arch::apple_aarch64::bench_instant_evidence())
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 #[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn apple_ordered_isb_cntvct_ticks() -> u64 {
-  crate::arch::apple_aarch64::bench_ticks_for_mode(1)
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn apple_ordered_cntvctss_ticks() -> u64 {
-  crate::arch::apple_aarch64::bench_ticks_for_mode(2)
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn apple_ordered_acntvct_ticks() -> u64 {
-  crate::arch::apple_aarch64::bench_ticks_for_mode(3)
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-#[inline]
-pub fn apple_instant_ticks_to_duration(ticks: u64) -> Duration {
-  crate::instant::ticks_to_duration(ticks)
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-#[inline]
-pub fn apple_ordered_ticks_to_duration(ticks: u64) -> Duration {
-  crate::instant::ordered_ticks_to_duration(ticks)
+pub fn apple_aarch64_ordered_selection_measurements() -> AppleAarch64WallSelectionMeasurements {
+  apple_aarch64_selection_measurements(crate::arch::apple_aarch64::bench_ordered_evidence())
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
@@ -5603,5 +5645,44 @@ impl ClockSource for FastantInstant {
     // elsewhere. Approximate the answer via target_arch detection — same as
     // the crate does internally.
     cfg!(any(target_arch = "x86_64", target_arch = "aarch64"))
+  }
+}
+
+#[cfg(all(test, feature = "bench-internal"))]
+mod exact_wall_harness_tests {
+  use super::*;
+
+  #[test]
+  fn exact_wall_provider_carries_the_conversion_for_its_own_tick_domain() {
+    let two_nanoseconds_per_tick = 2_u64 << 32;
+    let provider = ExactWallProvider::new("counter", two_nanoseconds_per_tick);
+
+    assert_eq!(provider.nanos_per_tick_q32(), two_nanoseconds_per_tick);
+    assert_eq!(
+      exact_ticks_to_duration_with_scale(7, provider.nanos_per_tick_q32()),
+      Duration::from_nanos(14)
+    );
+  }
+
+  #[test]
+  fn exact_wall_harnesses_keep_static_readers_and_provider_scales() {
+    let criterion = include_str!("../benches/instant.rs");
+    let lambda = include_str!("../benches/lambda-speed/src/main.rs");
+    let descriptor = include_str!("bench.rs")
+      .split("pub struct ExactWallProvider")
+      .nth(1)
+      .and_then(|tail| tail.split("impl ExactWallProvider").next())
+      .expect("exact wall provider descriptor");
+
+    assert!(!descriptor.contains("fn() -> u64"));
+    assert!(!criterion.contains("SelectedWallPrimitive"));
+    assert!(!lambda.contains("SelectedWallPrimitive"));
+    assert!(!criterion.contains("instant_ticks_to_duration"));
+    assert!(!criterion.contains("ordered_instant_ticks_to_duration"));
+    assert!(criterion.contains("candidate.nanos_per_tick_q32()"));
+    assert!(criterion.contains("with_apple_aarch64_instant_read!"));
+    assert!(lambda.contains("with_lambda_linux_x86_instant_read!"));
+    assert!(lambda.contains("with_lambda_linux_x86_ordered_read!"));
+    assert!(lambda.contains("exact_ticks_to_duration_with_scale"));
   }
 }
