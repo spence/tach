@@ -1,0 +1,15 @@
+# Provenance: host Rust verification on macOS/aarch64, 2026-07-12.
+# Source: provider fixes 6a8058291fd931158f8483797fe05ab38bd4caea and Emscripten probe 4751a1863125d8690021a4c776999e3e5493e208.
+
+$ RUSTFLAGS='-D warnings' cargo test --lib --tests --all-features
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+
+$ RUSTFLAGS='-D warnings' cargo test --lib --tests --no-default-features
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+
+$ cargo clippy --all-targets --all-features -- -D warnings
+Finished without warnings.

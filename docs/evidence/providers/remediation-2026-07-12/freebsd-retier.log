@@ -1,0 +1,16 @@
+# Provenance: FreeBSD 15.0-RELEASE/amd64 on AWS c7i.large, Rust 1.95.0, 2026-07-12.
+# Source: 6a8058291fd931158f8483797fe05ab38bd4caea; runner ea0db8888fc101bc5ae22a07a2ab57967207ab37.
+
+$ cargo +1.95.0 test --locked --lib timekeep_retirement
+running 2 tests
+test arch::freebsd_x86_64::timekeep_retirement_updates_the_selected_read_cost ... ok
+test arch::freebsd_x86_64::timekeep_retirement_keeps_the_measured_ordered_route ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out.
+
+$ cargo +1.95.0 test --locked --lib timekeep_retirement --no-default-features
+running 2 tests
+test arch::freebsd_x86_64::timekeep_retirement_updates_the_selected_read_cost ... ok
+test arch::freebsd_x86_64::timekeep_retirement_keeps_the_measured_ordered_route ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out.
+
+FREEBSD_RETIER_NATIVE_PASS

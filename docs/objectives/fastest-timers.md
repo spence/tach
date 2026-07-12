@@ -14,8 +14,8 @@ objective. A failed gate is a finding, never permission to weaken it.
 
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-FASTEST-TIMERS.M0` | Provider correctness | 🚧 | Close known selector, reentry, and retiering correctness gaps | inline · G1⚪ |
-| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | ⚪ | Make every eligible and public route measurable and schema-checked | inline · G1⚪ |
+| `OBJ-FASTEST-TIMERS.M0` | Provider correctness | ✅ | Close known selector, reentry, and retiering correctness gaps | inline · G1🟢 |
+| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | 🚧 | Make every eligible and public route measurable and schema-checked | inline · G1⚪ |
 | `OBJ-FASTEST-TIMERS.M2` | Target-route proof | ⚪ | Prove all advertised target identities and complete public paths | inline · G1⚪ |
 
 ---
@@ -40,6 +40,7 @@ failure remaining.
 - **Fallback.** Preserve the failing reproducer, force the affected provider onto its safe eligible
   fallback, and continue diagnosis; if no safe fallback exists, escalate to user. Never weaken the
   contract.
+- **Evidence.** [`EVID-PROVIDER-CORRECTNESS`](../evidence/providers/remediation-2026-07-12/README.md).
 
 ---
 
@@ -51,7 +52,7 @@ identities must reproduce the implementation rather than hand-wave over a faster
 
 **Tasks.**
 
-- [ ] `OBJ-FASTEST-TIMERS.M1.T1` Repair FreeBSD and LoongArch route-schema drift.
+- [x] `OBJ-FASTEST-TIMERS.M1.T1` Repair FreeBSD and LoongArch route-schema drift.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T2` Add missing Apple, Windows, Lambda, and thread-CPU public/direct rows.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T3` Remove generated evidence from source-binding inputs.
 
@@ -103,6 +104,16 @@ decision; never silently omit a failing target.
 - Found: An unretained remote command result is not evidence; the next FreeBSD probe must copy its targeted test log before cleanup.
 - Next: make a retained-log FreeBSD test runner and execute the targeted AT_TIMEKEEP retiering tests.
 - Board: M0 remains 🚧; G1 stays declared ⚪ and the native FreeBSD result is still unproven.
+
+### 2026-07-12 · codex · `OBJ-FASTEST-TIMERS.M0`
+- Did: closed provider correctness with EVID-PROVIDER-CORRECTNESS after Emscripten and native FreeBSD regressions.; OBJ-FASTEST-TIMERS.M0.G1 🟢 at SHA `ea0db88`.
+- Board: OBJ-FASTEST-TIMERS.M0 G1 🟢 — evidence EVID-PROVIDER-CORRECTNESS.
+
+### 2026-07-12 · codex · `OBJ-FASTEST-TIMERS.M1`
+- Did: opened the benchmark-contract milestone after provider correctness closed with EVID-PROVIDER-CORRECTNESS.
+- Found: The evidence unit suite is 34/34 green, but Apple, Windows, Lambda, and thread-CPU route coverage still needs exhaustive public and exact rows.
+- Next: audit Apple aarch64 candidates and add every missing exact plus public now-and-elapsed benchmark route.
+- Board: M1 is 🚧 with G1 declared ⚪; M0 is ✅ with EVID-PROVIDER-CORRECTNESS.
 
 ## /goal
 

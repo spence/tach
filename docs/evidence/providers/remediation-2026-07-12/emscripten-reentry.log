@@ -1,0 +1,5 @@
+# Provenance: Rust 1.95.0, Emscripten 6.0.2, Node 26.5.0 on macOS/aarch64, 2026-07-12.
+# Source: 6a8058291fd931158f8483797fe05ab38bd4caea and 4751a1863125d8690021a4c776999e3e5493e208.
+
+$ RUSTUP_TOOLCHAIN=1.95.0-aarch64-apple-darwin benches/run-emscripten-reentry.sh
+PASS: Emscripten local-clock selection survives synchronous performance.now reentry

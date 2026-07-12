@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M0 🚧 Provider correctness)
-> Next:       make a retained-log FreeBSD test runner and execute the targeted AT_TIMEKEEP retiering tests.
+> Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
+> Next:       audit Apple aarch64 candidates and add every missing exact plus public now-and-elapsed benchmark route.
 > Blocked on you: nothing
-> Last verified: 2026-07-12 · Changed: attempted the native FreeBSD retiering test and terminated the ephemeral instance when no retained pass log was produced. · By: nsr · ebb8ec3
+> Last verified: 2026-07-12 · Changed: opened the benchmark-contract milestone after provider correctness closed with EVID-PROVIDER-CORRECTNESS. · By: nsr · ea0db88
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -24,11 +24,11 @@ Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-FASTEST-TIMERS.M0` | Provider correctness | 🚧 | Close known selector, reentry, and retiering correctness gaps | inline · G1⚪ |
-| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | ⚪ | Make every eligible and public route measurable and schema-checked | inline · G1⚪ |
+| `OBJ-FASTEST-TIMERS.M0` | Provider correctness | ✅ | Close known selector, reentry, and retiering correctness gaps | inline · G1🟢 |
+| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | 🚧 | Make every eligible and public route measurable and schema-checked | inline · G1⚪ |
 | `OBJ-FASTEST-TIMERS.M2` | Target-route proof | ⚪ | Prove all advertised target identities and complete public paths | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-FASTEST-TIMERS.M0`): G1⚪
+Gate checklist (current milestone `OBJ-FASTEST-TIMERS.M1`): G1⚪
 <!-- /render:board -->
 
 ---
