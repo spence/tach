@@ -20,6 +20,15 @@ case "$output_name" in
     ordered_profile="runtime_tournament"
     thread_cpu_profile="availability_fallback"
     ;;
+  speed-supplemental-browser-negative.json)
+    invocation_prefix="wasm-browser"
+    runner="browser"
+    target="wasm32-unknown-unknown"
+    runtime_kind="wasm-browser"
+    instant_profile="runtime_tournament"
+    ordered_profile="runtime_tournament"
+    thread_cpu_profile="fallback_only"
+    ;;
   speed-supplemental-emscripten-node.json)
     invocation_prefix="emscripten-node"
     runner="emcc-node"
@@ -90,6 +99,9 @@ git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"
 manifest="$source_dir/benches/host-runtime-speed/Cargo.toml"
 cargo_args=(--target "$target")
 case "$runtime_kind" in
+  wasm-browser)
+    cargo_args+=(--lib --features browser-host)
+    ;;
   emscripten-node)
     cargo_args+=(--bin tach-host-runtime-emscripten --features emscripten-host)
     ;;
@@ -119,6 +131,13 @@ case "$runtime_kind" in
       --out-dir "$generated_dir"
     runtime="$generated_dir/tach_host_runtime_speed.js"
     ;;
+  wasm-browser)
+    wasm-bindgen \
+      "$target_dir/$target/release/tach_host_runtime_speed.wasm" \
+      --target web \
+      --out-dir "$generated_dir"
+    runtime="$generated_dir"
+    ;;
   emscripten-node)
     runtime="$target_dir/$target/release/tach-host-runtime-emscripten.js"
     ;;
@@ -130,6 +149,28 @@ case "$runtime_kind" in
     ;;
 esac
 
+if [ "$runtime_kind" = wasm-browser ]; then
+  chromium="${TACH_CHROMIUM:-}"
+  if [ -z "$chromium" ]; then
+    for candidate in \
+      "$(command -v chromium 2>/dev/null || true)" \
+      "$(command -v chromium-browser 2>/dev/null || true)" \
+      "$(command -v google-chrome 2>/dev/null || true)" \
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      "$HOME"/Library/Caches/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-mac-arm64/chrome-headless-shell
+    do
+      if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+        chromium="$candidate"
+        break
+      fi
+    done
+  fi
+  if [ -z "$chromium" ] || [ ! -x "$chromium" ]; then
+    echo "no Chromium executable found; set TACH_CHROMIUM" >&2
+    exit 1
+  fi
+fi
+
 for run in 1 2 3 4 5; do
   if [ "$runtime_kind" = wasm-node ]; then
     node - "$runtime" > "$host_dir/run-$run.json" <<'NODE'
@@ -137,6 +178,9 @@ const modulePath = process.argv[2];
 const benchmark = require(modulePath);
 process.stdout.write(benchmark.run() + "\n");
 NODE
+  elif [ "$runtime_kind" = wasm-browser ]; then
+    node "$source_dir/benches/run-browser-host-runtime.mjs" "$runtime" "$chromium" \
+      > "$host_dir/run-$run.json"
   elif [ "$runtime_kind" = emscripten-node ]; then
     node "$runtime" > "$host_dir/run-$run.json"
   elif [ "$runtime_kind" = wasip1-node ]; then

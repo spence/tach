@@ -13,7 +13,11 @@ const WARMUP_ITERATIONS: usize = 100_000;
 
 #[wasm_bindgen(inline_js = r#"
 export function tachHostBenchmarkNowNanos() {
-  return Number(globalThis.process.hrtime.bigint());
+  const process = globalThis.process;
+  if (process !== undefined && process !== null && process.hrtime?.bigint !== undefined) {
+    return Number(process.hrtime.bigint());
+  }
+  return globalThis.performance.now() * 1000000;
 }
 
 export function tachHostSleepMillis(millis) {
@@ -23,33 +27,44 @@ export function tachHostSleepMillis(millis) {
 
 export function tachHostSiblingWorkMillis(millis) {
   const process = globalThis.process;
-  const workerThreads = process.getBuiltinModule("node:worker_threads");
   const signal = new Int32Array(new SharedArrayBuffer(4));
-  const worker = new workerThreads.Worker(`
-    const { workerData } = require("node:worker_threads");
-    const signal = new Int32Array(workerData.signal);
-    Atomics.store(signal, 0, 1);
-    Atomics.notify(signal, 0);
-    const start = process.hrtime.bigint();
-    const duration = BigInt(workerData.millis) * 1000000n;
-    let state = 0n;
-    while (process.hrtime.bigint() - start < duration) {
-      state = state * 6364136223846793005n + 1442695040888963407n;
-      state &= 0xffffffffffffffffn;
+  let worker;
+  if (process !== undefined && process !== null) {
+    const workerThreads = process.getBuiltinModule("node:worker_threads");
+    worker = new workerThreads.Worker(`
+      const { workerData } = require("node:worker_threads");
+      const signal = new Int32Array(workerData.signal);
+      Atomics.store(signal, 0, 1);
+      Atomics.notify(signal, 0);
+      const start = process.hrtime.bigint();
+      const duration = BigInt(workerData.millis) * 1000000n;
+      let state = 0n;
+      while (process.hrtime.bigint() - start < duration) {
+        state = state * 6364136223846793005n + 1442695040888963407n;
+        state &= 0xffffffffffffffffn;
+      }
+      Atomics.store(signal, 0, 2);
+      Atomics.notify(signal, 0);
+    `, {
+      eval: true,
+      workerData: { signal: signal.buffer, millis },
+    });
+  } else {
+    worker = globalThis.tachBrowserSiblingWorker;
+    if (worker === undefined) {
+      throw new Error("browser sibling worker was not prepared");
     }
-    Atomics.store(signal, 0, 2);
-    Atomics.notify(signal, 0);
-  `, {
-    eval: true,
-    workerData: { signal: signal.buffer, millis },
-  });
+    worker.postMessage({ signal: signal.buffer, millis });
+  }
   while (Atomics.load(signal, 0) === 0) {
     Atomics.wait(signal, 0, 0);
   }
   while (Atomics.load(signal, 0) !== 2) {
     Atomics.wait(signal, 0, 1);
   }
-  worker.unref();
+  if (typeof worker.unref === "function") {
+    worker.unref();
+  }
 }
 "#)]
 unsafe extern "C" {
@@ -72,6 +87,60 @@ struct BehaviorSample {
   direct_delta_ns: u64,
 }
 
+#[derive(Clone, Copy)]
+enum ThreadRoute {
+  NodeNative,
+  WallFallback { mechanism: &'static str, read: fn() -> u64 },
+}
+
+impl ThreadRoute {
+  fn detect() -> Result<Self, String> {
+    if ThreadCpuInstant::read_cost_hint() != ThreadCpuReadCost::HostCall {
+      return Err("Wasm thread route changed its host-call cost class".into());
+    }
+    match ThreadCpuInstant::provider() {
+      ThreadCpuProvider::NodeThreadCpuUsage => Ok(Self::NodeNative),
+      ThreadCpuProvider::PerformanceNow => Ok(Self::WallFallback {
+        mechanism: "performance.now",
+        read: tach::bench::wasm_exact_performance_ticks,
+      }),
+      ThreadCpuProvider::NodeHrtime => Ok(Self::WallFallback {
+        mechanism: "process.hrtime.bigint",
+        read: tach::bench::wasm_exact_hrtime_ticks,
+      }),
+      provider => Err(format!("Wasm host exposed no eligible thread fallback: {provider:?}")),
+    }
+  }
+
+  const fn mechanism(self) -> &'static str {
+    match self {
+      Self::NodeNative => "node_thread_cpu_usage",
+      Self::WallFallback { mechanism, .. } => mechanism,
+    }
+  }
+
+  const fn provider_name(self) -> &'static str {
+    match self {
+      Self::NodeNative => "Node thread CPU usage",
+      Self::WallFallback { mechanism, .. } => mechanism,
+    }
+  }
+
+  const fn time_domain(self) -> &'static str {
+    match self {
+      Self::NodeNative => "thread CPU",
+      Self::WallFallback { .. } => "monotonic wall fallback",
+    }
+  }
+
+  fn read(self) -> u64 {
+    match self {
+      Self::NodeNative => exact_node_thread_cpu(),
+      Self::WallFallback { read, .. } => read(),
+    }
+  }
+}
+
 #[wasm_bindgen]
 pub fn run() -> Result<String, JsValue> {
   run_observation()
@@ -81,16 +150,21 @@ pub fn run() -> Result<String, JsValue> {
 
 fn run_observation() -> Result<Value, String> {
   let runtime_attestation = runtime_attestation()?;
-  quanta::Instant::now();
-  fastant::Instant::now();
-  minstant::Instant::now();
-
-  let provider = ThreadCpuInstant::provider();
-  if provider != ThreadCpuProvider::NodeThreadCpuUsage {
-    return Err(format!("Node host did not expose current-thread CPU time: {provider:?}"));
+  #[cfg(not(feature = "browser-host"))]
+  {
+    quanta::Instant::now();
+    fastant::Instant::now();
+    minstant::Instant::now();
   }
-  if ThreadCpuInstant::read_cost_hint() != ThreadCpuReadCost::HostCall {
-    return Err("Node thread CPU provider changed its read-cost class".into());
+
+  let thread_route = ThreadRoute::detect()?;
+  #[cfg(feature = "browser-host")]
+  if matches!(thread_route, ThreadRoute::NodeNative) {
+    return Err("browser unexpectedly exposed Node current-thread CPU time".into());
+  }
+  #[cfg(not(feature = "browser-host"))]
+  if !matches!(thread_route, ThreadRoute::NodeNative) {
+    return Err("Node host did not expose current-thread CPU time".into());
   }
 
   let wall_selection = wall_selection();
@@ -130,37 +204,9 @@ fn run_observation() -> Result<Value, String> {
       None,
     ),
   );
-  rows.insert(
-    "quanta".into(),
-    clock_row(
-      median_cost(|| black_box(quanta::Instant::now())),
-      median_cost(|| {
-        let start = quanta::Instant::now();
-        black_box(start.elapsed())
-      }),
-    ),
-  );
-  rows.insert(
-    "fastant".into(),
-    clock_row(
-      median_cost(|| black_box(fastant::Instant::now())),
-      median_cost(|| {
-        let start = fastant::Instant::now();
-        black_box(start.elapsed())
-      }),
-    ),
-  );
-  rows.insert(
-    "minstant".into(),
-    clock_row(
-      median_cost(|| black_box(minstant::Instant::now())),
-      median_cost(|| {
-        let start = minstant::Instant::now();
-        black_box(start.elapsed())
-      }),
-    ),
-  );
-  insert_wall_candidates(&mut rows);
+  #[cfg(not(feature = "browser-host"))]
+  insert_node_competitors(&mut rows);
+  insert_wall_candidates(&mut rows, &wall_selection)?;
   rows.insert("direct_selected_wall".into(), selected_wall_row("instant", selected_local)?);
   rows
     .insert("direct_selected_ordered_wall".into(), selected_wall_row("ordered", selected_ordered)?);
@@ -175,66 +221,68 @@ fn run_observation() -> Result<Value, String> {
     typed_row(
       public_thread_now,
       public_thread_elapsed,
-      "Node thread CPU usage",
+      thread_route.provider_name(),
       "host call",
-      "thread CPU",
+      thread_route.time_domain(),
       None,
     ),
   );
-  let native_now = median_cost(|| black_box(exact_node_thread_cpu()));
+  let native_now = median_cost(|| black_box(thread_route.read()));
   let native_elapsed = median_cost(|| {
-    let start = exact_node_thread_cpu();
-    black_box(Duration::from_nanos(exact_node_thread_cpu().saturating_sub(start)))
+    let start = thread_route.read();
+    black_box(Duration::from_nanos(thread_route.read().saturating_sub(start)))
   });
-  let native_benchmark = "native_thread_cpu__process_thread_cpu_usage";
+  let native_benchmark = format!("native_thread_cpu__{}", thread_route.mechanism());
   rows.insert(
     "native_thread_cpu".into(),
     typed_row(
       native_now,
       native_elapsed,
-      "process.threadCpuUsage()",
+      thread_route.provider_name(),
       "host call",
-      "thread CPU",
-      Some(native_benchmark),
+      thread_route.time_domain(),
+      Some(&native_benchmark),
     ),
   );
-  let direct_thread_benchmark = "direct_thread_cpu__node_thread_cpu_usage";
+  let direct_thread_benchmark = format!("direct_thread_cpu__{}", thread_route.mechanism());
   rows.insert(
-    direct_thread_benchmark.into(),
+    direct_thread_benchmark.clone(),
     typed_row(
-      median_cost(|| black_box(exact_node_thread_cpu())),
+      median_cost(|| black_box(thread_route.read())),
       median_cost(|| {
-        let start = exact_node_thread_cpu();
-        black_box(Duration::from_nanos(exact_node_thread_cpu().saturating_sub(start)))
+        let start = thread_route.read();
+        black_box(Duration::from_nanos(thread_route.read().saturating_sub(start)))
       }),
-      "node_thread_cpu_usage",
+      thread_route.mechanism(),
       "host call",
-      "thread CPU",
-      Some(direct_thread_benchmark),
+      thread_route.time_domain(),
+      Some(&direct_thread_benchmark),
     ),
   );
+  let selected_thread_benchmark =
+    format!("direct_selected_thread_cpu__{}", thread_route.mechanism());
   rows.insert(
     "direct_selected_thread_cpu".into(),
     typed_row(
-      median_cost(|| black_box(exact_node_thread_cpu())),
+      median_cost(|| black_box(thread_route.read())),
       median_cost(|| {
-        let start = exact_node_thread_cpu();
-        black_box(Duration::from_nanos(exact_node_thread_cpu().saturating_sub(start)))
+        let start = thread_route.read();
+        black_box(Duration::from_nanos(thread_route.read().saturating_sub(start)))
       }),
-      "node_thread_cpu_usage",
+      thread_route.mechanism(),
       "host call",
-      "thread CPU",
-      Some("direct_selected_thread_cpu__node_thread_cpu_usage"),
+      thread_route.time_domain(),
+      Some(&selected_thread_benchmark),
     ),
   );
 
   let mut result = rows;
   result.insert("runtime_attestation".into(), runtime_attestation.clone());
   result.insert("wall_selection".into(), wall_selection);
-  result.insert("thread_cpu_selection".into(), thread_cpu_selection());
+  result.insert("thread_cpu_selection".into(), thread_cpu_selection(thread_route));
   result.insert(
     "thread_cpu_behavior".into(),
-    thread_cpu_behavior(&runtime_attestation, native_benchmark),
+    thread_cpu_behavior(&runtime_attestation, &native_benchmark, thread_route),
   );
   Ok(Value::Object(result))
 }
@@ -251,10 +299,11 @@ fn runtime_attestation() -> Result<Value, String> {
   let runner = option_env!("TACH_BENCH_RUNNER")
     .filter(|value| !value.is_empty())
     .ok_or("host-runtime benchmark build omitted its runner identity")?;
+  let harness = if cfg!(feature = "browser-host") { "browser" } else { "node-wasm-bindgen" };
   Ok(json!({
     "schema": "tach-benchmark-runtime-v2",
     "invocation_id": invocation_id,
-    "harness": "node-wasm-bindgen",
+    "harness": harness,
     "target": {"arch": "wasm32", "os": "unknown", "env": ""},
     "features": ["bench-internal", "thread-cpu-inline"],
     "build_mode": "default",
@@ -268,15 +317,27 @@ fn runtime_attestation() -> Result<Value, String> {
 fn wall_selection() -> Value {
   let evidence = tach::bench::wasm_wall_selection_evidence();
   let instant_candidates = [
-    (evidence.performance_median_ns > 0, "direct_wall__performance.now"),
-    (evidence.hrtime_median_ns > 0, "direct_wall__process.hrtime.bigint"),
+    (
+      evidence.performance_median_ns > 0 || evidence.local_provider == "performance.now",
+      "direct_wall__performance.now",
+    ),
+    (
+      evidence.hrtime_median_ns > 0 || evidence.local_provider == "process.hrtime.bigint",
+      "direct_wall__process.hrtime.bigint",
+    ),
   ]
   .into_iter()
   .filter_map(|(eligible, name)| eligible.then_some(name))
   .collect::<Vec<_>>();
   let ordered_candidates = [
-    (evidence.ordered_performance_median_ns > 0, "direct_ordered_wall__performance.now"),
-    (evidence.ordered_hrtime_median_ns > 0, "direct_ordered_wall__process.hrtime.bigint"),
+    (
+      evidence.ordered_performance_median_ns > 0 || evidence.ordered_provider == "performance.now",
+      "direct_ordered_wall__performance.now",
+    ),
+    (
+      evidence.ordered_hrtime_median_ns > 0 || evidence.ordered_provider == "process.hrtime.bigint",
+      "direct_ordered_wall__process.hrtime.bigint",
+    ),
   ]
   .into_iter()
   .filter_map(|(eligible, name)| eligible.then_some(name))
@@ -318,41 +379,87 @@ fn wall_selection() -> Value {
   })
 }
 
-fn thread_cpu_selection() -> Value {
-  json!({
-    "selection_kind": "availability_fallback",
-    "selected_provider": "node_thread_cpu_usage",
-    "selected_mechanism": "node_thread_cpu_usage",
-    "selected_read_cost": "host call",
-    "selected_native_benchmark": "direct_selected_thread_cpu__node_thread_cpu_usage",
-    "fallback_provider": "monotonic_wall_clock",
-    "fallback_mechanism": "selected_wasm_wall_fallback",
-    "fallback_read_cost": "host call",
-    "fallback_native_benchmark": null,
-    "eligible_direct_candidates": ["direct_thread_cpu__node_thread_cpu_usage"],
-    "failure_fallback": {
-      "trigger": "process.threadCpuUsage is missing, throws, or returns an invalid value",
+fn thread_cpu_selection(route: ThreadRoute) -> Value {
+  let mechanism = route.mechanism();
+  match route {
+    ThreadRoute::NodeNative => json!({
+      "selection_kind": "availability_fallback",
+      "selected_provider": "node_thread_cpu_usage",
+      "selected_mechanism": mechanism,
+      "selected_read_cost": "host call",
+      "selected_native_benchmark": format!("direct_selected_thread_cpu__{mechanism}"),
+      "fallback_provider": "monotonic_wall_clock",
+      "fallback_mechanism": "selected_wasm_wall_fallback",
+      "fallback_read_cost": "host call",
+      "fallback_native_benchmark": null,
+      "eligible_direct_candidates": [format!("direct_thread_cpu__{mechanism}")],
+      "failure_fallback": {
+        "trigger": "process.threadCpuUsage is missing, throws, or returns an invalid value",
+        "time_domain": "monotonic wall fallback",
+        "reported_by_provider": true,
+      },
+    }),
+    ThreadRoute::WallFallback { .. } => json!({
+      "selection_kind": "fallback_only",
+      "selected_provider": "monotonic_wall_clock",
+      "selected_mechanism": mechanism,
+      "selected_read_cost": "host call",
+      "selected_native_benchmark": format!("direct_selected_thread_cpu__{mechanism}"),
+      "eligible_direct_candidates": [format!("direct_thread_cpu__{mechanism}")],
       "time_domain": "monotonic wall fallback",
-      "reported_by_provider": true,
-    },
-  })
+    }),
+  }
 }
 
-fn insert_wall_candidates(rows: &mut Map<String, Value>) {
-  for (domain, provider) in [
-    ("instant", "performance.now"),
-    ("instant", "process.hrtime.bigint"),
-    ("ordered", "performance.now"),
-    ("ordered", "process.hrtime.bigint"),
-  ] {
-    let benchmark = if domain == "instant" {
-      format!("direct_wall__{provider}")
-    } else {
-      format!("direct_ordered_wall__{provider}")
-    };
-    let row = exact_wall_row(domain, provider).expect("Node wall candidate");
-    rows.insert(benchmark, row);
+#[cfg(not(feature = "browser-host"))]
+fn insert_node_competitors(rows: &mut Map<String, Value>) {
+  rows.insert(
+    "quanta".into(),
+    clock_row(
+      median_cost(|| black_box(quanta::Instant::now())),
+      median_cost(|| {
+        let start = quanta::Instant::now();
+        black_box(start.elapsed())
+      }),
+    ),
+  );
+  rows.insert(
+    "fastant".into(),
+    clock_row(
+      median_cost(|| black_box(fastant::Instant::now())),
+      median_cost(|| {
+        let start = fastant::Instant::now();
+        black_box(start.elapsed())
+      }),
+    ),
+  );
+  rows.insert(
+    "minstant".into(),
+    clock_row(
+      median_cost(|| black_box(minstant::Instant::now())),
+      median_cost(|| {
+        let start = minstant::Instant::now();
+        black_box(start.elapsed())
+      }),
+    ),
+  );
+}
+
+fn insert_wall_candidates(rows: &mut Map<String, Value>, selection: &Value) -> Result<(), String> {
+  for (domain, prefix) in [("instant", "direct_wall__"), ("ordered", "direct_ordered_wall__")] {
+    let candidates = selection["eligible_direct_candidates"][domain]
+      .as_array()
+      .ok_or_else(|| format!("missing {domain} wall candidates"))?;
+    for candidate in candidates {
+      let benchmark =
+        candidate.as_str().ok_or_else(|| format!("invalid {domain} wall candidate"))?;
+      let provider = benchmark
+        .strip_prefix(prefix)
+        .ok_or_else(|| format!("invalid {domain} wall candidate {benchmark}"))?;
+      rows.insert(benchmark.into(), exact_wall_row(domain, provider)?);
+    }
   }
+  Ok(())
 }
 
 fn selected_wall_row(domain: &str, provider: &str) -> Result<Value, String> {
@@ -446,12 +553,12 @@ fn duration_nanos(value: Duration) -> u64 {
   value.as_nanos().try_into().expect("duration exceeded u64 nanoseconds")
 }
 
-fn behavior_sample(operation: impl FnOnce()) -> BehaviorSample {
+fn behavior_sample(route: ThreadRoute, operation: impl FnOnce()) -> BehaviorSample {
   let wall_start = host_now_nanos() as u64;
   let public_start = ThreadCpuInstant::now();
-  let direct_start = exact_node_thread_cpu();
+  let direct_start = route.read();
   operation();
-  let direct_end = exact_node_thread_cpu();
+  let direct_end = route.read();
   let public_delta = ThreadCpuInstant::now()
     .checked_duration_since(public_start)
     .expect("thread CPU provider changed during semantic probe");
@@ -493,21 +600,25 @@ fn summarize(samples: [BehaviorSample; 3]) -> Value {
   })
 }
 
-fn thread_cpu_behavior(runtime_attestation: &Value, direct_benchmark: &str) -> Value {
+fn thread_cpu_behavior(
+  runtime_attestation: &Value,
+  direct_benchmark: &str,
+  route: ThreadRoute,
+) -> Value {
   let busy = [
-    behavior_sample(|| consume_cpu_for(20)),
-    behavior_sample(|| consume_cpu_for(20)),
-    behavior_sample(|| consume_cpu_for(20)),
+    behavior_sample(route, || consume_cpu_for(20)),
+    behavior_sample(route, || consume_cpu_for(20)),
+    behavior_sample(route, || consume_cpu_for(20)),
   ];
   let sleep = [
-    behavior_sample(|| host_sleep_millis(20)),
-    behavior_sample(|| host_sleep_millis(20)),
-    behavior_sample(|| host_sleep_millis(20)),
+    behavior_sample(route, || host_sleep_millis(20)),
+    behavior_sample(route, || host_sleep_millis(20)),
+    behavior_sample(route, || host_sleep_millis(20)),
   ];
   let sibling_isolation = [
-    behavior_sample(|| host_sibling_work_millis(40)),
-    behavior_sample(|| host_sibling_work_millis(40)),
-    behavior_sample(|| host_sibling_work_millis(40)),
+    behavior_sample(route, || host_sibling_work_millis(40)),
+    behavior_sample(route, || host_sibling_work_millis(40)),
+    behavior_sample(route, || host_sibling_work_millis(40)),
   ];
   json!({
     "schema": "tach-thread-cpu-behavior-v2",

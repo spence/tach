@@ -1391,7 +1391,6 @@ class SpeedEvidenceTests(unittest.TestCase):
       planned,
       {
         "criterion_linux_rare_no_default",
-        "wasm_browser",
       },
     )
     self.assertEqual(

@@ -120,8 +120,8 @@ entrypoints = ["src/arch/wasm.rs", "benches/host-runtime-speed/Cargo.toml", "ben
 [[producer]]
 id = "wasm_browser"
 kind = "host_runtime"
-state = "planned"
-entrypoints = ["src/arch/wasm.rs", "benches/instant.rs"]
+state = "ready"
+entrypoints = ["src/arch/wasm.rs", "benches/host-runtime-speed/Cargo.toml", "benches/host-runtime-speed/src/lib.rs", "benches/run-browser-host-runtime.mjs", "benches/run-speed-host-runtime.sh"]
 
 [[producer]]
 id = "emscripten_node"
@@ -344,12 +344,12 @@ runtime_proof = "not_collected"
 [case.selection_profiles]
 instant = "runtime_tournament"
 ordered = "runtime_tournament"
-thread_cpu = "availability_fallback"
+thread_cpu = "fallback_only"
 
 [case.profile_contracts]
 instant = "wall_runtime_tournament"
 ordered = "wall_runtime_tournament"
-thread_cpu = "thread_cpu_availability_fallback"
+thread_cpu = "thread_cpu_fallback_only"
 
 [[case]]
 id = "wasm_browser_fallback"

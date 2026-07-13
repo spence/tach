@@ -31,6 +31,7 @@ paths=(
   benches/require-clean-benchmark-source.sh
   benches/probes/aarch64-thread-pmu.c
   benches/route-coverage.toml
+  benches/run-browser-host-runtime.mjs
   benches/run-runtime-smoke.sh
   benches/run-speed-aws.sh
   benches/run-speed-freebsd-aws.sh

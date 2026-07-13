@@ -24,6 +24,7 @@ path = "src/bin/wasip2.rs"
 required-features = ["wasip2-host"]
 
 [features]
+browser-host = []
 emscripten-host = []
 wasip1-host = []
 wasip1-node-host = ["wasip1-host"]
