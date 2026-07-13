@@ -3,7 +3,9 @@
 **VISION slice.** Future timer ergonomics extend these contracts without weakening them.
 
 This is a separate planned 0.3.0 objective, not release work for the current three-timer crate.
-The retained design proposal is [`../PLAN-0.3.0-process-instant-atomic-deadline.md`](../PLAN-0.3.0-process-instant-atomic-deadline.md); it must be reconciled with the active contract and evidence model before implementation begins.
+The retained design proposal is
+[`../plans/process-instant-atomic-deadline.md`](../plans/process-instant-atomic-deadline.md); it
+must be reconciled with the active contract and evidence model before implementation begins.
 
 ## Milestones
 

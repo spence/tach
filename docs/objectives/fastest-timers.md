@@ -47,8 +47,9 @@ failure remaining.
 ## `OBJ-FASTEST-TIMERS.M1` — Benchmark contract
 
 **Description.** The harness must enumerate every eligible exact route and every selected public
-route for both `now()` and `now() + elapsed()`. Candidate counts, read-cost labels, and provider
-identities must reproduce the implementation rather than hand-wave over a faster path.
+route for both `now()` and `now() + elapsed()`: 24 advertised targets expand to 49 target-mode and
+55 target-mode-runtime identities. Candidate counts, read-cost labels, and provider identities must
+reproduce the implementation rather than hand-wave over a faster path.
 [`../plans/thread-cpu-route-coverage.md`](../plans/thread-cpu-route-coverage.md) owns the
 selection-profile and target-family breakdown for `ThreadCpuInstant`.
 
@@ -61,15 +62,19 @@ selection-profile and target-family breakdown for `ThreadCpuInstant`.
   provider-scale-correct for both operations.
 - [ ] `OBJ-FASTEST-TIMERS.M1.T5` Bind every exact row to its identity, raw samples, and one
   isolated benchmark invocation.
-- [x] `OBJ-FASTEST-TIMERS.M1.T6` Declare a producer and typed route profile for all advertised
-  target/mode/runtime identities.
+- [x] `OBJ-FASTEST-TIMERS.M1.T6` Declare a producer and typed route profile for the 24 advertised
+  targets, 49 target-mode identities, and 55 target-mode-runtime identities.
+- [x] `OBJ-FASTEST-TIMERS.M1.T7` Bind admission to literal source, retained evidence snapshots,
+  committed route requirements, and the full release/chart gate.
 
 ### Gate `OBJ-FASTEST-TIMERS.M1.G1` — exhaustive route schema passes
 
 Pass: `python3 -m unittest discover -s benches -p 'test_speed_evidence.py'` exits zero, a
-declarative coverage manifest expands to every advertised target/mode identity, and each measured
-case declares a real producer, selected direct `now` and elapsed rows, exact candidate identities,
-and a typed selection profile. The static contract never substitutes for runtime speed evidence.
+declarative coverage manifest expands to all 24 targets, 49 target-mode identities, and 55
+target-mode-runtime identities, and each measured case declares a real producer, selected direct
+`now` and elapsed rows, exact candidate identities, and a typed selection profile. The static
+contract and retained-admission mechanism never substitute for runnable producer or runtime speed
+evidence.
 - **Fallback.** Correct the provider map, extractor, or fixture before running any expensive
 campaign; do not substitute an incomplete evidence document.
 
@@ -78,14 +83,25 @@ campaign; do not substitute an incomplete evidence document.
 ## `OBJ-FASTEST-TIMERS.M2` — Target-route proof
 
 **Description.** Compile and inspect every advertised target identity after the source and harness
-are frozen. The proof must distinguish availability/codegen from measured speed and cover public
-elapsed behavior as well as raw reads.
+are frozen. The proof must distinguish codegen closure, a runnable producer, measured speed,
+runtime smoke, and tagged wall fallback; no weaker category may be relabeled as a runtime speed
+claim. It covers public elapsed behavior as well as raw reads.
+
+**Tasks.**
+
+- [ ] `OBJ-FASTEST-TIMERS.M2.T1` Prove optimized codegen and public route closure for every
+  advertised target-mode identity.
+- [ ] `OBJ-FASTEST-TIMERS.M2.T2` Establish a runnable producer or explicit unavailable-host record
+  for every target-mode-runtime identity.
+- [ ] `OBJ-FASTEST-TIMERS.M2.T3` Collect measured speed only where a latency-capable runtime
+  producer exists; retain smoke and tagged fallback as their own evidence classes.
 
 ### Gate `OBJ-FASTEST-TIMERS.M2.G1` — advertised target matrix verifies complete routes
 
 Pass: the clean-source target verifier succeeds for every advertised target identity and verifies
-the selected and public `now` plus elapsed route closures without conflating codegen with runtime
-speed evidence.
+the selected and public `now` plus elapsed route closures; each 55-way runtime identity is then
+classified as runnable measured speed, runtime smoke, tagged wall fallback, or an explicitly open
+producer gap without conflating codegen with runtime speed evidence.
 - **Fallback.** Fix the target provider or correct the advertised support set with an owner-ratified
 decision; never silently omit a failing target.
 
@@ -147,6 +163,12 @@ decision; never silently omit a failing target.
 - Found: admission rejects ten explicitly planned producers; static route coverage and selector extraction do not substitute for runnable target producers or runtime speed evidence.
 - Next: use the shared supplemental-composer design to turn the highest-leverage planned/hosted routes into real producers, beginning with the remaining Linux and hosted-native gaps.
 - Board: M1 remains 🚧 and G1 ⚪; T3, T4, and T6 are complete, while T2 and T5 plus ten producer admissions remain open.
+
+### 2026-07-12 · codex · `OBJ-FASTEST-TIMERS.M1`
+- Did: recorded retained release-admission mechanism at 2e14e50: literal no-replace source, sealed collectors, strict snapshot/route binding, and full CI/chart gate; 132 Python tests pass.
+- Found: the 24-target contract expands to 49 target-mode and 55 target-mode-runtime identities; Windows evidence remains stale and user-owned, Lambda is retired pending a host protocol, and Wasm/WASI host producers remain open.
+- Next: turn the runnable Linux/macOS/FreeBSD producers into retained artifacts, then resolve Windows, Lambda, and host-bound runtime gaps without relabeling smoke or fallback as speed.
+- Board: M1 remains 🚧 with G1⚪; retained evidence mechanism T7 is done while producer and runtime proof remain open.
 
 ## /goal
 

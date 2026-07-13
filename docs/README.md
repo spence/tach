@@ -38,17 +38,15 @@ than delete old packages. Until that package exists, status remains open.
 The existing `benches/speed-*.json` and charts are campaign artifacts whose old source binding is
 not valid for the active provider revision. They are not closure evidence for this objective.
 
-## Current documentation migration
+## Markdown disposition
 
-The root `README.md` and `BENCHMARKS.md` are the only canonical public documents. Their current
-revisions are held until final evidence is frozen. The former `README_AGENT.md`,
-`README_STRUCTURE.md`, `README_TOPICS.md`, and `tmp-plan-delete-me.md` were stale scratch
-material; their surviving contract and release criteria now live in ADR-0001 and
-`OBJ-RELEASE-0-2`. Do not recreate a second public README.
-
-`WHY-NOT-AN-ATOMIC.md` is retained historical decision evidence until it is classified and linked
-from a dedicated ADR or frozen investigation. `PLAN-0.3.0-process-instant-atomic-deadline.md`
-belongs to `OBJ-PROCESS-INSTANT`, not the 0.2.0 release.
+| Surface | Disposition | Rule |
+|---|---|---|
+| root `README.md` and `BENCHMARKS.md` | Retain but hold public rewrites | They remain the only canonical public documents; do not update their v0.2.0/23-target/legacy-chart claims until a full retained proof package passes `OBJ-RELEASE-0-2.M0.G1` |
+| root `AGENTS.md` and `CLAUDE.md` | Retain | They are the canonical agent entry point and its shim, not public product documentation |
+| `WHY-NOT-AN-ATOMIC.md` | Retain as historical decision evidence | Preserve its benchmark history and link it from a future dedicated ADR or frozen investigation; do not delete or turn it into current API authorization |
+| [`plans/process-instant-atomic-deadline.md`](plans/process-instant-atomic-deadline.md) | Retain as a planned 0.3 proposal | It belongs to `OBJ-PROCESS-INSTANT`, not the 0.2 release; an accepted ADR must revalidate it before implementation |
+| former `README_AGENT.md`, `README_STRUCTURE.md`, `README_TOPICS.md`, and `tmp-plan-delete-me.md` | Remain retired | Their surviving contract and release criteria live in ADR-0001 and `OBJ-RELEASE-0-2`; do not recreate a second public README |
 
 ## Maintenance
 

@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       use the shared supplemental-composer design to turn the highest-leverage planned/hosted routes into real producers, beginning with the remaining Linux and hosted-native gaps.
+> Next:       turn the runnable Linux/macOS/FreeBSD producers into retained artifacts, then resolve Windows, Lambda, and host-bound runtime gaps without relabeling smoke or fallback as speed.
 > Blocked on you: nothing
-> Last verified: 2026-07-12 · Changed: committed the exhaustive route-evidence contract at 6f7f646; marked source binding (T3) and the 49-identity typed producer declaration (T6) complete. · By: nsr · 6f7f646
+> Last verified: 2026-07-12 · Changed: recorded retained release-admission mechanism at 2e14e50: literal no-replace source, sealed collectors, strict snapshot/route binding, and full CI/chart gate; 132 Python tests pass. · By: nsr · 2e14e50
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

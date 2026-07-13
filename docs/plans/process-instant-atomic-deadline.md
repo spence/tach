@@ -1,6 +1,6 @@
 # 0.3.0 plan: `ProcessInstant` + `AtomicDeadline`
 
-Status: **planned, not active.** Target release: 0.3.0. Additive (no breaking
+Status: PLANNED / INACTIVE, 2026-07-12. Target release: 0.3.0. Additive (no breaking
 change). This is a retained implementation proposal under `OBJ-PROCESS-INSTANT`;
 it does not authorize implementation. Revalidate its contract with an ADR before
 0.3.0 work begins.
