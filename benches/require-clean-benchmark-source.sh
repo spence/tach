@@ -20,6 +20,7 @@ paths=(
   benches/host_speed.py
   benches/host-runtime-speed/Cargo.toml
   benches/host-runtime-speed/Cargo.lock
+  benches/host-runtime-speed/emscripten-shims
   benches/host-runtime-speed/src
   benches/instant.rs
   benches/lambda-speed/Cargo.lock

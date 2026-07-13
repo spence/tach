@@ -8,6 +8,14 @@ publish = false
 [lib]
 crate-type = ["cdylib"]
 
+[[bin]]
+name = "tach-host-runtime-emscripten"
+path = "src/bin/emscripten.rs"
+required-features = ["emscripten-host"]
+
+[features]
+emscripten-host = []
+
 [dependencies]
 fastant = "0.1.11"
 minstant = "0.1.7"
@@ -17,3 +25,6 @@ wasm-bindgen = { version = "=0.2.114", default-features = false }
 
 [target.'cfg(not(target_os = "emscripten"))'.dependencies]
 quanta = "0.12.6"
+
+[target.'cfg(target_os = "emscripten")'.dependencies]
+tach-host-emscripten-shims = { path = "emscripten-shims" }

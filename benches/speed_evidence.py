@@ -140,6 +140,7 @@ BENCHMARK_SOURCE_PATHS = (
   "benches/host_speed.py",
   "benches/host-runtime-speed/Cargo.toml",
   "benches/host-runtime-speed/Cargo.lock",
+  "benches/host-runtime-speed/emscripten-shims",
   "benches/host-runtime-speed/src",
   "benches/instant.rs",
   "benches/lambda-speed/Cargo.toml",
@@ -402,6 +403,12 @@ def local_reference_eligibility(target_triple: str | None) -> dict[str, dict]:
       "reason": EMSCRIPTEN_QUANTA_INELIGIBILITY_REASON,
       "implementation": EMSCRIPTEN_QUANTA_IMPLEMENTATION,
     }
+    for name, implementation in WASM_UNKNOWN_SYSTEM_TIME_IMPLEMENTATIONS.items():
+      eligibility[name] = {
+        "eligible": False,
+        "reason": WASM_UNKNOWN_SYSTEM_TIME_INELIGIBILITY_REASON,
+        "implementation": implementation,
+      }
     return eligibility
 
   if target_triple in {"wasm32-unknown-unknown", "wasm32v1-none"}:
@@ -3017,6 +3024,15 @@ def validate_residual_wall_selector(
       failures,
       selection.get("probe_observations"),
     )
+  if architecture == "emscripten-host":
+    return validate_emscripten_wall_selector(
+      context,
+      selected,
+      candidates,
+      probe,
+      failures,
+      selection.get("probe_observations"),
+    )
   if architecture in ("armv7-linux", "s390x-linux"):
     return validate_linux_clock_wall_selector(
       context, selected, candidates, probe, failures
@@ -3148,6 +3164,122 @@ def validate_wasm_wall_selector(
         for value in output["observations"]
         if domain in value
       ]
+      output[domain] = {
+        "winner": selected.get(domain),
+        "observations": domain_observations,
+      }
+  return output
+
+
+def validate_emscripten_wall_selector(
+  context: str,
+  selected: dict,
+  candidates: dict,
+  probe: dict,
+  failures: list[str],
+  probe_observations: object = None,
+) -> dict:
+  if probe_observations is None:
+    observations = [probe]
+  elif (
+    not isinstance(probe_observations, list)
+    or len(probe_observations) != LAMBDA_INVOCATIONS
+    or probe_observations[0] != probe
+    or not all(isinstance(value, dict) for value in probe_observations)
+  ):
+    failures.append(f"{context}: malformed Emscripten wall probe observations")
+    return {}
+  else:
+    observations = probe_observations
+
+  output = {"observations": []}
+  for observation_index, observed_probe in enumerate(observations, start=1):
+    reads = observed_probe.get("reads_per_batch")
+    required = observed_probe.get("required_decisive_wins")
+    if reads != 4_096 or required != 8:
+      failures.append(
+        f"{context}: Emscripten wall decision rule changed in observation "
+        f"{observation_index}"
+      )
+      continue
+    observation_output = {}
+    for domain, direct_prefix in (
+      ("instant", "direct_wall"),
+      ("ordered", "direct_ordered_wall"),
+    ):
+      domain_probe = observed_probe.get(domain)
+      declared = candidates.get(domain)
+      if not isinstance(domain_probe, dict) or not isinstance(declared, list):
+        failures.append(f"{context}: malformed Emscripten {domain} selector evidence")
+        continue
+      candidate_map = {
+        f"{direct_prefix}__performance.now": (
+          "performance.now",
+          domain_probe.get("performance_eligible"),
+        ),
+        f"{direct_prefix}__process.hrtime.bigint": (
+          "process.hrtime.bigint",
+          domain_probe.get("hrtime_eligible"),
+        ),
+      }
+      expected_candidates = [
+        name for name, (_, eligible) in candidate_map.items() if eligible is True
+      ]
+      if any(eligible not in (True, False) for _, eligible in candidate_map.values()):
+        failures.append(f"{context}: malformed Emscripten {domain} eligibility")
+        continue
+      if declared != expected_candidates or not declared:
+        failures.append(f"{context}: Emscripten {domain} candidate set is incomplete")
+        continue
+      expected_selected = candidate_map[declared[0]][0]
+      decision = None
+      if len(declared) == 2:
+        try:
+          decision = reproduce_material_decision(
+            domain_probe.get("hrtime_batches_ns"),
+            domain_probe.get("performance_batches_ns"),
+            reads,
+            required,
+          )
+        except (TypeError, ValueError):
+          failures.append(f"{context}: malformed Emscripten {domain} paired samples")
+          continue
+        expected_selected = (
+          "process.hrtime.bigint" if decision["selected"] else "performance.now"
+        )
+        if domain_probe.get("allowance_ns") != decision["allowance_ns"]:
+          failures.append(f"{context}: Emscripten {domain} allowance does not reproduce")
+        if domain_probe.get("hrtime_decisive_wins") != decision["decisive_wins"]:
+          failures.append(
+            f"{context}: Emscripten {domain} decisive wins do not reproduce"
+          )
+      elif any(
+        domain_probe.get(field) not in (0, [0] * 9)
+        for field in (
+          "performance_batches_ns",
+          "hrtime_batches_ns",
+          "allowance_ns",
+          "hrtime_decisive_wins",
+        )
+      ):
+        failures.append(
+          f"{context}: Emscripten {domain} single-candidate route retained tournament data"
+        )
+      if selected.get(domain) != expected_selected:
+        failures.append(
+          f"{context}: Emscripten {domain} selected provider does not reproduce"
+        )
+      observation_output[domain] = {
+        "winner": expected_selected,
+        "decision": decision,
+      }
+    output["observations"].append(observation_output)
+
+  for domain in ("instant", "ordered"):
+    domain_observations = [value[domain] for value in output["observations"] if domain in value]
+    if len(output["observations"]) == 1 and domain_observations:
+      output[domain] = domain_observations[0]
+    else:
       output[domain] = {
         "winner": selected.get(domain),
         "observations": domain_observations,
@@ -4688,7 +4820,7 @@ def validate_supplemental_route_coverage(
   wall_selection = tach_wall.get("selection") if isinstance(tach_wall, dict) else None
   if (
     isinstance(wall_selection, dict)
-    and wall_selection.get("architecture") == "wasm32-host"
+    and wall_selection.get("architecture") in {"wasm32-host", "emscripten-host"}
   ):
     wall_selector_reproduction = validate_residual_wall_selector(
       context, wall_selection, clocks, failures

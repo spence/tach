@@ -126,8 +126,8 @@ entrypoints = ["src/arch/wasm.rs", "benches/instant.rs"]
 [[producer]]
 id = "emscripten_node"
 kind = "host_runtime"
-state = "planned"
-entrypoints = ["src/arch/emscripten.rs", "benches/run-emscripten-reentry.sh"]
+state = "ready"
+entrypoints = ["src/arch/emscripten.rs", "benches/host-runtime-speed/Cargo.toml", "benches/host-runtime-speed/src/bin/emscripten.rs", "benches/run-speed-host-runtime.sh", "benches/run-emscripten-reentry.sh"]
 
 [[producer]]
 id = "wasi_p1_node"

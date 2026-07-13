@@ -4,16 +4,28 @@
 set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
-  echo "usage: $0 <output-dir>/speed-supplemental-wasm-node.json" >&2
+  echo "usage: $0 <output-dir>/<host-runtime-speed-artifact>.json" >&2
   exit 2
 fi
 
 output_input="$1"
 output_name="$(basename "$output_input")"
-if [ "$output_name" != speed-supplemental-wasm-node.json ]; then
-  echo "host-runtime runner currently accepts only speed-supplemental-wasm-node.json" >&2
-  exit 2
-fi
+case "$output_name" in
+  speed-supplemental-wasm-node.json)
+    invocation_prefix="wasm-node"
+    runner="node-wasm-bindgen"
+    target="wasm32-unknown-unknown"
+    ;;
+  speed-supplemental-emscripten-node.json)
+    invocation_prefix="emscripten-node"
+    runner="emcc-node"
+    target="wasm32-unknown-emscripten"
+    ;;
+  *)
+    echo "unsupported host-runtime evidence artifact: $output_name" >&2
+    exit 2
+    ;;
+esac
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 output_dir="$(cd "$(dirname "$output_input")" && pwd)"
@@ -27,7 +39,7 @@ for destination in "$output" "$bundle_dir"; do
 done
 
 source_revision="$(bash "$repo_root/benches/require-clean-benchmark-source.sh")"
-invocation_id="wasm-node-${source_revision:0:12}-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+invocation_id="$invocation_prefix-${source_revision:0:12}-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 source_dir="$(mktemp -d -t tach-host-runtime-source.XXXXXX)"
 target_dir="$(mktemp -d -t tach-host-runtime-target.XXXXXX)"
 host_dir="$(mktemp -d -t tach-host-runtime-observation.XXXXXX)"
@@ -41,25 +53,38 @@ git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"
   tar -xf - -C "$source_dir"
 
 manifest="$source_dir/benches/host-runtime-speed/Cargo.toml"
+cargo_args=(--target "$target")
+if [ "$target" = wasm32-unknown-emscripten ]; then
+  cargo_args+=(--bin tach-host-runtime-emscripten --features emscripten-host)
+fi
 env \
   CARGO_TARGET_DIR="$target_dir" \
   TACH_BENCH_SOURCE_REVISION="$source_revision" \
   TACH_BENCH_INVOCATION_ID="$invocation_id" \
-  TACH_BENCH_RUNNER="node-wasm-bindgen" \
+  TACH_BENCH_RUNNER="$runner" \
   cargo +1.95 build --locked --release --manifest-path "$manifest" \
-    --target wasm32-unknown-unknown
+    "${cargo_args[@]}"
 
-wasm-bindgen \
-  "$target_dir/wasm32-unknown-unknown/release/tach_host_runtime_speed.wasm" \
-  --target nodejs \
-  --out-dir "$generated_dir"
+if [ "$target" = wasm32-unknown-unknown ]; then
+  wasm-bindgen \
+    "$target_dir/$target/release/tach_host_runtime_speed.wasm" \
+    --target nodejs \
+    --out-dir "$generated_dir"
+  runtime="$generated_dir/tach_host_runtime_speed.js"
+else
+  runtime="$target_dir/$target/release/tach-host-runtime-emscripten.js"
+fi
 
 for run in 1 2 3 4 5; do
-  node - "$generated_dir/tach_host_runtime_speed.js" > "$host_dir/run-$run.json" <<'NODE'
+  if [ "$target" = wasm32-unknown-unknown ]; then
+    node - "$runtime" > "$host_dir/run-$run.json" <<'NODE'
 const modulePath = process.argv[2];
 const benchmark = require(modulePath);
 process.stdout.write(benchmark.run() + "\n");
 NODE
+  else
+    node "$runtime" > "$host_dir/run-$run.json"
+  fi
 done
 
 python3 - "$host_dir" <<'PY'

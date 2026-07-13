@@ -48,6 +48,11 @@ const ORDERED_LOCAL: u8 = 5;
 static LOCAL_STATE: AtomicU8 = AtomicU8::new(LOCAL_UNKNOWN);
 static PROBE_LOCAL_PROVIDER: AtomicU8 = AtomicU8::new(LOCAL_PERFORMANCE_NOW);
 
+#[cfg(not(any(feature = "emscripten-pthreads", target_feature = "atomics")))]
+type LocalReader = fn() -> u64;
+#[cfg(not(any(feature = "emscripten-pthreads", target_feature = "atomics")))]
+static mut LOCAL_READER: LocalReader = select_local_ticks;
+
 #[cfg(any(feature = "emscripten-pthreads", target_feature = "atomics"))]
 static ORDERED_STATE: AtomicU8 = AtomicU8::new(0);
 #[cfg(any(feature = "emscripten-pthreads", target_feature = "atomics"))]
@@ -300,11 +305,50 @@ struct OrderedSelectionOutcome {
   get_now_wins: usize,
 }
 
+#[cfg(not(any(feature = "emscripten-pthreads", target_feature = "atomics")))]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn ticks() -> u64 {
+  // SAFETY: this Emscripten build has no shared Wasm memory or Rust threads.
+  // Synchronous host reentry keeps the selector reader installed until the
+  // outer call publishes one stable provider.
+  unsafe { LOCAL_READER() }
+}
+
+#[cfg(any(feature = "emscripten-pthreads", target_feature = "atomics"))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
   let provider = selected_local_provider();
   read_local_hot(provider).unwrap_or(0)
+}
+
+#[cfg(not(any(feature = "emscripten-pthreads", target_feature = "atomics")))]
+fn select_local_ticks() -> u64 {
+  let provider = selected_local_provider();
+  let reader = match provider {
+    LOCAL_PERFORMANCE_NOW => performance_local_ticks as LocalReader,
+    LOCAL_NODE_HRTIME => hrtime_local_ticks as LocalReader,
+    _ => return read_local_hot(provider).unwrap_or(0),
+  };
+  // SAFETY: non-pthread Emscripten has one Rust execution thread. The reader
+  // changes only after the selector has published its sticky provider.
+  unsafe { LOCAL_READER = reader };
+  reader()
+}
+
+#[cfg(not(any(feature = "emscripten-pthreads", target_feature = "atomics")))]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+fn performance_local_ticks() -> u64 {
+  read_local_hot(LOCAL_PERFORMANCE_NOW).unwrap_or(0)
+}
+
+#[cfg(not(any(feature = "emscripten-pthreads", target_feature = "atomics")))]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+fn hrtime_local_ticks() -> u64 {
+  read_local_hot(LOCAL_NODE_HRTIME).unwrap_or(0)
 }
 
 #[cfg(not(any(feature = "emscripten-pthreads", target_feature = "atomics")))]

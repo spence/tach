@@ -250,6 +250,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "tach-host-emscripten-shims"
+version = "0.0.0"
+
+[[package]]
 name = "tach-host-runtime-speed"
 version = "0.0.0"
 dependencies = [
@@ -258,6 +262,7 @@ dependencies = [
  "quanta",
  "serde_json",
  "tach",
+ "tach-host-emscripten-shims",
  "wasm-bindgen",
 ]
 

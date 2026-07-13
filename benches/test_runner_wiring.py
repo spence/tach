@@ -64,7 +64,9 @@ class SealedRunnerWiringTests(unittest.TestCase):
 
         source = self.source("run-speed-host-runtime.sh")
         self.assertIn("speed-supplemental-wasm-node.json", source)
+        self.assertIn("speed-supplemental-emscripten-node.json", source)
         self.assertIn("wasm-bindgen", source)
+        self.assertIn("tach-host-runtime-emscripten", source)
         self.assertIn("collect-host-speed-bundle.py", source)
         self.assertIn("compose-supplemental-speed.py", source)
         self.assertIn("--thread-cpu-profile availability_fallback", source)

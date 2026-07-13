@@ -1379,7 +1379,6 @@ class SpeedEvidenceTests(unittest.TestCase):
       {
         "criterion_linux_rare_no_default",
         "wasm_browser",
-        "emscripten_node",
         "wasi_p1_node",
         "wasi_p1_wasmtime",
         "wasi_p2_wasmtime",
@@ -2617,13 +2616,21 @@ declare void @generic_implementation()
 
   def test_emscripten_quanta_compile_gap_is_explicit_and_the_row_may_be_absent(self) -> None:
     target = "wasm32-unknown-emscripten"
-    quanta = speed_evidence.local_reference_eligibility(target)["quanta"]
+    policies = speed_evidence.local_reference_eligibility(target)
+    quanta = policies["quanta"]
     self.assertFalse(quanta["eligible"])
     self.assertEqual(
       quanta["reason"],
       speed_evidence.EMSCRIPTEN_QUANTA_INELIGIBILITY_REASON,
     )
     self.assertIn("target_os=wasi", quanta["implementation"])
+    for reference in ("fastant", "minstant"):
+      self.assertFalse(policies[reference]["eligible"])
+      self.assertEqual(
+        policies[reference]["reason"],
+        speed_evidence.WASM_UNKNOWN_SYSTEM_TIME_INELIGIBILITY_REASON,
+      )
+    self.assertTrue(policies["std"]["eligible"])
 
     values = clocks()
     values.pop("quanta")
@@ -2633,6 +2640,56 @@ declare void @generic_implementation()
     self.assertFalse(comparison["eligible_for_reliable_contract"])
     self.assertFalse(comparison["measured"])
     self.assertIsNone(comparison["reference_ns"])
+
+  def test_emscripten_wall_selector_reproduces_from_paired_samples(self) -> None:
+    performance = [100_000] * 9
+    hrtime = [80_000] * 9
+    decision = speed_evidence.reproduce_material_decision(
+      hrtime, performance, 4_096, 8
+    )
+    domain_probe = {
+      "performance_eligible": True,
+      "hrtime_eligible": True,
+      "performance_batches_ns": performance,
+      "hrtime_batches_ns": hrtime,
+      "allowance_ns": decision["allowance_ns"],
+      "hrtime_decisive_wins": decision["decisive_wins"],
+    }
+    selected = {
+      "instant": "process.hrtime.bigint",
+      "ordered": "process.hrtime.bigint",
+    }
+    candidates = {
+      "instant": [
+        "direct_wall__performance.now",
+        "direct_wall__process.hrtime.bigint",
+      ],
+      "ordered": [
+        "direct_ordered_wall__performance.now",
+        "direct_ordered_wall__process.hrtime.bigint",
+      ],
+    }
+    probe = {
+      "reads_per_batch": 4_096,
+      "required_decisive_wins": 8,
+      "instant": copy.deepcopy(domain_probe),
+      "ordered": copy.deepcopy(domain_probe),
+    }
+    failures = []
+    reproduction = speed_evidence.validate_emscripten_wall_selector(
+      "Emscripten", selected, candidates, probe, failures
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(reproduction["instant"]["winner"], "process.hrtime.bigint")
+
+    probe["ordered"]["allowance_ns"] += 1
+    speed_evidence.validate_emscripten_wall_selector(
+      "Emscripten", selected, candidates, probe, failures
+    )
+    self.assertTrue(any(
+      "Emscripten ordered allowance does not reproduce" in failure
+      for failure in failures
+    ))
 
   def test_wasm_unknown_ineligible_references_are_explicit(self) -> None:
     target = "wasm32-unknown-unknown"
