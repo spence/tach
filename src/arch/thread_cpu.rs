@@ -3461,7 +3461,8 @@ fn thread_clock_gettime(value: *mut libc::timespec) -> bool {
 }
 
 #[cfg(target_os = "macos")]
-#[inline]
+#[inline(always)]
+#[allow(clippy::inline_always)]
 pub(crate) fn now_nanos() -> u64 {
   unsafe extern "C" {
     fn clock_gettime_nsec_np(clock_id: libc::clockid_t) -> u64;
