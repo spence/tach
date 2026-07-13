@@ -216,6 +216,12 @@ decision; never silently omit a failing target.
 - Found: Browser current-thread CPU time is genuinely unavailable, so the observed thread selector is fallback_only rather than availability_fallback. Sealed medians were 60.50 ns Instant now, 61.50 ns OrderedInstant now, and 60.00 ns ThreadCpuInstant fallback now; every public route was materially equivalent to its exact selected route and wall-fallback semantics passed busy, sleep, and sibling probes.
 - Next: Freeze one common source revision, rerun every admitted producer at that revision, and close the remaining benchmark/target-route evidence gates.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed paired Wasm public/exact route evidence at 73c1f32 and the nanosecond host ThreadCpuInstant elapsed specialization at 1a7808b; the benchmark source guard accepts 1a7808b as the common revision.
+- Found: Independent Wasm sampling had falsely rejected Node and Chromium, while paired WASI P1 Wasmtime samples exposed a real roughly 20 ns public elapsed overhead. Pairing and the host-duration specialization remove both defects; fresh WASI P1 Node, P1 Wasmtime, and P2 Wasmtime cells compose successfully at 1a7808b.
+- Next: Recollect Apple, Node/Wasm, Chromium, Emscripten, and runtime-smoke cells at 1a7808b; then collect every native/cloud cell, validate the unified matrix, and generate the final PNG.
+- Board: Frozen 1a7808b; three WASI hosted cells pass, with the remaining local/browser and native/cloud matrix still to collect.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

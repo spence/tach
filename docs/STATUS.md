@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Freeze one common source revision, rerun every admitted producer at that revision, and close the remaining benchmark/target-route evidence gates.
+> Next:       Recollect Apple, Node/Wasm, Chromium, Emscripten, and runtime-smoke cells at 1a7808b; then collect every native/cloud cell, validate the unified matrix, and generate the final PNG.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Added and sealed a real Chromium browser producer at 8171221d3a9cc6ae967975827775fe7c43a402e8. Five isolated browser observations passed direct-route parity for Instant, OrderedInstant, and the tagged ThreadCpuInstant performance.now fallback; c0a05ea made the release wrapper re-extract tagged fallbacks from their retained digest-bound bundles. · By: nsr · c0a05ea
+> Last verified: 2026-07-13 · Changed: Committed paired Wasm public/exact route evidence at 73c1f32 and the nanosecond host ThreadCpuInstant elapsed specialization at 1a7808b; the benchmark source guard accepts 1a7808b as the common revision. · By: nsr · 1a7808b
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
