@@ -20,6 +20,7 @@ if str(BENCHES_DIR) not in sys.path:
   sys.path.insert(0, str(BENCHES_DIR))
 
 import release_matrix
+import route_observation as route_observation_core
 import speed_evidence
 
 
@@ -120,21 +121,25 @@ def write_manifest(
   equivalences: list[dict] | None = None,
   source_revision: str = SOURCE_REVISION,
 ) -> None:
-  bindings = []
+  artifacts = []
   for observation in observations:
     artifact_id = observation["artifact_id"]
     raw = (directory / artifact_id).read_bytes()
-    bindings.append({
-      "artifact_id": artifact_id,
-      "document_sha256": hashlib.sha256(raw).hexdigest(),
-      "route_observation": observation,
-    })
-  write_json(directory / RELEASE_VALIDATOR.ROUTE_OBSERVATIONS_FILENAME, {
-    "schema": RELEASE_VALIDATOR.ROUTE_OBSERVATIONS_SCHEMA,
-    "source_revision": source_revision,
-    "bindings": bindings,
-    "equivalences": [] if equivalences is None else equivalences,
-  })
+    identity = release_matrix.RouteIdentity.from_mapping(observation["identity"])
+    requirement = release_matrix.CoverageRequirement(
+      identity,
+      release_matrix.EvidenceKind(observation["evidence_kind"]),
+      "test-producer",
+      "three_timer_direct",
+    )
+    artifacts.append(route_observation_core.ArtifactBindingInput(
+      artifact_id,
+      hashlib.sha256(raw).hexdigest(),
+      requirement,
+    ))
+  manifest = route_observation_core.compose_manifest(source_revision, artifacts)
+  manifest["equivalences"] = [] if equivalences is None else equivalences
+  write_json(directory / RELEASE_VALIDATOR.ROUTE_OBSERVATIONS_FILENAME, manifest)
 
 
 def passed_primary_report(source_revision: str = SOURCE_REVISION) -> dict:
@@ -307,8 +312,31 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
 
     self.assertFalse(report["passed"])
     binding_failures = report["route_matrix"]["bindings"]["failures"]
-    self.assertTrue(any("target does not match validated document" in failure for failure in binding_failures))
+    self.assertTrue(any(
+      "target does not match validated document" in failure
+      for failure in binding_failures
+    ))
     self.assertEqual(report["route_matrix"]["bindings"]["artifacts"], [])
+
+  def test_caller_selected_closure_digest_is_rejected(self) -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+      directory = Path(temporary)
+      write_json(directory / PRIMARY_ARTIFACT, primary_document())
+      write_manifest(directory, [route_observation(PRIMARY_ARTIFACT)])
+      manifest_path = directory / RELEASE_VALIDATOR.ROUTE_OBSERVATIONS_FILENAME
+      manifest = json.loads(manifest_path.read_text())
+      manifest["bindings"][0]["route_observation"]["frozen"]["closure_digest"] = "0" * 64
+      write_json(manifest_path, manifest)
+
+      report = self.validate(
+        directory, release_matrix.RouteMatrix((requirement("default"),))
+      )
+
+    self.assertFalse(report["passed"])
+    self.assertTrue(any(
+      "closure digest does not bind its committed requirement" in failure
+      for failure in report["route_matrix"]["bindings"]["failures"]
+    ))
 
   def test_release_report_includes_structured_route_matrix_admission(self) -> None:
     with tempfile.TemporaryDirectory() as temporary:

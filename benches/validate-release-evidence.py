@@ -13,6 +13,7 @@ the record reaches the route matrix.
 from __future__ import annotations
 
 import argparse
+import ctypes
 from dataclasses import dataclass
 import hashlib
 import json
@@ -23,6 +24,7 @@ import stat
 import subprocess
 
 import release_matrix
+import route_observation
 import speed_evidence
 
 
@@ -53,11 +55,15 @@ def _read_regular_file_bytes_once(path: Path, label: str) -> bytes:
   can redirect the read.
   """
   no_follow = getattr(os, "O_NOFOLLOW", None)
-  if no_follow is None:
+  if os.name == "nt":
+    open_descriptor = lambda: _open_windows_no_reparse(path)
+  elif no_follow is None:
     raise ValueError(f"secure snapshots require O_NOFOLLOW for {label} {path}")
+  else:
+    open_descriptor = lambda: os.open(path, os.O_RDONLY | no_follow)
   descriptor = -1
   try:
-    descriptor = os.open(path, os.O_RDONLY | no_follow)
+    descriptor = open_descriptor()
     mode = os.fstat(descriptor).st_mode
     if not stat.S_ISREG(mode):
       raise ValueError(f"{label} is not a regular file: {path}")
@@ -69,6 +75,104 @@ def _read_regular_file_bytes_once(path: Path, label: str) -> bytes:
   finally:
     if descriptor >= 0:
       os.close(descriptor)
+
+
+def _open_windows_no_reparse(
+  path: Path,
+  kernel32=None,
+  open_osfhandle=None,
+  get_last_error=None,
+) -> int:
+  """Open one Windows path without traversing a final reparse point."""
+  class FileInformation(ctypes.Structure):
+    _fields_ = [
+      ("dwFileAttributes", ctypes.c_uint32),
+      ("ftCreationTimeLow", ctypes.c_uint32),
+      ("ftCreationTimeHigh", ctypes.c_uint32),
+      ("ftLastAccessTimeLow", ctypes.c_uint32),
+      ("ftLastAccessTimeHigh", ctypes.c_uint32),
+      ("ftLastWriteTimeLow", ctypes.c_uint32),
+      ("ftLastWriteTimeHigh", ctypes.c_uint32),
+      ("dwVolumeSerialNumber", ctypes.c_uint32),
+      ("nFileSizeHigh", ctypes.c_uint32),
+      ("nFileSizeLow", ctypes.c_uint32),
+      ("nNumberOfLinks", ctypes.c_uint32),
+      ("nFileIndexHigh", ctypes.c_uint32),
+      ("nFileIndexLow", ctypes.c_uint32),
+    ]
+
+  if kernel32 is None:
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+  if open_osfhandle is None:
+    import msvcrt
+    open_osfhandle = msvcrt.open_osfhandle
+  if get_last_error is None:
+    get_last_error = ctypes.get_last_error
+
+  handle_type = ctypes.c_void_p
+  kernel32.CreateFileW.argtypes = [
+    ctypes.c_wchar_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    handle_type,
+  ]
+  kernel32.CreateFileW.restype = handle_type
+  kernel32.GetFileInformationByHandle.argtypes = [
+    handle_type,
+    ctypes.POINTER(FileInformation),
+  ]
+  kernel32.GetFileInformationByHandle.restype = ctypes.c_int
+  kernel32.CloseHandle.argtypes = [handle_type]
+  kernel32.CloseHandle.restype = ctypes.c_int
+
+  generic_read = 0x80000000
+  file_share_read_write_delete = 0x00000007
+  open_existing = 3
+  file_attribute_normal = 0x00000080
+  file_flag_open_reparse_point = 0x00200000
+  file_attribute_reparse_point = 0x00000400
+  invalid_handle = ctypes.c_void_p(-1).value
+  handle = kernel32.CreateFileW(
+    str(path),
+    generic_read,
+    file_share_read_write_delete,
+    None,
+    open_existing,
+    file_attribute_normal | file_flag_open_reparse_point,
+    None,
+  )
+  if handle == invalid_handle:
+    error_code = get_last_error()
+    raise OSError(error_code, f"CreateFileW failed with Windows error {error_code}", path)
+
+  transferred = False
+  try:
+    information = FileInformation()
+    if not kernel32.GetFileInformationByHandle(handle, ctypes.byref(information)):
+      error_code = get_last_error()
+      raise OSError(
+        error_code,
+        f"GetFileInformationByHandle failed with Windows error {error_code}",
+        path,
+      )
+    if information.dwFileAttributes & file_attribute_reparse_point:
+      raise ValueError(f"secure snapshots reject a reparse point: {path}")
+    flags = (
+      os.O_RDONLY
+      | getattr(os, "O_BINARY", 0)
+      | getattr(os, "O_NOINHERIT", 0)
+    )
+    descriptor = open_osfhandle(handle, flags)
+    if descriptor < 0:
+      raise OSError("open_osfhandle returned an invalid descriptor")
+    transferred = True
+    return descriptor
+  finally:
+    if not transferred:
+      kernel32.CloseHandle(handle)
 
 
 def parse_strict_json_object(raw: bytes, label: str) -> dict:
@@ -596,6 +700,7 @@ def load_route_observations(
   data_dir: Path,
   documents: dict[str, EvidenceSnapshot],
   contexts: dict[str, dict[str, object]],
+  matrix: release_matrix.RouteMatrix,
 ) -> tuple[list[release_matrix.ObservedCoverage], list[release_matrix.ModeEquivalence], dict]:
   """Load the retained, hash-bound observations used for route admission.
 
@@ -704,6 +809,20 @@ def load_route_observations(
       binding_errors.append("route_observation frozen target does not match validated document")
     if observation.frozen.runtime_profile != context.get("runtime_profile"):
       binding_errors.append("route_observation frozen runtime profile does not match validated document")
+    requirement = matrix.by_identity.get(observation.identity)
+    if requirement is None:
+      binding_errors.append("route_observation identity is absent from the committed route matrix")
+    else:
+      expected_closure = route_observation.closure_digest(
+        artifact_id,
+        snapshot.sha256,
+        manifest_revision,
+        requirement,
+      )
+      if observation.frozen.closure_digest != expected_closure:
+        binding_errors.append(
+          "route_observation closure digest does not bind its committed requirement"
+        )
     if binding_errors:
       for error in binding_errors:
         _binding_failure(report, f"{label}: {error}")
@@ -794,24 +913,31 @@ def validate_route_matrix_admission(
     supplemental_documents,
   )
   documents = {**primary_documents, **supplemental_documents}
-  observations, equivalences, binding = load_route_observations(
-    data_dir, documents, contexts
-  )
-  binding["failures"] = [
-    *primary_binding_failures,
-    *context_failures,
-    *binding["failures"],
-  ]
-  binding["passed"] = not binding["failures"]
   try:
     matrix, manifest_binding = load_campaign_route_matrix(
       checkout_root,
       primary_report.get("source_revision"),
     )
+    observations, equivalences, binding = load_route_observations(
+      data_dir, documents, contexts, matrix
+    )
+    binding["failures"] = [
+      *primary_binding_failures,
+      *context_failures,
+      *binding["failures"],
+    ]
+    binding["passed"] = not binding["failures"]
     admission = release_matrix.validate_route_matrix(matrix, observations, equivalences)
     admission_payload = admission.to_mapping()
     admission_failures = admission.rendered_failures()
   except release_matrix.RouteMatrixError as error:
+    binding = {
+      "schema": ROUTE_OBSERVATIONS_SCHEMA,
+      "path": ROUTE_OBSERVATIONS_FILENAME,
+      "passed": False,
+      "failures": [*primary_binding_failures, *context_failures, str(error)],
+      "artifacts": [],
+    }
     manifest_binding = {
       "schema": ROUTE_MANIFEST_BINDING_SCHEMA,
       "path": ROUTE_COVERAGE_GIT_PATH,

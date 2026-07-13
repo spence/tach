@@ -12,6 +12,7 @@ paths=(
   tests
   benches/bench_data.py
   benches/collect-speed-bundle.py
+  benches/compose-route-observations.py
   benches/compose-speed.py
   benches/compose-supplemental-speed.py
   benches/extract_speed.py
@@ -20,6 +21,7 @@ paths=(
   benches/lambda-speed/Cargo.toml
   benches/lambda-speed/src
   benches/release_matrix.py
+  benches/route_observation.py
   benches/require-clean-benchmark-source.sh
   benches/probes/aarch64-thread-pmu.c
   benches/route-coverage.toml
@@ -38,6 +40,7 @@ paths=(
   benches/test_release_evidence_validation.py
   benches/test_release_matrix.py
   benches/test_release_matrix_wiring.py
+  benches/test_route_observation.py
   benches/test_runner_wiring.py
   benches/test_speed_evidence.py
   benches/validate-speed-evidence.py

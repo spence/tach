@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -43,6 +44,165 @@ def write_cell(directory: Path, artifact: str, document: dict) -> Path:
 
 def full_speed_document(bundle_path: str = "collector.bundle") -> dict:
   return {"collector_bundle": {"path": bundle_path}}
+
+
+def windows_kernel(handle: int = 123, attributes: int = 0):
+  def provide_information(_handle, information):
+    information._obj.dwFileAttributes = attributes
+    return 1
+
+  return SimpleNamespace(
+    CreateFileW=mock.Mock(return_value=handle),
+    GetFileInformationByHandle=mock.Mock(side_effect=provide_information),
+    CloseHandle=mock.Mock(return_value=1),
+  )
+
+
+class SnapshotReaderTests(unittest.TestCase):
+  @unittest.skipUnless(
+    hasattr(RELEASE_VALIDATOR.os, "O_NOFOLLOW"),
+    "POSIX O_NOFOLLOW is unavailable",
+  )
+  def test_posix_snapshot_keeps_no_follow_descriptor_path(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      path = Path(directory) / "evidence.json"
+      path.write_bytes(b'{"schema":"example"}')
+      real_open = RELEASE_VALIDATOR.os.open
+      with (
+        mock.patch.object(RELEASE_VALIDATOR.os, "open", wraps=real_open) as opened,
+        mock.patch.object(RELEASE_VALIDATOR, "_open_windows_no_reparse") as windows,
+      ):
+        raw = RELEASE_VALIDATOR._read_regular_file_bytes_once(path, "evidence")
+
+      self.assertEqual(raw, b'{"schema":"example"}')
+      opened.assert_called_once_with(
+        path,
+        RELEASE_VALIDATOR.os.O_RDONLY | RELEASE_VALIDATOR.os.O_NOFOLLOW,
+      )
+      windows.assert_not_called()
+
+  def test_windows_reparse_point_is_rejected_before_transfer(self) -> None:
+    path = Path("evidence.json")
+    kernel = windows_kernel(attributes=0x00000400)
+    transfer = mock.Mock(return_value=71)
+
+    with self.assertRaisesRegex(ValueError, "reject a reparse point"):
+      RELEASE_VALIDATOR._open_windows_no_reparse(
+        path,
+        kernel32=kernel,
+        open_osfhandle=transfer,
+        get_last_error=lambda: 0,
+      )
+
+    transfer.assert_not_called()
+    kernel.CloseHandle.assert_called_once_with(123)
+
+  def test_windows_invalid_create_error_is_wrapped_by_snapshot_reader(self) -> None:
+    path = Path("evidence.json")
+    invalid_handle = RELEASE_VALIDATOR.ctypes.c_void_p(-1).value
+    kernel = windows_kernel(handle=invalid_handle)
+    real_windows_open = RELEASE_VALIDATOR._open_windows_no_reparse
+
+    def open_windows(candidate):
+      return real_windows_open(
+        candidate,
+        kernel32=kernel,
+        open_osfhandle=mock.Mock(),
+        get_last_error=lambda: 5,
+      )
+
+    with (
+      mock.patch.object(RELEASE_VALIDATOR.os, "name", "nt"),
+      mock.patch.object(
+        RELEASE_VALIDATOR,
+        "_open_windows_no_reparse",
+        side_effect=open_windows,
+      ),
+    ):
+      with self.assertRaisesRegex(ValueError, "CreateFileW failed.*error 5"):
+        RELEASE_VALIDATOR._read_regular_file_bytes_once(path, "evidence")
+
+    kernel.GetFileInformationByHandle.assert_not_called()
+    kernel.CloseHandle.assert_not_called()
+
+  def test_windows_conversion_failure_closes_handle_once(self) -> None:
+    kernel = windows_kernel()
+    transfer = mock.Mock(side_effect=OSError("conversion failed"))
+
+    with self.assertRaisesRegex(OSError, "conversion failed"):
+      RELEASE_VALIDATOR._open_windows_no_reparse(
+        Path("evidence.json"),
+        kernel32=kernel,
+        open_osfhandle=transfer,
+        get_last_error=lambda: 0,
+      )
+
+    transfer.assert_called_once()
+    kernel.CloseHandle.assert_called_once_with(123)
+
+  def test_windows_transfer_gives_descriptor_single_close_ownership(self) -> None:
+    class DescriptorSource:
+      def __init__(self):
+        self.close_count = 0
+
+      def __enter__(self):
+        return self
+
+      def __exit__(self, _kind, _error, _traceback):
+        self.close_count += 1
+
+      def read(self):
+        return b'{"schema":"example"}'
+
+    path = Path("evidence.json")
+    kernel = windows_kernel()
+    transfer = mock.Mock(return_value=71)
+    source = DescriptorSource()
+    real_windows_open = RELEASE_VALIDATOR._open_windows_no_reparse
+
+    def open_windows(candidate):
+      return real_windows_open(
+        candidate,
+        kernel32=kernel,
+        open_osfhandle=transfer,
+        get_last_error=lambda: 0,
+      )
+
+    with (
+      mock.patch.object(RELEASE_VALIDATOR.os, "name", "nt"),
+      mock.patch.object(
+        RELEASE_VALIDATOR,
+        "_open_windows_no_reparse",
+        side_effect=open_windows,
+      ),
+      mock.patch.object(
+        RELEASE_VALIDATOR.os,
+        "fstat",
+        return_value=SimpleNamespace(st_mode=RELEASE_VALIDATOR.stat.S_IFREG),
+      ),
+      mock.patch.object(RELEASE_VALIDATOR.os, "fdopen", return_value=source) as fdopen,
+      mock.patch.object(RELEASE_VALIDATOR.os, "close") as close,
+    ):
+      raw = RELEASE_VALIDATOR._read_regular_file_bytes_once(path, "evidence")
+
+    self.assertEqual(raw, b'{"schema":"example"}')
+    kernel.CloseHandle.assert_not_called()
+    fdopen.assert_called_once_with(71, "rb", closefd=True)
+    self.assertEqual(source.close_count, 1)
+    close.assert_not_called()
+
+  @unittest.skipUnless(
+    RELEASE_VALIDATOR.os.name == "nt",
+    "native Windows snapshot check requires Windows",
+  )
+  def test_windows_native_regular_file_snapshot(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      path = Path(directory) / "evidence.json"
+      path.write_bytes(b'{"schema":"example"}')
+
+      raw = RELEASE_VALIDATOR._read_regular_file_bytes_once(path, "evidence")
+
+      self.assertEqual(raw, b'{"schema":"example"}')
 
 
 class RetainedBundlePathTests(unittest.TestCase):
