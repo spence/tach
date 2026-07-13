@@ -79,17 +79,25 @@ fn run_observation() -> Result<Value, String> {
       black_box(Duration::from_nanos(selected_ordered_read().saturating_sub(start)))
     },
   );
+  let instant_pair_id = "emscripten-wall-instant-public-exact-v1";
+  let ordered_pair_id = "emscripten-wall-ordered-public-exact-v1";
   let direct_instant = WallCosts { now: direct_instant_now, elapsed: direct_instant_elapsed };
   let direct_ordered = WallCosts { now: direct_ordered_now, elapsed: direct_ordered_elapsed };
   let mut rows = Map::new();
 
   rows.insert(
     "tach".into(),
-    typed_row(instant_now, instant_elapsed, selected_local, "host call", "instant wall", None),
+    paired_row(
+      typed_row(instant_now, instant_elapsed, selected_local, "host call", "instant wall", None),
+      instant_pair_id,
+    ),
   );
   rows.insert(
     "tach_ordered".into(),
-    typed_row(ordered_now, ordered_elapsed, selected_ordered, "host call", "ordered wall", None),
+    paired_row(
+      typed_row(ordered_now, ordered_elapsed, selected_ordered, "host call", "ordered wall", None),
+      ordered_pair_id,
+    ),
   );
   rows.insert(
     "fastant".into(),
@@ -126,8 +134,10 @@ fn run_observation() -> Result<Value, String> {
     &wall_selection,
     selected_local,
     direct_instant,
+    instant_pair_id,
     selected_ordered,
     direct_ordered,
+    ordered_pair_id,
   )?;
   rows.insert("direct_selected_wall".into(), selected_wall_row(&rows, "instant", selected_local)?);
   rows.insert(
@@ -135,64 +145,60 @@ fn run_observation() -> Result<Value, String> {
     selected_wall_row(&rows, "ordered", selected_ordered)?,
   );
 
+  let (public_thread_now, direct_thread_now) = paired_median_cost(
+    || black_box(ThreadCpuInstant::now()),
+    || black_box(exact_node_thread_cpu()),
+  );
+  let (public_thread_elapsed, direct_thread_elapsed) = paired_median_cost(
+    || {
+      let start = ThreadCpuInstant::now();
+      black_box(start.elapsed())
+    },
+    || {
+      let start = exact_node_thread_cpu();
+      black_box(Duration::from_nanos(exact_node_thread_cpu().saturating_sub(start)))
+    },
+  );
+  let thread_pair_id = "emscripten-thread-public-exact-v1";
   rows.insert(
     "tach_thread_cpu".into(),
-    typed_row(
-      median_cost(|| black_box(ThreadCpuInstant::now())),
-      median_cost(|| {
-        let start = ThreadCpuInstant::now();
-        black_box(start.elapsed())
-      }),
-      "Node thread CPU usage",
-      "host call",
-      "thread CPU",
-      None,
+    paired_row(
+      typed_row(
+        public_thread_now,
+        public_thread_elapsed,
+        "Node thread CPU usage",
+        "host call",
+        "thread CPU",
+        None,
+      ),
+      thread_pair_id,
     ),
   );
   let native_benchmark = "native_thread_cpu__process_thread_cpu_usage";
-  rows.insert(
-    "native_thread_cpu".into(),
+  let direct_thread_row = paired_row(
     typed_row(
-      median_cost(|| black_box(exact_node_thread_cpu())),
-      median_cost(|| {
-        let start = exact_node_thread_cpu();
-        black_box(Duration::from_nanos(exact_node_thread_cpu().saturating_sub(start)))
-      }),
+      direct_thread_now,
+      direct_thread_elapsed,
       "process.threadCpuUsage()",
       "host call",
       "thread CPU",
       Some(native_benchmark),
     ),
+    thread_pair_id,
   );
+  rows.insert("native_thread_cpu".into(), direct_thread_row.clone());
   let direct_thread_benchmark = "direct_thread_cpu__node_thread_cpu_usage";
-  rows.insert(
-    direct_thread_benchmark.into(),
-    typed_row(
-      median_cost(|| black_box(exact_node_thread_cpu())),
-      median_cost(|| {
-        let start = exact_node_thread_cpu();
-        black_box(Duration::from_nanos(exact_node_thread_cpu().saturating_sub(start)))
-      }),
-      "node_thread_cpu_usage",
-      "host call",
-      "thread CPU",
-      Some(direct_thread_benchmark),
-    ),
-  );
-  rows.insert(
-    "direct_selected_thread_cpu".into(),
-    typed_row(
-      median_cost(|| black_box(exact_node_thread_cpu())),
-      median_cost(|| {
-        let start = exact_node_thread_cpu();
-        black_box(Duration::from_nanos(exact_node_thread_cpu().saturating_sub(start)))
-      }),
-      "node_thread_cpu_usage",
-      "host call",
-      "thread CPU",
-      Some("direct_selected_thread_cpu__node_thread_cpu_usage"),
-    ),
-  );
+  let mut direct_candidate_row = direct_thread_row.clone();
+  let direct_candidate = direct_candidate_row.as_object_mut().expect("thread CPU row");
+  direct_candidate.insert("provider".into(), json!("node_thread_cpu_usage"));
+  direct_candidate.insert("benchmark".into(), json!(direct_thread_benchmark));
+  rows.insert(direct_thread_benchmark.into(), direct_candidate_row);
+  let mut selected_thread_row = direct_thread_row;
+  let selected_thread = selected_thread_row.as_object_mut().expect("thread CPU row");
+  selected_thread.insert("provider".into(), json!("node_thread_cpu_usage"));
+  selected_thread
+    .insert("benchmark".into(), json!("direct_selected_thread_cpu__node_thread_cpu_usage"));
+  rows.insert("direct_selected_thread_cpu".into(), selected_thread_row);
 
   let mut result = rows;
   result.insert("runtime_attestation".into(), runtime_attestation.clone());
@@ -303,8 +309,10 @@ fn insert_wall_candidates(
   selection: &Value,
   selected_instant: &str,
   direct_instant: WallCosts,
+  instant_pair_id: &str,
   selected_ordered: &str,
   direct_ordered: WallCosts,
+  ordered_pair_id: &str,
 ) -> Result<(), String> {
   for domain in ["instant", "ordered"] {
     let candidates = selection["eligible_direct_candidates"][domain]
@@ -317,12 +325,14 @@ fn insert_wall_candidates(
         .map(|(_, provider)| provider)
         .ok_or("invalid Emscripten wall candidate key")?;
       let selected_costs = match domain {
-        "instant" if provider == selected_instant => Some(direct_instant),
-        "ordered" if provider == selected_ordered => Some(direct_ordered),
+        "instant" if provider == selected_instant => Some((direct_instant, instant_pair_id)),
+        "ordered" if provider == selected_ordered => Some((direct_ordered, ordered_pair_id)),
         _ => None,
       };
       let row = match selected_costs {
-        Some(costs) => exact_wall_row_from_costs(domain, provider, costs),
+        Some((costs, pair_id)) => {
+          paired_row(exact_wall_row_from_costs(domain, provider, costs), pair_id)
+        }
         None => exact_wall_row(domain, provider)?,
       };
       rows.insert(benchmark.into(), row);
@@ -472,6 +482,14 @@ fn typed_row(
   if let Some(benchmark) = benchmark {
     object.insert("benchmark".into(), json!(benchmark));
   }
+  row
+}
+
+fn paired_row(mut row: Value, pair_id: &str) -> Value {
+  row
+    .as_object_mut()
+    .expect("clock row")
+    .insert("paired_sample_id".into(), json!(pair_id));
   row
 }
 
