@@ -3427,16 +3427,21 @@ mod tests {
         // Older arm64 kernels do not implement PR_SET_TSC.
         unsafe { libc::_exit(77) };
       }
-      let unavailable = PerfState::open().is_none();
+      let mmap_unavailable = PerfState::open().is_none_or(|state| !state.mmap_available());
       let _ = now_nanos();
-      let did_not_select_perf = provider() != ThreadCpuProvider::LinuxPerfMmap;
-      unsafe { libc::_exit(if unavailable && did_not_select_perf { 0 } else { 1 }) };
+      let did_not_select_mmap = provider() != ThreadCpuProvider::LinuxPerfMmap;
+      unsafe { libc::_exit(if mmap_unavailable && did_not_select_mmap { 0 } else { 1 }) };
     }
     let mut status = 0;
     assert_eq!(unsafe { libc::waitpid(child, &mut status, 0) }, child);
-    if libc::WIFEXITED(status) && libc::WEXITSTATUS(status) == 77 {
+    if libc::WIFSIGNALED(status) {
+      panic!("counter-denial child terminated by signal {}", libc::WTERMSIG(status));
+    }
+    assert!(libc::WIFEXITED(status), "counter-denial child returned wait status {status}");
+    let exit_status = libc::WEXITSTATUS(status);
+    if exit_status == 77 {
       return;
     }
-    assert_eq!(status, 0);
+    assert_eq!(exit_status, 0, "counter-denial child exited unsuccessfully");
   }
 }
