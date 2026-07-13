@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Freeze at 20bd114 and rerun the c7i no-default cell first; if it passes, recollect every admitted producer at that revision before unified validation and chart generation.
+> Next:       Freeze at 8105273 and rerun the c7i musl no-default cell first; if its retained paired proof passes, recollect every admitted producer at that revision.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed 20bd114 so the native 64-bit thread-CPU tournament accepts a material 7-of-9 win while rejecting three noisy pairs; all 176 evidence tests, local Rust tests, formatting, and an x86_64 Linux all-target cross-build pass. · By: nsr · 20bd114
+> Last verified: 2026-07-13 · Changed: Committed 8105273 adding retained paired public-versus-selected-exact now and elapsed proof for Linux x86; 178 evidence tests, Rust default/no-default tests, clippy with warnings denied, and x86_64/i686 Linux benchmark cross-builds pass. · By: nsr · 8105273
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

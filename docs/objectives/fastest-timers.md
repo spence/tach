@@ -246,6 +246,11 @@ decision; never silently omit a failing target.
 - Next: Freeze at 20bd114 and rerun the c7i no-default cell first; if it passes, recollect every admitted producer at that revision before unified validation and chart generation.
 - Board: Refroze at 20bd114 after real c7i evidence exposed an over-conservative native thread-CPU selector threshold.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed 8105273 adding retained paired public-versus-selected-exact now and elapsed proof for Linux x86; 178 evidence tests, Rust default/no-default tests, clippy with warnings denied, and x86_64/i686 Linux benchmark cross-builds pass.
+- Found: The c7i musl no-default selector chose LFENCE-RDTSC correctly, but the independent Criterion CI-edge gate false-failed even though the public roundtrip median remained within the declared 5% band; the retained bundle made the drift visible.
+- Next: Freeze at 8105273 and rerun the c7i musl no-default cell first; if its retained paired proof passes, recollect every admitted producer at that revision.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
