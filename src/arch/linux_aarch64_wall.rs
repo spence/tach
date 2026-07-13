@@ -536,8 +536,13 @@ pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
       (super::aarch64::cntvct_after_isb(), IDENTITY_NANOS_PER_TICK_Q32)
     }
     HOT_PROVIDER_CNTVCTSS_IDENTITY => (super::aarch64::cntvctss(), IDENTITY_NANOS_PER_TICK_Q32),
-    provider => (read_hot_ordered_provider(provider), state >> 8),
+    _ => ticks_ordered_with_scale_fallback(state),
   }
+}
+
+#[inline(never)]
+fn ticks_ordered_with_scale_fallback(state: u64) -> (u64, u64) {
+  (read_hot_ordered_provider(state as u8), state >> 8)
 }
 
 pub(crate) const fn ordered_hot_scale_fits(scale: u64) -> bool {
