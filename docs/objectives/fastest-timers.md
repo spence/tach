@@ -194,6 +194,12 @@ decision; never silently omit a failing target.
 - Next: Implement and seal the WASI Preview 1 Node producer, then extend the same source-sealed contract to Wasmtime Preview 1/2 and the remaining smoke/negative routes.
 - Board: Node/Wasm and Emscripten/Node are proven producers; WASI remains on the M1 critical path.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed the adaptive WASI Preview 1 Node/Wasmtime producer at 15efe24 and the paired host-comparison protocol at a5b48d5/e82d980, then sealed both hosts from the exact archived revision e82d98063e0e15b2176058905c657200273ab09d.
+- Found: Both retained bundles re-extracted with zero failures. Node exposes WASI clock ID 3: Instant 40.7208 ns, OrderedInstant 38.7292 ns, and ThreadCpuInstant 598.7583 ns versus native 594.9667 ns; busy advanced about 20.007 ms while 25 ms sleep and 50 ms sibling work consumed only 33 us and 327 us of thread CPU. Wasmtime rejects clock ID 3, so the same API truthfully reports monotonic wall fallback; its Instant, OrderedInstant, and fallback reads passed exact-route parity and the fallback advanced across sleep/sibling delay.
+- Next: Implement and seal the WASI Preview 2 Wasmtime component producer, then complete the browser negative and remaining runtime-smoke routes before freezing the matrix revision.
+- Board: Node/Wasm, Emscripten/Node, WASI P1/Node, and WASI P1/Wasmtime are proven; Preview 2 and smoke/negative routes remain.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
