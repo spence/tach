@@ -537,7 +537,7 @@ def equivalent_or_faster(subject: dict, reference: dict, metric: str) -> tuple[b
   allowance = equivalence_allowance(reference[metric])
   subject_pair = subject.get("paired_sample_id")
   reference_pair = reference.get("paired_sample_id")
-  if subject_pair is not None or reference_pair is not None:
+  if subject_pair is not None and reference_pair is not None:
     if (
       not isinstance(subject_pair, str)
       or not subject_pair

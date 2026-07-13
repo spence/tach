@@ -2397,6 +2397,11 @@ declare void @generic_implementation()
     with self.assertRaises(TypeError):
       speed_evidence.equivalent_or_faster(subject, reference, "now")
 
+    subject["paired_sample_id"] = "paired-host-route"
+    del reference["paired_sample_id"]
+    passed, _ = speed_evidence.equivalent_or_faster(subject, reference, "now")
+    self.assertFalse(passed)
+
   def test_aarch64_pmccntr_negative_evidence_is_reproducible_and_ineligible(self) -> None:
     root = Path(__file__).resolve().parents[1]
     evidence_path = root / "benches/evidence/thread-cpu-aarch64-pmccntr-negative.json"
