@@ -1,0 +1,28 @@
+{
+  "schema": "tach-release-route-observations-v1",
+  "source_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+  "bindings": [
+    {
+      "artifact_id": "speed-2-inteln.json",
+      "document_sha256": "39515aa79882012c8d10de8a9280cb5f6124a94cc19332914d46b036a2c89ddd",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-2-inteln.json",
+        "identity": {
+          "case_id": "linux_android_adaptive_default",
+          "target": "x86_64-unknown-linux-gnu",
+          "build_mode": "default",
+          "runtime_profile": "native_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+          "target": "x86_64-unknown-linux-gnu",
+          "runtime_profile": "native_criterion",
+          "closure_digest": "41a5e5029fd8f2d0b34a6b54f12dde0e3f14885049fe7030fcc51431e0da4f0e"
+        }
+      }
+    }
+  ],
+  "equivalences": []
+}

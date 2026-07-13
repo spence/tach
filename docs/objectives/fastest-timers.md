@@ -170,6 +170,12 @@ decision; never silently omit a failing target.
 - Next: turn the runnable Linux/macOS/FreeBSD producers into retained artifacts, then resolve Windows, Lambda, and host-bound runtime gaps without relabeling smoke or fallback as speed.
 - Board: M1 remains 🚧 with G1⚪; retained evidence mechanism T7 is done while producer and runtime proof remain open.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: promoted EVID-LINUX-PRIMARY-SPEED for final source 136d12c: both default Linux primary cells independently admit and the clean 24-target provider proof passes
+- Found: the aggregate release gate remains red from 58 missing-campaign failures per isolated cell; Intel ThreadCpuInstant is a material tie rather than the absolute minimum at 173.563 ns versus a 166.464 ns raw-syscall candidate
+- Next: collect and admit the Linux musl and current macOS primary cells, then FreeBSD and the remaining hosted runtime gaps without treating codegen as speed
+- Board: M1 remains 🚧 and G1 stays ⚪; EVID-LINUX-PRIMARY-SPEED is partial evidence, not a gate closure.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

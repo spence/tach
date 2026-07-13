@@ -1,0 +1,28 @@
+{
+  "schema": "tach-release-route-observations-v1",
+  "source_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+  "bindings": [
+    {
+      "artifact_id": "speed-1-c7g.json",
+      "document_sha256": "d0a1b63433c11c82aecd54ad835f41a278cbb183e8aec31b81484a3db4b37347",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-1-c7g.json",
+        "identity": {
+          "case_id": "linux_android_adaptive_default",
+          "target": "aarch64-unknown-linux-gnu",
+          "build_mode": "default",
+          "runtime_profile": "native_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+          "target": "aarch64-unknown-linux-gnu",
+          "runtime_profile": "native_criterion",
+          "closure_digest": "24ec519ef387344fd149c68d0dbc52646121dbf4c75e52e35a38655529949951"
+        }
+      }
+    }
+  ],
+  "equivalences": []
+}

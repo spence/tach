@@ -10,4 +10,5 @@ dated package; do not silently rewrite a verdict.
 | Package | Verdict | Link |
 |---|---|---|
 | `EVID-PROVIDER-CORRECTNESS` | 🟢 | [`providers/remediation-2026-07-12/README.md`](providers/remediation-2026-07-12/README.md) |
+| `EVID-LINUX-PRIMARY-SPEED` | 🟡 | [`timers/primary-linux-2026-07-13/README.md`](timers/primary-linux-2026-07-13/README.md) |
 <!-- /render:evid-index -->

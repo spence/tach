@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       turn the runnable Linux/macOS/FreeBSD producers into retained artifacts, then resolve Windows, Lambda, and host-bound runtime gaps without relabeling smoke or fallback as speed.
+> Next:       collect and admit the Linux musl and current macOS primary cells, then FreeBSD and the remaining hosted runtime gaps without treating codegen as speed
 > Blocked on you: nothing
-> Last verified: 2026-07-12 · Changed: recorded retained release-admission mechanism at 2e14e50: literal no-replace source, sealed collectors, strict snapshot/route binding, and full CI/chart gate; 132 Python tests pass. · By: nsr · 2e14e50
+> Last verified: 2026-07-13 · Changed: promoted EVID-LINUX-PRIMARY-SPEED for final source 136d12c: both default Linux primary cells independently admit and the clean 24-target provider proof passes · By: nsr · 136d12c
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

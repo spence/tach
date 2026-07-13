@@ -1,0 +1,2637 @@
+{
+  "schema": "tach-release-speed-evidence-v3",
+  "passed": false,
+  "failures": [
+    "primary: primary three-clock artifacts differ: missing=['speed-0-apple.json', 'speed-1-c7g.json', 'speed-3-intelm.json', 'speed-4-windows.json', 'speed-5-lambda.json'], unexpected=[]",
+    "primary: primary campaign environments differ from the exact six-platform contract: [(2, 'AWS Intel', 'c7i.large', 'x86_64-unknown-linux-gnu', 'criterion')]",
+    "supplemental: supplemental three-clock artifacts differ: missing=['speed-supplemental-browser-negative.json', 'speed-supplemental-emscripten-node.json', 'speed-supplemental-freebsd-x86_64.json', 'speed-supplemental-linux-i686.json', 'speed-supplemental-macos-x86_64.json', 'speed-supplemental-wasi-p1-node.json', 'speed-supplemental-wasi-p1-wasmtime.json', 'speed-supplemental-wasi-p2-wasmtime.json', 'speed-supplemental-wasip1-threads-smoke.json', 'speed-supplemental-wasm-node.json', 'speed-supplemental-wasm32v1-none-smoke.json', 'speed-supplemental-windows-aarch64.json', 'speed-supplemental-windows-i686.json'], unexpected=[]",
+    "supplemental: supplemental campaign must use one source revision: []",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='aarch64-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='i686-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='s390x-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='loongarch64-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='riscv64gc-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='powerpc64-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='powerpc64le-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='armv7-unknown-linux-gnueabihf', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='x86_64-unknown-linux-musl', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='x86_64-linux-android', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_adaptive_default', target='aarch64-linux-android', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_fixed_no_default', target='x86_64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_fixed_no_default', target='aarch64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_fixed_no_default', target='x86_64-unknown-linux-musl', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_fixed_no_default', target='x86_64-linux-android', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_android_fixed_no_default', target='aarch64-linux-android', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_rare_fixed_no_default', target='i686-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_rare_fixed_no_default', target='s390x-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_rare_fixed_no_default', target='loongarch64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_rare_fixed_no_default', target='riscv64gc-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_rare_fixed_no_default', target='powerpc64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_rare_fixed_no_default', target='powerpc64le-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='linux_rare_fixed_no_default', target='armv7-unknown-linux-gnueabihf', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='windows_availability_fallback', target='x86_64-pc-windows-msvc', build_mode='default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='windows_availability_fallback', target='x86_64-pc-windows-msvc', build_mode='no-default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='windows_availability_fallback', target='i686-pc-windows-msvc', build_mode='default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='windows_availability_fallback', target='i686-pc-windows-msvc', build_mode='no-default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='windows_availability_fallback', target='aarch64-pc-windows-msvc', build_mode='default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='windows_availability_fallback', target='aarch64-pc-windows-msvc', build_mode='no-default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='macos_fixed_native', target='x86_64-apple-darwin', build_mode='default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='macos_fixed_native', target='x86_64-apple-darwin', build_mode='no-default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='macos_fixed_native', target='aarch64-apple-darwin', build_mode='default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='macos_fixed_native', target='aarch64-apple-darwin', build_mode='no-default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='freebsd_fixed_native', target='x86_64-unknown-freebsd', build_mode='default', runtime_profile='freebsd_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='freebsd_fixed_native', target='x86_64-unknown-freebsd', build_mode='no-default', runtime_profile='freebsd_criterion': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='lambda_x86_64_default', target='x86_64-unknown-linux-gnu', build_mode='default', runtime_profile='aws_lambda_x86_64': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='lambda_aarch64_default', target='aarch64-unknown-linux-gnu', build_mode='default', runtime_profile='aws_lambda_aarch64': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasm_node_availability_fallback', target='wasm32-unknown-unknown', build_mode='default', runtime_profile='node_wasm_bindgen': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasm_node_availability_fallback', target='wasm32-unknown-unknown', build_mode='no-default', runtime_profile='node_wasm_bindgen': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasm_browser_fallback', target='wasm32-unknown-unknown', build_mode='default', runtime_profile='browser_wasm_bindgen': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasm_browser_fallback', target='wasm32-unknown-unknown', build_mode='no-default', runtime_profile='browser_wasm_bindgen': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasi_p1_node_availability_fallback', target='wasm32-wasip1', build_mode='default', runtime_profile='node_uvwasi': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasi_p1_node_availability_fallback', target='wasm32-wasip1', build_mode='no-default', runtime_profile='node_uvwasi': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasi_p1_wasmtime_fallback', target='wasm32-wasip1', build_mode='default', runtime_profile='wasmtime': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasi_p1_wasmtime_fallback', target='wasm32-wasip1', build_mode='no-default', runtime_profile='wasmtime': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasi_p2_fallback_only', target='wasm32-wasip2', build_mode='default', runtime_profile='wasmtime_component': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasi_p2_fallback_only', target='wasm32-wasip2', build_mode='no-default', runtime_profile='wasmtime_component': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='emscripten_node_availability_fallback', target='wasm32-unknown-emscripten', build_mode='default', runtime_profile='emcc_node': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='emscripten_node_availability_fallback', target='wasm32-unknown-emscripten', build_mode='no-default', runtime_profile='emcc_node': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='emscripten_node_availability_fallback', target='wasm32-unknown-emscripten', build_mode='emscripten-pthreads', runtime_profile='emcc_node': missing required 'full_speed' evidence",
+    "route matrix: missing_coverage: case='wasi_p1_threads_smoke', target='wasm32-wasip1-threads', build_mode='default', runtime_profile='wasi_threads_smoke': missing required 'runtime_smoke' evidence",
+    "route matrix: missing_coverage: case='wasi_p1_threads_smoke', target='wasm32-wasip1-threads', build_mode='no-default', runtime_profile='wasi_threads_smoke': missing required 'runtime_smoke' evidence",
+    "route matrix: missing_coverage: case='wasm32v1_none_smoke', target='wasm32v1-none', build_mode='default', runtime_profile='wasm32v1_none_smoke': missing required 'runtime_smoke' evidence",
+    "route matrix: missing_coverage: case='wasm32v1_none_smoke', target='wasm32v1-none', build_mode='no-default', runtime_profile='wasm32v1_none_smoke': missing required 'runtime_smoke' evidence"
+  ],
+  "primary": {
+    "schema": "tach-speed-primary-report-v1",
+    "claim": "each tach timer selects the fastest audited eligible reliable steady-state provider for its contract in every measured primary environment",
+    "equivalence_rule": "tach is faster than or materially tied with every eligible reference: its point estimate and conservative 95% CI comparison fit within max(1 ns, 5%)",
+    "source_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+    "checkout_binding": {
+      "passed": true,
+      "campaign_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+      "checkout_head": "136d12cda72137d946db1f235dacd812df71f5c4",
+      "committed_tree_inputs_unchanged": true,
+      "committed_tree_changes": [],
+      "working_tree_inputs_clean": true,
+      "working_tree_changes": []
+    },
+    "passed": false,
+    "failures": [
+      "primary three-clock artifacts differ: missing=['speed-0-apple.json', 'speed-1-c7g.json', 'speed-3-intelm.json', 'speed-4-windows.json', 'speed-5-lambda.json'], unexpected=[]",
+      "primary campaign environments differ from the exact six-platform contract: [(2, 'AWS Intel', 'c7i.large', 'x86_64-unknown-linux-gnu', 'criterion')]"
+    ],
+    "cells": [
+      {
+        "artifact_id": "speed-2-inteln.json",
+        "source_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+        "triple": "x86_64-unknown-linux-gnu",
+        "build_mode": "default",
+        "evidence_kind": "full_speed",
+        "bound_observation": true,
+        "bundle_path": null,
+        "three_clock_speed": {
+          "same_thread_elapsed": {
+            "now": {
+              "tach_ns": 14.57482962697274,
+              "comparisons": {
+                "quanta": {
+                  "reference_ns": 17.533985292136858,
+                  "equivalence_allowance_ns": 1.0,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                },
+                "fastant": {
+                  "reference_ns": 15.028073936773172,
+                  "equivalence_allowance_ns": 1.0,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                },
+                "minstant": {
+                  "reference_ns": 15.027157596916876,
+                  "equivalence_allowance_ns": 1.0,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                },
+                "std": {
+                  "reference_ns": 26.451004932681364,
+                  "equivalence_allowance_ns": 1.3225502466340684,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            },
+            "elapsed": {
+              "tach_ns": 31.00262641381004,
+              "comparisons": {
+                "quanta": {
+                  "reference_ns": 39.08833379950748,
+                  "equivalence_allowance_ns": 1.954416689975374,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                },
+                "fastant": {
+                  "reference_ns": 40.69454555515047,
+                  "equivalence_allowance_ns": 2.0347272777575234,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                },
+                "minstant": {
+                  "reference_ns": 40.69521975169383,
+                  "equivalence_allowance_ns": 2.0347609875846913,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                },
+                "std": {
+                  "reference_ns": 56.99563003608681,
+                  "equivalence_allowance_ns": 2.8497815018043404,
+                  "eligible_for_reliable_contract": true,
+                  "eligibility_reason": null,
+                  "implementation": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            }
+          },
+          "same_thread_reference_eligibility": {
+            "quanta": {
+              "eligible": true,
+              "reason": null,
+              "implementation": null
+            },
+            "fastant": {
+              "eligible": true,
+              "reason": null,
+              "implementation": null
+            },
+            "minstant": {
+              "eligible": true,
+              "reason": null,
+              "implementation": null
+            },
+            "std": {
+              "eligible": true,
+              "reason": null,
+              "implementation": null
+            }
+          },
+          "cross_thread_elapsed": {
+            "now": {
+              "tach_ns": 22.162729753481372,
+              "std_ns": 26.451004932681364,
+              "equivalence_allowance_ns": 1.3225502466340684,
+              "passed": true
+            },
+            "elapsed": {
+              "tach_ns": 46.30948539459934,
+              "std_ns": 56.99563003608681,
+              "equivalence_allowance_ns": 2.8497815018043404,
+              "passed": true
+            }
+          },
+          "wall_selector_reproduction": {
+            "instant": {
+              "winner": "linux_kernel_eligible_tsc",
+              "decisions": [
+                {
+                  "challenger_median_ns": 108164,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_libc",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 105682,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_libc",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 104490,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_vdso_direct",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 105669,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_vdso_direct",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 104438,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 1,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_vdso_direct",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 490195,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_syscall_x86_64",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 487575,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_syscall_x86_64",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 477699,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_syscall_x86_64",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_clock_monotonic_libc"
+                },
+                {
+                  "challenger_median_ns": 59735,
+                  "incumbent_median_ns": 106958,
+                  "allowance_ns": 5347,
+                  "decisive_wins": 9,
+                  "selected": true,
+                  "challenger": "linux_kernel_eligible_tsc",
+                  "incumbent": "linux_clock_monotonic_libc",
+                  "winner": "linux_kernel_eligible_tsc"
+                }
+              ]
+            },
+            "ordered": {
+              "winner": "linux_kernel_eligible_tsc_x86_lfence_rdtsc",
+              "decisions": [
+                {
+                  "challenger_median_ns": 116863,
+                  "incumbent_median_ns": 5570559,
+                  "allowance_ns": 278527,
+                  "decisive_wins": 9,
+                  "selected": true,
+                  "challenger": "linux_clock_monotonic_libc_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_x86_cpuid",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 149089,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_libc_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 224780,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_libc_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 254477,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_libc_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 5569883,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_libc_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 116854,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 1,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_libc_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 150347,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_libc_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 226030,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_libc_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 255695,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_libc_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 5572000,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_libc_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 116841,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_libc_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 149079,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_libc_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 224795,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_libc_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 254500,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_libc_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 5518110,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_vdso_direct_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 116842,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_vdso_direct_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 147865,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_vdso_direct_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 222376,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_vdso_direct_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 240968,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_vdso_direct_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 5510760,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_vdso_direct_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 117915,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 1,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_vdso_direct_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 149099,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_vdso_direct_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 224798,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_vdso_direct_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 244649,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_vdso_direct_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 5507631,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_vdso_direct_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 116842,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 1,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_vdso_direct_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 147872,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_vdso_direct_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 223582,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_vdso_direct_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 242174,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_vdso_direct_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 6036130,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_syscall_x86_64_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 505020,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_syscall_x86_64_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 531211,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_syscall_x86_64_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 603107,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_syscall_x86_64_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 640390,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_syscall_x86_64_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 6007737,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_syscall_x86_64_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 483841,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_syscall_x86_64_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 512059,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_syscall_x86_64_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 585720,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_syscall_x86_64_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 637669,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_monotonic_raw_syscall_x86_64_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 6024519,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_syscall_x86_64_x86_cpuid",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 509835,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_syscall_x86_64_os_owned",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 536111,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_syscall_x86_64_x86_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 608292,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_syscall_x86_64_x86_rdtscp_lfence",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 644381,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_clock_boottime_syscall_x86_64_x86_serialize",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_clock_monotonic_libc_os_owned"
+                },
+                {
+                  "challenger_median_ns": 87004,
+                  "incumbent_median_ns": 116863,
+                  "allowance_ns": 5843,
+                  "decisive_wins": 9,
+                  "selected": true,
+                  "challenger": "linux_kernel_eligible_tsc_x86_lfence_rdtsc",
+                  "incumbent": "linux_clock_monotonic_libc_os_owned",
+                  "winner": "linux_kernel_eligible_tsc_x86_lfence_rdtsc"
+                }
+              ]
+            }
+          },
+          "selected_wall_provider_parity": {
+            "instant": {
+              "selected_provider": "linux_kernel_eligible_tsc",
+              "metrics": {
+                "now": {
+                  "tach_ns": 14.57482962697274,
+                  "selected_native_ns": 14.713694006126813,
+                  "equivalence_allowance_ns": 1.0,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 31.00262641381004,
+                  "selected_native_ns": 29.858704560745377,
+                  "equivalence_allowance_ns": 1.492935228037269,
+                  "passed": true
+                }
+              },
+              "eligible_candidates": {
+                "direct_wall__linux_clock_monotonic_libc": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 25.393754384640207,
+                      "equivalence_allowance_ns": 1.2696877192320104,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 52.915329873721106,
+                      "equivalence_allowance_ns": 2.6457664936860557,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_monotonic_raw_libc": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 25.675427339528383,
+                      "equivalence_allowance_ns": 1.2837713669764192,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 53.53898101853078,
+                      "equivalence_allowance_ns": 2.676949050926539,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_boottime_libc": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 25.46738354370572,
+                      "equivalence_allowance_ns": 1.273369177185286,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 52.91517698905369,
+                      "equivalence_allowance_ns": 2.645758849452685,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_monotonic_vdso_direct": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 24.727133594008556,
+                      "equivalence_allowance_ns": 1.236356679700428,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 52.69140033694974,
+                      "equivalence_allowance_ns": 2.634570016847487,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_monotonic_raw_vdso_direct": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 25.43280720752506,
+                      "equivalence_allowance_ns": 1.271640360376253,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 53.1916331853955,
+                      "equivalence_allowance_ns": 2.6595816592697754,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_boottime_vdso_direct": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 24.78903191197613,
+                      "equivalence_allowance_ns": 1.2394515955988066,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 52.65857692820406,
+                      "equivalence_allowance_ns": 2.6329288464102034,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_monotonic_syscall_x86_64": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 115.34035056768467,
+                      "equivalence_allowance_ns": 5.767017528384233,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 236.6702555194085,
+                      "equivalence_allowance_ns": 11.833512775970426,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_monotonic_raw_syscall_x86_64": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 115.05682178592734,
+                      "equivalence_allowance_ns": 5.752841089296368,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 236.0868344848608,
+                      "equivalence_allowance_ns": 11.80434172424304,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_clock_boottime_syscall_x86_64": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 120.21770134189774,
+                      "equivalence_allowance_ns": 6.010885067094887,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 239.21271867120686,
+                      "equivalence_allowance_ns": 11.960635933560344,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_wall__linux_kernel_eligible_tsc": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 14.57482962697274,
+                      "candidate_ns": 14.714293818267818,
+                      "equivalence_allowance_ns": 1.0,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 31.00262641381004,
+                      "candidate_ns": 29.859055860631592,
+                      "equivalence_allowance_ns": 1.4929527930315798,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                }
+              },
+              "passed": true
+            },
+            "ordered": {
+              "selected_provider": "linux_kernel_eligible_tsc_x86_lfence_rdtsc",
+              "metrics": {
+                "now": {
+                  "tach_ns": 22.162729753481372,
+                  "selected_native_ns": 22.85375336667949,
+                  "equivalence_allowance_ns": 1.1426876683339746,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 46.30948539459934,
+                  "selected_native_ns": 44.140623224323164,
+                  "equivalence_allowance_ns": 2.2070311612161584,
+                  "passed": true
+                }
+              },
+              "eligible_candidates": {
+                "direct_ordered_wall__linux_clock_monotonic_libc_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1366.7820803970362,
+                      "equivalence_allowance_ns": 68.33910401985182,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2733.158849388379,
+                      "equivalence_allowance_ns": 136.65794246941897,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_libc_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 26.24755853433368,
+                      "equivalence_allowance_ns": 1.3123779267166842,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 52.91503605281707,
+                      "equivalence_allowance_ns": 2.645751802640854,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_libc_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 34.440059045249754,
+                      "equivalence_allowance_ns": 1.7220029522624878,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 69.19619449166228,
+                      "equivalence_allowance_ns": 3.4598097245831143,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_libc_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 53.37240552732282,
+                      "equivalence_allowance_ns": 2.6686202763661413,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 107.38289267684041,
+                      "equivalence_allowance_ns": 5.369144633842021,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_libc_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 60.66747584732026,
+                      "equivalence_allowance_ns": 3.0333737923660133,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 121.50577246280372,
+                      "equivalence_allowance_ns": 6.075288623140186,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_libc_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1365.8882506682298,
+                      "equivalence_allowance_ns": 68.29441253341149,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2730.7900724562132,
+                      "equivalence_allowance_ns": 136.53950362281066,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_libc_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 26.522751014085763,
+                      "equivalence_allowance_ns": 1.3261375507042883,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 53.54309099248137,
+                      "equivalence_allowance_ns": 2.6771545496240687,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_libc_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 34.74297530134032,
+                      "equivalence_allowance_ns": 1.7371487650670163,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 69.81904338195912,
+                      "equivalence_allowance_ns": 3.490952169097956,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_libc_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 53.83529124899915,
+                      "equivalence_allowance_ns": 2.6917645624499578,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 108.00862457696348,
+                      "equivalence_allowance_ns": 5.400431228848174,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_libc_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 60.51824095160239,
+                      "equivalence_allowance_ns": 3.0259120475801193,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 121.89530880392809,
+                      "equivalence_allowance_ns": 6.094765440196404,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_libc_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1366.9506754421996,
+                      "equivalence_allowance_ns": 68.34753377210998,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2732.931772220578,
+                      "equivalence_allowance_ns": 136.6465886110289,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_libc_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 26.249147476619022,
+                      "equivalence_allowance_ns": 1.3124573738309513,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 52.91493872485546,
+                      "equivalence_allowance_ns": 2.645746936242773,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_libc_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 34.44086640775867,
+                      "equivalence_allowance_ns": 1.7220433203879335,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 69.1931039286657,
+                      "equivalence_allowance_ns": 3.4596551964332853,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_libc_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 53.533447783563176,
+                      "equivalence_allowance_ns": 2.676672389178159,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 107.39030266286392,
+                      "equivalence_allowance_ns": 5.369515133143196,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_libc_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 60.73652159822248,
+                      "equivalence_allowance_ns": 3.0368260799111244,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 121.29129368485592,
+                      "equivalence_allowance_ns": 6.0645646842427965,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_vdso_direct_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1360.440694562992,
+                      "equivalence_allowance_ns": 68.02203472814959,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2726.5836725547542,
+                      "equivalence_allowance_ns": 136.3291836277377,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_vdso_direct_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 25.50594633249822,
+                      "equivalence_allowance_ns": 1.275297316624911,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 52.67695084048124,
+                      "equivalence_allowance_ns": 2.6338475420240623,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_vdso_direct_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 32.64329216821301,
+                      "equivalence_allowance_ns": 1.6321646084106505,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 65.55331757813669,
+                      "equivalence_allowance_ns": 3.2776658789068343,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_vdso_direct_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 51.734782639885225,
+                      "equivalence_allowance_ns": 2.5867391319942614,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 103.74719753403545,
+                      "equivalence_allowance_ns": 5.187359876701773,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_vdso_direct_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 58.34161163709996,
+                      "equivalence_allowance_ns": 2.9170805818549983,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 116.31315821677288,
+                      "equivalence_allowance_ns": 5.815657910838644,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1359.2506608579506,
+                      "equivalence_allowance_ns": 67.96253304289753,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2724.535171746149,
+                      "equivalence_allowance_ns": 136.22675858730744,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 26.174745941453942,
+                      "equivalence_allowance_ns": 1.3087372970726971,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 53.25661736237271,
+                      "equivalence_allowance_ns": 2.6628308681186357,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 32.96183954713961,
+                      "equivalence_allowance_ns": 1.6480919773569807,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 66.18007465567698,
+                      "equivalence_allowance_ns": 3.309003732783849,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 52.05582222402717,
+                      "equivalence_allowance_ns": 2.6027911112013586,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 104.33462991499397,
+                      "equivalence_allowance_ns": 5.216731495749698,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 58.651626297577856,
+                      "equivalence_allowance_ns": 2.932581314878893,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 117.54427708368497,
+                      "equivalence_allowance_ns": 5.877213854184249,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_vdso_direct_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1360.3307008259821,
+                      "equivalence_allowance_ns": 68.01653504129911,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2726.440617531416,
+                      "equivalence_allowance_ns": 136.3220308765708,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_vdso_direct_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 25.54285946449626,
+                      "equivalence_allowance_ns": 1.2771429732248132,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 52.67494977015326,
+                      "equivalence_allowance_ns": 2.6337474885076633,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_vdso_direct_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 32.65650240516709,
+                      "equivalence_allowance_ns": 1.6328251202583546,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 65.51846017273029,
+                      "equivalence_allowance_ns": 3.2759230086365143,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_vdso_direct_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 51.744974442755975,
+                      "equivalence_allowance_ns": 2.587248722137799,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 103.73779197959684,
+                      "equivalence_allowance_ns": 5.1868895989798425,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_vdso_direct_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 57.910473502863816,
+                      "equivalence_allowance_ns": 2.895523675143191,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 116.65341971853985,
+                      "equivalence_allowance_ns": 5.832670985926993,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_syscall_x86_64_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1486.1990384615383,
+                      "equivalence_allowance_ns": 74.30995192307692,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2973.0264780658026,
+                      "equivalence_allowance_ns": 148.65132390329015,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_syscall_x86_64_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 118.97802339568949,
+                      "equivalence_allowance_ns": 5.948901169784475,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 236.67826617111814,
+                      "equivalence_allowance_ns": 11.833913308555907,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_syscall_x86_64_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 124.86148321514946,
+                      "equivalence_allowance_ns": 6.243074160757473,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 248.07585389562414,
+                      "equivalence_allowance_ns": 12.403792694781208,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_syscall_x86_64_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 146.0889525323497,
+                      "equivalence_allowance_ns": 7.304447626617486,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 284.9154821834046,
+                      "equivalence_allowance_ns": 14.245774109170231,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_syscall_x86_64_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 157.6931222939519,
+                      "equivalence_allowance_ns": 7.884656114697595,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 318.2174320361233,
+                      "equivalence_allowance_ns": 15.910871601806164,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_syscall_x86_64_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1479.493139301175,
+                      "equivalence_allowance_ns": 73.97465696505876,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2961.9286471083733,
+                      "equivalence_allowance_ns": 148.09643235541867,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_syscall_x86_64_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 118.64436556590381,
+                      "equivalence_allowance_ns": 5.932218278295191,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 235.93626461117725,
+                      "equivalence_allowance_ns": 11.796813230558863,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_syscall_x86_64_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 125.09441766096708,
+                      "equivalence_allowance_ns": 6.254720883048354,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 247.441929682114,
+                      "equivalence_allowance_ns": 12.3720964841057,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_syscall_x86_64_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 145.79207089661298,
+                      "equivalence_allowance_ns": 7.2896035448306495,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 284.0721749015602,
+                      "equivalence_allowance_ns": 14.203608745078009,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_monotonic_raw_syscall_x86_64_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 157.415668584274,
+                      "equivalence_allowance_ns": 7.8707834292136996,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 317.2386615686548,
+                      "equivalence_allowance_ns": 15.86193307843274,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_syscall_x86_64_x86_cpuid": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 1484.4577713325382,
+                      "equivalence_allowance_ns": 74.2228885666269,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 2957.41275393864,
+                      "equivalence_allowance_ns": 147.870637696932,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_syscall_x86_64_os_owned": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 120.19651515828068,
+                      "equivalence_allowance_ns": 6.009825757914034,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 239.2246819247829,
+                      "equivalence_allowance_ns": 11.961234096239146,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_syscall_x86_64_x86_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 128.9317392112913,
+                      "equivalence_allowance_ns": 6.446586960564566,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 251.3224046315145,
+                      "equivalence_allowance_ns": 12.566120231575725,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_syscall_x86_64_x86_rdtscp_lfence": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 145.15856233688118,
+                      "equivalence_allowance_ns": 7.2579281168440595,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 287.9545830305233,
+                      "equivalence_allowance_ns": 14.397729151526164,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_clock_boottime_syscall_x86_64_x86_serialize": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 158.55983722336998,
+                      "equivalence_allowance_ns": 7.9279918611685,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 317.16818521071696,
+                      "equivalence_allowance_ns": 15.858409260535849,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                },
+                "direct_ordered_wall__linux_kernel_eligible_tsc_x86_lfence_rdtsc": {
+                  "metrics": {
+                    "now": {
+                      "tach_ns": 22.162729753481372,
+                      "candidate_ns": 22.85367074796108,
+                      "equivalence_allowance_ns": 1.142683537398054,
+                      "passed": true
+                    },
+                    "elapsed": {
+                      "tach_ns": 46.30948539459934,
+                      "candidate_ns": 44.14546377436102,
+                      "equivalence_allowance_ns": 2.2072731887180512,
+                      "passed": true
+                    }
+                  },
+                  "identity_passed": true,
+                  "passed": true
+                }
+              },
+              "passed": true
+            }
+          },
+          "thread_cpu_selector_reproduction": {
+            "winner": "posix_thread_cpu_clock",
+            "selected_mechanism": "linux_x86_64_libc_clock_thread_cputime",
+            "selected_read_cost": "system call",
+            "fallback": [
+              "linux_perf_read",
+              "linux_perf_read__raw_read_syscall",
+              "system call"
+            ],
+            "native_entry": {
+              "winner": "linux_x86_64_libc_clock_thread_cputime",
+              "candidates": [
+                "direct_thread_cpu__linux_x86_64_libc_clock_thread_cputime",
+                "direct_thread_cpu__linux_x86_64_raw_syscall_clock_thread_cputime"
+              ],
+              "selected_read_cost": "system call",
+              "raw_decision": {
+                "challenger_median_ns": 689114,
+                "incumbent_median_ns": 706338,
+                "allowance_ns": 35316,
+                "decisive_wins": 0,
+                "selected": false
+              },
+              "libc_reverse_decision": {
+                "challenger_median_ns": 706338,
+                "incumbent_median_ns": 689114,
+                "allowance_ns": 34455,
+                "decisive_wins": 0,
+                "selected": false
+              }
+            },
+            "perf_counter": {},
+            "perf_read_entry": {
+              "winner": "raw_read_syscall",
+              "candidates": [
+                "direct_thread_cpu__linux_perf_read__raw_read_syscall"
+              ],
+              "decisions": [],
+              "selection_kind": "fixed_candidate"
+            },
+            "perf_path": {
+              "selected": {
+                "winner": "posix_thread_cpu",
+                "decisions": [
+                  {
+                    "challenger_median_ns": 1134336,
+                    "incumbent_median_ns": 708410,
+                    "allowance_ns": 35420,
+                    "decisive_wins": 0,
+                    "selected": false,
+                    "challenger": "linux_perf_read",
+                    "incumbent": "posix_thread_cpu"
+                  }
+                ]
+              },
+              "fallback": {
+                "winner": "linux_perf_read",
+                "decisions": []
+              }
+            }
+          },
+          "selected_thread_cpu_provider_parity": {
+            "selected_provider": "posix_thread_cpu_clock",
+            "selected_mechanism": "linux_x86_64_libc_clock_thread_cputime",
+            "selected_read_cost": "system call",
+            "metrics": {
+              "now": {
+                "tach_ns": 173.56293143553063,
+                "selected_native_ns": 174.45973119637563,
+                "equivalence_allowance_ns": 8.722986559818782,
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 350.9405058169614,
+                "selected_native_ns": 350.9007319124827,
+                "equivalence_allowance_ns": 17.545036595624136,
+                "passed": true
+              }
+            },
+            "eligible_candidates": {
+              "direct_thread_cpu__linux_x86_64_libc_clock_thread_cputime": {
+                "metrics": {
+                  "now": {
+                    "tach_ns": 173.56293143553063,
+                    "candidate_ns": 173.47055952713765,
+                    "equivalence_allowance_ns": 8.673527976356883,
+                    "passed": true
+                  },
+                  "elapsed": {
+                    "tach_ns": 350.9405058169614,
+                    "candidate_ns": 349.80724356573387,
+                    "equivalence_allowance_ns": 17.490362178286695,
+                    "passed": true
+                  }
+                },
+                "passed": true
+              },
+              "direct_thread_cpu__linux_x86_64_raw_syscall_clock_thread_cputime": {
+                "metrics": {
+                  "now": {
+                    "tach_ns": 173.56293143553063,
+                    "candidate_ns": 166.46357012317122,
+                    "equivalence_allowance_ns": 8.32317850615856,
+                    "passed": true
+                  },
+                  "elapsed": {
+                    "tach_ns": 350.9405058169614,
+                    "candidate_ns": 342.72065221917524,
+                    "equivalence_allowance_ns": 17.13603261095876,
+                    "passed": true
+                  }
+                },
+                "passed": true
+              },
+              "direct_thread_cpu__linux_perf_read__raw_read_syscall": {
+                "metrics": {
+                  "now": {
+                    "tach_ns": 173.56293143553063,
+                    "candidate_ns": 274.71045097673505,
+                    "equivalence_allowance_ns": 13.735522548836753,
+                    "passed": true
+                  },
+                  "elapsed": {
+                    "tach_ns": 350.9405058169614,
+                    "candidate_ns": 549.7482200108257,
+                    "equivalence_allowance_ns": 27.487411000541286,
+                    "passed": true
+                  }
+                },
+                "passed": true
+              }
+            },
+            "passed": true,
+            "measured_runner_up": {
+              "provider": "linux_perf_read__raw_read_syscall",
+              "metrics": {
+                "now": {
+                  "selected_ns": 174.45973119637563,
+                  "fallback_ns": 278.78510899669436,
+                  "equivalence_allowance_ns": 13.939255449834718,
+                  "passed": true
+                },
+                "elapsed": {
+                  "selected_ns": 350.9007319124827,
+                  "fallback_ns": 556.8526458835931,
+                  "equivalence_allowance_ns": 27.84263229417966,
+                  "passed": true
+                }
+              },
+              "passed": true
+            }
+          },
+          "current_thread_cpu": {
+            "now": {
+              "tach_ns": 173.56293143553063,
+              "native_ns": 167.49959439398975,
+              "equivalence_allowance_ns": 8.374979719699487,
+              "passed": true
+            },
+            "elapsed": {
+              "tach_ns": 350.9405058169614,
+              "native_ns": 336.41099574369036,
+              "equivalence_allowance_ns": 16.820549787184518,
+              "passed": true
+            }
+          },
+          "provider": "POSIX thread CPU clock",
+          "read_cost": "system call"
+        },
+        "passed": true,
+        "failures": [],
+        "bundle_binding": {
+          "path": "/private/var/folders/bv/pqh0lff537n_0w6y2w6ngm1m0000gn/T/tach-speed-c7i.XXXXXX.4mBN6HDv3G/collector.bundle",
+          "passed": true
+        }
+      }
+    ]
+  },
+  "supplemental_speed": {
+    "schema": "tach-speed-supplemental-report-v2",
+    "claim_scope": "external runtime coverage for all three public timing contracts on the declared target/build-mode/host-runtime identities absent from the six-cell campaign",
+    "evidence_class_invariant": "measured runtime, tagged wall fallback, and runtime smoke evidence remain distinct; the static route manifest and compile/codegen proof are never accepted as latency evidence",
+    "source_revision": null,
+    "passed": false,
+    "failures": [
+      "supplemental three-clock artifacts differ: missing=['speed-supplemental-browser-negative.json', 'speed-supplemental-emscripten-node.json', 'speed-supplemental-freebsd-x86_64.json', 'speed-supplemental-linux-i686.json', 'speed-supplemental-macos-x86_64.json', 'speed-supplemental-wasi-p1-node.json', 'speed-supplemental-wasi-p1-wasmtime.json', 'speed-supplemental-wasi-p2-wasmtime.json', 'speed-supplemental-wasip1-threads-smoke.json', 'speed-supplemental-wasm-node.json', 'speed-supplemental-wasm32v1-none-smoke.json', 'speed-supplemental-windows-aarch64.json', 'speed-supplemental-windows-i686.json'], unexpected=[]",
+      "supplemental campaign must use one source revision: []"
+    ],
+    "cells": []
+  },
+  "route_matrix": {
+    "schema": "tach-release-route-matrix-admission-v1",
+    "passed": false,
+    "bindings": {
+      "schema": "tach-release-route-observations-v1",
+      "path": "route-observations-v1.json",
+      "passed": true,
+      "failures": [],
+      "artifacts": [
+        "speed-2-inteln.json"
+      ]
+    },
+    "manifest_binding": {
+      "schema": "tach-release-route-manifest-binding-v1",
+      "path": "benches/route-coverage.toml",
+      "source_revision": "136d12cda72137d946db1f235dacd812df71f5c4",
+      "sha256": "dc0de5bcd57a4f1d16881d8b1f4d338eac2d8967f68359886eff4ca216275d5e",
+      "passed": true,
+      "failures": []
+    },
+    "admission": {
+      "schema": "tach-release-route-matrix-report-v1",
+      "passed": false,
+      "decisions": [
+        {
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "x86_64-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          },
+          "required_kind": "full_speed",
+          "producer": "criterion_linux_adaptive",
+          "route_contract": "three_timer_direct",
+          "artifact_id": "speed-2-inteln.json",
+          "via_equivalence": false
+        }
+      ],
+      "failures": [
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "aarch64-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "i686-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "s390x-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "loongarch64-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "riscv64gc-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "powerpc64-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "powerpc64le-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "armv7-unknown-linux-gnueabihf",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "x86_64-unknown-linux-musl",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "x86_64-linux-android",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_adaptive_default",
+            "target": "aarch64-linux-android",
+            "build_mode": "default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_fixed_no_default",
+            "target": "x86_64-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_fixed_no_default",
+            "target": "aarch64-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_fixed_no_default",
+            "target": "x86_64-unknown-linux-musl",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_fixed_no_default",
+            "target": "x86_64-linux-android",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_android_fixed_no_default",
+            "target": "aarch64-linux-android",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_rare_fixed_no_default",
+            "target": "i686-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_rare_fixed_no_default",
+            "target": "s390x-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_rare_fixed_no_default",
+            "target": "loongarch64-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_rare_fixed_no_default",
+            "target": "riscv64gc-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_rare_fixed_no_default",
+            "target": "powerpc64-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_rare_fixed_no_default",
+            "target": "powerpc64le-unknown-linux-gnu",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "linux_rare_fixed_no_default",
+            "target": "armv7-unknown-linux-gnueabihf",
+            "build_mode": "no-default",
+            "runtime_profile": "native_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "windows_availability_fallback",
+            "target": "x86_64-pc-windows-msvc",
+            "build_mode": "default",
+            "runtime_profile": "windows_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "windows_availability_fallback",
+            "target": "x86_64-pc-windows-msvc",
+            "build_mode": "no-default",
+            "runtime_profile": "windows_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "windows_availability_fallback",
+            "target": "i686-pc-windows-msvc",
+            "build_mode": "default",
+            "runtime_profile": "windows_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "windows_availability_fallback",
+            "target": "i686-pc-windows-msvc",
+            "build_mode": "no-default",
+            "runtime_profile": "windows_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "windows_availability_fallback",
+            "target": "aarch64-pc-windows-msvc",
+            "build_mode": "default",
+            "runtime_profile": "windows_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "windows_availability_fallback",
+            "target": "aarch64-pc-windows-msvc",
+            "build_mode": "no-default",
+            "runtime_profile": "windows_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "macos_fixed_native",
+            "target": "x86_64-apple-darwin",
+            "build_mode": "default",
+            "runtime_profile": "macos_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "macos_fixed_native",
+            "target": "x86_64-apple-darwin",
+            "build_mode": "no-default",
+            "runtime_profile": "macos_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "macos_fixed_native",
+            "target": "aarch64-apple-darwin",
+            "build_mode": "default",
+            "runtime_profile": "macos_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "macos_fixed_native",
+            "target": "aarch64-apple-darwin",
+            "build_mode": "no-default",
+            "runtime_profile": "macos_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "freebsd_fixed_native",
+            "target": "x86_64-unknown-freebsd",
+            "build_mode": "default",
+            "runtime_profile": "freebsd_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "freebsd_fixed_native",
+            "target": "x86_64-unknown-freebsd",
+            "build_mode": "no-default",
+            "runtime_profile": "freebsd_criterion"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "lambda_x86_64_default",
+            "target": "x86_64-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "aws_lambda_x86_64"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "lambda_aarch64_default",
+            "target": "aarch64-unknown-linux-gnu",
+            "build_mode": "default",
+            "runtime_profile": "aws_lambda_aarch64"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasm_node_availability_fallback",
+            "target": "wasm32-unknown-unknown",
+            "build_mode": "default",
+            "runtime_profile": "node_wasm_bindgen"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasm_node_availability_fallback",
+            "target": "wasm32-unknown-unknown",
+            "build_mode": "no-default",
+            "runtime_profile": "node_wasm_bindgen"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasm_browser_fallback",
+            "target": "wasm32-unknown-unknown",
+            "build_mode": "default",
+            "runtime_profile": "browser_wasm_bindgen"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasm_browser_fallback",
+            "target": "wasm32-unknown-unknown",
+            "build_mode": "no-default",
+            "runtime_profile": "browser_wasm_bindgen"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasi_p1_node_availability_fallback",
+            "target": "wasm32-wasip1",
+            "build_mode": "default",
+            "runtime_profile": "node_uvwasi"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasi_p1_node_availability_fallback",
+            "target": "wasm32-wasip1",
+            "build_mode": "no-default",
+            "runtime_profile": "node_uvwasi"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasi_p1_wasmtime_fallback",
+            "target": "wasm32-wasip1",
+            "build_mode": "default",
+            "runtime_profile": "wasmtime"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasi_p1_wasmtime_fallback",
+            "target": "wasm32-wasip1",
+            "build_mode": "no-default",
+            "runtime_profile": "wasmtime"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasi_p2_fallback_only",
+            "target": "wasm32-wasip2",
+            "build_mode": "default",
+            "runtime_profile": "wasmtime_component"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "wasi_p2_fallback_only",
+            "target": "wasm32-wasip2",
+            "build_mode": "no-default",
+            "runtime_profile": "wasmtime_component"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "emscripten_node_availability_fallback",
+            "target": "wasm32-unknown-emscripten",
+            "build_mode": "default",
+            "runtime_profile": "emcc_node"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "emscripten_node_availability_fallback",
+            "target": "wasm32-unknown-emscripten",
+            "build_mode": "no-default",
+            "runtime_profile": "emcc_node"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'full_speed' evidence",
+          "identity": {
+            "case_id": "emscripten_node_availability_fallback",
+            "target": "wasm32-unknown-emscripten",
+            "build_mode": "emscripten-pthreads",
+            "runtime_profile": "emcc_node"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'runtime_smoke' evidence",
+          "identity": {
+            "case_id": "wasi_p1_threads_smoke",
+            "target": "wasm32-wasip1-threads",
+            "build_mode": "default",
+            "runtime_profile": "wasi_threads_smoke"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'runtime_smoke' evidence",
+          "identity": {
+            "case_id": "wasi_p1_threads_smoke",
+            "target": "wasm32-wasip1-threads",
+            "build_mode": "no-default",
+            "runtime_profile": "wasi_threads_smoke"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'runtime_smoke' evidence",
+          "identity": {
+            "case_id": "wasm32v1_none_smoke",
+            "target": "wasm32v1-none",
+            "build_mode": "default",
+            "runtime_profile": "wasm32v1_none_smoke"
+          }
+        },
+        {
+          "code": "missing_coverage",
+          "detail": "missing required 'runtime_smoke' evidence",
+          "identity": {
+            "case_id": "wasm32v1_none_smoke",
+            "target": "wasm32v1-none",
+            "build_mode": "no-default",
+            "runtime_profile": "wasm32v1_none_smoke"
+          }
+        }
+      ]
+    },
+    "failures": [
+      "missing_coverage: case='linux_android_adaptive_default', target='aarch64-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='i686-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='s390x-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='loongarch64-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='riscv64gc-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='powerpc64-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='powerpc64le-unknown-linux-gnu', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='armv7-unknown-linux-gnueabihf', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='x86_64-unknown-linux-musl', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='x86_64-linux-android', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_adaptive_default', target='aarch64-linux-android', build_mode='default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_fixed_no_default', target='x86_64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_fixed_no_default', target='aarch64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_fixed_no_default', target='x86_64-unknown-linux-musl', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_fixed_no_default', target='x86_64-linux-android', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_android_fixed_no_default', target='aarch64-linux-android', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_rare_fixed_no_default', target='i686-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_rare_fixed_no_default', target='s390x-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_rare_fixed_no_default', target='loongarch64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_rare_fixed_no_default', target='riscv64gc-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_rare_fixed_no_default', target='powerpc64-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_rare_fixed_no_default', target='powerpc64le-unknown-linux-gnu', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='linux_rare_fixed_no_default', target='armv7-unknown-linux-gnueabihf', build_mode='no-default', runtime_profile='native_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='windows_availability_fallback', target='x86_64-pc-windows-msvc', build_mode='default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='windows_availability_fallback', target='x86_64-pc-windows-msvc', build_mode='no-default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='windows_availability_fallback', target='i686-pc-windows-msvc', build_mode='default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='windows_availability_fallback', target='i686-pc-windows-msvc', build_mode='no-default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='windows_availability_fallback', target='aarch64-pc-windows-msvc', build_mode='default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='windows_availability_fallback', target='aarch64-pc-windows-msvc', build_mode='no-default', runtime_profile='windows_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='macos_fixed_native', target='x86_64-apple-darwin', build_mode='default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='macos_fixed_native', target='x86_64-apple-darwin', build_mode='no-default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='macos_fixed_native', target='aarch64-apple-darwin', build_mode='default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='macos_fixed_native', target='aarch64-apple-darwin', build_mode='no-default', runtime_profile='macos_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='freebsd_fixed_native', target='x86_64-unknown-freebsd', build_mode='default', runtime_profile='freebsd_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='freebsd_fixed_native', target='x86_64-unknown-freebsd', build_mode='no-default', runtime_profile='freebsd_criterion': missing required 'full_speed' evidence",
+      "missing_coverage: case='lambda_x86_64_default', target='x86_64-unknown-linux-gnu', build_mode='default', runtime_profile='aws_lambda_x86_64': missing required 'full_speed' evidence",
+      "missing_coverage: case='lambda_aarch64_default', target='aarch64-unknown-linux-gnu', build_mode='default', runtime_profile='aws_lambda_aarch64': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasm_node_availability_fallback', target='wasm32-unknown-unknown', build_mode='default', runtime_profile='node_wasm_bindgen': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasm_node_availability_fallback', target='wasm32-unknown-unknown', build_mode='no-default', runtime_profile='node_wasm_bindgen': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasm_browser_fallback', target='wasm32-unknown-unknown', build_mode='default', runtime_profile='browser_wasm_bindgen': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasm_browser_fallback', target='wasm32-unknown-unknown', build_mode='no-default', runtime_profile='browser_wasm_bindgen': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasi_p1_node_availability_fallback', target='wasm32-wasip1', build_mode='default', runtime_profile='node_uvwasi': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasi_p1_node_availability_fallback', target='wasm32-wasip1', build_mode='no-default', runtime_profile='node_uvwasi': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasi_p1_wasmtime_fallback', target='wasm32-wasip1', build_mode='default', runtime_profile='wasmtime': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasi_p1_wasmtime_fallback', target='wasm32-wasip1', build_mode='no-default', runtime_profile='wasmtime': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasi_p2_fallback_only', target='wasm32-wasip2', build_mode='default', runtime_profile='wasmtime_component': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasi_p2_fallback_only', target='wasm32-wasip2', build_mode='no-default', runtime_profile='wasmtime_component': missing required 'full_speed' evidence",
+      "missing_coverage: case='emscripten_node_availability_fallback', target='wasm32-unknown-emscripten', build_mode='default', runtime_profile='emcc_node': missing required 'full_speed' evidence",
+      "missing_coverage: case='emscripten_node_availability_fallback', target='wasm32-unknown-emscripten', build_mode='no-default', runtime_profile='emcc_node': missing required 'full_speed' evidence",
+      "missing_coverage: case='emscripten_node_availability_fallback', target='wasm32-unknown-emscripten', build_mode='emscripten-pthreads', runtime_profile='emcc_node': missing required 'full_speed' evidence",
+      "missing_coverage: case='wasi_p1_threads_smoke', target='wasm32-wasip1-threads', build_mode='default', runtime_profile='wasi_threads_smoke': missing required 'runtime_smoke' evidence",
+      "missing_coverage: case='wasi_p1_threads_smoke', target='wasm32-wasip1-threads', build_mode='no-default', runtime_profile='wasi_threads_smoke': missing required 'runtime_smoke' evidence",
+      "missing_coverage: case='wasm32v1_none_smoke', target='wasm32v1-none', build_mode='default', runtime_profile='wasm32v1_none_smoke': missing required 'runtime_smoke' evidence",
+      "missing_coverage: case='wasm32v1_none_smoke', target='wasm32v1-none', build_mode='no-default', runtime_profile='wasm32v1_none_smoke': missing required 'runtime_smoke' evidence"
+    ]
+  }
+}
