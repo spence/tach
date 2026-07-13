@@ -42,19 +42,6 @@ def _provenance_fields(values: list[str]) -> dict:
   return fields
 
 
-def _require_criterion_collector_harness(artifact: str) -> None:
-  """Reject full-speed artifacts whose observations need a host harness."""
-  declared = speed_evidence.SUPPLEMENTAL_SPEED_CELLS.get(artifact)
-  if declared is None:
-    return
-  _, harness, mode, _ = declared
-  if mode == "full_speed_cell" and harness != "criterion":
-    raise ValueError(
-      f"{artifact} uses the {harness!r} harness and requires a host observation "
-      "protocol; this composer only accepts Criterion collector bundles"
-    )
-
-
 def compose(
   artifact: str,
   clocks: dict | None,
@@ -66,7 +53,6 @@ def compose(
   collector_bundle_path: str = "collector.bundle",
 ) -> dict:
   """Public, testable wrapper around the evidence-layer single-cell composer."""
-  _require_criterion_collector_harness(artifact)
   return speed_evidence.compose_supplemental_speed_cell(
     artifact,
     clocks,
@@ -114,12 +100,8 @@ def main() -> None:
   elif mode != "full_speed_cell":
     parser.error("this supplemental mode needs a producer-specific attested bundle")
   else:
-    try:
-      _require_criterion_collector_harness(args.artifact)
-    except ValueError as error:
-      parser.error(str(error))
     if not args.collector_bundle:
-      parser.error("measured Criterion evidence needs --collector-bundle")
+      parser.error("measured runtime evidence needs --collector-bundle")
     if not all((args.instant_profile, args.ordered_profile, args.thread_cpu_profile)):
       parser.error("measured supplemental evidence needs a selection profile for every timer")
     try:
@@ -133,7 +115,7 @@ def main() -> None:
       clocks = {**extracted_clocks, "collector_attestation": collector}
       behavior = observation["thread_cpu_behavior"]
       if not isinstance(behavior, dict):
-        parser.error("measured Criterion evidence has no thread-CPU behavior sidecar")
+        parser.error("measured runtime evidence has no thread-CPU behavior sidecar")
       bundle_path = args.collector_bundle.resolve().relative_to(
         args.output.parent.resolve()
       ).as_posix()

@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 lambda_runtime = "0.13"
-libc = "0.2"
 fastant = "0.1.11"
 minstant = "0.1.7"
 quanta = "0.12.6"

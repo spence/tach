@@ -127,7 +127,7 @@ def _aggregate_lambda_rows(runs: list[dict]) -> dict:
         if not isinstance(value, str) or not value:
           raise RuntimeError(f"{key} omitted {field}")
         entry[field] = value
-      if key.startswith("direct_"):
+      if key.startswith("direct_") or key == "native_thread_cpu":
         benchmarks = {row.get("benchmark") for row in rows}
         if len(benchmarks) != 1:
           raise RuntimeError(f"{key} benchmark identity changed across Lambda samples")
@@ -171,9 +171,20 @@ def extract_lambda_observation(host_dir: Path, attestation: dict) -> dict:
       raise RuntimeError(f"Lambda invocation {run} runtime attestation changed")
     runs.append(payload)
 
+  behaviors = [run.get("thread_cpu_behavior") for run in runs]
+  for run, behavior in enumerate(behaviors, start=1):
+    if not isinstance(behavior, dict) or behavior.get("runtime_attestation") != attestation:
+      raise RuntimeError(f"Lambda invocation {run} thread-CPU behavior is unbound")
+    try:
+      speed_evidence._validate_raw_thread_cpu_behavior(behavior)
+    except ValueError as error:
+      raise RuntimeError(
+        f"Lambda invocation {run} thread-CPU behavior is malformed: {error}"
+      ) from error
+
   return {
     "clocks": _aggregate_lambda_rows(runs),
-    "thread_cpu_behavior": None,
+    "thread_cpu_behavior": behaviors[0],
   }
 
 

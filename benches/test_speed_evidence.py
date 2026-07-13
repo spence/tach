@@ -1378,7 +1378,6 @@ class SpeedEvidenceTests(unittest.TestCase):
       planned,
       {
         "criterion_linux_rare_no_default",
-        "lambda_aarch64",
         "wasm_node",
         "wasm_browser",
         "emscripten_node",
@@ -2018,8 +2017,8 @@ declare void @generic_implementation()
       for failure in report["failures"]
     ))
 
-  def test_supplemental_composer_rejects_host_harness_before_collector_read(self) -> None:
-    artifact = "speed-supplemental-wasm-node.json"
+  def test_supplemental_composer_accepts_host_collector_bundle(self) -> None:
+    artifact = "speed-supplemental-lambda-aarch64.json"
     fixture = supplemental_speed_documents()[artifact]
     raw_behavior = {
       key: copy.deepcopy(fixture["thread_cpu_behavior"][key])
@@ -2034,20 +2033,30 @@ declare void @generic_implementation()
       )
     }
     composer = supplemental_composer_module()
-    with self.assertRaisesRegex(ValueError, "host observation protocol"):
-      composer.compose(
-        artifact,
-        copy.deepcopy(fixture["clocks"]),
-        raw_behavior,
-        "1" * 40,
-        copy.deepcopy(fixture["selection_profiles"]),
-        {},
-        [],
-      )
+    composed = composer.compose(
+      artifact,
+      copy.deepcopy(fixture["clocks"]),
+      raw_behavior,
+      "1" * 40,
+      copy.deepcopy(fixture["selection_profiles"]),
+      {},
+      None,
+    )
+    self.assertEqual(composed["provenance"]["harness"], "lambda")
+    self.assertEqual(composed["triple"], "aarch64-unknown-linux-gnu")
 
     with tempfile.TemporaryDirectory() as temporary_directory:
-      stderr = io.StringIO()
-      output = Path(temporary_directory) / "cell.json"
+      root = Path(temporary_directory)
+      output = root / artifact
+      bundle = root / "collector.bundle"
+      bundle.mkdir()
+      extracted_clocks = copy.deepcopy(fixture["clocks"])
+      collector = extracted_clocks.pop("collector_attestation")
+      observation = {
+        "clocks": extracted_clocks,
+        "collector_attestation": collector,
+        "thread_cpu_behavior": raw_behavior,
+      }
       with (
         mock.patch.object(
           sys,
@@ -2061,20 +2070,27 @@ declare void @generic_implementation()
             "--source-revision",
             "1" * 40,
             "--collector-bundle",
-            str(Path(temporary_directory) / "pretend-criterion.bundle"),
+            str(bundle),
+            "--instant-profile",
+            "runtime_tournament",
+            "--ordered-profile",
+            "runtime_tournament",
+            "--thread-cpu-profile",
+            "runtime_tournament",
           ],
         ),
         mock.patch.object(
-          composer.extract_speed, "extract_collector_bundle_observation"
+          composer.extract_speed,
+          "extract_collector_bundle_observation",
+          return_value=observation,
         ) as extract,
-        contextlib.redirect_stderr(stderr),
       ):
-        with self.assertRaises(SystemExit) as exit_error:
-          composer.main()
+        composer.main()
 
-    self.assertEqual(exit_error.exception.code, 2)
-    self.assertIn("host observation protocol", stderr.getvalue())
-    extract.assert_not_called()
+      document = json.loads(output.read_text())
+    extract.assert_called_once_with(bundle)
+    report = speed_evidence.validate_supplemental_speed_cell(artifact, document)
+    self.assertTrue(report["passed"], report["failures"])
 
   def test_supplemental_composer_rejects_mislabeled_rows_and_semantic_summaries(self) -> None:
     fixture = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]

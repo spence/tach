@@ -1,6 +1,5 @@
-use std::arch::asm;
 use std::hint::black_box;
-use std::mem::MaybeUninit;
+use std::sync::{Arc, Barrier};
 use std::time::{Duration, Instant as WallInstant};
 
 use lambda_runtime::{Error, LambdaEvent, service_fn};
@@ -26,15 +25,15 @@ fn benchmark_runtime_attestation() -> Result<Value, Error> {
   let runner = option_env!("TACH_BENCH_RUNNER")
     .filter(|value| !value.is_empty())
     .ok_or("Lambda benchmark build omitted its runner identity")?;
-  if std::env::consts::ARCH != "x86_64" || std::env::consts::OS != "linux" {
-    return Err("Lambda primary benchmark requires x86_64 Linux".into());
+  if !matches!(std::env::consts::ARCH, "x86_64" | "aarch64") || std::env::consts::OS != "linux" {
+    return Err("Lambda benchmark requires x86_64 or aarch64 Linux".into());
   }
   Ok(json!({
     "schema": "tach-benchmark-runtime-v2",
     "invocation_id": invocation_id,
     "harness": "lambda",
     "target": {
-      "arch": "x86_64",
+      "arch": std::env::consts::ARCH,
       "os": "linux",
       "env": "gnu",
     },
@@ -58,6 +57,26 @@ type ExactThreadCpuEvidence = (ClockRows, Value, Option<(String, Value)>);
 #[tokio::main]
 async fn main() -> Result<(), Error> {
   lambda_runtime::run(service_fn(handler)).await
+}
+
+#[cfg(target_arch = "x86_64")]
+fn selected_instant_primitive() -> tach::bench::ExactWallProvider {
+  tach::bench::linux_x86_selected_instant_primitive()
+}
+
+#[cfg(target_arch = "aarch64")]
+fn selected_instant_primitive() -> tach::bench::ExactWallProvider {
+  tach::bench::linux_aarch64_selected_instant_primitive()
+}
+
+#[cfg(target_arch = "x86_64")]
+fn selected_ordered_primitive() -> tach::bench::ExactWallProvider {
+  tach::bench::linux_x86_selected_ordered_primitive()
+}
+
+#[cfg(target_arch = "aarch64")]
+fn selected_ordered_primitive() -> tach::bench::ExactWallProvider {
+  tach::bench::linux_aarch64_selected_ordered_primitive()
 }
 
 async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
@@ -98,11 +117,11 @@ async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
     let start = OrderedInstant::now();
     black_box(start.elapsed())
   });
-  let selected_instant = tach::bench::linux_x86_selected_instant_primitive();
+  let selected_instant = selected_instant_primitive();
   let selected_instant_provider = selected_instant.provider();
   let (selected_instant_now, selected_instant_elapsed) =
     exact_instant_wall_cost(selected_instant_provider, selected_instant.nanos_per_tick_q32());
-  let selected_ordered = tach::bench::linux_x86_selected_ordered_primitive();
+  let selected_ordered = selected_ordered_primitive();
   let selected_ordered_provider = selected_ordered.provider();
   let (selected_ordered_now, selected_ordered_elapsed) =
     exact_ordered_wall_cost(selected_ordered_provider, selected_ordered.nanos_per_tick_q32());
@@ -134,8 +153,10 @@ async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
     return Err("thread-CPU provider changed during Lambda benchmark".into());
   }
 
+  let thread_cpu_behavior = measure_thread_cpu_behavior(&runtime_attestation);
   let mut result = json!({
     "runtime_attestation": runtime_attestation,
+    "thread_cpu_behavior": thread_cpu_behavior,
     "tach": clock_json(tach_now, tach_elapsed),
     "tach_ordered": clock_json(tach_ordered_now, tach_ordered_elapsed),
     "direct_selected_wall": exact_wall_clock_json(
@@ -163,16 +184,10 @@ async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
       read_cost,
       time_domain,
     ),
-    "native_thread_cpu": thread_clock_json(
-      native_now,
-      native_elapsed,
-      "inline syscall(CLOCK_THREAD_CPUTIME_ID)",
-      "system call",
-      "thread CPU",
-    ),
+    "native_thread_cpu": native_thread_clock_json(native_now, native_elapsed),
     "direct_selected_thread_cpu": selected_thread,
     "thread_cpu_selection": thread_selection_json,
-    "wall_selection": linux_x86_wall_selection_json(),
+    "wall_selection": linux_wall_selection_json(),
   });
   let result_object = result.as_object_mut().expect("Lambda result is an object");
   if let Some((benchmark, row)) = fallback_thread {
@@ -536,6 +551,126 @@ fn thread_clock_json(
   })
 }
 
+const NATIVE_THREAD_CPU_BENCHMARK: &str = "native_thread_cpu__raw_syscall_clock_thread_cputime_id";
+
+fn native_thread_clock_json(now: CostSamples, elapsed: CostSamples) -> Value {
+  let mut row = thread_clock_json(
+    now,
+    elapsed,
+    "raw SYS_clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+    "thread CPU",
+  );
+  row
+    .as_object_mut()
+    .expect("native thread-CPU row")
+    .insert("benchmark".into(), json!(NATIVE_THREAD_CPU_BENCHMARK));
+  row
+}
+
+#[derive(Clone, Copy)]
+struct ThreadCpuBehaviorSample {
+  wall_delta_ns: u64,
+  public_delta_ns: u64,
+  direct_delta_ns: u64,
+}
+
+fn duration_nanos(value: Duration) -> u64 {
+  value.as_nanos().try_into().expect("duration exceeded u64 nanoseconds")
+}
+
+fn sample_thread_cpu_behavior(operation: impl FnOnce()) -> ThreadCpuBehaviorSample {
+  let wall_start = WallInstant::now();
+  let public_start = ThreadCpuInstant::now();
+  let direct_start = native_thread_cpu_now();
+  operation();
+  let direct_end = native_thread_cpu_now();
+  let public_delta = ThreadCpuInstant::now()
+    .checked_duration_since(public_start)
+    .expect("thread-CPU provider moved backward or changed domains");
+  ThreadCpuBehaviorSample {
+    wall_delta_ns: duration_nanos(wall_start.elapsed()),
+    public_delta_ns: duration_nanos(public_delta),
+    direct_delta_ns: direct_end.saturating_sub(direct_start),
+  }
+}
+
+#[inline(never)]
+fn consume_current_thread_cpu_for(duration: Duration) {
+  let start = WallInstant::now();
+  let mut state = 0_u64;
+  while start.elapsed() < duration {
+    state = state
+      .wrapping_mul(6_364_136_223_846_793_005)
+      .wrapping_add(1_442_695_040_888_963_407);
+    black_box(state);
+  }
+  black_box(state);
+}
+
+fn sample_thread_cpu_sibling_isolation() -> ThreadCpuBehaviorSample {
+  let gate = Arc::new(Barrier::new(2));
+  let sibling = std::thread::spawn({
+    let gate = Arc::clone(&gate);
+    move || {
+      gate.wait();
+      consume_current_thread_cpu_for(Duration::from_millis(40));
+    }
+  });
+  let sample = sample_thread_cpu_behavior(|| {
+    gate.wait();
+    std::thread::sleep(Duration::from_millis(20));
+  });
+  sibling.join().expect("thread-CPU sibling probe panicked");
+  sample
+}
+
+fn summarize_thread_cpu_behavior(samples: [ThreadCpuBehaviorSample; 3]) -> Value {
+  let median = |mut values: [u64; 3]| {
+    values.sort_unstable();
+    values[1]
+  };
+  json!({
+    "wall_delta_ns": median(samples.map(|sample| sample.wall_delta_ns)),
+    "public_delta_ns": median(samples.map(|sample| sample.public_delta_ns)),
+    "direct_delta_ns": median(samples.map(|sample| sample.direct_delta_ns)),
+    "samples": samples.map(|sample| json!({
+      "wall_delta_ns": sample.wall_delta_ns,
+      "public_delta_ns": sample.public_delta_ns,
+      "direct_delta_ns": sample.direct_delta_ns,
+    })),
+  })
+}
+
+fn measure_thread_cpu_behavior(runtime_attestation: &Value) -> Value {
+  assert!(ThreadCpuInstant::provider().measures_thread_cpu_time());
+  let window = Duration::from_millis(20);
+  let busy = [
+    sample_thread_cpu_behavior(|| consume_current_thread_cpu_for(window)),
+    sample_thread_cpu_behavior(|| consume_current_thread_cpu_for(window)),
+    sample_thread_cpu_behavior(|| consume_current_thread_cpu_for(window)),
+  ];
+  let sleep = [
+    sample_thread_cpu_behavior(|| std::thread::sleep(window)),
+    sample_thread_cpu_behavior(|| std::thread::sleep(window)),
+    sample_thread_cpu_behavior(|| std::thread::sleep(window)),
+  ];
+  let sibling_isolation = [
+    sample_thread_cpu_sibling_isolation(),
+    sample_thread_cpu_sibling_isolation(),
+    sample_thread_cpu_sibling_isolation(),
+  ];
+  json!({
+    "schema": "tach-thread-cpu-behavior-v2",
+    "runtime_attestation": runtime_attestation,
+    "direct_benchmark": NATIVE_THREAD_CPU_BENCHMARK,
+    "sample_count": 3,
+    "busy": summarize_thread_cpu_behavior(busy),
+    "sleep": summarize_thread_cpu_behavior(sleep),
+    "sibling_isolation": summarize_thread_cpu_behavior(sibling_isolation),
+  })
+}
+
 fn exact_wall_clock_json(
   now: CostSamples,
   elapsed: CostSamples,
@@ -553,8 +688,8 @@ fn exact_wall_clock_json(
       "direct vDSO call"
     } else if provider.contains("syscall") {
       "system call"
-    } else if provider.contains("_libc") {
-      "platform call"
+    } else if provider.contains("clock_monotonic") {
+      "vDSO or system call"
     } else {
       "inline"
     },
@@ -567,6 +702,7 @@ fn exact_wall_clock_json(
   row
 }
 
+#[cfg(target_arch = "x86_64")]
 macro_rules! with_lambda_linux_x86_instant_read {
   ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
     match $provider {
@@ -584,6 +720,7 @@ macro_rules! with_lambda_linux_x86_instant_read {
     }
   }};
 }
+#[cfg(target_arch = "x86_64")]
 macro_rules! with_lambda_linux_x86_ordered_read {
   ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
     match $provider {
@@ -651,6 +788,45 @@ macro_rules! with_lambda_linux_x86_ordered_read {
   }};
 }
 
+#[cfg(target_arch = "aarch64")]
+macro_rules! with_lambda_linux_aarch64_instant_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "aarch64_cntvct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_cntvct),
+      "linux_clock_monotonic" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_monotonic),
+      "linux_clock_monotonic_raw" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_raw),
+      "linux_clock_boottime" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_boottime),
+      "linux_clock_monotonic_vdso_direct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_monotonic),
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_raw),
+      "linux_clock_boottime_vdso_direct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_boottime),
+      "linux_clock_monotonic_syscall" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_monotonic),
+      "linux_clock_monotonic_raw_syscall" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_raw),
+      "linux_clock_boottime_syscall" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_boottime),
+      _ => panic!("unsupported Lambda Linux aarch64 Instant provider: {}", $provider),
+    }
+  }};
+}
+
+#[cfg(target_arch = "aarch64")]
+macro_rules! with_lambda_linux_aarch64_ordered_read {
+  ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
+    match $provider {
+      "aarch64_isb_cntvct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_isb_cntvct),
+      "aarch64_cntvctss" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_cntvctss),
+      "linux_clock_monotonic" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_monotonic),
+      "linux_clock_monotonic_raw" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_raw),
+      "linux_clock_boottime" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_boottime),
+      "linux_clock_monotonic_vdso_direct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_monotonic),
+      "linux_clock_monotonic_raw_vdso_direct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_raw),
+      "linux_clock_boottime_vdso_direct" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_boottime),
+      "linux_clock_monotonic_syscall" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_monotonic),
+      "linux_clock_monotonic_raw_syscall" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_raw),
+      "linux_clock_boottime_syscall" => $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_boottime),
+      _ => panic!("unsupported Lambda Linux aarch64 Ordered provider: {}", $provider),
+    }
+  }};
+}
+
 macro_rules! exact_instant_wall_cost {
   ($nanos_per_tick_q32:expr, $read:path) => {{
     let now = median_cost(|| black_box($read()));
@@ -675,14 +851,27 @@ macro_rules! exact_ordered_wall_cost {
   }};
 }
 
+#[cfg(target_arch = "x86_64")]
 fn exact_instant_wall_cost(provider: &str, nanos_per_tick_q32: u64) -> (CostSamples, CostSamples) {
   with_lambda_linux_x86_instant_read!(provider, exact_instant_wall_cost, nanos_per_tick_q32)
 }
 
+#[cfg(target_arch = "aarch64")]
+fn exact_instant_wall_cost(provider: &str, nanos_per_tick_q32: u64) -> (CostSamples, CostSamples) {
+  with_lambda_linux_aarch64_instant_read!(provider, exact_instant_wall_cost, nanos_per_tick_q32)
+}
+
+#[cfg(target_arch = "x86_64")]
 fn exact_ordered_wall_cost(provider: &str, nanos_per_tick_q32: u64) -> (CostSamples, CostSamples) {
   with_lambda_linux_x86_ordered_read!(provider, exact_ordered_wall_cost, nanos_per_tick_q32)
 }
 
+#[cfg(target_arch = "aarch64")]
+fn exact_ordered_wall_cost(provider: &str, nanos_per_tick_q32: u64) -> (CostSamples, CostSamples) {
+  with_lambda_linux_aarch64_ordered_read!(provider, exact_ordered_wall_cost, nanos_per_tick_q32)
+}
+
+#[cfg(target_arch = "x86_64")]
 fn exact_instant_wall_rows() -> serde_json::Map<String, Value> {
   let mut rows = serde_json::Map::new();
   for primitive in tach::bench::linux_x86_instant_candidate_primitives() {
@@ -697,6 +886,22 @@ fn exact_instant_wall_rows() -> serde_json::Map<String, Value> {
   rows
 }
 
+#[cfg(target_arch = "aarch64")]
+fn exact_instant_wall_rows() -> serde_json::Map<String, Value> {
+  let mut rows = serde_json::Map::new();
+  for primitive in tach::bench::linux_aarch64_instant_candidate_primitives() {
+    let provider = primitive.provider();
+    let benchmark = format!("direct_wall__{provider}");
+    let (now, elapsed) = exact_instant_wall_cost(provider, primitive.nanos_per_tick_q32());
+    rows.insert(
+      benchmark.clone(),
+      exact_wall_clock_json(now, elapsed, provider, "instant wall", &benchmark),
+    );
+  }
+  rows
+}
+
+#[cfg(target_arch = "x86_64")]
 fn exact_ordered_wall_rows() -> serde_json::Map<String, Value> {
   let mut rows = serde_json::Map::new();
   for primitive in tach::bench::linux_x86_ordered_candidate_primitives() {
@@ -711,7 +916,23 @@ fn exact_ordered_wall_rows() -> serde_json::Map<String, Value> {
   rows
 }
 
-fn linux_x86_wall_selection_json() -> Value {
+#[cfg(target_arch = "aarch64")]
+fn exact_ordered_wall_rows() -> serde_json::Map<String, Value> {
+  let mut rows = serde_json::Map::new();
+  for primitive in tach::bench::linux_aarch64_ordered_candidate_primitives() {
+    let provider = primitive.provider();
+    let benchmark = format!("direct_ordered_wall__{provider}");
+    let (now, elapsed) = exact_ordered_wall_cost(provider, primitive.nanos_per_tick_q32());
+    rows.insert(
+      benchmark.clone(),
+      exact_wall_clock_json(now, elapsed, provider, "ordered wall", &benchmark),
+    );
+  }
+  rows
+}
+
+#[cfg(target_arch = "x86_64")]
+fn linux_wall_selection_json() -> Value {
   let instant = tach::bench::linux_x86_selected_instant_primitive();
   let ordered = tach::bench::linux_x86_selected_ordered_primitive();
   let instant_candidates: Vec<_> = tach::bench::linux_x86_instant_candidate_primitives()
@@ -738,6 +959,41 @@ fn linux_x86_wall_selection_json() -> Value {
     "decision_rule": "each contract independently tournaments every eligible complete clock-id, entry-ABI, ordering-barrier, and direct-TSC path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
     "probe": tach::bench::linux_x86_wall_selection_measurements(),
     "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke TSC access after direct-provider selection",
+  })
+}
+
+#[cfg(target_arch = "aarch64")]
+fn linux_wall_selection_json() -> Value {
+  let instant = tach::bench::linux_aarch64_selected_instant_primitive();
+  let ordered = tach::bench::linux_aarch64_selected_ordered_primitive();
+  let instant_candidates: Vec<_> = tach::bench::linux_aarch64_instant_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
+    .collect();
+  let ordered_candidates: Vec<_> = tach::bench::linux_aarch64_ordered_candidate_primitives()
+    .iter()
+    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
+    .collect();
+  json!({
+    "selected_provider": {
+      "instant": instant.provider(),
+      "ordered": ordered.provider(),
+    },
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{}", instant.provider()),
+      "ordered": format!("direct_selected_ordered_wall__{}", ordered.provider()),
+    },
+    "eligible_direct_candidates": {
+      "instant": instant_candidates,
+      "ordered": ordered_candidates,
+    },
+    "decision_rule": "each contract independently tournaments every eligible complete MONOTONIC, MONOTONIC_RAW, raw-syscall, and architectural-counter path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
+    "instant_probe": tach::bench::linux_aarch64_instant_selection_measurements(),
+    "ordered_probe": tach::bench::linux_aarch64_ordered_selection_measurements(),
+    "permission_rule": "PR_GET_TSC is authoritative when implemented, including Android/vendor backports; only exact -EINVAL plus a parsed upstream-pre-6.12 arm64 uname release infers legacy-safe counter access; newer, unknown, and other failed queries remain syscall-only",
+    "feat_sb": "ineligible: Arm SB constrains side-channel-observable speculation but does not order architectural counter sampling after a prior Acquire observation",
+    "kernel_errata": "trapped CNTVCT/CNTVCTSS reads remain eligible because arm64 emulates them with its workaround-aware counter reader; exact-path measurement determines profitability",
+    "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke counter access after direct-provider selection",
   })
 }
 
@@ -773,28 +1029,5 @@ fn time_domain_label(provider: ThreadCpuProvider) -> &'static str {
 
 #[inline(always)]
 fn native_thread_cpu_now() -> u64 {
-  let mut value = MaybeUninit::<libc::timespec>::uninit();
-  let mut status = libc::SYS_clock_gettime;
-  // SAFETY: this is the Linux x86_64 syscall ABI and value is writable
-  // timespec storage.
-  unsafe {
-    asm!(
-      "syscall",
-      inlateout("rax") status,
-      in("rdi") libc::CLOCK_THREAD_CPUTIME_ID,
-      in("rsi") value.as_mut_ptr(),
-      lateout("rcx") _,
-      lateout("r11") _,
-      options(nostack),
-    );
-  }
-  assert_eq!(status, 0, "CLOCK_THREAD_CPUTIME_ID syscall failed");
-  // SAFETY: clock_gettime initialized the timespec on success.
-  let value = unsafe { value.assume_init() };
-  let seconds = u64::try_from(value.tv_sec).expect("thread CPU seconds were negative");
-  let nanos = u32::try_from(value.tv_nsec).expect("thread CPU nanoseconds were invalid");
-  seconds
-    .checked_mul(1_000_000_000)
-    .and_then(|base| base.checked_add(u64::from(nanos)))
-    .expect("thread CPU time overflowed u64 nanoseconds")
+  tach::bench::thread_cpu_native64_exact_raw_nanos()
 }

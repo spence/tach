@@ -649,7 +649,6 @@ version = "0.0.0"
 dependencies = [
  "fastant",
  "lambda_runtime",
- "libc",
  "minstant",
  "quanta",
  "serde_json",

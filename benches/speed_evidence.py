@@ -212,6 +212,9 @@ SUPPLEMENTAL_SPEED_CELLS = {
   "speed-supplemental-freebsd-x86_64.json": (
     "x86_64-unknown-freebsd", "criterion", "full_speed_cell", "default"
   ),
+  "speed-supplemental-lambda-aarch64.json": (
+    "aarch64-unknown-linux-gnu", "lambda", "full_speed_cell", "default"
+  ),
   "speed-supplemental-wasm-node.json": (
     "wasm32-unknown-unknown", "node-wasm-bindgen", "full_speed_cell", "default"
   ),
@@ -287,6 +290,11 @@ RUNTIME_TARGETS = {
 SUPPLEMENTAL_RUNTIME_TARGETS = RUNTIME_TARGETS
 
 SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES = {
+  "aarch64-unknown-linux-gnu": (
+    "native_thread_cpu__raw_syscall_clock_thread_cputime_id",
+    "raw SYS_clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
   "x86_64-apple-darwin": (
     "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
     "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",

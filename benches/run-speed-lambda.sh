@@ -4,24 +4,36 @@
 #
 # Usage:
 #   benches/run-speed-lambda.sh <output-dir>/speed-5-lambda.json
+#   benches/run-speed-lambda.sh <output-dir>/speed-supplemental-lambda-aarch64.json
 set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
-  echo "usage: $0 <output-dir>/speed-5-lambda.json" >&2
+  echo "usage: $0 <output-dir>/{speed-5-lambda.json|speed-supplemental-lambda-aarch64.json}" >&2
   exit 2
 fi
 
 output_input="$1"
 output_name="$(basename "$output_input")"
-if [ "$output_name" != "speed-5-lambda.json" ]; then
-  echo "Lambda runner only composes the canonical speed-5-lambda.json artifact" >&2
-  exit 2
-fi
+case "$output_name" in
+  speed-5-lambda.json)
+    architecture=x86_64
+    runner=aws-lambda-x86_64
+    build_arch_args=(--x86-64)
+    ;;
+  speed-supplemental-lambda-aarch64.json)
+    architecture=aarch64
+    runner=aws-lambda-aarch64
+    build_arch_args=(--arm64)
+    ;;
+  *)
+    echo "Lambda runner only composes the canonical x86_64 primary or aarch64 supplemental artifact" >&2
+    exit 2
+    ;;
+esac
 
 profile="${TACH_AWS_PROFILE:-tach}"
 region="${TACH_AWS_REGION:-us-east-2}"
 role="${TACH_LAMBDA_ROLE:-arn:aws:iam::799658822840:role/tach-bench-lambda-role}"
-runner="aws-lambda-x86_64"
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 output_dir="$(cd "$(dirname "$output_input")" && pwd)"
 output="$output_dir/$output_name"
@@ -37,7 +49,7 @@ fi
 
 source_revision="$(bash "$repo_root/benches/require-clean-benchmark-source.sh")"
 invocation_id="lambda-${source_revision:0:12}-$(date -u +%Y%m%dT%H%M%SZ)-$$"
-function_default="tach-speed-${source_revision:0:8}-$$"
+function_default="tach-speed-${architecture}-${source_revision:0:8}-$$"
 function="${TACH_LAMBDA_FUNCTION:-$function_default}"
 source_dir=""
 target_dir=""
@@ -93,7 +105,7 @@ case "$precheck" in
   *) echo "$precheck" >&2; exit "$precheck_status" ;;
 esac
 
-echo "building source-sealed x86_64 Lambda benchmark at $source_revision"
+echo "building source-sealed $architecture Lambda benchmark at $source_revision"
 (
   cd "$source_dir/benches/lambda-speed"
   env \
@@ -101,7 +113,7 @@ echo "building source-sealed x86_64 Lambda benchmark at $source_revision"
     TACH_BENCH_SOURCE_REVISION="$source_revision" \
     TACH_BENCH_INVOCATION_ID="$invocation_id" \
     TACH_BENCH_RUNNER="$runner" \
-    cargo lambda build --locked --release --output-format zip
+    cargo lambda build --locked --release --output-format zip "${build_arch_args[@]}"
 )
 
 echo "deploying $function (1024 MB, hard 60-second invocation timeout)"
@@ -166,7 +178,18 @@ with os.fdopen(descriptor, "w", encoding="utf-8") as output:
 PY
 
 python3 "$source_dir/benches/collect-host-speed-bundle.py" "$host_dir" "$bundle_dir"
-python3 "$source_dir/benches/compose-speed.py" "$output" --collector-bundle "$bundle_dir"
+if [ "$architecture" = x86_64 ]; then
+  python3 "$source_dir/benches/compose-speed.py" "$output" --collector-bundle "$bundle_dir"
+else
+  python3 "$source_dir/benches/compose-supplemental-speed.py" \
+    --artifact "$output_name" \
+    --output "$output" \
+    --source-revision "$source_revision" \
+    --collector-bundle "$bundle_dir" \
+    --instant-profile runtime_tournament \
+    --ordered-profile runtime_tournament \
+    --thread-cpu-profile runtime_tournament
+fi
 cat "$output"
 
 echo "deleting $function"

@@ -108,7 +108,7 @@ entrypoints = ["benches/lambda-speed/Cargo.toml", "benches/lambda-speed/src/main
 [[producer]]
 id = "lambda_aarch64"
 kind = "lambda"
-state = "planned"
+state = "ready"
 entrypoints = ["benches/lambda-speed/Cargo.toml", "benches/lambda-speed/src/main.rs", "benches/run-speed-lambda.sh"]
 
 [[producer]]

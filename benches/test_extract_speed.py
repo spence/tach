@@ -264,10 +264,29 @@ def write_lambda_host_observation(root: Path) -> dict:
     root.mkdir()
     (root / "runtime-attestation.json").write_text(json.dumps(attestation))
     for run in range(1, 6):
+        def behavior_phase(wall: int, public: int, direct: int) -> dict:
+            sample = {
+                "wall_delta_ns": wall,
+                "public_delta_ns": public,
+                "direct_delta_ns": direct,
+            }
+            return {**sample, "samples": [sample, sample, sample]}
+
         payload = {
             "runtime_attestation": attestation,
             "wall_selection": wall_selection,
             "thread_cpu_selection": thread_selection,
+            "thread_cpu_behavior": {
+                "schema": "tach-thread-cpu-behavior-v2",
+                "runtime_attestation": attestation,
+                "direct_benchmark": (
+                    "native_thread_cpu__raw_syscall_clock_thread_cputime_id"
+                ),
+                "sample_count": 3,
+                "busy": behavior_phase(20_000_000, 20_000_000, 20_000_000),
+                "sleep": behavior_phase(20_000_000, 10_000, 10_000),
+                "sibling_isolation": behavior_phase(20_000_000, 10_000, 10_000),
+            },
         }
         for key in clock_keys:
             row = {
@@ -289,6 +308,10 @@ def write_lambda_host_observation(root: Path) -> dict:
                 })
             if key.startswith("direct_"):
                 row["benchmark"] = key
+            elif key == "native_thread_cpu":
+                row["benchmark"] = (
+                    "native_thread_cpu__raw_syscall_clock_thread_cputime_id"
+                )
             payload[key] = row
         (root / f"run-{run}.json").write_text(json.dumps(payload))
         (root / f"invoke-{run}.json").write_text(json.dumps({"StatusCode": 200}))

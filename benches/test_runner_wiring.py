@@ -47,12 +47,19 @@ class SealedRunnerWiringTests(unittest.TestCase):
                 self.assertNotIn("clocks-out.json", source)
 
     def test_primary_and_supplemental_runners_use_their_correct_composers(self) -> None:
-        for filename in ("run-speed-local.sh", "run-speed-aws.sh", "run-speed-lambda.sh"):
+        for filename in ("run-speed-local.sh", "run-speed-aws.sh"):
             with self.subTest(runner=filename):
                 source = self.source(filename)
                 self.assertIn("compose-speed.py", source)
                 self.assertNotIn("compose-supplemental-speed.py", source)
                 self.assertIn("--collector-bundle", source)
+
+        source = self.source("run-speed-lambda.sh")
+        self.assertIn("compose-speed.py", source)
+        self.assertIn("compose-supplemental-speed.py", source)
+        self.assertIn("speed-supplemental-lambda-aarch64.json", source)
+        self.assertIn("--instant-profile runtime_tournament", source)
+        self.assertIn("--collector-bundle", source)
 
         source = self.source("run-speed-freebsd-aws.sh")
         self.assertIn("compose-supplemental-speed.py", source)
@@ -223,6 +230,8 @@ printf "SEAL_RAN\\n"
         self.assertIn("TACH_BENCH_INVOCATION_ID", source)
         self.assertIn("TACH_BENCH_RUNNER", source)
         self.assertIn("cargo lambda build --locked --release", source)
+        self.assertIn("build_arch_args=(--arm64)", source)
+        self.assertIn("build_arch_args=(--x86-64)", source)
         self.assertIn('"$host_dir/run-$run.json"', source)
         self.assertIn('"$host_dir/invoke-$run.json"', source)
         self.assertIn("runtime-attestation.json", source)
