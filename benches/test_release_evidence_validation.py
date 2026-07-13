@@ -322,21 +322,25 @@ class SupplementalValidatorTests(unittest.TestCase):
       self.assertTrue(result["passed"])
       bound.assert_called_once_with(FULL_SPEED_ARTIFACT, document, bundle.resolve())
 
-  def test_tagged_fallback_remains_fail_closed(self) -> None:
+  def test_tagged_fallback_uses_the_retained_bundle_observation(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      cell = write_cell(Path(directory), TAGGED_FALLBACK_ARTIFACT, {})
+      root = Path(directory)
+      document = full_speed_document()
+      cell = write_cell(root, TAGGED_FALLBACK_ARTIFACT, document)
+      bundle = root / "collector.bundle"
+      bundle.mkdir()
       report = {"artifact": TAGGED_FALLBACK_ARTIFACT, "passed": True, "failures": []}
       with mock.patch.object(
         SUPPLEMENTAL_VALIDATOR.speed_evidence,
-        "validate_supplemental_speed_cell",
+        "validate_supplemental_speed_cell_from_bundle",
         return_value=report,
-      ):
+      ) as bound:
         result = SUPPLEMENTAL_VALIDATOR.validate_cell_artifact(
           TAGGED_FALLBACK_ARTIFACT, cell
         )
 
-      self.assertFalse(result["passed"])
-      self.assertTrue(any("producer-specific" in failure for failure in result["failures"]))
+      self.assertTrue(result["passed"])
+      bound.assert_called_once_with(TAGGED_FALLBACK_ARTIFACT, document, bundle.resolve())
 
 
 if __name__ == "__main__":

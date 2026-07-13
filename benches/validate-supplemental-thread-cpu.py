@@ -71,14 +71,6 @@ def validate_cell_artifact(artifact: str, cell_path: Path) -> dict:
   _, _, mode, _ = speed_evidence.SUPPLEMENTAL_SPEED_CELLS[artifact]
   if mode == "runtime_smoke":
     return speed_evidence.validate_supplemental_speed_cell(artifact, document)
-  if mode == "tagged_wall_fallback":
-    report = speed_evidence.validate_supplemental_speed_cell(artifact, document)
-    report["failures"].append(
-      f"supplemental {artifact}: tagged wall fallback requires a producer-specific "
-      "attested observation bundle"
-    )
-    report["passed"] = False
-    return report
 
   bundle_path, error = retained_collector_bundle_path(cell_path, document)
   if bundle_path is not None:
