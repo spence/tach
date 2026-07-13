@@ -1331,7 +1331,7 @@ fn evaluate_native_64_candidate(
 ) -> Native64Decision {
   let challenger_median = median_native_64(challenger_samples);
   let incumbent_median = median_native_64(incumbent_samples);
-  let allowance = (NATIVE64_MEASURE_READS as u64).max(incumbent_median / 20);
+  let allowance = NATIVE64_MEASURE_READS as u64;
   let decisive_wins = challenger_samples
     .iter()
     .zip(incumbent_samples)
@@ -1429,6 +1429,7 @@ fn record_native_64_measurements(_measurements: &Native64Measurements) {}
 fn native_64_selection_requires_a_repeatable_material_win() {
   let incumbent = [100_000; NATIVE64_SAMPLES];
   assert!(!prefer_native_64_candidate([96_000; NATIVE64_SAMPLES], incumbent));
+  assert!(prefer_native_64_candidate([95_000; NATIVE64_SAMPLES], incumbent));
   assert!(prefer_native_64_candidate([94_000; NATIVE64_SAMPLES], incumbent));
 
   let mut two_noisy_batches = [94_000; NATIVE64_SAMPLES];
@@ -2878,6 +2879,8 @@ pub(crate) struct Native64SelectionEvidence {
   pub(crate) raw_available: bool,
   pub(crate) reads_per_batch: usize,
   pub(crate) required_decisive_wins: usize,
+  pub(crate) floor_ns_per_read: u64,
+  pub(crate) relative_denominator: Option<u64>,
   pub(crate) libc_batches_ns: [u64; NATIVE64_SAMPLES],
   pub(crate) raw_batches_ns: [u64; NATIVE64_SAMPLES],
   pub(crate) libc_median_ns: u64,
@@ -2938,6 +2941,8 @@ pub(crate) fn bench_native_64_selection_evidence() -> Native64SelectionEvidence 
     raw_available: NATIVE64_RAW_AVAILABLE.load(Ordering::Relaxed) != 0,
     reads_per_batch: NATIVE64_MEASURE_READS,
     required_decisive_wins: NATIVE64_REQUIRED_WINS,
+    floor_ns_per_read: 1,
+    relative_denominator: None,
     libc_batches_ns: libc,
     raw_batches_ns: raw,
     libc_median_ns: if libc.contains(&0) { 0 } else { median_native_64(libc) },

@@ -547,7 +547,7 @@ def primary_speed_document(
 
 def adaptive_thread_cpu_selection() -> dict:
   libc = [100_000] * 9
-  raw = [90_000] * 9
+  raw = [95_000] * 9
   counter_names = [
     "x86_cpuid_rdtsc_cpuid",
     "x86_lfence_rdtsc_lfence",
@@ -582,14 +582,16 @@ def adaptive_thread_cpu_selection() -> dict:
       "raw_available": True,
       "reads_per_batch": 4_096,
       "required_decisive_wins": 8,
+      "floor_ns_per_read": 1,
+      "relative_denominator": None,
       "libc_batches_ns": libc,
       "raw_batches_ns": raw,
       "libc_median_ns": 100_000,
-      "raw_median_ns": 90_000,
-      "raw_allowance_ns": 5_000,
+      "raw_median_ns": 95_000,
+      "raw_allowance_ns": 4_096,
       "raw_decisive_wins": 9,
       "raw_selected": True,
-      "libc_allowance_ns": 4_500,
+      "libc_allowance_ns": 4_096,
       "libc_decisive_wins": 0,
       "libc_materially_faster": False,
     },

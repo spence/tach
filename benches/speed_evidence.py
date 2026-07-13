@@ -440,7 +440,7 @@ def reproduce_material_decision(
   incumbent: list[int],
   reads_per_batch: int,
   required_wins: int,
-  relative_denominator: int = 20,
+  relative_denominator: int | None = 20,
   floor_ns_per_read: int = 1,
 ) -> dict:
   if (
@@ -449,15 +449,22 @@ def reproduce_material_decision(
     or not all(type(value) is int and value > 0 for value in challenger + incumbent)
     or type(reads_per_batch) is not int
     or reads_per_batch <= 0
-    or type(relative_denominator) is not int
-    or relative_denominator <= 0
+    or (
+      relative_denominator is not None
+      and (type(relative_denominator) is not int or relative_denominator <= 0)
+    )
     or type(floor_ns_per_read) is not int
     or floor_ns_per_read <= 0
   ):
     raise ValueError("malformed selector samples")
   challenger_median = int(statistics.median(challenger))
   incumbent_median = int(statistics.median(incumbent))
-  allowance = max(reads_per_batch * floor_ns_per_read, incumbent_median // relative_denominator)
+  relative_allowance = (
+    incumbent_median // relative_denominator
+    if relative_denominator is not None
+    else 0
+  )
+  allowance = max(reads_per_batch * floor_ns_per_read, relative_allowance)
   decisive_wins = sum(
     candidate + allowance < baseline
     for candidate, baseline in zip(challenger, incumbent, strict=True)
@@ -780,6 +787,11 @@ def validate_legacy_native_thread_cpu_entry_probe(
   required_wins = probe.get("required_decisive_wins")
   if reads_per_batch != 4096 or required_wins != 8:
     failures.append(f"{context}: native thread-CPU decision rule changed")
+  explicit_band = "floor_ns_per_read" in probe or "relative_denominator" in probe
+  floor_ns_per_read = probe.get("floor_ns_per_read", 1)
+  relative_denominator = probe.get("relative_denominator", 20)
+  if explicit_band and (floor_ns_per_read != 1 or relative_denominator is not None):
+    failures.append(f"{context}: native thread-CPU entry band changed")
 
   raw_decision = None
   libc_decision = None
@@ -790,12 +802,16 @@ def validate_legacy_native_thread_cpu_entry_probe(
         probe.get("libc_batches_ns"),
         reads_per_batch,
         required_wins,
+        relative_denominator=relative_denominator,
+        floor_ns_per_read=floor_ns_per_read,
       )
       libc_decision = reproduce_material_decision(
         probe.get("libc_batches_ns"),
         probe.get("raw_batches_ns"),
         reads_per_batch,
         required_wins,
+        relative_denominator=relative_denominator,
+        floor_ns_per_read=floor_ns_per_read,
       )
     except (TypeError, ValueError):
       failures.append(f"{context}: malformed native thread-CPU selector samples")
