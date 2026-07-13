@@ -1230,6 +1230,133 @@ def git(root: Path, *args: str) -> str:
 
 
 class SpeedEvidenceTests(unittest.TestCase):
+  def test_linux_aarch64_boottime_candidates_reproduce_from_complete_samples(self) -> None:
+    reads_per_batch = 4_096
+    required_wins = 8
+
+    def tournament_steps(names: list[str], samples: dict[str, list[int]]) -> list[dict]:
+      incumbent = names[0]
+      steps = []
+      for challenger in names[1:]:
+        decision = speed_evidence.reproduce_material_decision(
+          samples[challenger],
+          samples[incumbent],
+          reads_per_batch,
+          required_wins,
+        )
+        winner = challenger if decision["selected"] else incumbent
+        steps.append({
+          "challenger": challenger,
+          "incumbent": incumbent,
+          "winner": winner,
+          "allowance_ns": decision["allowance_ns"],
+          "decisive_wins": decision["decisive_wins"],
+          "challenger_selected": decision["selected"],
+        })
+        incumbent = winner
+      return steps
+
+    specifications = {
+      "instant": {
+        "prefix": "direct_wall",
+        "selected_prefix": "direct_selected_wall",
+        "names": [
+          "linux_clock_boottime",
+          "linux_clock_boottime_vdso_direct",
+          "linux_clock_boottime_syscall",
+          "aarch64_cntvct",
+        ],
+        "fields": {
+          "linux_clock_boottime": "clock_boottime_batches_ns",
+          "linux_clock_boottime_vdso_direct": "vdso_boottime_batches_ns",
+          "linux_clock_boottime_syscall": "syscall_boottime_batches_ns",
+          "aarch64_cntvct": "cntvct_batches_ns",
+        },
+      },
+      "ordered": {
+        "prefix": "direct_ordered_wall",
+        "selected_prefix": "direct_selected_ordered_wall",
+        "names": [
+          "linux_clock_boottime",
+          "linux_clock_boottime_vdso_direct",
+          "linux_clock_boottime_syscall",
+          "aarch64_isb_cntvct",
+        ],
+        "fields": {
+          "linux_clock_boottime": "clock_boottime_batches_ns",
+          "linux_clock_boottime_vdso_direct": "vdso_boottime_batches_ns",
+          "linux_clock_boottime_syscall": "syscall_boottime_batches_ns",
+          "aarch64_isb_cntvct": "isb_batches_ns",
+        },
+      },
+    }
+    samples_by_cost = {
+      "linux_clock_boottime": [100_000] * 9,
+      "linux_clock_boottime_vdso_direct": [90_000] * 9,
+      "linux_clock_boottime_syscall": [200_000] * 9,
+      "aarch64_cntvct": [50_000] * 9,
+      "aarch64_isb_cntvct": [50_000] * 9,
+    }
+    selection = {
+      "permission_rule": "PR_GET_TSC permission evidence",
+      "selected_provider": {},
+      "selected_native_benchmark": {},
+      "eligible_direct_candidates": {},
+    }
+    for domain, specification in specifications.items():
+      names = specification["names"]
+      selected = names[-1]
+      samples = {name: samples_by_cost[name] for name in names}
+      probe = {
+        "eligibility": "eligible",
+        "permission_basis": "pr_get_tsc_enabled",
+        "pr_get_tsc_status": 0,
+        "kernel_version_known": False,
+        "kernel_version_major": 0,
+        "kernel_version_minor": 0,
+        "candidate_count": len(names),
+        "reads_per_batch": reads_per_batch,
+        "required_decisive_wins": required_wins,
+        "selected_provider": selected,
+        "tournament_step_count": len(names) - 1,
+        "tournament_steps": tournament_steps(names, samples),
+      }
+      for name, field in specification["fields"].items():
+        probe[field] = samples[name]
+      selection[f"{domain}_probe"] = probe
+      selection["selected_provider"][domain] = selected
+      selection["selected_native_benchmark"][domain] = (
+        f"{specification['selected_prefix']}__{selected}"
+      )
+      selection["eligible_direct_candidates"][domain] = [
+        f"{specification['prefix']}__{name}" for name in names
+      ]
+
+    failures: list[str] = []
+    result = speed_evidence.validate_linux_aarch64_wall_selector(
+      "synthetic", selection, failures
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(result["instant"]["winner"], "aarch64_cntvct")
+    self.assertEqual(result["ordered"]["winner"], "aarch64_isb_cntvct")
+
+    for domain, field in (
+      ("instant", "clock_boottime_batches_ns"),
+      ("instant", "syscall_boottime_batches_ns"),
+      ("instant", "vdso_boottime_batches_ns"),
+      ("ordered", "clock_boottime_batches_ns"),
+      ("ordered", "syscall_boottime_batches_ns"),
+      ("ordered", "vdso_boottime_batches_ns"),
+    ):
+      with self.subTest(domain=domain, field=field):
+        incomplete = copy.deepcopy(selection)
+        del incomplete[f"{domain}_probe"][field]
+        failures = []
+        speed_evidence.validate_linux_aarch64_wall_selector(
+          "incomplete", incomplete, failures
+        )
+        self.assertTrue(any("unknown candidate" in failure for failure in failures))
+
   def test_route_coverage_admission_reports_the_declared_gap_inventory(self) -> None:
     matrix = target_provider_module()
     advertised = {
