@@ -2374,6 +2374,29 @@ declare void @generic_implementation()
       "document schema changed" in failure for failure in report["failures"]
     ))
 
+  def test_paired_equivalence_uses_the_difference_distribution(self) -> None:
+    reference_samples = [100.0, 200.0] * 15 + [150.0]
+    subject_samples = [value + 4.0 for value in reference_samples]
+    reference = {
+      "now": 150.0,
+      "now_ci95": [100.0, 200.0],
+      "now_samples": reference_samples,
+      "paired_sample_id": "paired-host-route",
+    }
+    subject = {
+      "now": 154.0,
+      "now_ci95": [104.0, 204.0],
+      "now_samples": subject_samples,
+      "paired_sample_id": "paired-host-route",
+    }
+    passed, allowance = speed_evidence.equivalent_or_faster(subject, reference, "now")
+    self.assertTrue(passed)
+    self.assertEqual(allowance, 7.5)
+
+    subject["paired_sample_id"] = "different-route"
+    with self.assertRaises(TypeError):
+      speed_evidence.equivalent_or_faster(subject, reference, "now")
+
   def test_aarch64_pmccntr_negative_evidence_is_reproducible_and_ineligible(self) -> None:
     root = Path(__file__).resolve().parents[1]
     evidence_path = root / "benches/evidence/thread-cpu-aarch64-pmccntr-negative.json"

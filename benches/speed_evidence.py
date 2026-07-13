@@ -535,6 +535,34 @@ def validate_ci(context: str, clock: str, entry: dict, failures: list[str]) -> N
 
 def equivalent_or_faster(subject: dict, reference: dict, metric: str) -> tuple[bool, float]:
   allowance = equivalence_allowance(reference[metric])
+  subject_pair = subject.get("paired_sample_id")
+  reference_pair = reference.get("paired_sample_id")
+  if subject_pair is not None or reference_pair is not None:
+    if (
+      not isinstance(subject_pair, str)
+      or not subject_pair
+      or subject_pair != reference_pair
+    ):
+      raise TypeError("paired sample identities do not match")
+    subject_samples = subject.get(f"{metric}_samples")
+    reference_samples = reference.get(f"{metric}_samples")
+    if (
+      not isinstance(subject_samples, list)
+      or not isinstance(reference_samples, list)
+      or len(subject_samples) != len(reference_samples)
+      or not subject_samples
+      or not all(finite_number(value) for value in (*subject_samples, *reference_samples))
+    ):
+      raise TypeError("paired samples are malformed")
+    differences = [
+      subject_value - reference_value
+      for subject_value, reference_value in zip(subject_samples, reference_samples)
+    ]
+    point, interval = lambda_median_with_ci(
+      differences,
+      f"paired-equivalence:{subject_pair}:{metric}",
+    )
+    return point <= allowance and interval[1] <= allowance, allowance
   point_passed = subject[metric] <= reference[metric] + allowance
   # This conservative comparison uses the slow edge of tach's interval and
   # the fast edge of the reference interval. Passing means the entire 95% CI

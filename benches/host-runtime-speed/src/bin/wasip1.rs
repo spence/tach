@@ -9,6 +9,9 @@ use tach::{Instant, OrderedInstant, ThreadCpuInstant, ThreadCpuProvider, ThreadC
 const ITERATIONS: usize = 10_000;
 const SAMPLES: usize = 31;
 const WARMUP_ITERATIONS: usize = 100_000;
+const INSTANT_PAIR: &str = "wasip1-instant-v1";
+const ORDERED_PAIR: &str = "wasip1-ordered-v1";
+const THREAD_PAIR: &str = "wasip1-thread-v1";
 
 #[cfg(feature = "wasip1-node-host")]
 #[link(wasm_import_module = "tach_host")]
@@ -127,24 +130,30 @@ fn run_observation() -> Result<Value, String> {
   let mut rows = Map::new();
   rows.insert(
     "tach".into(),
-    typed_row(
-      instant_now,
-      instant_elapsed,
-      "wasi_clock_monotonic",
-      "host call",
-      "instant wall",
-      None,
+    paired_row(
+      typed_row(
+        instant_now,
+        instant_elapsed,
+        "wasi_clock_monotonic",
+        "host call",
+        "instant wall",
+        None,
+      ),
+      INSTANT_PAIR,
     ),
   );
   rows.insert(
     "tach_ordered".into(),
-    typed_row(
-      ordered_now,
-      ordered_elapsed,
-      "wasi_clock_monotonic",
-      "host call",
-      "ordered wall",
-      None,
+    paired_row(
+      typed_row(
+        ordered_now,
+        ordered_elapsed,
+        "wasi_clock_monotonic",
+        "host call",
+        "ordered wall",
+        None,
+      ),
+      ORDERED_PAIR,
     ),
   );
   rows.insert(
@@ -205,48 +214,60 @@ fn run_observation() -> Result<Value, String> {
   let native_benchmark = format!("native_thread_cpu__{}", thread_route.mechanism());
   rows.insert(
     "tach_thread_cpu".into(),
-    typed_row(
-      thread_now,
-      thread_elapsed,
-      thread_route.provider_name(),
-      "host call",
-      thread_route.time_domain(),
-      None,
+    paired_row(
+      typed_row(
+        thread_now,
+        thread_elapsed,
+        thread_route.provider_name(),
+        "host call",
+        thread_route.time_domain(),
+        None,
+      ),
+      THREAD_PAIR,
     ),
   );
   rows.insert(
     "native_thread_cpu".into(),
-    typed_row(
-      direct_thread.now,
-      direct_thread.elapsed,
-      thread_route.provider_name(),
-      "host call",
-      thread_route.time_domain(),
-      Some(&native_benchmark),
+    paired_row(
+      typed_row(
+        direct_thread.now,
+        direct_thread.elapsed,
+        thread_route.provider_name(),
+        "host call",
+        thread_route.time_domain(),
+        Some(&native_benchmark),
+      ),
+      THREAD_PAIR,
     ),
   );
   let direct_benchmark = format!("direct_thread_cpu__{}", thread_route.mechanism());
   rows.insert(
     direct_benchmark.clone(),
-    typed_row(
-      direct_thread.now,
-      direct_thread.elapsed,
-      thread_route.mechanism(),
-      "host call",
-      thread_route.time_domain(),
-      Some(&direct_benchmark),
+    paired_row(
+      typed_row(
+        direct_thread.now,
+        direct_thread.elapsed,
+        thread_route.mechanism(),
+        "host call",
+        thread_route.time_domain(),
+        Some(&direct_benchmark),
+      ),
+      THREAD_PAIR,
     ),
   );
   let selected_benchmark = format!("direct_selected_thread_cpu__{}", thread_route.mechanism());
   rows.insert(
     "direct_selected_thread_cpu".into(),
-    typed_row(
-      direct_thread.now,
-      direct_thread.elapsed,
-      thread_route.mechanism(),
-      "host call",
-      thread_route.time_domain(),
-      Some(&selected_benchmark),
+    paired_row(
+      typed_row(
+        direct_thread.now,
+        direct_thread.elapsed,
+        thread_route.mechanism(),
+        "host call",
+        thread_route.time_domain(),
+        Some(&selected_benchmark),
+      ),
+      THREAD_PAIR,
     ),
   );
 
@@ -353,46 +374,58 @@ fn thread_cpu_selection(route: ThreadRoute) -> Value {
 fn insert_wall_rows(rows: &mut Map<String, Value>, instant: Costs, ordered: Costs) {
   rows.insert(
     "direct_wall__wasi_clock_monotonic".into(),
-    typed_row(
-      instant.now,
-      instant.elapsed,
-      "wasi_clock_monotonic",
-      "host call",
-      "instant wall",
-      Some("direct_wall__wasi_clock_monotonic"),
+    paired_row(
+      typed_row(
+        instant.now,
+        instant.elapsed,
+        "wasi_clock_monotonic",
+        "host call",
+        "instant wall",
+        Some("direct_wall__wasi_clock_monotonic"),
+      ),
+      INSTANT_PAIR,
     ),
   );
   rows.insert(
     "direct_ordered_wall__wasi_clock_monotonic".into(),
-    typed_row(
-      ordered.now,
-      ordered.elapsed,
-      "wasi_clock_monotonic",
-      "host call",
-      "ordered wall",
-      Some("direct_ordered_wall__wasi_clock_monotonic"),
+    paired_row(
+      typed_row(
+        ordered.now,
+        ordered.elapsed,
+        "wasi_clock_monotonic",
+        "host call",
+        "ordered wall",
+        Some("direct_ordered_wall__wasi_clock_monotonic"),
+      ),
+      ORDERED_PAIR,
     ),
   );
   rows.insert(
     "direct_selected_wall".into(),
-    typed_row(
-      instant.now,
-      instant.elapsed,
-      "wasi_clock_monotonic",
-      "host call",
-      "instant wall",
-      Some("direct_selected_wall__wasi_clock_monotonic"),
+    paired_row(
+      typed_row(
+        instant.now,
+        instant.elapsed,
+        "wasi_clock_monotonic",
+        "host call",
+        "instant wall",
+        Some("direct_selected_wall__wasi_clock_monotonic"),
+      ),
+      INSTANT_PAIR,
     ),
   );
   rows.insert(
     "direct_selected_ordered_wall".into(),
-    typed_row(
-      ordered.now,
-      ordered.elapsed,
-      "wasi_clock_monotonic",
-      "host call",
-      "ordered wall",
-      Some("direct_selected_ordered_wall__wasi_clock_monotonic"),
+    paired_row(
+      typed_row(
+        ordered.now,
+        ordered.elapsed,
+        "wasi_clock_monotonic",
+        "host call",
+        "ordered wall",
+        Some("direct_selected_ordered_wall__wasi_clock_monotonic"),
+      ),
+      ORDERED_PAIR,
     ),
   );
 }
@@ -477,6 +510,14 @@ fn typed_row(
   if let Some(benchmark) = benchmark {
     object.insert("benchmark".into(), json!(benchmark));
   }
+  row
+}
+
+fn paired_row(mut row: Value, pair_id: &str) -> Value {
+  row
+    .as_object_mut()
+    .expect("clock row")
+    .insert("paired_sample_id".into(), json!(pair_id));
   row
 }
 

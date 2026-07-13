@@ -153,6 +153,14 @@ def _aggregate_sampled_rows(runs: list[dict], source: str) -> dict:
         if not isinstance(benchmark, str) or not benchmark:
           raise RuntimeError(f"{key} omitted its benchmark identity")
         entry["benchmark"] = benchmark
+    pair_ids = {row.get("paired_sample_id") for row in rows}
+    if any(pair_id is not None for pair_id in pair_ids):
+      if len(pair_ids) != 1:
+        raise RuntimeError(f"{key} paired sample identity changed across {source} samples")
+      pair_id = pair_ids.pop()
+      if not isinstance(pair_id, str) or not pair_id:
+        raise RuntimeError(f"{key} has an invalid paired sample identity")
+      entry["paired_sample_id"] = pair_id
     clocks[key] = entry
 
   clocks["tach"]["selection"] = wall_selection
