@@ -18,9 +18,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Build skew bench (default features)
-        run: cargo build --release --bench skew --features bench-internal
+        run: cargo build --release --bench skew --features bench-quanta
       - name: Build skew bench (with recalibrate-background)
-        run: cargo build --release --bench skew --features "bench-internal recalibrate-background"
+        run: cargo build --release --bench skew --features "bench-quanta recalibrate-background"
       - name: Run skew bench — main (no recal-bg)
         shell: bash
         run: |
@@ -30,7 +30,7 @@ jobs:
           # second-newest (the one from the first build above).
           binaries=$(ls -t target/release/deps/skew-*.exe | grep -v '\.d$')
           # Re-run the first build to make its hash newest, then run that one.
-          cargo build --release --bench skew --features bench-internal
+          cargo build --release --bench skew --features bench-quanta
           bin=$(ls -t target/release/deps/skew-*.exe | grep -v '\.d$' | head -1)
           echo "running base: $bin"
           "$bin" --mode all --cell github-windows-x86_64 \
@@ -39,7 +39,7 @@ jobs:
       - name: Run skew bench — tach_recal
         shell: bash
         run: |
-          cargo build --release --bench skew --features "bench-internal recalibrate-background"
+          cargo build --release --bench skew --features "bench-quanta recalibrate-background"
           bin=$(ls -t target/release/deps/skew-*.exe | grep -v '\.d$' | head -1)
           echo "running recal: $bin"
           "$bin" --mode all --cell github-windows-x86_64 \

@@ -15,6 +15,10 @@ const PROVIDER_PERFORMANCE_NOW: u32 = 1;
 const PROVIDER_NODE_HRTIME: u32 = 2;
 
 static ORDERED_MAX: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "bench-internal")]
+static BENCH_ORDERED_PERFORMANCE_MAX: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "bench-internal")]
+static BENCH_ORDERED_HRTIME_MAX: AtomicU64 = AtomicU64::new(0);
 
 #[wasm_bindgen(inline_js = r#"
 const TACH_UNAVAILABLE = 0;
@@ -107,30 +111,29 @@ function tachSelection(provider, read, performanceEligible, hrtimeEligible) {
     hrtimeEligible,
     performanceMedian: 0n,
     hrtimeMedian: 0n,
+    performanceSamples: [],
+    hrtimeSamples: [],
     allowance: 0n,
     decisiveWins: 0,
   };
 }
 
-function tachCommit(selection) {
-  const source = selection.read;
-  let last = 0;
-  selection.read = () => {
-    if (selection.provider === TACH_UNAVAILABLE) {
-      return last;
-    }
-    const value = tachTryMillis(source);
-    if (value === null || value < last) {
-      selection.provider = TACH_UNAVAILABLE;
-      return last;
-    }
-    last = value;
-    return value;
-  };
+function tachCommit(selection, ordered) {
+  if (selection.provider === TACH_PERFORMANCE_NOW) {
+    selection.read = ordered
+      ? tachGuardPerformanceOrdered(selection)
+      : tachGuardPerformanceLocal(selection);
+  } else if (selection.provider === TACH_NODE_HRTIME) {
+    selection.read = ordered
+      ? tachGuardHrtimeOrdered(selection)
+      : tachGuardHrtimeLocal(selection);
+  } else {
+    selection.read = () => 0;
+  }
   return selection;
 }
 
-function tachSelect(performanceRead, hrtimeRead, timer) {
+function tachSelect(performanceRead, hrtimeRead, timer, ordered) {
   let performanceEligible = tachEligible(performanceRead);
   let hrtimeEligible = tachEligible(hrtimeRead);
 
@@ -171,12 +174,18 @@ function tachSelect(performanceRead, hrtimeRead, timer) {
   }
 
   if (!performanceEligible) {
-    return tachCommit(hrtimeEligible
-      ? tachSelection(TACH_NODE_HRTIME, hrtimeRead, false, true)
-      : tachSelection(TACH_UNAVAILABLE, () => 0, false, false));
+    return tachCommit(
+      hrtimeEligible
+        ? tachSelection(TACH_NODE_HRTIME, hrtimeRead, false, true)
+        : tachSelection(TACH_UNAVAILABLE, () => 0, false, false),
+      ordered,
+    );
   }
   if (!hrtimeEligible || performanceSamples.length !== TACH_SAMPLES) {
-    return tachCommit(tachSelection(TACH_PERFORMANCE_NOW, performanceRead, true, false));
+    return tachCommit(
+      tachSelection(TACH_PERFORMANCE_NOW, performanceRead, true, false),
+      ordered,
+    );
   }
 
   const performanceMedian = tachMedian(performanceSamples);
@@ -200,9 +209,11 @@ function tachSelect(performanceRead, hrtimeRead, timer) {
   );
   selection.performanceMedian = performanceMedian;
   selection.hrtimeMedian = hrtimeMedian;
+  selection.performanceSamples = performanceSamples;
+  selection.hrtimeSamples = hrtimeSamples;
   selection.allowance = allowance;
   selection.decisiveWins = decisiveWins;
-  return tachCommit(selection);
+  return tachCommit(selection, ordered);
 }
 
 let tachDateAttempted = false;
@@ -226,12 +237,15 @@ function tachDateEpochOnce() {
   return tachDateSample;
 }
 
+let tachPerformanceNow = null;
+let tachPerformanceOriginMillis = null;
 let tachPerformanceLocal = null;
 let tachPerformanceOrdered = null;
 try {
   const performance = globalThis.performance;
   if (performance !== undefined && performance !== null && typeof performance.now === "function") {
     const now = performance.now.bind(performance);
+    tachPerformanceNow = now;
     tachPerformanceLocal = () => now();
 
     let originMillis = Number.isFinite(performance.timeOrigin) ? performance.timeOrigin : null;
@@ -243,15 +257,22 @@ try {
       }
     }
     if (originMillis !== null) {
+      tachPerformanceOriginMillis = originMillis;
       tachPerformanceOrdered = () => originMillis + now();
     }
   }
 } catch (_) {
+  tachPerformanceNow = null;
+  tachPerformanceOriginMillis = null;
   tachPerformanceLocal = null;
   tachPerformanceOrdered = null;
 }
 
+let tachHrtimeBigint = null;
 let tachHrtimeTimer = null;
+let tachHrtimeLocalBase = 0n;
+let tachHrtimeOrderedBase = 0n;
+let tachHrtimeOrderedOriginMillis = 0;
 let tachHrtimeLocal = null;
 let tachHrtimeOrdered = null;
 try {
@@ -259,9 +280,11 @@ try {
   const hrtime = process === undefined || process === null ? null : process.hrtime;
   if (typeof hrtime === "function" && typeof hrtime.bigint === "function") {
     const bigint = hrtime.bigint.bind(hrtime);
+    tachHrtimeBigint = bigint;
     tachHrtimeTimer = () => bigint();
 
     const localBase = bigint();
+    tachHrtimeLocalBase = localBase;
     tachHrtimeLocal = () => Number(bigint() - localBase) / 1000000;
 
     const orderedBase = bigint();
@@ -269,16 +292,129 @@ try {
     if (orderedOrigin === null) {
       orderedOrigin = Number(orderedBase) / 1000000;
     }
+    tachHrtimeOrderedBase = orderedBase;
+    tachHrtimeOrderedOriginMillis = orderedOrigin;
     tachHrtimeOrdered = () => orderedOrigin + Number(bigint() - orderedBase) / 1000000;
   }
 } catch (_) {
+  tachHrtimeBigint = null;
   tachHrtimeTimer = null;
   tachHrtimeLocal = null;
   tachHrtimeOrdered = null;
 }
 
-const tachLocalSelection = tachSelect(tachPerformanceLocal, tachHrtimeLocal, tachHrtimeTimer);
-const tachOrderedSelection = tachSelect(tachPerformanceOrdered, tachHrtimeOrdered, tachHrtimeTimer);
+function tachUnavailable(selection, last) {
+  if (selection !== null) {
+    selection.provider = TACH_UNAVAILABLE;
+  }
+  return last;
+}
+
+function tachGuardPerformanceLocal(selection) {
+  let last = 0;
+  let unavailable = tachPerformanceNow === null;
+  return () => {
+    if (unavailable) {
+      return last;
+    }
+    try {
+      const value = tachPerformanceNow();
+      if (!Number.isFinite(value) || value < last) {
+        unavailable = true;
+        return tachUnavailable(selection, last);
+      }
+      last = value;
+      return value;
+    } catch (_) {
+      unavailable = true;
+      return tachUnavailable(selection, last);
+    }
+  };
+}
+
+function tachGuardPerformanceOrdered(selection) {
+  let last = 0;
+  let unavailable = tachPerformanceNow === null || tachPerformanceOriginMillis === null;
+  return () => {
+    if (unavailable) {
+      return last;
+    }
+    try {
+      const value = tachPerformanceOriginMillis + tachPerformanceNow();
+      if (!Number.isFinite(value) || value < last) {
+        unavailable = true;
+        return tachUnavailable(selection, last);
+      }
+      last = value;
+      return value;
+    } catch (_) {
+      unavailable = true;
+      return tachUnavailable(selection, last);
+    }
+  };
+}
+
+function tachGuardHrtimeLocal(selection) {
+  let last = 0;
+  let unavailable = tachHrtimeBigint === null;
+  return () => {
+    if (unavailable) {
+      return last;
+    }
+    try {
+      const value = Number(tachHrtimeBigint() - tachHrtimeLocalBase) / 1000000;
+      if (!Number.isFinite(value) || value < last) {
+        unavailable = true;
+        return tachUnavailable(selection, last);
+      }
+      last = value;
+      return value;
+    } catch (_) {
+      unavailable = true;
+      return tachUnavailable(selection, last);
+    }
+  };
+}
+
+function tachGuardHrtimeOrdered(selection) {
+  let last = 0;
+  let unavailable = tachHrtimeBigint === null;
+  return () => {
+    if (unavailable) {
+      return last;
+    }
+    try {
+      const value = tachHrtimeOrderedOriginMillis
+        + Number(tachHrtimeBigint() - tachHrtimeOrderedBase) / 1000000;
+      if (!Number.isFinite(value) || value < last) {
+        unavailable = true;
+        return tachUnavailable(selection, last);
+      }
+      last = value;
+      return value;
+    } catch (_) {
+      unavailable = true;
+      return tachUnavailable(selection, last);
+    }
+  };
+}
+
+const tachLocalSelection = tachSelect(
+  tachPerformanceLocal,
+  tachHrtimeLocal,
+  tachHrtimeTimer,
+  false,
+);
+const tachOrderedSelection = tachSelect(
+  tachPerformanceOrdered,
+  tachHrtimeOrdered,
+  tachHrtimeTimer,
+  true,
+);
+const tachExactPerformanceLocal = tachGuardPerformanceLocal(null);
+const tachExactHrtimeLocal = tachGuardHrtimeLocal(null);
+const tachExactPerformanceOrdered = tachGuardPerformanceOrdered(null);
+const tachExactHrtimeOrdered = tachGuardHrtimeOrdered(null);
 
 export function tachWallNowMillis() {
   return tachLocalSelection.read();
@@ -297,13 +433,11 @@ export function tachOrderedWallProvider() {
 }
 
 export function tachExactPerformanceNowMillis() {
-  const value = tachTryMillis(tachPerformanceLocal);
-  return value === null ? -1 : value;
+  return tachExactPerformanceLocal();
 }
 
 export function tachExactHrtimeNowMillis() {
-  const value = tachTryMillis(tachHrtimeLocal);
-  return value === null ? -1 : value;
+  return tachExactHrtimeLocal();
 }
 
 export function tachWallPerformanceMedianNanos() {
@@ -320,6 +454,46 @@ export function tachWallAllowanceNanos() {
 
 export function tachWallHrtimeDecisiveWins() {
   return tachLocalSelection.decisiveWins;
+}
+
+export function tachWallPerformanceSampleNanos(index) {
+  return Number(tachLocalSelection.performanceSamples[index] ?? 0n);
+}
+
+export function tachWallHrtimeSampleNanos(index) {
+  return Number(tachLocalSelection.hrtimeSamples[index] ?? 0n);
+}
+
+export function tachOrderedExactPerformanceNowMillis() {
+  return tachExactPerformanceOrdered();
+}
+
+export function tachOrderedExactHrtimeNowMillis() {
+  return tachExactHrtimeOrdered();
+}
+
+export function tachOrderedWallPerformanceMedianNanos() {
+  return Number(tachOrderedSelection.performanceMedian);
+}
+
+export function tachOrderedWallHrtimeMedianNanos() {
+  return Number(tachOrderedSelection.hrtimeMedian);
+}
+
+export function tachOrderedWallAllowanceNanos() {
+  return Number(tachOrderedSelection.allowance);
+}
+
+export function tachOrderedWallHrtimeDecisiveWins() {
+  return tachOrderedSelection.decisiveWins;
+}
+
+export function tachOrderedWallPerformanceSampleNanos(index) {
+  return Number(tachOrderedSelection.performanceSamples[index] ?? 0n);
+}
+
+export function tachOrderedWallHrtimeSampleNanos(index) {
+  return Number(tachOrderedSelection.hrtimeSamples[index] ?? 0n);
 }
 
 export function tachNodeThreadCpuUsage() {
@@ -364,6 +538,36 @@ unsafe extern "C" {
   #[cfg(feature = "bench-internal")]
   #[wasm_bindgen(js_name = tachWallHrtimeDecisiveWins)]
   fn wall_hrtime_decisive_wins() -> u32;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachWallPerformanceSampleNanos)]
+  fn wall_performance_sample_nanos(index: u32) -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachWallHrtimeSampleNanos)]
+  fn wall_hrtime_sample_nanos(index: u32) -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedExactPerformanceNowMillis)]
+  fn ordered_exact_performance_now_millis() -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedExactHrtimeNowMillis)]
+  fn ordered_exact_hrtime_now_millis() -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedWallPerformanceMedianNanos)]
+  fn ordered_wall_performance_median_nanos() -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedWallHrtimeMedianNanos)]
+  fn ordered_wall_hrtime_median_nanos() -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedWallAllowanceNanos)]
+  fn ordered_wall_allowance_nanos() -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedWallHrtimeDecisiveWins)]
+  fn ordered_wall_hrtime_decisive_wins() -> u32;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedWallPerformanceSampleNanos)]
+  fn ordered_wall_performance_sample_nanos(index: u32) -> f64;
+  #[cfg(feature = "bench-internal")]
+  #[wasm_bindgen(js_name = tachOrderedWallHrtimeSampleNanos)]
+  fn ordered_wall_hrtime_sample_nanos(index: u32) -> f64;
   #[wasm_bindgen(js_name = tachNodeThreadCpuUsage)]
   fn node_thread_cpu_usage() -> f64;
 }
@@ -401,16 +605,49 @@ pub(crate) fn wall_read_cost() -> ThreadCpuReadCost {
 }
 
 #[cfg(feature = "bench-internal")]
-pub(crate) fn bench_selection_evidence()
--> (ThreadCpuProvider, ThreadCpuProvider, u64, u64, u64, u32) {
-  (
-    wall_provider(),
-    provider_from_id(ordered_wall_provider_id()),
-    wall_performance_median_nanos() as u64,
-    wall_hrtime_median_nanos() as u64,
-    wall_allowance_nanos() as u64,
-    wall_hrtime_decisive_wins(),
-  )
+pub(crate) struct BenchWallSelectionEvidence {
+  pub local_provider: ThreadCpuProvider,
+  pub ordered_provider: ThreadCpuProvider,
+  pub performance_median_ns: u64,
+  pub hrtime_median_ns: u64,
+  pub performance_batches_ns: [u64; 9],
+  pub hrtime_batches_ns: [u64; 9],
+  pub allowance_ns: u64,
+  pub hrtime_decisive_wins: u32,
+  pub ordered_performance_median_ns: u64,
+  pub ordered_hrtime_median_ns: u64,
+  pub ordered_performance_batches_ns: [u64; 9],
+  pub ordered_hrtime_batches_ns: [u64; 9],
+  pub ordered_allowance_ns: u64,
+  pub ordered_hrtime_decisive_wins: u32,
+}
+
+#[cfg(feature = "bench-internal")]
+pub(crate) fn bench_selection_evidence() -> BenchWallSelectionEvidence {
+  BenchWallSelectionEvidence {
+    local_provider: wall_provider(),
+    ordered_provider: provider_from_id(ordered_wall_provider_id()),
+    performance_median_ns: wall_performance_median_nanos() as u64,
+    hrtime_median_ns: wall_hrtime_median_nanos() as u64,
+    performance_batches_ns: core::array::from_fn(|index| {
+      wall_performance_sample_nanos(index as u32) as u64
+    }),
+    hrtime_batches_ns: core::array::from_fn(|index| {
+      wall_hrtime_sample_nanos(index as u32) as u64
+    }),
+    allowance_ns: wall_allowance_nanos() as u64,
+    hrtime_decisive_wins: wall_hrtime_decisive_wins(),
+    ordered_performance_median_ns: ordered_wall_performance_median_nanos() as u64,
+    ordered_hrtime_median_ns: ordered_wall_hrtime_median_nanos() as u64,
+    ordered_performance_batches_ns: core::array::from_fn(|index| {
+      ordered_wall_performance_sample_nanos(index as u32) as u64
+    }),
+    ordered_hrtime_batches_ns: core::array::from_fn(|index| {
+      ordered_wall_hrtime_sample_nanos(index as u32) as u64
+    }),
+    ordered_allowance_ns: ordered_wall_allowance_nanos() as u64,
+    ordered_hrtime_decisive_wins: ordered_wall_hrtime_decisive_wins(),
+  }
 }
 
 #[cfg(feature = "bench-internal")]
@@ -425,6 +662,22 @@ pub(crate) fn bench_exact_performance_ticks() -> u64 {
 #[allow(clippy::inline_always)]
 pub(crate) fn bench_exact_hrtime_ticks() -> u64 {
   millis_to_nanos(exact_hrtime_now_millis())
+}
+
+#[cfg(feature = "bench-internal")]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub(crate) fn bench_exact_ordered_performance_ticks() -> u64 {
+  let ticks = millis_to_nanos(ordered_exact_performance_now_millis());
+  ticks.max(BENCH_ORDERED_PERFORMANCE_MAX.fetch_max(ticks, Ordering::SeqCst))
+}
+
+#[cfg(feature = "bench-internal")]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub(crate) fn bench_exact_ordered_hrtime_ticks() -> u64 {
+  let ticks = millis_to_nanos(ordered_exact_hrtime_now_millis());
+  ticks.max(BENCH_ORDERED_HRTIME_MAX.fetch_max(ticks, Ordering::SeqCst))
 }
 
 #[inline]

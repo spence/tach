@@ -18,6 +18,9 @@ paths=(
   benches/compose-supplemental-speed.py
   benches/extract_speed.py
   benches/host_speed.py
+  benches/host-runtime-speed/Cargo.toml
+  benches/host-runtime-speed/Cargo.lock
+  benches/host-runtime-speed/src
   benches/instant.rs
   benches/lambda-speed/Cargo.lock
   benches/lambda-speed/Cargo.toml
@@ -30,6 +33,7 @@ paths=(
   benches/run-speed-aws.sh
   benches/run-speed-freebsd-aws.sh
   benches/run-speed-lambda.sh
+  benches/run-speed-host-runtime.sh
   benches/run-speed-local.sh
   benches/run-thread-pmu-aws.sh
   benches/seal-speed-source.py

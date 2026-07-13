@@ -1,0 +1,19 @@
+[package]
+name = "tach-host-runtime-speed"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+fastant = "0.1.11"
+minstant = "0.1.7"
+serde_json = "1"
+tach = { path = "../..", features = ["bench-internal"] }
+wasm-bindgen = { version = "=0.2.114", default-features = false }
+
+[target.'cfg(not(target_os = "emscripten"))'.dependencies]
+quanta = "0.12.6"

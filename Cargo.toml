@@ -29,8 +29,10 @@ include = [
 ]
 
 [dependencies]
-# All optional; pulled in only by the bench-internal feature, which is used by
-# the benches/ binaries and the out-of-repo Lambda handler.
+# All optional benchmark-only dependencies. `bench-internal` exposes tach's
+# provider evidence without forcing every reference crate to compile on every
+# advertised target. `bench-quanta` adds the one reference whose target matrix
+# is narrower than tach's.
 serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
 quanta = { version = "0.12.6", optional = true }
 minstant = { version = "0.1.7", optional = true }
@@ -68,7 +70,9 @@ emscripten-pthreads = []
 recalibrate-background = []
 # INTERNAL: exposes `pub mod bench` (hidden in docs) for use by benches/skew.rs
 # and the out-of-repo Lambda handler. Implies std. Not intended for end users.
-bench-internal = ["dep:serde", "dep:quanta", "dep:minstant", "dep:fastant", "dep:core_affinity"]
+bench-internal = ["dep:serde", "dep:minstant", "dep:fastant", "dep:core_affinity"]
+# INTERNAL: enable quanta-backed skew probes only on targets quanta supports.
+bench-quanta = ["bench-internal", "dep:quanta"]
 
 [dev-dependencies]
 criterion = "0.8"
@@ -93,7 +97,7 @@ harness = false
 [[bench]]
 name = "skew"
 harness = false
-required-features = ["bench-internal"]
+required-features = ["bench-quanta"]
 
 [[example]]
 name = "basic"

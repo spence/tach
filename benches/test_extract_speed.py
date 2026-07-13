@@ -294,6 +294,8 @@ def write_lambda_host_observation(root: Path) -> dict:
                 "elapsed_samples": [float(run + 1)] * 31,
             }
             if key.startswith("direct_") or key in {
+                "tach",
+                "tach_ordered",
                 "tach_thread_cpu",
                 "native_thread_cpu",
             }:
@@ -303,7 +305,7 @@ def write_lambda_host_observation(root: Path) -> dict:
                     "time_domain": (
                         "thread CPU"
                         if "thread_cpu" in key or key in {"tach_thread_cpu", "native_thread_cpu"}
-                        else "instant wall"
+                        else ("ordered wall" if key == "tach_ordered" else "instant wall")
                     ),
                 })
             if key.startswith("direct_"):
@@ -318,7 +320,69 @@ def write_lambda_host_observation(root: Path) -> dict:
     return attestation
 
 
+def write_node_wasm_host_observation(root: Path) -> dict:
+    attestation = write_lambda_host_observation(root)
+    attestation.update({
+        "harness": "node-wasm-bindgen",
+        "target": {"arch": "wasm32", "os": "unknown", "env": ""},
+        "runner": "node-wasm-bindgen",
+    })
+    (root / "runtime-attestation.json").write_text(json.dumps(attestation))
+    for run in range(1, 6):
+        (root / f"invoke-{run}.json").unlink()
+        payload_path = root / f"run-{run}.json"
+        payload = json.loads(payload_path.read_text())
+        payload["runtime_attestation"] = attestation
+        payload["thread_cpu_behavior"]["runtime_attestation"] = attestation
+        payload["wall_selection"] = {
+            "architecture": "wasm32-host",
+            "selected_provider": {"instant": "test", "ordered": "test"},
+            "selected_native_benchmark": {
+                "instant": "direct_selected_wall__test",
+                "ordered": "direct_selected_ordered_wall__test",
+            },
+            "eligible_direct_candidates": {
+                "instant": ["direct_wall__test"],
+                "ordered": ["direct_ordered_wall__test"],
+            },
+            "probe": {"observation": run},
+        }
+        for key, provider, domain in (
+            ("tach", "performance.now", "instant wall"),
+            ("tach_ordered", "performance.now", "ordered wall"),
+        ):
+            payload[key].update({
+                "provider": provider,
+                "read_cost": "host call",
+                "time_domain": domain,
+            })
+        payload.pop("std")
+        payload_path.write_text(json.dumps(payload))
+    return attestation
+
+
 class HostCollectorBundleTests(unittest.TestCase):
+    def test_node_wasm_observations_may_omit_the_ineligible_std_row(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "host-input"
+            attestation = write_node_wasm_host_observation(host)
+            bundle = root / "bundle"
+
+            collect_host_speed_bundle.collect_host_bundle(host, bundle)
+            observation = extract_speed.extract_collector_bundle_observation(bundle)
+
+            self.assertEqual(
+                observation["collector_attestation"]["runtime_attestation"],
+                attestation,
+            )
+            self.assertNotIn("std", observation["clocks"])
+            self.assertEqual(len(observation["clocks"]["tach"]["now_samples"]), 155)
+            self.assertEqual(
+                len(observation["clocks"]["tach"]["selection"]["probe_observations"]),
+                5,
+            )
+
     def test_lambda_raw_invocations_reaggregate_from_retained_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

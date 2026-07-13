@@ -114,8 +114,8 @@ entrypoints = ["benches/lambda-speed/Cargo.toml", "benches/lambda-speed/src/main
 [[producer]]
 id = "wasm_node"
 kind = "host_runtime"
-state = "planned"
-entrypoints = ["src/arch/wasm.rs", "benches/instant.rs"]
+state = "ready"
+entrypoints = ["src/arch/wasm.rs", "benches/host-runtime-speed/Cargo.toml", "benches/host-runtime-speed/src/lib.rs", "benches/run-speed-host-runtime.sh"]
 
 [[producer]]
 id = "wasm_browser"

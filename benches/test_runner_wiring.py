@@ -18,6 +18,7 @@ SNAPSHOT_RUNNERS = (
     "run-speed-aws.sh",
     "run-speed-freebsd-aws.sh",
     "run-speed-lambda.sh",
+    "run-speed-host-runtime.sh",
 )
 
 
@@ -60,6 +61,13 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertIn("speed-supplemental-lambda-aarch64.json", source)
         self.assertIn("--instant-profile runtime_tournament", source)
         self.assertIn("--collector-bundle", source)
+
+        source = self.source("run-speed-host-runtime.sh")
+        self.assertIn("speed-supplemental-wasm-node.json", source)
+        self.assertIn("wasm-bindgen", source)
+        self.assertIn("collect-host-speed-bundle.py", source)
+        self.assertIn("compose-supplemental-speed.py", source)
+        self.assertIn("--thread-cpu-profile availability_fallback", source)
 
         source = self.source("run-speed-freebsd-aws.sh")
         self.assertIn("compose-supplemental-speed.py", source)
@@ -191,6 +199,12 @@ printf "SEAL_RAN\\n"
                 'tar -xf - -C "$source_dir"',
                 'cd "$source_dir/benches/lambda-speed"',
                 'python3 "$source_dir/benches/compose-speed.py"',
+            ),
+            "run-speed-host-runtime.sh": (
+                'git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"',
+                'tar -xf - -C "$source_dir"',
+                'cargo +1.95 build --locked --release --manifest-path "$manifest"',
+                'python3 "$source_dir/benches/compose-supplemental-speed.py"',
             ),
         }
 

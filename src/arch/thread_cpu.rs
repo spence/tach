@@ -3621,6 +3621,31 @@ static WASI_PROVIDER: core::sync::atomic::AtomicU8 =
   core::sync::atomic::AtomicU8::new(WASI_UNKNOWN);
 
 #[cfg(all(target_os = "wasi", target_env = "p1"))]
+#[link(wasm_import_module = "wasi_snapshot_preview1")]
+unsafe extern "C" {
+  fn clock_time_get(id: u32, precision: u64, time: *mut u64) -> u16;
+}
+
+#[cfg(all(target_os = "wasi", target_env = "p1"))]
+#[inline]
+fn wasi_thread_cpu_nanos() -> Option<u64> {
+  const CLOCK_THREAD_CPUTIME_ID: u32 = 3;
+  const CLOCK_READ_PRECISION_NANOS: u64 = 1;
+  let mut nanos = 0;
+  // SAFETY: `nanos` is writable u64 storage and the Preview 1 ABI accepts the
+  // optional thread-clock id by returning an errno when the host lacks it.
+  let status =
+    unsafe { clock_time_get(CLOCK_THREAD_CPUTIME_ID, CLOCK_READ_PRECISION_NANOS, &mut nanos) };
+  (status == 0).then_some(nanos)
+}
+
+#[cfg(all(feature = "bench-internal", target_os = "wasi", target_env = "p1"))]
+#[inline]
+pub(crate) fn bench_wasi_thread_cpu_nanos() -> Option<u64> {
+  wasi_thread_cpu_nanos()
+}
+
+#[cfg(all(target_os = "wasi", target_env = "p1"))]
 #[inline]
 pub(crate) fn now_nanos() -> u64 {
   use core::sync::atomic::Ordering;
@@ -3629,20 +3654,7 @@ pub(crate) fn now_nanos() -> u64 {
   if state == WASI_WALL {
     return wall_now_value();
   }
-  #[link(wasm_import_module = "wasi_snapshot_preview1")]
-  unsafe extern "C" {
-    fn clock_time_get(id: u32, precision: u64, time: *mut u64) -> u16;
-  }
-
-  const CLOCK_THREAD_CPUTIME_ID: u32 = 3;
-  const CLOCK_READ_PRECISION_NANOS: u64 = 1;
-  let mut nanos = 0;
-  // SAFETY: nanos is writable u64 storage. One nanosecond is the smallest
-  // non-zero maximum-lag request representable by the Preview 1 ABI. Hosts
-  // that do not implement the optional thread clock return an error code.
-  let status =
-    unsafe { clock_time_get(CLOCK_THREAD_CPUTIME_ID, CLOCK_READ_PRECISION_NANOS, &mut nanos) };
-  if status == 0 {
+  if let Some(nanos) = wasi_thread_cpu_nanos() {
     return match state {
       WASI_THREAD_CPU => nanos,
       WASI_UNKNOWN => match WASI_PROVIDER.compare_exchange(

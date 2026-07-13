@@ -458,8 +458,16 @@ pub struct WasmWallSelectionEvidence {
   pub ordered_provider: &'static str,
   pub performance_median_ns: u64,
   pub hrtime_median_ns: u64,
+  pub performance_batches_ns: [u64; 9],
+  pub hrtime_batches_ns: [u64; 9],
   pub allowance_ns: u64,
   pub hrtime_decisive_wins: u32,
+  pub ordered_performance_median_ns: u64,
+  pub ordered_hrtime_median_ns: u64,
+  pub ordered_performance_batches_ns: [u64; 9],
+  pub ordered_hrtime_batches_ns: [u64; 9],
+  pub ordered_allowance_ns: u64,
+  pub ordered_hrtime_decisive_wins: u32,
   pub reads_per_batch: usize,
   pub required_decisive_wins: usize,
 }
@@ -467,15 +475,22 @@ pub struct WasmWallSelectionEvidence {
 #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
 #[doc(hidden)]
 pub fn wasm_wall_selection_evidence() -> WasmWallSelectionEvidence {
-  let (local, ordered, performance, hrtime, allowance, wins) =
-    crate::arch::wasm::bench_selection_evidence();
+  let evidence = crate::arch::wasm::bench_selection_evidence();
   WasmWallSelectionEvidence {
-    local_provider: wasm_provider_label(local),
-    ordered_provider: wasm_provider_label(ordered),
-    performance_median_ns: performance,
-    hrtime_median_ns: hrtime,
-    allowance_ns: allowance,
-    hrtime_decisive_wins: wins,
+    local_provider: wasm_provider_label(evidence.local_provider),
+    ordered_provider: wasm_provider_label(evidence.ordered_provider),
+    performance_median_ns: evidence.performance_median_ns,
+    hrtime_median_ns: evidence.hrtime_median_ns,
+    performance_batches_ns: evidence.performance_batches_ns,
+    hrtime_batches_ns: evidence.hrtime_batches_ns,
+    allowance_ns: evidence.allowance_ns,
+    hrtime_decisive_wins: evidence.hrtime_decisive_wins,
+    ordered_performance_median_ns: evidence.ordered_performance_median_ns,
+    ordered_hrtime_median_ns: evidence.ordered_hrtime_median_ns,
+    ordered_performance_batches_ns: evidence.ordered_performance_batches_ns,
+    ordered_hrtime_batches_ns: evidence.ordered_hrtime_batches_ns,
+    ordered_allowance_ns: evidence.ordered_allowance_ns,
+    ordered_hrtime_decisive_wins: evidence.ordered_hrtime_decisive_wins,
     reads_per_batch: 4_096,
     required_decisive_wins: 8,
   }
@@ -495,6 +510,22 @@ pub fn wasm_exact_performance_ticks() -> u64 {
 #[allow(clippy::inline_always)]
 pub fn wasm_exact_hrtime_ticks() -> u64 {
   crate::arch::wasm::bench_exact_hrtime_ticks()
+}
+
+#[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn wasm_exact_ordered_performance_ticks() -> u64 {
+  crate::arch::wasm::bench_exact_ordered_performance_ticks()
+}
+
+#[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn wasm_exact_ordered_hrtime_ticks() -> u64 {
+  crate::arch::wasm::bench_exact_ordered_hrtime_ticks()
 }
 
 #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
@@ -553,10 +584,50 @@ pub fn emscripten_ordered_selection_evidence() -> EmscriptenOrderedSelectionEvid
 
 #[cfg(target_os = "emscripten")]
 #[doc(hidden)]
+#[derive(Clone, Debug, Serialize)]
+pub struct EmscriptenLocalSelectionEvidence {
+  pub selected_provider: &'static str,
+  pub performance_eligible: bool,
+  pub hrtime_eligible: bool,
+  pub performance_samples_ns: [u64; 9],
+  pub hrtime_samples_ns: [u64; 9],
+  pub allowance_ns: u64,
+  pub hrtime_decisive_wins: usize,
+  pub reads_per_batch: usize,
+  pub required_decisive_wins: usize,
+}
+
+#[cfg(target_os = "emscripten")]
+#[doc(hidden)]
+pub fn emscripten_local_selection_evidence() -> EmscriptenLocalSelectionEvidence {
+  let evidence = crate::arch::emscripten::bench_local_selection_evidence();
+  EmscriptenLocalSelectionEvidence {
+    selected_provider: evidence.selected_provider,
+    performance_eligible: evidence.performance_eligible,
+    hrtime_eligible: evidence.hrtime_eligible,
+    performance_samples_ns: evidence.performance_samples_ns,
+    hrtime_samples_ns: evidence.hrtime_samples_ns,
+    allowance_ns: evidence.allowance_ns,
+    hrtime_decisive_wins: evidence.hrtime_decisive_wins,
+    reads_per_batch: 4_096,
+    required_decisive_wins: 8,
+  }
+}
+
+#[cfg(target_os = "emscripten")]
+#[doc(hidden)]
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn emscripten_exact_performance_ticks() -> u64 {
   crate::arch::emscripten::bench_exact_performance_ticks()
+}
+
+#[cfg(target_os = "emscripten")]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn emscripten_exact_hrtime_ticks() -> u64 {
+  crate::arch::emscripten::bench_exact_hrtime_ticks()
 }
 
 #[cfg(all(
@@ -579,6 +650,38 @@ pub fn emscripten_exact_ordered_performance_epoch_ticks() -> u64 {
 #[allow(clippy::inline_always)]
 pub fn emscripten_exact_ordered_aligned_get_now_ticks() -> u64 {
   crate::arch::emscripten::bench_exact_ordered_aligned_get_now_ticks()
+}
+
+#[cfg(target_os = "wasi")]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn wasi_exact_wall_ticks() -> u64 {
+  crate::arch::fallback::wasi_clock_monotonic()
+}
+
+#[cfg(all(target_os = "wasi", target_env = "p1"))]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn wasi_exact_thread_cpu_nanos() -> Option<u64> {
+  crate::arch::thread_cpu::bench_wasi_thread_cpu_nanos()
+}
+
+#[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn wasm_exact_node_thread_cpu_nanos() -> Option<u64> {
+  crate::arch::wasm::node_thread_cpu_usage_micros().and_then(|value| value.checked_mul(1_000))
+}
+
+#[cfg(target_os = "emscripten")]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn emscripten_exact_node_thread_cpu_nanos() -> Option<u64> {
+  crate::arch::emscripten::node_thread_cpu_usage_micros().and_then(|value| value.checked_mul(1_000))
 }
 
 /// Metadata for an exact wall-clock provider selected outside a benchmark loop.
@@ -5632,8 +5735,11 @@ impl ClockSource for StdInstant {
   }
 }
 
+#[cfg(feature = "bench-quanta")]
 pub struct QuantaInstant;
+#[cfg(feature = "bench-quanta")]
 static QUANTA_ANCHOR: OnceLock<quanta::Instant> = OnceLock::new();
+#[cfg(feature = "bench-quanta")]
 impl ClockSource for QuantaInstant {
   const NAME: &'static str = "quanta";
   fn init_anchor() {

@@ -122,7 +122,7 @@ else
 fi
 
 OUT="benches/ordered-verify-${CELL}.json"
-$SSH "cd tach && source \$HOME/.cargo/env && cargo build --release --bench skew --features bench-internal 2>&1 | tail -2"
+$SSH "cd tach && source \$HOME/.cargo/env && cargo build --release --bench skew --features bench-quanta 2>&1 | tail -2"
 $SSH "cd tach && source \$HOME/.cargo/env && BIN=\$(find target/release/deps -name 'skew-*' -type f -perm -u+x | head -1) && \"\$BIN\" --mode ordered-verify --cell '$CELL' --pin '$PIN' --duration '$DURATION' --output '$OUT'"
 $SCP "ec2-user@$IP:tach/${OUT}" "${OUT}"
 echo "pulled ${OUT}"

@@ -21,6 +21,37 @@ APPLE_AARCH64_QUANTA_IMPLEMENTATION = (
   "wake-corrected wall-clock path, that counter can time-warp or diverge "
   "across suspend"
 )
+EMSCRIPTEN_QUANTA_INELIGIBILITY_REASON = (
+  "quanta_has_no_wasm32_unknown_emscripten_monotonic_implementation"
+)
+EMSCRIPTEN_QUANTA_IMPLEMENTATION = (
+  "quanta 0.12.6 only defines its wasm monotonic provider for target_os=wasi; "
+  "wasm32-unknown-emscripten fails to compile in quanta::clocks::monotonic"
+)
+WASM_UNKNOWN_STD_INELIGIBILITY_REASON = "rust_std_instant_panics_without_a_wasi_or_emscripten_host"
+WASM_UNKNOWN_STD_IMPLEMENTATION = (
+  "Rust 1.95 std::time::Instant::now aborts on wasm32-unknown-unknown; the target "
+  "has no standard-library host clock binding"
+)
+WASM_UNKNOWN_QUANTA_INELIGIBILITY_REASON = (
+  "quanta_wasm_performance_binding_panics_when_the_host_clock_is_unavailable"
+)
+WASM_UNKNOWN_QUANTA_IMPLEMENTATION = (
+  "quanta 0.12.6 resolves globalThis.performance with expect and calls "
+  "Performance.now without a failure guard; a missing or invalid host clock traps "
+  "instead of satisfying tach's never-crash contract"
+)
+WASM_UNKNOWN_SYSTEM_TIME_INELIGIBILITY_REASON = (
+  "wasm_fallback_uses_non_monotonic_low_resolution_date_now"
+)
+WASM_UNKNOWN_SYSTEM_TIME_IMPLEMENTATIONS = {
+  "fastant": (
+    "fastant 0.1.11 falls back to web_time::SystemTime::now, which reads Date.now"
+  ),
+  "minstant": (
+    "minstant 0.1.7 falls back to web_time::SystemTime::now, which reads Date.now"
+  ),
+}
 BENCHMARK_FEATURES = ("bench-internal", "thread-cpu-inline")
 BENCHMARK_FEATURES_BY_BUILD_MODE = {
   "default": BENCHMARK_FEATURES,
@@ -107,6 +138,9 @@ BENCHMARK_SOURCE_PATHS = (
   "benches/compose-supplemental-speed.py",
   "benches/extract_speed.py",
   "benches/host_speed.py",
+  "benches/host-runtime-speed/Cargo.toml",
+  "benches/host-runtime-speed/Cargo.lock",
+  "benches/host-runtime-speed/src",
   "benches/instant.rs",
   "benches/lambda-speed/Cargo.toml",
   "benches/lambda-speed/Cargo.lock",
@@ -119,6 +153,7 @@ BENCHMARK_SOURCE_PATHS = (
   "benches/run-speed-aws.sh",
   "benches/run-speed-freebsd-aws.sh",
   "benches/run-speed-lambda.sh",
+  "benches/run-speed-host-runtime.sh",
   "benches/run-speed-local.sh",
   "benches/run-thread-pmu-aws.sh",
   "benches/seal-speed-source.py",
@@ -361,6 +396,33 @@ def local_reference_eligibility(target_triple: str | None) -> dict[str, dict]:
     }
     return eligibility
 
+  if target_triple == "wasm32-unknown-emscripten":
+    eligibility["quanta"] = {
+      "eligible": False,
+      "reason": EMSCRIPTEN_QUANTA_INELIGIBILITY_REASON,
+      "implementation": EMSCRIPTEN_QUANTA_IMPLEMENTATION,
+    }
+    return eligibility
+
+  if target_triple in {"wasm32-unknown-unknown", "wasm32v1-none"}:
+    eligibility["quanta"] = {
+      "eligible": False,
+      "reason": WASM_UNKNOWN_QUANTA_INELIGIBILITY_REASON,
+      "implementation": WASM_UNKNOWN_QUANTA_IMPLEMENTATION,
+    }
+    for name, implementation in WASM_UNKNOWN_SYSTEM_TIME_IMPLEMENTATIONS.items():
+      eligibility[name] = {
+        "eligible": False,
+        "reason": WASM_UNKNOWN_SYSTEM_TIME_INELIGIBILITY_REASON,
+        "implementation": implementation,
+      }
+    eligibility["std"] = {
+      "eligible": False,
+      "reason": WASM_UNKNOWN_STD_INELIGIBILITY_REASON,
+      "implementation": WASM_UNKNOWN_STD_IMPLEMENTATION,
+    }
+    return eligibility
+
   if "-windows-" not in target_triple:
     return eligibility
 
@@ -404,6 +466,17 @@ def exact_wall_candidate_identity(domain: str, benchmark: str) -> dict | None:
     return None
   if "vdso_direct" in benchmark or "vdso_time64_direct" in benchmark:
     read_cost = "direct vDSO call"
+  elif any(
+    provider in benchmark
+    for provider in (
+      "performance.now",
+      "process.hrtime.bigint",
+      "wasi_clock_monotonic",
+      "emscripten_get_now",
+      "emscripten_performance_epoch",
+    )
+  ):
+    read_cost = "host call"
   elif "syscall" in benchmark:
     read_cost = "system call"
   elif "clock_monotonic" in benchmark:
@@ -1277,6 +1350,36 @@ def validate_thread_cpu_selector(
   failures: list[str],
   target_triple: str | None = None,
 ) -> dict:
+  if selection.get("selection_kind") == "availability_fallback":
+    provider_key = selection.get("selected_provider")
+    mechanism = selection.get("selected_mechanism")
+    read_cost = selection.get("selected_read_cost")
+    candidate = f"direct_thread_cpu__{mechanism}"
+    expected = thread_cpu_provider_key_metadata(provider_key, target_triple)
+    if (
+      expected is None
+      or expected[1] != read_cost
+      or not isinstance(mechanism, str)
+      or not mechanism
+      or selection.get("selected_native_benchmark")
+      != f"direct_selected_thread_cpu__{mechanism}"
+      or selection.get("eligible_direct_candidates") != [candidate]
+      or not isinstance(selection.get("failure_fallback"), dict)
+      or selection.get("fallback_provider") != "monotonic_wall_clock"
+      or not isinstance(selection.get("fallback_mechanism"), str)
+      or not selection["fallback_mechanism"]
+      or selection.get("fallback_read_cost") not in {"inline", "system call", "host call"}
+      or selection.get("fallback_native_benchmark") is not None
+    ):
+      failures.append(f"{context}: malformed availability-fallback thread-CPU selector")
+      return {}
+    return {
+      "winner": provider_key,
+      "selected_mechanism": mechanism,
+      "selected_read_cost": read_cost,
+      "eligible_direct_candidates": [candidate],
+      "failure_fallback": selection["failure_fallback"],
+    }
   if selection.get("selection_kind") == "fixed_windows_thread_times":
     return validate_windows_thread_cpu_selector(
       context, selection, failures, target_triple
@@ -2905,6 +3008,15 @@ def validate_residual_wall_selector(
     return {}
   selected, candidates, probe = metadata
   architecture = selection.get("architecture")
+  if architecture == "wasm32-host":
+    return validate_wasm_wall_selector(
+      context,
+      selected,
+      candidates,
+      probe,
+      failures,
+      selection.get("probe_observations"),
+    )
   if architecture in ("armv7-linux", "s390x-linux"):
     return validate_linux_clock_wall_selector(
       context, selected, candidates, probe, failures
@@ -2919,6 +3031,128 @@ def validate_residual_wall_selector(
     return validate_freebsd_wall_selector(context, selected, candidates, probe, failures)
   failures.append(f"{context}: unknown residual wall architecture {architecture!r}")
   return {}
+
+
+def validate_wasm_wall_selector(
+  context: str,
+  selected: dict,
+  candidates: dict,
+  probe: dict,
+  failures: list[str],
+  probe_observations: object = None,
+) -> dict:
+  if probe_observations is None:
+    observations = [probe]
+  elif (
+    not isinstance(probe_observations, list)
+    or len(probe_observations) != LAMBDA_INVOCATIONS
+    or probe_observations[0] != probe
+    or not all(isinstance(value, dict) for value in probe_observations)
+  ):
+    failures.append(f"{context}: malformed Wasm wall probe observations")
+    return {}
+  else:
+    observations = probe_observations
+
+  output = {"observations": []}
+  for observation_index, observed_probe in enumerate(observations, start=1):
+    reads = observed_probe.get("reads_per_batch")
+    required = observed_probe.get("required_decisive_wins")
+    if reads != 4_096 or required != 8:
+      failures.append(
+        f"{context}: Wasm wall decision rule changed in observation {observation_index}"
+      )
+      continue
+    observation_output = {}
+    for domain, direct_prefix in (
+      ("instant", "direct_wall"),
+      ("ordered", "direct_ordered_wall"),
+    ):
+      domain_probe = observed_probe.get(domain)
+      declared = candidates.get(domain)
+      if not isinstance(domain_probe, dict) or not isinstance(declared, list):
+        failures.append(f"{context}: malformed Wasm {domain} selector evidence")
+        continue
+      expected_candidates = {
+        f"{direct_prefix}__performance.now": "performance.now",
+        f"{direct_prefix}__process.hrtime.bigint": "process.hrtime.bigint",
+      }
+      if (
+        not declared
+        or len(declared) != len(set(declared))
+        or not set(declared).issubset(expected_candidates)
+      ):
+        failures.append(f"{context}: Wasm {domain} candidate set is invalid")
+        continue
+      expected_selected = expected_candidates.get(declared[0])
+      performance_key = f"{direct_prefix}__performance.now"
+      hrtime_key = f"{direct_prefix}__process.hrtime.bigint"
+      performance_batches = domain_probe.get("performance_batches_ns")
+      hrtime_batches = domain_probe.get("hrtime_batches_ns")
+      both_eligible = performance_key in declared and hrtime_key in declared
+      decision = None
+      if both_eligible:
+        try:
+          decision = reproduce_material_decision(
+            hrtime_batches,
+            performance_batches,
+            reads,
+            required,
+          )
+        except (TypeError, ValueError):
+          failures.append(f"{context}: malformed Wasm {domain} paired samples")
+          continue
+        expected_selected = (
+          "process.hrtime.bigint" if decision["selected"] else "performance.now"
+        )
+        reported = {
+          "performance_median_ns": decision["incumbent_median_ns"],
+          "hrtime_median_ns": decision["challenger_median_ns"],
+          "allowance_ns": decision["allowance_ns"],
+          "hrtime_decisive_wins": decision["decisive_wins"],
+        }
+        for field, expected in reported.items():
+          if domain_probe.get(field) != expected:
+            failures.append(
+              f"{context}: Wasm {domain} {field} does not reproduce"
+            )
+      elif any(
+        domain_probe.get(field) not in (0, [0] * 9)
+        for field in (
+          "performance_median_ns",
+          "hrtime_median_ns",
+          "performance_batches_ns",
+          "hrtime_batches_ns",
+          "allowance_ns",
+          "hrtime_decisive_wins",
+        )
+      ):
+        failures.append(
+          f"{context}: Wasm {domain} single-candidate route retained tournament data"
+        )
+      if selected.get(domain) != expected_selected:
+        failures.append(
+          f"{context}: Wasm {domain} selected provider does not reproduce"
+        )
+      observation_output[domain] = {
+        "winner": expected_selected,
+        "decision": decision,
+      }
+    output["observations"].append(observation_output)
+  if len(output["observations"]) == 1:
+    output.update(output["observations"][0])
+  else:
+    for domain in ("instant", "ordered"):
+      domain_observations = [
+        value[domain]
+        for value in output["observations"]
+        if domain in value
+      ]
+      output[domain] = {
+        "winner": selected.get(domain),
+        "observations": domain_observations,
+      }
+  return output
 
 
 def lambda_median_with_ci(samples: list[float], seed: str) -> tuple[float, list[float]]:
@@ -3053,34 +3287,52 @@ def validate_cell(
   target_triple: str | None = None,
 ) -> tuple[list[str], dict]:
   failures: list[str] = []
+  reference_eligibility = local_reference_eligibility(target_triple)
   required = {
-    "tach", "tach_ordered", "quanta", "fastant", "minstant", "std",
-    "tach_thread_cpu", "native_thread_cpu",
+    "tach", "tach_ordered", "tach_thread_cpu", "native_thread_cpu",
+    *(
+      name
+      for name, policy in reference_eligibility.items()
+      if policy["eligible"]
+    ),
   }
   missing = sorted(required - clocks.keys())
   if missing:
     return [f"{context}: missing clocks: {', '.join(missing)}"], {}
 
-  for clock in sorted(required):
+  present_references = set(LOCAL_COMPETITORS) & set(clocks)
+  for clock in sorted(required | present_references):
     validate_ci(context, clock, clocks[clock], failures)
   if failures:
     return failures, {}
 
-  reference_eligibility = local_reference_eligibility(target_triple)
   same_thread = {}
   for metric in METRICS:
     comparisons = {}
     for reference_name in LOCAL_COMPETITORS:
-      passed, allowance = equivalent_or_faster(
-        clocks["tach"], clocks[reference_name], metric
-      )
       policy = reference_eligibility[reference_name]
+      reference = clocks.get(reference_name)
+      if not isinstance(reference, dict):
+        comparisons[reference_name] = {
+          "reference_ns": None,
+          "equivalence_allowance_ns": None,
+          "eligible_for_reliable_contract": policy["eligible"],
+          "eligibility_reason": policy["reason"],
+          "implementation": policy["implementation"],
+          "measured": False,
+          "passed": False,
+        }
+        continue
+      passed, allowance = equivalent_or_faster(
+        clocks["tach"], reference, metric
+      )
       comparisons[reference_name] = {
-        "reference_ns": clocks[reference_name][metric],
+        "reference_ns": reference[metric],
         "equivalence_allowance_ns": allowance,
         "eligible_for_reliable_contract": policy["eligible"],
         "eligibility_reason": policy["reason"],
         "implementation": policy["implementation"],
+        "measured": True,
         "passed": passed,
       }
       if not passed and policy["eligible"]:
@@ -3099,13 +3351,31 @@ def validate_cell(
 
   cross_thread = {}
   for metric in METRICS:
+    std_reference = clocks.get("std")
+    if not isinstance(std_reference, dict):
+      policy = reference_eligibility["std"]
+      cross_thread[metric] = {
+        "tach_ns": clocks["tach_ordered"][metric],
+        "std_ns": None,
+        "equivalence_allowance_ns": None,
+        "eligible_for_reliable_contract": policy["eligible"],
+        "eligibility_reason": policy["reason"],
+        "measured": False,
+        "passed": not policy["eligible"],
+      }
+      if policy["eligible"]:
+        failures.append(f"{context}: OrderedInstant {metric} lacks its eligible std reference")
+      continue
     passed, allowance = equivalent_or_faster(
-      clocks["tach_ordered"], clocks["std"], metric
+      clocks["tach_ordered"], std_reference, metric
     )
     cross_thread[metric] = {
       "tach_ns": clocks["tach_ordered"][metric],
-      "std_ns": clocks["std"][metric],
+      "std_ns": std_reference[metric],
       "equivalence_allowance_ns": allowance,
+      "eligible_for_reliable_contract": True,
+      "eligibility_reason": None,
+      "measured": True,
       "passed": passed,
     }
     if not passed:
@@ -4413,6 +4683,16 @@ def validate_supplemental_route_coverage(
   target_triple = document.get("triple")
   if not isinstance(target_triple, str):
     target_triple = ""
+  wall_selector_reproduction = {}
+  tach_wall = clocks.get("tach")
+  wall_selection = tach_wall.get("selection") if isinstance(tach_wall, dict) else None
+  if (
+    isinstance(wall_selection, dict)
+    and wall_selection.get("architecture") == "wasm32-host"
+  ):
+    wall_selector_reproduction = validate_residual_wall_selector(
+      context, wall_selection, clocks, failures
+    )
   for use_case, (expected_public, expected_selected, _) in SUPPLEMENTAL_ROUTE_ROWS.items():
     route = coverage.get(use_case)
     profile = profiles.get(use_case)
@@ -4532,6 +4812,11 @@ def validate_supplemental_route_coverage(
       "selection_profile": profile,
       "selected_row": selected_name,
       "eligible_exact_routes": route_results,
+      "selector_reproduction": (
+        wall_selector_reproduction.get(use_case)
+        if use_case in ("instant", "ordered")
+        else None
+      ),
       "passed": (
         len(route_results) == len(candidates)
         and all(result["passed"] for result in route_results.values())
@@ -4725,9 +5010,14 @@ def validate_supplemental_speed_cell(name: str, document: object) -> dict:
 
   cell_report = {}
   if mode == "full_speed_cell":
+    reference_eligibility = local_reference_eligibility(expected_triple)
     required_clocks = {
-      "tach", "tach_ordered", "quanta", "fastant", "minstant", "std",
-      "tach_thread_cpu", "native_thread_cpu",
+      "tach", "tach_ordered", "tach_thread_cpu", "native_thread_cpu",
+      *(
+        name
+        for name, policy in reference_eligibility.items()
+        if policy["eligible"]
+      ),
     }
     if not required_clocks <= set(clocks):
       failures.append(f"{context}: full speed cell omits public/reference clocks")

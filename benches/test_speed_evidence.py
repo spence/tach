@@ -1378,7 +1378,6 @@ class SpeedEvidenceTests(unittest.TestCase):
       planned,
       {
         "criterion_linux_rare_no_default",
-        "wasm_node",
         "wasm_browser",
         "emscripten_node",
         "wasi_p1_node",
@@ -2615,6 +2614,118 @@ declare void @generic_implementation()
         self.assertTrue(
           speed_evidence.local_reference_eligibility(target)["quanta"]["eligible"]
         )
+
+  def test_emscripten_quanta_compile_gap_is_explicit_and_the_row_may_be_absent(self) -> None:
+    target = "wasm32-unknown-emscripten"
+    quanta = speed_evidence.local_reference_eligibility(target)["quanta"]
+    self.assertFalse(quanta["eligible"])
+    self.assertEqual(
+      quanta["reason"],
+      speed_evidence.EMSCRIPTEN_QUANTA_INELIGIBILITY_REASON,
+    )
+    self.assertIn("target_os=wasi", quanta["implementation"])
+
+    values = clocks()
+    values.pop("quanta")
+    failures, report = speed_evidence.validate_cell("Emscripten", values, target)
+    self.assertEqual(failures, [])
+    comparison = report["same_thread_elapsed"]["now"]["comparisons"]["quanta"]
+    self.assertFalse(comparison["eligible_for_reliable_contract"])
+    self.assertFalse(comparison["measured"])
+    self.assertIsNone(comparison["reference_ns"])
+
+  def test_wasm_unknown_ineligible_references_are_explicit(self) -> None:
+    target = "wasm32-unknown-unknown"
+    policies = speed_evidence.local_reference_eligibility(target)
+    self.assertFalse(policies["quanta"]["eligible"])
+    self.assertEqual(
+      policies["quanta"]["reason"],
+      speed_evidence.WASM_UNKNOWN_QUANTA_INELIGIBILITY_REASON,
+    )
+    self.assertIn("never-crash contract", policies["quanta"]["implementation"])
+    for reference in ("fastant", "minstant"):
+      self.assertFalse(policies[reference]["eligible"])
+      self.assertEqual(
+        policies[reference]["reason"],
+        speed_evidence.WASM_UNKNOWN_SYSTEM_TIME_INELIGIBILITY_REASON,
+      )
+      self.assertIn("Date.now", policies[reference]["implementation"])
+    self.assertFalse(policies["std"]["eligible"])
+    self.assertEqual(
+      policies["std"]["reason"],
+      speed_evidence.WASM_UNKNOWN_STD_INELIGIBILITY_REASON,
+    )
+    values = clocks()
+    values.pop("std")
+    failures, report = speed_evidence.validate_cell("Node Wasm", values, target)
+    self.assertEqual(failures, [])
+    comparisons = report["same_thread_elapsed"]["now"]["comparisons"]
+    self.assertTrue(all(
+      not comparison["eligible_for_reliable_contract"]
+      for comparison in comparisons.values()
+    ))
+    ordered = report["cross_thread_elapsed"]["now"]
+    self.assertFalse(ordered["measured"])
+    self.assertFalse(ordered["eligible_for_reliable_contract"])
+    self.assertTrue(ordered["passed"])
+
+  def test_wasm_wall_selector_reproduces_from_paired_samples(self) -> None:
+    performance = [100_000] * 9
+    hrtime = [80_000] * 9
+    decision = speed_evidence.reproduce_material_decision(
+      hrtime, performance, 4_096, 8
+    )
+    domain_probe = {
+      "performance_median_ns": decision["incumbent_median_ns"],
+      "hrtime_median_ns": decision["challenger_median_ns"],
+      "performance_batches_ns": performance,
+      "hrtime_batches_ns": hrtime,
+      "allowance_ns": decision["allowance_ns"],
+      "hrtime_decisive_wins": decision["decisive_wins"],
+    }
+    selected = {
+      "instant": "process.hrtime.bigint",
+      "ordered": "process.hrtime.bigint",
+    }
+    candidates = {
+      "instant": [
+        "direct_wall__performance.now",
+        "direct_wall__process.hrtime.bigint",
+      ],
+      "ordered": [
+        "direct_ordered_wall__performance.now",
+        "direct_ordered_wall__process.hrtime.bigint",
+      ],
+    }
+    probe = {
+      "reads_per_batch": 4_096,
+      "required_decisive_wins": 8,
+      "instant": copy.deepcopy(domain_probe),
+      "ordered": copy.deepcopy(domain_probe),
+    }
+    failures = []
+    reproduction = speed_evidence.validate_wasm_wall_selector(
+      "Node Wasm", selected, candidates, probe, failures
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(reproduction["instant"]["winner"], "process.hrtime.bigint")
+
+    repeated = [copy.deepcopy(probe) for _ in range(5)]
+    failures = []
+    reproduction = speed_evidence.validate_wasm_wall_selector(
+      "Node Wasm", selected, candidates, probe, failures, repeated
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(len(reproduction["instant"]["observations"]), 5)
+
+    selected["instant"] = "performance.now"
+    speed_evidence.validate_wasm_wall_selector(
+      "Node Wasm", selected, candidates, probe, failures
+    )
+    self.assertTrue(any(
+      "Wasm instant selected provider does not reproduce" in failure
+      for failure in failures
+    ))
 
   def test_apple_aarch64_quanta_row_is_reported_but_does_not_gate_a_valid_cell(self) -> None:
     _, values = apple_aarch64_complete_cell()

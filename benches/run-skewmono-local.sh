@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the skew+monotonicity bench on the current host. Two builds:
-#   - bench-internal only (7 clocks; no tach_recal)
-#   - bench-internal + recalibrate-background (only tach_recal — its measurements
+#   - bench-quanta (all seven clocks; no tach_recal)
+#   - bench-quanta + recalibrate-background (only tach_recal — its measurements
 #     are affected by the background thread; the "tach" row would be polluted
 #     by the thread if measured in this build)
 # Merges the two JSONs into benches/skewmono-<cell>.json.
@@ -65,8 +65,8 @@ base_json="/tmp/skewmono-${cell}-base.json"
 recal_json="/tmp/skewmono-${cell}-recal.json"
 merged_json="benches/skewmono-${cell}.json"
 
-build_and_run "bench-internal" "$base_json"
-build_and_run "bench-internal recalibrate-background" "$recal_json" --only-clock tach_recal
+build_and_run "bench-quanta" "$base_json"
+build_and_run "bench-quanta recalibrate-background" "$recal_json" --only-clock tach_recal
 
 python3 - "$base_json" "$recal_json" "$merged_json" <<'PY'
 import json, sys
