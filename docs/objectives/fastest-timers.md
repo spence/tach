@@ -182,6 +182,12 @@ decision; never silently omit a failing target.
 - Next: Implement the shared Wasm/WASI host-runtime producer and Lambda Arm64 route without weakening tagged-fallback or runtime-smoke evidence classes.
 - Board: M1 remains 🚧 and G1 ⚪; Lambda x86_64 now has a retained host producer at a646063, while final measurements wait for one frozen producer revision.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed the source-sealed Node/Wasm producer at c50d2b4 and ran its exact archived revision through five fresh Node processes; supplemental validation passed with zero failures for Instant, OrderedInstant, and native Node thread CPU.
+- Found: The guarded performance.now path is materially tied with its exact guarded provider (31.00 ns public versus 30.06 ns selected direct), all five 9-batch tournaments reproducibly selected performance.now, and Node thread CPU passed busy, sleep, and sibling-isolation semantics. Quanta's slightly cheaper bare binding is ineligible for tach's reliable contract because it traps when the host performance object is absent; fastant/minstant use non-monotonic low-resolution Date.now on this target.
+- Next: Extend the sealed host-runtime producer through Emscripten and WASI Preview 1/2, then rerun every admitted producer at one frozen source revision.
+- Board: Node/Wasm route sealed and green at c50d2b4; Emscripten and WASI hosted routes remain.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

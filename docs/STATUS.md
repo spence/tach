@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Implement the shared Wasm/WASI host-runtime producer and Lambda Arm64 route without weakening tagged-fallback or runtime-smoke evidence classes.
+> Next:       Extend the sealed host-runtime producer through Emscripten and WASI Preview 1/2, then rerun every admitted producer at one frozen source revision.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed the retained Lambda x86_64 host-observation producer at a646063: the runtime emits its frozen build identity, five raw AWS payloads and invocation records are digest-bound, and aggregation reproduces only from the retained bundle; 165 Python evidence tests and a real cargo-lambda Linux package build pass. · By: nsr · a646063
+> Last verified: 2026-07-13 · Changed: Committed the source-sealed Node/Wasm producer at c50d2b4 and ran its exact archived revision through five fresh Node processes; supplemental validation passed with zero failures for Instant, OrderedInstant, and native Node thread CPU. · By: nsr · c50d2b4
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
