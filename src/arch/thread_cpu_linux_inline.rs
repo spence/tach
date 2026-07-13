@@ -1910,16 +1910,17 @@ fn commit_measured_provider(
       fastest_path_excluding(measurements, state.mmap_available(), selected, failed_paths)
         .unwrap_or(PATH_POSIX);
 
-    if selected == PATH_POSIX {
-      return finish_posix_selection(state_ptr);
-    }
-
-    // A signal may have prepared a POSIX transition while the final measured
-    // path was still publicly forced. That marker belongs to the abandoned
-    // transition; transition biases and the published floor remain valid.
+    // A signal may prepare a POSIX transition while the final measured path
+    // is publicly forced. Clear that abandoned marker, then retain the exact
+    // tournament order needed by benchmark evidence. Production discards the
+    // state when POSIX wins.
     state.fallback_bias.store(FALLBACK_UNSET, Ordering::Release);
     state.selected_path.store(selected, Ordering::Release);
     state.fallback_path.store(fallback, Ordering::Release);
+
+    if selected == PATH_POSIX {
+      return finish_posix_selection(state_ptr);
+    }
 
     if let Some(value) = state.read_path(selected) {
       let value = value.max(state.last_event_nanos.load(Ordering::Acquire));

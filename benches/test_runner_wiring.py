@@ -117,6 +117,24 @@ printf "SEAL_RAN\\n"
         self.assertIn("exit 2", guard)
         self.assertLess(guard_start, source.index("aws_ ec2 describe-instances"))
 
+    def test_aws_transfers_the_collector_as_one_archive(self) -> None:
+        source = self.source("run-speed-aws.sh")
+
+        collector = source.rindex("collect-speed-bundle.py")
+        archive = source.index(
+            'tar -czf "$HOME/tach/collector.bundle.tgz"',
+            collector,
+        )
+        transfer = source.index(
+            '$SCP "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"'
+        )
+        extract = source.index('tar -xzf "$BUNDLE_ARCHIVE" -C "$RESULT_DIR"')
+
+        self.assertLess(collector, archive)
+        self.assertLess(archive, transfer)
+        self.assertLess(transfer, extract)
+        self.assertNotIn('$SCP -r "ec2-user@$IP:tach/collector.bundle"', source)
+
     def test_every_runner_uses_an_immutable_checked_revision_snapshot(self) -> None:
         expectations = {
             "run-speed-local.sh": (

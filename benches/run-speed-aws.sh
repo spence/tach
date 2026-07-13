@@ -60,6 +60,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE_REVISION="$(bash "$REPO_ROOT/benches/require-clean-benchmark-source.sh")"
 RESULT_DIR="$(mktemp -d -t "tach-speed-${CELL}.XXXXXX")"
 BUNDLE_DIR="$RESULT_DIR/collector.bundle"
+BUNDLE_ARCHIVE="$RESULT_DIR/collector.bundle.tgz"
 COMPOSED_OUT="$RESULT_DIR/$artifact_id"
 TARBALL="$(mktemp -t tach-speed-src.XXXXXX)"
 SOURCE_DIR="$(mktemp -d -t "tach-speed-${CELL}-source.XXXXXX")"
@@ -238,6 +239,7 @@ else
       --warm-up-time 1 --measurement-time 3
   python3 benches/collect-speed-bundle.py "$target_dir/criterion" "$HOME/tach/collector.bundle"
 fi
+tar -czf "$HOME/tach/collector.bundle.tgz" -C "$HOME/tach" collector.bundle
 REMOTE_EOF
 $SCP "$REMOTE" "ec2-user@$IP:/tmp/remote-speed.sh"
 
@@ -246,7 +248,9 @@ MODE=gnu
 echo "=== running sealed speed bench on instance (mode=$MODE) ==="
 $SSH "sh /tmp/remote-speed.sh '$MODE' '$SOURCE_REVISION' '$runner'"
 
-$SCP -r "ec2-user@$IP:tach/collector.bundle" "$BUNDLE_DIR"
+$SCP "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"
+tar -xzf "$BUNDLE_ARCHIVE" -C "$RESULT_DIR"
+rm -f "$BUNDLE_ARCHIVE"
 python3 "$SOURCE_DIR/benches/compose-speed.py" "$COMPOSED_OUT" \
   --collector-bundle "$BUNDLE_DIR"
 echo "wrote $COMPOSED_OUT with retained collector bundle $BUNDLE_DIR"
