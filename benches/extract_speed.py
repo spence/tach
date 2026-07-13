@@ -13,6 +13,8 @@ Every cell of the campaign (local, EC2, Docker-Alpine musl, Windows) funnels
 through this so the extraction arithmetic is identical everywhere.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json

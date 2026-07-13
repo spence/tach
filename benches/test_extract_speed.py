@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import ast
 import base64
 import hashlib
 import importlib.util
+import inspect
 import json
 import os
 import subprocess
@@ -37,6 +39,37 @@ collect_speed_bundle = load_script_module(
     "tach_test_collect_speed_bundle",
     COLLECTOR_SCRIPT,
 )
+
+
+class RemoteEvidencePythonCompatibilityTests(unittest.TestCase):
+    def test_aws_seal_and_collect_import_graph_supports_python_3_9(self) -> None:
+        modules = (
+            (EXTRACTOR_SCRIPT, extract_speed),
+            (SEALER_SCRIPT, seal_speed_source),
+            (COLLECTOR_SCRIPT, collect_speed_bundle),
+        )
+        for path, module in modules:
+            with self.subTest(module=path.name):
+                source = path.read_text(encoding="utf-8")
+                tree = ast.parse(source, filename=str(path), feature_version=(3, 9))
+                future_imports = {
+                    alias.name
+                    for node in tree.body
+                    if isinstance(node, ast.ImportFrom) and node.module == "__future__"
+                    for alias in node.names
+                }
+                self.assertIn("annotations", future_imports)
+
+                annotations = [
+                    annotation
+                    for value in vars(module).values()
+                    if inspect.isfunction(value) and value.__module__ == module.__name__
+                    for annotation in value.__annotations__.values()
+                ]
+                self.assertTrue(annotations)
+                self.assertTrue(
+                    all(isinstance(annotation, str) for annotation in annotations)
+                )
 
 
 def write_benchmark(
