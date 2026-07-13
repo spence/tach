@@ -344,13 +344,21 @@ static ORDERED_EVIDENCE_READY: AtomicBool = AtomicBool::new(false);
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
-  read_instant_provider(INSTANT_PROVIDER.load(Ordering::Relaxed))
+  let provider = INSTANT_PROVIDER.load(Ordering::Relaxed);
+  if provider == PROVIDER_TSC { read_tsc() } else { read_outlined_instant_provider(provider) }
 }
 
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
-  read_ordered_provider(ORDERED_PROVIDER.load(Ordering::Relaxed))
+  let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
+  match provider {
+    PROVIDER_TSC_LFENCE_RDTSC => read_tsc_lfence_ordered(),
+    PROVIDER_TSC_RDTSCP => read_tsc_rdtscp_ordered(),
+    PROVIDER_TSC_MFENCE_RDTSC => read_tsc_mfence_ordered(),
+    PROVIDER_TSC_SERIALIZE_RDTSC => read_tsc_serialize_ordered(),
+    _ => read_outlined_ordered_provider(provider),
+  }
 }
 
 /// Read an unordered endpoint in `OrderedInstant`'s selected numeric domain.
@@ -398,6 +406,11 @@ fn read_instant_provider(provider: u8) -> u64 {
   }
 }
 
+#[inline(never)]
+fn read_outlined_instant_provider(provider: u8) -> u64 {
+  read_instant_provider(provider)
+}
+
 #[cold]
 #[inline(never)]
 fn ticks_after_selection() -> u64 {
@@ -418,6 +431,11 @@ fn read_ordered_provider(provider: u8) -> u64 {
     }
     _ => ticks_ordered_after_selection(),
   }
+}
+
+#[inline(never)]
+fn read_outlined_ordered_provider(provider: u8) -> u64 {
+  read_ordered_provider(provider)
 }
 
 #[cold]

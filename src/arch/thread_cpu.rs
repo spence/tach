@@ -1044,50 +1044,62 @@ struct Native64Decision {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 fn native_64_now_nanos() -> u64 {
-  loop {
-    match NATIVE64_CHOICE.load(Ordering::Relaxed) {
-      NATIVE64_LIBC => {
-        if let Some(value) = native_64_libc_nanos() {
-          return value;
-        }
-        if let Some(value) = native_64_raw_nanos() {
-          NATIVE64_CHOICE.store(NATIVE64_RAW, Ordering::Relaxed);
-          return value;
-        }
-        NATIVE64_CHOICE.store(NATIVE64_WALL, Ordering::Relaxed);
-        return wall_now_value();
-      }
-      NATIVE64_RAW => {
-        if let Some(value) = native_64_raw_nanos() {
-          return value;
-        }
-        if let Some(value) = native_64_libc_nanos() {
-          NATIVE64_CHOICE.store(NATIVE64_LIBC, Ordering::Relaxed);
-          return value;
-        }
-        NATIVE64_CHOICE.store(NATIVE64_WALL, Ordering::Relaxed);
-        return wall_now_value();
-      }
-      NATIVE64_WALL => return wall_now_value(),
-      NATIVE64_UNKNOWN | NATIVE64_SELECTING => {
-        let selected = super::select_same_domain_thread_owned_process_provider(
-          &NATIVE64_CHOICE,
-          NATIVE64_UNKNOWN,
-          NATIVE64_SELECTING,
-          &NATIVE64_OWNER_PID,
-          &NATIVE64_OWNER_TID,
-          NATIVE64_LIBC,
-          select_native_64,
-        );
-        if NATIVE64_CHOICE.load(Ordering::Acquire) != selected {
-          return native_64_libc_nanos()
-            .or_else(native_64_raw_nanos)
-            .unwrap_or_else(wall_now_value);
-        }
-      }
-      _ => NATIVE64_CHOICE.store(NATIVE64_WALL, Ordering::Relaxed),
+  let provider = NATIVE64_CHOICE.load(Ordering::Relaxed);
+  match provider {
+    NATIVE64_LIBC => {
+      native_64_libc_nanos().unwrap_or_else(|| read_outlined_native_64_provider(provider))
     }
+    NATIVE64_RAW => {
+      native_64_raw_nanos().unwrap_or_else(|| read_outlined_native_64_provider(provider))
+    }
+    _ => read_outlined_native_64_provider(provider),
   }
+}
+
+#[cfg(any(
+  all(
+    target_arch = "x86_64",
+    any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+  ),
+  all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+))]
+#[inline(never)]
+fn read_outlined_native_64_provider(provider: u8) -> u64 {
+  match provider {
+    NATIVE64_LIBC => {
+      if let Some(value) = native_64_raw_nanos() {
+        NATIVE64_CHOICE.store(NATIVE64_RAW, Ordering::Relaxed);
+        return value;
+      }
+    }
+    NATIVE64_RAW => {
+      if let Some(value) = native_64_libc_nanos() {
+        NATIVE64_CHOICE.store(NATIVE64_LIBC, Ordering::Relaxed);
+        return value;
+      }
+    }
+    NATIVE64_WALL => return wall_now_value(),
+    NATIVE64_UNKNOWN | NATIVE64_SELECTING => {
+      let selected = super::select_same_domain_thread_owned_process_provider(
+        &NATIVE64_CHOICE,
+        NATIVE64_UNKNOWN,
+        NATIVE64_SELECTING,
+        &NATIVE64_OWNER_PID,
+        &NATIVE64_OWNER_TID,
+        NATIVE64_LIBC,
+        select_native_64,
+      );
+      if NATIVE64_CHOICE.load(Ordering::Acquire) == selected {
+        return native_64_now_nanos();
+      }
+      return native_64_libc_nanos()
+        .or_else(native_64_raw_nanos)
+        .unwrap_or_else(wall_now_value);
+    }
+    _ => {}
+  }
+  NATIVE64_CHOICE.store(NATIVE64_WALL, Ordering::Relaxed);
+  wall_now_value()
 }
 
 #[cfg(any(

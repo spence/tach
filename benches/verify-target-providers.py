@@ -387,6 +387,35 @@ def check_target(
     if len(candidates) != 1:
       raise RuntimeError(f"{target} {mode}: expected one LLVM IR file, found {len(candidates)}")
     artifacts[mode] = candidates[0]
+    implementation_target = output / "build" / target / f"codegen-implementation-{mode}"
+    run(
+      [
+        "cargo",
+        f"+{toolchain}",
+        "rustc",
+        "--locked",
+        "--lib",
+        "--release",
+        "--target",
+        target,
+        "--target-dir",
+        str(implementation_target),
+        *args,
+        "--",
+        "--emit=llvm-ir",
+      ],
+      log,
+      mode_env,
+    )
+    implementation_candidates = list(
+      (implementation_target / target / "release/deps").glob("tach-*.ll")
+    )
+    if len(implementation_candidates) != 1:
+      raise RuntimeError(
+        f"{target} {mode}: expected one implementation LLVM IR file, "
+        f"found {len(implementation_candidates)}"
+      )
+    artifacts[f"{mode}-implementation"] = implementation_candidates[0]
   if target in LINUX_VDSO_TARGETS:
     resolver_target = output / "build" / target / "codegen-vdso-resolver"
     resolver_env = env.copy()
@@ -439,6 +468,10 @@ def llvm_functions(ir: str) -> dict[str, str]:
     definitions[name] = "\n".join(body)
     index += 1
   return definitions
+
+
+def normalize_tach_ir_symbols(ir: str) -> str:
+  return re.sub(r"Cs[-A-Za-z0-9_]+_4tach", "CsTACH_4tach", ir)
 
 
 def llvm_aliases(ir: str) -> dict[str, str]:
@@ -616,7 +649,11 @@ def direct_vdso_hot_patterns(target: str) -> list[str]:
   if target in POWERPC64_TARGETS:
     patterns.append(r'asm sideeffect alignstack "mtctr 0\\0Abctrl"')
   else:
-    patterns.append("linux_vdso18call_clock_gettime")
+    patterns.append(
+      r"(?:linux_vdso18call_clock_gettime|"
+      r"(%[-A-Za-z0-9_.]+) = inttoptr i(?:32|64) %[-A-Za-z0-9_.]+ to ptr"
+      r"[\s\S]{0,240}call noundef i32 \1\(i32)"
+    )
   return patterns
 
 
@@ -1605,8 +1642,15 @@ def validate_route_patterns(
     )
 
 
-def validate_codegen(target: str, mode: str, path: Path) -> dict:
-  ir = path.read_text()
+def validate_codegen(
+  target: str,
+  mode: str,
+  path: Path,
+  implementation_path: Path,
+) -> dict:
+  ir = normalize_tach_ir_symbols(
+    "\n".join((path.read_text(), implementation_path.read_text()))
+  )
   validated = {}
   for route_name, route in route_specs(target, mode).items():
     root = route["root"]
@@ -1619,6 +1663,7 @@ def validate_codegen(target: str, mode: str, path: Path) -> dict:
         **spec,
         "root": root,
         "llvm_ir": str(path),
+        "implementation_llvm_ir": str(implementation_path),
       }
       continue
 
@@ -1632,6 +1677,7 @@ def validate_codegen(target: str, mode: str, path: Path) -> dict:
       **spec,
       "root": root,
       "llvm_ir": str(path),
+      "implementation_llvm_ir": str(implementation_path),
       "phases": phases,
     }
   return validated
@@ -1745,7 +1791,12 @@ def main() -> None:
   results = []
   for target in TARGETS:
     modes = {
-      mode: validate_codegen(target, mode, artifacts[target][mode])
+      mode: validate_codegen(
+        target,
+        mode,
+        artifacts[target][mode],
+        artifacts[target][f"{mode}-implementation"],
+      )
       for mode in target_modes(target)
     }
     vdso_resolver_routes = (

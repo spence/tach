@@ -1212,9 +1212,16 @@ const fn perf_read_entry_name(_entry: u8) -> &'static str {
 #[allow(clippy::inline_always)]
 pub(super) fn now_nanos() -> u64 {
   let state = hot();
+  if state.addr() == SYSCALL_TAG {
+    return super::posix_now_nanos();
+  }
+  read_outlined_provider(state)
+}
+
+#[inline(never)]
+fn read_outlined_provider(state: *const PerfState) -> u64 {
   match state.addr() {
     0 => initialize_current_thread(),
-    SYSCALL_TAG => super::posix_now_nanos(),
     // Perf epochs are normalized to this same POSIX current-thread CPU clock,
     // so a recursive read can return the baseline without poisoning setup.
     INITIALIZING_TAG => super::posix_now_nanos(),

@@ -1557,6 +1557,44 @@ define void @tach_probe_instant_now_elapsed() {
         },
       )
 
+  def test_target_proof_follows_outlined_implementation_routes(self) -> None:
+    module = target_provider_module()
+    probe = """
+define void @tach_probe() {
+  call void @_RNvCsPROBE_4tach22tach_outlined_provider()
+  ret void
+}
+declare void @_RNvCsPROBE_4tach22tach_outlined_provider()
+"""
+    implementation = """
+define void @_RNvCsIMPLEMENTATION_4tach22tach_outlined_provider() {
+  call void @clock_gettime()
+  ret void
+}
+declare void @clock_gettime()
+"""
+
+    self.assertNotIn("call void @clock_gettime()", module.reachable_ir(probe, "tach_probe"))
+    self.assertIn(
+      "call void @clock_gettime()",
+      module.reachable_ir(
+        module.normalize_tach_ir_symbols("\n".join((probe, implementation))),
+        "tach_probe",
+      ),
+    )
+    inlined_vdso_call = """
+%function = inttoptr i64 %address to ptr
+%status = call noundef i32 %function(i32 noundef %clock_id, ptr noundef %value)
+"""
+    self.assertRegex(
+      inlined_vdso_call,
+      module.direct_vdso_hot_patterns("x86_64-unknown-linux-gnu")[-1],
+    )
+    self.assertRegex(
+      inlined_vdso_call.replace("i64", "i32"),
+      module.direct_vdso_hot_patterns("i686-unknown-linux-gnu")[-1],
+    )
+
   def test_emscripten_target_proof_uses_guarded_host_imports(self) -> None:
     path = Path(__file__).with_name("verify-target-providers.py")
     spec = importlib.util.spec_from_file_location("verify_target_providers", path)

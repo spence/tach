@@ -337,6 +337,12 @@ pub fn nanos_per_tick_q32() -> u64 {
   if cached != 0 {
     return cached;
   }
+  initialize_nanos_per_tick_q32()
+}
+
+#[cold]
+#[inline(never)]
+fn initialize_nanos_per_tick_q32() -> u64 {
   let initial = read_local_nanos_per_tick_q32();
   let scale =
     match NANOS_PER_TICK_Q32.compare_exchange(0, initial, Ordering::Relaxed, Ordering::Relaxed) {
@@ -360,6 +366,12 @@ pub fn ordered_nanos_per_tick_q32() -> u64 {
   if cached != 0 {
     return cached;
   }
+  initialize_ordered_nanos_per_tick_q32()
+}
+
+#[cold]
+#[inline(never)]
+fn initialize_ordered_nanos_per_tick_q32() -> u64 {
   let initial = read_ordered_nanos_per_tick_q32();
   let scale = match ORDERED_NANOS_PER_TICK_Q32.compare_exchange(
     0,
