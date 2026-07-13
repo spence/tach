@@ -206,6 +206,11 @@ decision; never silently omit a failing target.
 - Next: Complete the browser negative producer and the wasm32-wasip1-threads/wasm32v1-none smoke producers, then freeze one source revision and rerun every admitted producer.
 - Board: All Node/Emscripten/WASI hosted routes are proven; browser negative and two runtime-smoke routes remain before matrix freeze.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Added source-frozen runtime-smoke producers for wasm32-wasip1-threads and wasm32v1-none; sealed both at 478178438d1051e3cf8652c8c566587cfd5be0e6 and independently validated both supplemental cells with zero failures.
+- Found: Wasmtime 46 executes the real WASI threads target with shared-memory enabled and selects the explicit MonotonicWallClock fallback; the wasm32v1-none module executed under Node and selected NodeThreadCpuUsage. Runtime-smoke feature attestations must describe public tach features only because bench-internal requires std and is ineligible on wasm32v1-none.
+- Next: Complete and seal the real browser fallback producer, then freeze the full admitted source revision and rerun every producer.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
