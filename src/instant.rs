@@ -345,8 +345,12 @@ pub(crate) fn ordered_ticks_to_duration(ticks: u64) -> Duration {
 
 #[inline]
 pub(crate) fn ticks_to_duration_with_scale(ticks: u64, scale: u64) -> Duration {
-  let product = u128::from(ticks) * u128::from(scale);
-  let nanos = u64::try_from(product >> 32).unwrap_or(u64::MAX);
+  let nanos = if scale == 1_u64 << 32 {
+    ticks
+  } else {
+    let product = u128::from(ticks) * u128::from(scale);
+    u64::try_from(product >> 32).unwrap_or(u64::MAX)
+  };
   // Common case for elapsed (< 1 second): build Duration directly from
   // secs=0 + subsec_nanos. The compiler can prove `nanos_u32 < 1e9` from
   // the branch and elide the internal divide in Duration::new. Avoids
