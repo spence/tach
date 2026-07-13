@@ -15,11 +15,37 @@ case "$output_name" in
     invocation_prefix="wasm-node"
     runner="node-wasm-bindgen"
     target="wasm32-unknown-unknown"
+    runtime_kind="wasm-node"
+    instant_profile="runtime_tournament"
+    ordered_profile="runtime_tournament"
+    thread_cpu_profile="availability_fallback"
     ;;
   speed-supplemental-emscripten-node.json)
     invocation_prefix="emscripten-node"
     runner="emcc-node"
     target="wasm32-unknown-emscripten"
+    runtime_kind="emscripten-node"
+    instant_profile="runtime_tournament"
+    ordered_profile="runtime_tournament"
+    thread_cpu_profile="availability_fallback"
+    ;;
+  speed-supplemental-wasi-p1-node.json)
+    invocation_prefix="wasi-p1-node"
+    runner="node-uvwasi"
+    target="wasm32-wasip1"
+    runtime_kind="wasip1-node"
+    instant_profile="fixed_native"
+    ordered_profile="fixed_native"
+    thread_cpu_profile="availability_fallback"
+    ;;
+  speed-supplemental-wasi-p1-wasmtime.json)
+    invocation_prefix="wasi-p1-wasmtime"
+    runner="wasmtime"
+    target="wasm32-wasip1"
+    runtime_kind="wasip1-wasmtime"
+    instant_profile="fixed_native"
+    ordered_profile="fixed_native"
+    thread_cpu_profile="fallback_only"
     ;;
   *)
     echo "unsupported host-runtime evidence artifact: $output_name" >&2
@@ -54,9 +80,17 @@ git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"
 
 manifest="$source_dir/benches/host-runtime-speed/Cargo.toml"
 cargo_args=(--target "$target")
-if [ "$target" = wasm32-unknown-emscripten ]; then
-  cargo_args+=(--bin tach-host-runtime-emscripten --features emscripten-host)
-fi
+case "$runtime_kind" in
+  emscripten-node)
+    cargo_args+=(--bin tach-host-runtime-emscripten --features emscripten-host)
+    ;;
+  wasip1-node)
+    cargo_args+=(--bin tach-host-runtime-wasip1 --features wasip1-node-host)
+    ;;
+  wasip1-wasmtime)
+    cargo_args+=(--bin tach-host-runtime-wasip1 --features wasip1-host)
+    ;;
+esac
 env \
   CARGO_TARGET_DIR="$target_dir" \
   TACH_BENCH_SOURCE_REVISION="$source_revision" \
@@ -65,25 +99,82 @@ env \
   cargo +1.95 build --locked --release --manifest-path "$manifest" \
     "${cargo_args[@]}"
 
-if [ "$target" = wasm32-unknown-unknown ]; then
-  wasm-bindgen \
-    "$target_dir/$target/release/tach_host_runtime_speed.wasm" \
-    --target nodejs \
-    --out-dir "$generated_dir"
-  runtime="$generated_dir/tach_host_runtime_speed.js"
-else
-  runtime="$target_dir/$target/release/tach-host-runtime-emscripten.js"
-fi
+case "$runtime_kind" in
+  wasm-node)
+    wasm-bindgen \
+      "$target_dir/$target/release/tach_host_runtime_speed.wasm" \
+      --target nodejs \
+      --out-dir "$generated_dir"
+    runtime="$generated_dir/tach_host_runtime_speed.js"
+    ;;
+  emscripten-node)
+    runtime="$target_dir/$target/release/tach-host-runtime-emscripten.js"
+    ;;
+  wasip1-node|wasip1-wasmtime)
+    runtime="$target_dir/$target/release/tach-host-runtime-wasip1.wasm"
+    ;;
+esac
 
 for run in 1 2 3 4 5; do
-  if [ "$target" = wasm32-unknown-unknown ]; then
+  if [ "$runtime_kind" = wasm-node ]; then
     node - "$runtime" > "$host_dir/run-$run.json" <<'NODE'
 const modulePath = process.argv[2];
 const benchmark = require(modulePath);
 process.stdout.write(benchmark.run() + "\n");
 NODE
-  else
+  elif [ "$runtime_kind" = emscripten-node ]; then
     node "$runtime" > "$host_dir/run-$run.json"
+  elif [ "$runtime_kind" = wasip1-node ]; then
+    node - "$runtime" > "$host_dir/run-$run.json" <<'NODE'
+const { WASI } = require("node:wasi");
+const fs = require("node:fs");
+const { Worker } = require("node:worker_threads");
+const modulePath = process.argv[2];
+const wasi = new WASI({ version: "preview1" });
+const tachHost = {
+  benchmark_now_nanos() {
+    return Number(process.hrtime.bigint());
+  },
+  sleep_millis(millis) {
+    const signal = new Int32Array(new SharedArrayBuffer(4));
+    Atomics.wait(signal, 0, 0, millis);
+  },
+  sibling_work_millis(millis) {
+    const signal = new Int32Array(new SharedArrayBuffer(4));
+    const worker = new Worker(`
+      const { workerData } = require("node:worker_threads");
+      const signal = new Int32Array(workerData.signal);
+      Atomics.store(signal, 0, 1);
+      Atomics.notify(signal, 0);
+      const start = process.hrtime.bigint();
+      const duration = BigInt(workerData.millis) * 1000000n;
+      let state = 0n;
+      while (process.hrtime.bigint() - start < duration) {
+        state = state * 6364136223846793005n + 1442695040888963407n;
+        state &= 0xffffffffffffffffn;
+      }
+      Atomics.store(signal, 0, 2);
+      Atomics.notify(signal, 0);
+    `, { eval: true, workerData: { signal: signal.buffer, millis } });
+    while (Atomics.load(signal, 0) === 0) Atomics.wait(signal, 0, 0);
+    while (Atomics.load(signal, 0) !== 2) Atomics.wait(signal, 0, 1);
+    worker.unref();
+  },
+};
+(async () => {
+  const module = await WebAssembly.compile(fs.readFileSync(modulePath));
+  const instance = await WebAssembly.instantiate(module, {
+    ...wasi.getImportObject(),
+    tach_host: tachHost,
+  });
+  wasi.start(instance);
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
+NODE
+  else
+    wasmtime run "$runtime" > "$host_dir/run-$run.json"
   fi
 done
 
@@ -116,8 +207,8 @@ python3 "$source_dir/benches/compose-supplemental-speed.py" \
   --output "$output" \
   --source-revision "$source_revision" \
   --collector-bundle "$bundle_dir" \
-  --instant-profile runtime_tournament \
-  --ordered-profile runtime_tournament \
-  --thread-cpu-profile availability_fallback
+  --instant-profile "$instant_profile" \
+  --ordered-profile "$ordered_profile" \
+  --thread-cpu-profile "$thread_cpu_profile"
 
 echo "wrote $output with retained collector bundle $bundle_dir"

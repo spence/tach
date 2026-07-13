@@ -132,14 +132,14 @@ entrypoints = ["src/arch/emscripten.rs", "benches/host-runtime-speed/Cargo.toml"
 [[producer]]
 id = "wasi_p1_node"
 kind = "host_runtime"
-state = "planned"
-entrypoints = ["src/arch/thread_cpu.rs", "benches/verify-target-providers.py"]
+state = "ready"
+entrypoints = ["src/arch/fallback.rs", "src/arch/thread_cpu.rs", "benches/host-runtime-speed/src/bin/wasip1.rs", "benches/run-speed-host-runtime.sh"]
 
 [[producer]]
 id = "wasi_p1_wasmtime"
 kind = "host_runtime"
-state = "planned"
-entrypoints = ["src/arch/thread_cpu.rs", "benches/verify-target-providers.py"]
+state = "ready"
+entrypoints = ["src/arch/fallback.rs", "src/arch/thread_cpu.rs", "benches/host-runtime-speed/src/bin/wasip1.rs", "benches/run-speed-host-runtime.sh"]
 
 [[producer]]
 id = "wasi_p2_wasmtime"
@@ -404,12 +404,12 @@ runtime_proof = "not_collected"
 [case.selection_profiles]
 instant = "fixed_native"
 ordered = "fixed_native"
-thread_cpu = "availability_fallback"
+thread_cpu = "fallback_only"
 
 [case.profile_contracts]
 instant = "wall_fixed_native"
 ordered = "wall_fixed_native"
-thread_cpu = "thread_cpu_availability_fallback"
+thread_cpu = "thread_cpu_fallback_only"
 
 [[case]]
 id = "wasi_p2_fallback_only"

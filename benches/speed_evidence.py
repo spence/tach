@@ -52,6 +52,17 @@ WASM_UNKNOWN_SYSTEM_TIME_IMPLEMENTATIONS = {
     "minstant 0.1.7 falls back to web_time::SystemTime::now, which reads Date.now"
   ),
 }
+WASI_SYSTEM_TIME_INELIGIBILITY_REASON = "wasi_fallback_uses_realtime_clock_not_monotonic"
+WASI_SYSTEM_TIME_IMPLEMENTATIONS = {
+  "fastant": (
+    "fastant 0.1.11 falls back to web_time::SystemTime::now; web-time re-exports "
+    "std::time on WASI, so this reads the realtime clock rather than CLOCK_MONOTONIC"
+  ),
+  "minstant": (
+    "minstant 0.1.7 falls back to web_time::SystemTime::now; web-time re-exports "
+    "std::time on WASI, so this reads the realtime clock rather than CLOCK_MONOTONIC"
+  ),
+}
 BENCHMARK_FEATURES = ("bench-internal", "thread-cpu-inline")
 BENCHMARK_FEATURES_BY_BUILD_MODE = {
   "default": BENCHMARK_FEATURES,
@@ -407,6 +418,15 @@ def local_reference_eligibility(target_triple: str | None) -> dict[str, dict]:
       eligibility[name] = {
         "eligible": False,
         "reason": WASM_UNKNOWN_SYSTEM_TIME_INELIGIBILITY_REASON,
+        "implementation": implementation,
+      }
+    return eligibility
+
+  if target_triple in {"wasm32-wasip1", "wasm32-wasip2", "wasm32-wasip1-threads"}:
+    for name, implementation in WASI_SYSTEM_TIME_IMPLEMENTATIONS.items():
+      eligibility[name] = {
+        "eligible": False,
+        "reason": WASI_SYSTEM_TIME_INELIGIBILITY_REASON,
         "implementation": implementation,
       }
     return eligibility
@@ -5283,8 +5303,8 @@ def validate_supplemental_speed_cell_from_bundle(
   if expected is None or not isinstance(document, dict):
     return report
   _, _, mode, _ = expected
-  if mode != "full_speed_cell":
-    binding_failures.append(f"{context}: this evidence mode has no retained collector bundle")
+  if mode == "runtime_smoke":
+    binding_failures.append(f"{context}: runtime smoke evidence has no collector bundle")
   else:
     try:
       import extract_speed
@@ -5344,11 +5364,9 @@ def validate_supplemental_speed_campaign(
 ) -> dict:
   """Validate supplemental evidence, requiring retained observations by default.
 
-  Full Criterion cells are release evidence only when their serialized claims
+  Measured cells are release evidence only when their serialized claims
   reproduce from a retained collector bundle. Runtime-smoke cells are the one
   intentionally data-free mode: their producer attestation is the evidence.
-  Tagged wall fallbacks need their own attested observation protocol before
-  they can become release evidence, so this verifier keeps them fail-closed.
   `require_bound_observations=False` is limited to structural unit tests.
   """
   failures = []
@@ -5380,21 +5398,14 @@ def validate_supplemental_speed_campaign(
     )
     if mode == "runtime_smoke":
       result = validate_supplemental_speed_cell(name, document)
-    elif mode == "full_speed_cell" and cell_path is not None and safe_bundle_path:
+    elif cell_path is not None and safe_bundle_path:
       result = validate_supplemental_speed_cell_from_bundle(
         name, document, cell_path.parent / bundle_path
       )
-    elif mode == "full_speed_cell" and require_bound_observations:
+    elif require_bound_observations:
       result = validate_supplemental_speed_cell(name, document)
       result["failures"].append(
         f"supplemental {name}: missing retained collector bundle path"
-      )
-      result["passed"] = False
-    elif mode == "tagged_wall_fallback" and require_bound_observations:
-      result = validate_supplemental_speed_cell(name, document)
-      result["failures"].append(
-        f"supplemental {name}: tagged wall fallback requires a producer-specific "
-        "attested observation bundle"
       )
       result["passed"] = False
     else:

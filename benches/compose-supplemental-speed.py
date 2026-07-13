@@ -97,8 +97,6 @@ def main() -> None:
     behavior = None
     profiles = {}
     smoke = _json_object(args.smoke_attestation, "runtime smoke attestation")
-  elif mode != "full_speed_cell":
-    parser.error("this supplemental mode needs a producer-specific attested bundle")
   else:
     if not args.collector_bundle:
       parser.error("measured runtime evidence needs --collector-bundle")
@@ -139,7 +137,7 @@ def main() -> None:
       profiles,
       extra,
       smoke,
-      bundle_path if mode == "full_speed_cell" else "collector.bundle",
+      bundle_path if mode != "runtime_smoke" else "collector.bundle",
     )
   except ValueError as error:
     parser.error(str(error))

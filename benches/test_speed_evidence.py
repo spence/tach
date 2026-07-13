@@ -1379,8 +1379,6 @@ class SpeedEvidenceTests(unittest.TestCase):
       {
         "criterion_linux_rare_no_default",
         "wasm_browser",
-        "wasi_p1_node",
-        "wasi_p1_wasmtime",
         "wasi_p2_wasmtime",
         "wasi_p1_threads_smoke",
         "wasm32v1_none_smoke",
@@ -1724,11 +1722,6 @@ declare void @generic_implementation()
     self.assertFalse(report["passed"])
     self.assertTrue(any(
       "missing retained collector bundle path" in failure
-      for failure in report["failures"]
-    ))
-    self.assertTrue(any(
-      "tagged wall fallback requires a producer-specific attested observation bundle"
-      in failure
       for failure in report["failures"]
     ))
     self.assertFalse(any(
@@ -2075,6 +2068,69 @@ declare void @generic_implementation()
             "runtime_tournament",
             "--thread-cpu-profile",
             "runtime_tournament",
+          ],
+        ),
+        mock.patch.object(
+          composer.extract_speed,
+          "extract_collector_bundle_observation",
+          return_value=observation,
+        ) as extract,
+      ):
+        composer.main()
+
+      document = json.loads(output.read_text())
+    extract.assert_called_once_with(bundle)
+    report = speed_evidence.validate_supplemental_speed_cell(artifact, document)
+    self.assertTrue(report["passed"], report["failures"])
+
+  def test_supplemental_composer_accepts_tagged_fallback_collector_bundle(self) -> None:
+    artifact = "speed-supplemental-wasi-p1-wasmtime.json"
+    fixture = supplemental_speed_documents()[artifact]
+    raw_behavior = {
+      key: copy.deepcopy(fixture["thread_cpu_behavior"][key])
+      for key in (
+        "schema",
+        "direct_benchmark",
+        "sample_count",
+        "runtime_attestation",
+        "busy",
+        "sleep",
+        "sibling_isolation",
+      )
+    }
+    composer = supplemental_composer_module()
+    with tempfile.TemporaryDirectory() as temporary_directory:
+      root = Path(temporary_directory)
+      output = root / artifact
+      bundle = root / "collector.bundle"
+      bundle.mkdir()
+      extracted_clocks = copy.deepcopy(fixture["clocks"])
+      collector = extracted_clocks.pop("collector_attestation")
+      observation = {
+        "clocks": extracted_clocks,
+        "collector_attestation": collector,
+        "thread_cpu_behavior": raw_behavior,
+      }
+      with (
+        mock.patch.object(
+          sys,
+          "argv",
+          [
+            "compose-supplemental-speed.py",
+            "--artifact",
+            artifact,
+            "--output",
+            str(output),
+            "--source-revision",
+            "1" * 40,
+            "--collector-bundle",
+            str(bundle),
+            "--instant-profile",
+            "runtime_tournament",
+            "--ordered-profile",
+            "runtime_tournament",
+            "--thread-cpu-profile",
+            "fallback_only",
           ],
         ),
         mock.patch.object(
@@ -2725,6 +2781,18 @@ declare void @generic_implementation()
     self.assertFalse(ordered["measured"])
     self.assertFalse(ordered["eligible_for_reliable_contract"])
     self.assertTrue(ordered["passed"])
+
+  def test_wasi_system_time_references_are_not_treated_as_monotonic(self) -> None:
+    for target in ("wasm32-wasip1", "wasm32-wasip2", "wasm32-wasip1-threads"):
+      policies = speed_evidence.local_reference_eligibility(target)
+      for reference in ("fastant", "minstant"):
+        self.assertFalse(policies[reference]["eligible"])
+        self.assertEqual(
+          policies[reference]["reason"],
+          speed_evidence.WASI_SYSTEM_TIME_INELIGIBILITY_REASON,
+        )
+      self.assertTrue(policies["quanta"]["eligible"])
+      self.assertTrue(policies["std"]["eligible"])
 
   def test_wasm_wall_selector_reproduces_from_paired_samples(self) -> None:
     performance = [100_000] * 9

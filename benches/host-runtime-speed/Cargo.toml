@@ -13,8 +13,15 @@ name = "tach-host-runtime-emscripten"
 path = "src/bin/emscripten.rs"
 required-features = ["emscripten-host"]
 
+[[bin]]
+name = "tach-host-runtime-wasip1"
+path = "src/bin/wasip1.rs"
+required-features = ["wasip1-host"]
+
 [features]
 emscripten-host = []
+wasip1-host = []
+wasip1-node-host = ["wasip1-host"]
 
 [dependencies]
 fastant = "0.1.11"
