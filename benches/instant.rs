@@ -3212,7 +3212,6 @@ fn bench_thread_cpu_now(c: &mut Criterion) {
   }
   #[cfg(any(
     all(
-      feature = "thread-cpu-inline",
       any(target_arch = "x86_64", target_arch = "aarch64"),
       any(target_os = "linux", target_os = "android"),
     ),
@@ -3246,22 +3245,6 @@ fn bench_thread_cpu_now(c: &mut Criterion) {
           b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_raw_nanos()))
         });
       }
-    }
-  }
-  #[cfg(all(
-    not(feature = "thread-cpu-inline"),
-    any(target_arch = "x86_64", target_arch = "aarch64"),
-    any(target_os = "linux", target_os = "android"),
-  ))]
-  {
-    const PROVIDER: &str = "libc_clock_gettime";
-    g.bench_function(format!("direct_thread_cpu__{PROVIDER}"), |b| {
-      b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_libc_nanos()))
-    });
-    if thread_cpu_selected_path_is("posix_thread_cpu") {
-      g.bench_function(format!("direct_selected_thread_cpu__{PROVIDER}"), |b| {
-        b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_libc_nanos()))
-      });
     }
   }
   #[cfg(all(target_arch = "x86", target_os = "linux"))]
@@ -3565,7 +3548,6 @@ fn bench_thread_cpu_elapsed(c: &mut Criterion) {
   }
   #[cfg(any(
     all(
-      feature = "thread-cpu-inline",
       any(target_arch = "x86_64", target_arch = "aarch64"),
       any(target_os = "linux", target_os = "android"),
     ),
@@ -3619,32 +3601,6 @@ fn bench_thread_cpu_elapsed(c: &mut Criterion) {
           })
         });
       }
-    }
-  }
-  #[cfg(all(
-    not(feature = "thread-cpu-inline"),
-    any(target_arch = "x86_64", target_arch = "aarch64"),
-    any(target_os = "linux", target_os = "android"),
-  ))]
-  {
-    const PROVIDER: &str = "libc_clock_gettime";
-    g.bench_function(format!("direct_thread_cpu__{PROVIDER}"), |b| {
-      b.iter(|| {
-        let start = tach::bench::thread_cpu_native64_exact_libc_nanos();
-        black_box(Duration::from_nanos(
-          tach::bench::thread_cpu_native64_exact_libc_nanos().saturating_sub(start),
-        ))
-      })
-    });
-    if thread_cpu_selected_path_is("posix_thread_cpu") {
-      g.bench_function(format!("direct_selected_thread_cpu__{PROVIDER}"), |b| {
-        b.iter(|| {
-          let start = tach::bench::thread_cpu_native64_exact_libc_nanos();
-          black_box(Duration::from_nanos(
-            tach::bench::thread_cpu_native64_exact_libc_nanos().saturating_sub(start),
-          ))
-        })
-      });
     }
   }
   #[cfg(all(target_arch = "x86", target_os = "linux"))]
@@ -4217,26 +4173,30 @@ fn write_thread_cpu_perf_selection() {}
   feature = "bench-internal",
   not(feature = "thread-cpu-inline"),
   any(
-    all(target_arch = "x86", target_os = "linux"),
     all(
-      any(target_arch = "x86_64", target_arch = "aarch64"),
-      any(target_os = "linux", target_os = "android"),
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
     ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64")),
   ),
 ))]
-fn write_fixed_native_thread_cpu_selection(
-  selected_mechanism: &'static str,
-  native_primitive: &'static str,
-  supported_architectures: &[&str],
-  selection_basis: &'static str,
-) {
+fn write_thread_cpu_selection() {
   use std::fs;
   use std::path::PathBuf;
 
   assert_eq!(
     ThreadCpuInstant::provider(),
     ThreadCpuProvider::PosixThreadCpuClock,
-    "no-default ThreadCpuInstant must retain its fixed native provider",
+    "no-default ThreadCpuInstant must retain its native thread-CPU provider",
   );
   assert_eq!(
     ThreadCpuInstant::read_cost_hint(),
@@ -4244,10 +4204,88 @@ fn write_fixed_native_thread_cpu_selection(
     "no-default ThreadCpuInstant must retain its system-call cost classification",
   );
 
-  let direct_candidate = format!("direct_thread_cpu__{selected_mechanism}");
+  #[cfg(any(
+    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ))]
+  let (selected_mechanism, native_entry_probe, eligible_direct_candidates) = {
+    let evidence = tach::bench::thread_cpu_native64_selection_measurements();
+    let mut candidates = Vec::with_capacity(2);
+    if evidence.libc_available {
+      candidates.push(format!("direct_thread_cpu__{}", evidence.libc_provider));
+    }
+    if evidence.raw_available {
+      candidates.push(format!("direct_thread_cpu__{}", evidence.raw_provider));
+    }
+    (
+      evidence.selected_provider,
+      serde_json::to_value(&evidence).expect("serialize native thread-CPU selector"),
+      candidates,
+    )
+  };
+  #[cfg(all(target_arch = "x86", target_os = "linux"))]
+  let (selected_mechanism, native_entry_probe, eligible_direct_candidates) = {
+    let evidence = tach::bench::thread_cpu_i686_native_selection_evidence();
+    let candidates: Vec<String> = evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (
+      tach::bench::thread_cpu_i686_native_provider(),
+      serde_json::to_value(&evidence).expect("serialize i686 native thread-CPU selector"),
+      candidates,
+    )
+  };
+  #[cfg(all(target_arch = "arm", target_os = "linux"))]
+  let (selected_mechanism, native_entry_probe, eligible_direct_candidates) = {
+    let evidence = tach::bench::thread_cpu_arm_native_selection_evidence();
+    let candidates: Vec<String> = evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (
+      tach::bench::thread_cpu_arm_native_provider(),
+      serde_json::to_value(&evidence).expect("serialize Arm native thread-CPU selector"),
+      candidates,
+    )
+  };
+  #[cfg(all(target_arch = "riscv64", target_os = "linux"))]
+  let (selected_mechanism, native_entry_probe, eligible_direct_candidates) = {
+    let evidence = tach::bench::thread_cpu_riscv64_native_selection_evidence();
+    let candidates: Vec<String> = evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (
+      tach::bench::thread_cpu_riscv64_native_provider(),
+      serde_json::to_value(&evidence).expect("serialize RISC-V native thread-CPU selector"),
+      candidates,
+    )
+  };
+  #[cfg(all(
+    target_os = "linux",
+    any(target_arch = "s390x", target_arch = "loongarch64", target_arch = "powerpc64"),
+  ))]
+  let (selected_mechanism, native_entry_probe, eligible_direct_candidates) = {
+    let evidence = tach::bench::thread_cpu_rare_linux_native_selection_evidence();
+    let candidates: Vec<String> = evidence
+      .candidate_names
+      .iter()
+      .map(|name| format!("direct_thread_cpu__{name}"))
+      .collect();
+    (
+      tach::bench::thread_cpu_rare_linux_native_provider(),
+      serde_json::to_value(&evidence).expect("serialize rare Linux native thread-CPU selector"),
+      candidates,
+    )
+  };
+
   let selected_benchmark = format!("direct_selected_thread_cpu__{selected_mechanism}");
   let payload = serde_json::json!({
-    "selection_kind": "fixed_native",
+    "selection_kind": "tournament_with_measured_runner_up",
     "selected_provider": "posix_thread_cpu_clock",
     "selected_mechanism": selected_mechanism,
     "selected_read_cost": "system call",
@@ -4256,15 +4294,39 @@ fn write_fixed_native_thread_cpu_selection(
     "fallback_mechanism": null,
     "fallback_read_cost": null,
     "fallback_native_benchmark": null,
-    "eligible_direct_candidates": [direct_candidate],
-    "fixed_provider": {
-      "candidate": selected_mechanism,
-      "supported_architectures": supported_architectures,
-      "native_primitive": native_primitive,
-      "selection_basis": selection_basis,
-      "time_domain": "thread CPU",
+    "eligible_direct_candidates": eligible_direct_candidates,
+    "native_entry_probe": native_entry_probe,
+    "perf": {
+      "event_available": false,
+      "path_probe": null,
+      "mmap": {
+        "supported_on_target": cfg!(any(
+          target_arch = "x86",
+          target_arch = "x86_64",
+          target_arch = "aarch64",
+          target_arch = "arm",
+          target_arch = "riscv64",
+        )),
+        "available": false,
+        "read_cost": "inline",
+        "selected_mechanism": null,
+        "selected_candidate_benchmark": null,
+        "eligible_benchmarks": [],
+        "counter_probe": null,
+      },
+      "read": {
+        "supported_on_target": true,
+        "available": false,
+        "read_cost": "system call",
+        "selected_mechanism": null,
+        "selected_candidate_benchmark": null,
+        "eligible_benchmarks": [],
+        "entry_probe": null,
+      },
+      "decision_rule": "thread-cpu-inline is disabled, so eligible native CLOCK_THREAD_CPUTIME_ID entries compete while perf providers are excluded by build configuration",
+      "measurement_clock": "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the candidate under test",
     },
-    "read_cost_basis": "CLOCK_THREAD_CPUTIME_ID is a kernel-entry SystemCall tier through the public current-thread CPU-time entry",
+    "read_cost_basis": "every eligible CLOCK_THREAD_CPUTIME_ID entry is a SystemCall tier; disabling thread-cpu-inline excludes perf without disabling the native-entry tournament",
   });
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
@@ -4273,51 +4335,9 @@ fn write_fixed_native_thread_cpu_selection(
   fs::create_dir_all(&directory).expect("create criterion directory");
   fs::write(
     directory.join("thread-cpu-selection.json"),
-    serde_json::to_vec_pretty(&payload).expect("serialize fixed native thread-CPU selector"),
+    serde_json::to_vec_pretty(&payload).expect("serialize native thread-CPU selector"),
   )
-  .expect("write fixed native thread-CPU selector evidence");
-}
-
-#[cfg(all(
-  feature = "bench-internal",
-  not(feature = "thread-cpu-inline"),
-  any(
-    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
-    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
-  ),
-))]
-fn write_thread_cpu_selection() {
-  write_fixed_native_thread_cpu_selection(
-    "libc_clock_gettime",
-    "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
-    &["x86_64", "aarch64"],
-    "with thread-cpu-inline disabled, libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID) is the public current-thread CPU-time entry",
-  );
-}
-
-#[cfg(all(
-  feature = "bench-internal",
-  not(feature = "thread-cpu-inline"),
-  target_arch = "x86",
-  target_os = "linux",
-))]
-fn write_thread_cpu_selection() {
-  let selected_mechanism = tach::bench::thread_cpu_i686_native_provider();
-  let native_primitive = match selected_mechanism {
-    "libc_clock_gettime" => "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
-    "linux_i686_time32_syscall" => "i386 int 0x80 SYS_clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
-    "linux_i686_time64_syscall" => "i386 int 0x80 SYS_clock_gettime64(CLOCK_THREAD_CPUTIME_ID)",
-    "monotonic_wall_fallback" => {
-      panic!("no-default Linux i686 fixed-native selector reached a wall-clock fallback")
-    }
-    other => panic!("no-default Linux i686 selector chose an unknown mechanism: {other}"),
-  };
-  write_fixed_native_thread_cpu_selection(
-    selected_mechanism,
-    native_primitive,
-    &["x86"],
-    "the initialized Linux i686 CLOCK_THREAD_CPUTIME_ID entry is the public no-default current-thread CPU-time route",
-  );
+  .expect("write native thread-CPU selector evidence");
 }
 
 #[cfg(all(
@@ -4478,8 +4498,22 @@ fn write_thread_cpu_selection() {}
 #[cfg(not(all(
   feature = "bench-internal",
   not(feature = "thread-cpu-inline"),
-  target_arch = "x86",
-  target_os = "linux",
+  any(
+    all(
+      target_os = "linux",
+      any(
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "riscv64",
+        target_arch = "s390x",
+        target_arch = "loongarch64",
+        target_arch = "powerpc64",
+      ),
+    ),
+    all(target_os = "android", any(target_arch = "x86_64", target_arch = "aarch64")),
+  ),
 )))]
 #[cfg(not(target_os = "macos"))]
 #[cfg(not(target_os = "windows"))]

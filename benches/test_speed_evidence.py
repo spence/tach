@@ -1389,9 +1389,7 @@ class SpeedEvidenceTests(unittest.TestCase):
     }
     self.assertEqual(
       planned,
-      {
-        "criterion_linux_rare_no_default",
-      },
+      set(),
     )
     self.assertEqual(
       [failure for failure in failures if " is 'planned', not ready" not in failure],

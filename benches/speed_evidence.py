@@ -168,6 +168,7 @@ BENCHMARK_SOURCE_PATHS = (
   "benches/run-speed-freebsd-aws.sh",
   "benches/run-speed-lambda.sh",
   "benches/run-speed-host-runtime.sh",
+  "benches/run-speed-criterion.sh",
   "benches/run-speed-local.sh",
   "benches/run-thread-pmu-aws.sh",
   "benches/runtime-smoke/Cargo.lock",
