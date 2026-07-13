@@ -2290,6 +2290,36 @@ declare void @generic_implementation()
     self.assertFalse(report["passed"])
     self.assertTrue(any("not bound to native_thread_cpu" in item for item in report["failures"]))
 
+  def test_supplemental_route_comparison_decomposes_public_parity_and_selection(self) -> None:
+    artifact = "speed-supplemental-macos-x86_64.json"
+    document = supplemental_speed_documents()[artifact]
+    clocks = document["clocks"]
+    slower = "direct_thread_cpu__slower_thread_clock"
+    clocks[slower] = {
+      **estimate(20.0),
+      "provider": "slower_thread_clock",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": slower,
+    }
+    clocks["tach_thread_cpu"]["selection"]["eligible_direct_candidates"].append(slower)
+    document["route_coverage"] = speed_evidence.supplemental_route_coverage_from_clocks(
+      clocks, document["selection_profiles"]
+    )
+
+    report = speed_evidence.validate_supplemental_speed_cell(artifact, document)
+
+    self.assertTrue(report["passed"], report["failures"])
+    routes = report["route_coverage"]["thread_cpu"]["eligible_exact_routes"]
+    selected = routes["direct_thread_cpu__native_thread_clock"]["metrics"]["now"]
+    self.assertEqual(selected["comparison_basis"], "public versus its selected exact route")
+    nonselected = routes[slower]["metrics"]["now"]
+    self.assertEqual(
+      nonselected["comparison_basis"],
+      "selected exact route versus another eligible route",
+    )
+    self.assertEqual(nonselected["comparison_ns"], 10.0)
+
   def test_supplemental_validator_rejects_cross_target_or_cross_run_inputs(self) -> None:
     macos = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
     relabeled = copy.deepcopy(macos)

@@ -5104,16 +5104,24 @@ def validate_supplemental_route_coverage(
     route_results = {}
     for candidate, row in candidate_rows.items():
       metrics = {}
+      comparison = public if row.get("provider") == selected.get("provider") else selected
+      comparison_basis = (
+        "public versus its selected exact route"
+        if comparison is public
+        else "selected exact route versus another eligible route"
+      )
       for metric in METRICS:
         try:
-          passed, allowance = equivalent_or_faster(public, row, metric)
+          passed, allowance = equivalent_or_faster(comparison, row, metric)
         except (KeyError, TypeError):
           failures.append(f"{context}: malformed {use_case} estimate for {candidate}")
           continue
         metrics[metric] = {
           "public_ns": public[metric],
+          "comparison_ns": comparison[metric],
           "exact_ns": row[metric],
           "equivalence_allowance_ns": allowance,
+          "comparison_basis": comparison_basis,
           "passed": passed,
         }
         if not passed:

@@ -80,6 +80,11 @@ struct CostSamples {
   samples: [f64; SAMPLES],
 }
 
+struct WallCosts {
+  now: CostSamples,
+  elapsed: CostSamples,
+}
+
 #[derive(Clone, Copy)]
 struct BehaviorSample {
   wall_delta_ns: u64,
@@ -174,107 +179,150 @@ fn run_observation() -> Result<Value, String> {
   let selected_ordered = wall_selection["selected_provider"]["ordered"]
     .as_str()
     .ok_or("missing selected OrderedInstant provider")?;
+  let selected_local_read = exact_wall_reader("instant", selected_local)?;
+  let selected_ordered_read = exact_wall_reader("ordered", selected_ordered)?;
+  let (instant_now, direct_instant_now) =
+    paired_median_cost(|| black_box(Instant::now()), || black_box(selected_local_read()));
+  let (instant_elapsed, direct_instant_elapsed) = paired_median_cost(
+    || {
+      let start = Instant::now();
+      black_box(start.elapsed())
+    },
+    || {
+      let start = selected_local_read();
+      black_box(Duration::from_nanos(selected_local_read().saturating_sub(start)))
+    },
+  );
+  let (ordered_now, direct_ordered_now) = paired_median_cost(
+    || black_box(OrderedInstant::now()),
+    || black_box(selected_ordered_read()),
+  );
+  let (ordered_elapsed, direct_ordered_elapsed) = paired_median_cost(
+    || {
+      let start = OrderedInstant::now();
+      black_box(start.elapsed())
+    },
+    || {
+      let start = selected_ordered_read();
+      black_box(Duration::from_nanos(selected_ordered_read().saturating_sub(start)))
+    },
+  );
+  let instant_pair_id = "wasm-wall-instant-public-exact-v1";
+  let ordered_pair_id = "wasm-wall-ordered-public-exact-v1";
+  let direct_instant = WallCosts { now: direct_instant_now, elapsed: direct_instant_elapsed };
+  let direct_ordered = WallCosts { now: direct_ordered_now, elapsed: direct_ordered_elapsed };
   let mut rows = Map::new();
 
   rows.insert(
     "tach".into(),
-    typed_row(
-      median_cost(|| black_box(Instant::now())),
-      median_cost(|| {
-        let start = Instant::now();
-        black_box(start.elapsed())
-      }),
-      selected_local,
-      "host call",
-      "instant wall",
-      None,
+    paired_row(
+      typed_row(
+        instant_now,
+        instant_elapsed,
+        selected_local,
+        "host call",
+        "instant wall",
+        None,
+      ),
+      instant_pair_id,
     ),
   );
   rows.insert(
     "tach_ordered".into(),
-    typed_row(
-      median_cost(|| black_box(OrderedInstant::now())),
-      median_cost(|| {
-        let start = OrderedInstant::now();
-        black_box(start.elapsed())
-      }),
-      selected_ordered,
-      "host call",
-      "ordered wall",
-      None,
+    paired_row(
+      typed_row(
+        ordered_now,
+        ordered_elapsed,
+        selected_ordered,
+        "host call",
+        "ordered wall",
+        None,
+      ),
+      ordered_pair_id,
     ),
   );
   #[cfg(not(feature = "browser-host"))]
   insert_node_competitors(&mut rows);
-  insert_wall_candidates(&mut rows, &wall_selection)?;
-  rows.insert("direct_selected_wall".into(), selected_wall_row("instant", selected_local)?);
-  rows
-    .insert("direct_selected_ordered_wall".into(), selected_wall_row("ordered", selected_ordered)?);
+  let selected_instant_row = paired_exact_wall_row(
+    "instant",
+    selected_local,
+    direct_instant,
+    instant_pair_id,
+    true,
+  );
+  let selected_ordered_row = paired_exact_wall_row(
+    "ordered",
+    selected_ordered,
+    direct_ordered,
+    ordered_pair_id,
+    true,
+  );
+  insert_wall_candidates(
+    &mut rows,
+    &wall_selection,
+    selected_local,
+    selected_ordered,
+    &selected_instant_row,
+    &selected_ordered_row,
+  )?;
+  rows.insert("direct_selected_wall".into(), selected_instant_row);
+  rows.insert("direct_selected_ordered_wall".into(), selected_ordered_row);
 
-  let public_thread_now = median_cost(|| black_box(ThreadCpuInstant::now()));
-  let public_thread_elapsed = median_cost(|| {
-    let start = ThreadCpuInstant::now();
-    black_box(start.elapsed())
-  });
+  let (public_thread_now, direct_thread_now) = paired_median_cost(
+    || black_box(ThreadCpuInstant::now()),
+    || black_box(thread_route.read()),
+  );
+  let (public_thread_elapsed, direct_thread_elapsed) = paired_median_cost(
+    || {
+      let start = ThreadCpuInstant::now();
+      black_box(start.elapsed())
+    },
+    || {
+      let start = thread_route.read();
+      black_box(Duration::from_nanos(thread_route.read().saturating_sub(start)))
+    },
+  );
+  let thread_pair_id = "wasm-thread-public-exact-v1";
   rows.insert(
     "tach_thread_cpu".into(),
-    typed_row(
-      public_thread_now,
-      public_thread_elapsed,
-      thread_route.provider_name(),
-      "host call",
-      thread_route.time_domain(),
-      None,
+    paired_row(
+      typed_row(
+        public_thread_now,
+        public_thread_elapsed,
+        thread_route.provider_name(),
+        "host call",
+        thread_route.time_domain(),
+        None,
+      ),
+      thread_pair_id,
     ),
   );
-  let native_now = median_cost(|| black_box(thread_route.read()));
-  let native_elapsed = median_cost(|| {
-    let start = thread_route.read();
-    black_box(Duration::from_nanos(thread_route.read().saturating_sub(start)))
-  });
   let native_benchmark = format!("native_thread_cpu__{}", thread_route.mechanism());
-  rows.insert(
-    "native_thread_cpu".into(),
+  let direct_thread_row = paired_row(
     typed_row(
-      native_now,
-      native_elapsed,
+      direct_thread_now,
+      direct_thread_elapsed,
       thread_route.provider_name(),
       "host call",
       thread_route.time_domain(),
       Some(&native_benchmark),
     ),
+    thread_pair_id,
   );
+  rows.insert("native_thread_cpu".into(), direct_thread_row.clone());
   let direct_thread_benchmark = format!("direct_thread_cpu__{}", thread_route.mechanism());
-  rows.insert(
-    direct_thread_benchmark.clone(),
-    typed_row(
-      median_cost(|| black_box(thread_route.read())),
-      median_cost(|| {
-        let start = thread_route.read();
-        black_box(Duration::from_nanos(thread_route.read().saturating_sub(start)))
-      }),
-      thread_route.mechanism(),
-      "host call",
-      thread_route.time_domain(),
-      Some(&direct_thread_benchmark),
-    ),
-  );
+  let mut direct_candidate_row = direct_thread_row.clone();
+  let direct_candidate = direct_candidate_row.as_object_mut().expect("thread CPU row");
+  direct_candidate.insert("provider".into(), json!(thread_route.mechanism()));
+  direct_candidate.insert("benchmark".into(), json!(direct_thread_benchmark));
+  rows.insert(direct_thread_benchmark.clone(), direct_candidate_row);
   let selected_thread_benchmark =
     format!("direct_selected_thread_cpu__{}", thread_route.mechanism());
-  rows.insert(
-    "direct_selected_thread_cpu".into(),
-    typed_row(
-      median_cost(|| black_box(thread_route.read())),
-      median_cost(|| {
-        let start = thread_route.read();
-        black_box(Duration::from_nanos(thread_route.read().saturating_sub(start)))
-      }),
-      thread_route.mechanism(),
-      "host call",
-      thread_route.time_domain(),
-      Some(&selected_thread_benchmark),
-    ),
-  );
+  let mut selected_thread_row = direct_thread_row;
+  let selected_thread = selected_thread_row.as_object_mut().expect("thread CPU row");
+  selected_thread.insert("provider".into(), json!(thread_route.mechanism()));
+  selected_thread.insert("benchmark".into(), json!(selected_thread_benchmark));
+  rows.insert("direct_selected_thread_cpu".into(), selected_thread_row);
 
   let mut result = rows;
   result.insert("runtime_attestation".into(), runtime_attestation.clone());
@@ -445,7 +493,14 @@ fn insert_node_competitors(rows: &mut Map<String, Value>) {
   );
 }
 
-fn insert_wall_candidates(rows: &mut Map<String, Value>, selection: &Value) -> Result<(), String> {
+fn insert_wall_candidates(
+  rows: &mut Map<String, Value>,
+  selection: &Value,
+  selected_instant: &str,
+  selected_ordered: &str,
+  selected_instant_row: &Value,
+  selected_ordered_row: &Value,
+) -> Result<(), String> {
   for (domain, prefix) in [("instant", "direct_wall__"), ("ordered", "direct_ordered_wall__")] {
     let candidates = selection["eligible_direct_candidates"][domain]
       .as_array()
@@ -456,39 +511,70 @@ fn insert_wall_candidates(rows: &mut Map<String, Value>, selection: &Value) -> R
       let provider = benchmark
         .strip_prefix(prefix)
         .ok_or_else(|| format!("invalid {domain} wall candidate {benchmark}"))?;
-      rows.insert(benchmark.into(), exact_wall_row(domain, provider)?);
+      let selected_provider = if domain == "instant" { selected_instant } else { selected_ordered };
+      let selected_row =
+        if domain == "instant" { selected_instant_row } else { selected_ordered_row };
+      let row = if provider == selected_provider {
+        let mut row = selected_row.clone();
+        row
+          .as_object_mut()
+          .expect("selected wall row")
+          .insert("benchmark".into(), json!(benchmark));
+        row
+      } else {
+        exact_wall_row(domain, provider)?
+      };
+      rows.insert(benchmark.into(), row);
     }
   }
   Ok(())
 }
 
-fn selected_wall_row(domain: &str, provider: &str) -> Result<Value, String> {
-  let mut row = exact_wall_row(domain, provider)?;
-  row.as_object_mut().expect("wall row").insert(
-    "benchmark".into(),
-    json!(if domain == "instant" {
-      format!("direct_selected_wall__{provider}")
-    } else {
-      format!("direct_selected_ordered_wall__{provider}")
-    }),
-  );
-  Ok(row)
+fn paired_exact_wall_row(
+  domain: &str,
+  provider: &str,
+  costs: WallCosts,
+  pair_id: &str,
+  selected: bool,
+) -> Value {
+  let benchmark = match (domain, selected) {
+    ("instant", true) => format!("direct_selected_wall__{provider}"),
+    ("ordered", true) => format!("direct_selected_ordered_wall__{provider}"),
+    ("instant", false) => format!("direct_wall__{provider}"),
+    ("ordered", false) => format!("direct_ordered_wall__{provider}"),
+    _ => panic!("unsupported wall domain {domain}"),
+  };
+  paired_row(
+    typed_row(
+      costs.now,
+      costs.elapsed,
+      provider,
+      "host call",
+      &format!("{domain} wall"),
+      Some(&benchmark),
+    ),
+    pair_id,
+  )
 }
 
 fn exact_wall_row(domain: &str, provider: &str) -> Result<Value, String> {
-  let (now, elapsed) = match (domain, provider) {
-    ("instant", "performance.now") => cost_pair(tach::bench::wasm_exact_performance_ticks),
-    ("instant", "process.hrtime.bigint") => cost_pair(tach::bench::wasm_exact_hrtime_ticks),
-    ("ordered", "performance.now") => cost_pair(tach::bench::wasm_exact_ordered_performance_ticks),
-    ("ordered", "process.hrtime.bigint") => cost_pair(tach::bench::wasm_exact_ordered_hrtime_ticks),
-    _ => return Err(format!("unsupported exact {domain} wall provider {provider}")),
-  };
+  let (now, elapsed) = cost_pair(exact_wall_reader(domain, provider)?);
   let benchmark = if domain == "instant" {
     format!("direct_wall__{provider}")
   } else {
     format!("direct_ordered_wall__{provider}")
   };
   Ok(typed_row(now, elapsed, provider, "host call", &format!("{domain} wall"), Some(&benchmark)))
+}
+
+fn exact_wall_reader(domain: &str, provider: &str) -> Result<fn() -> u64, String> {
+  match (domain, provider) {
+    ("instant", "performance.now") => Ok(tach::bench::wasm_exact_performance_ticks),
+    ("instant", "process.hrtime.bigint") => Ok(tach::bench::wasm_exact_hrtime_ticks),
+    ("ordered", "performance.now") => Ok(tach::bench::wasm_exact_ordered_performance_ticks),
+    ("ordered", "process.hrtime.bigint") => Ok(tach::bench::wasm_exact_ordered_hrtime_ticks),
+    _ => Err(format!("unsupported exact {domain} wall provider {provider}")),
+  }
 }
 
 fn cost_pair(read: fn() -> u64) -> (CostSamples, CostSamples) {
@@ -514,6 +600,41 @@ fn median_cost<T>(mut sample: impl FnMut() -> T) -> CostSamples {
     *value = (host_now_nanos() - start) / ITERATIONS as f64;
   }
   CostSamples { samples }
+}
+
+fn paired_median_cost<T, U>(
+  mut subject: impl FnMut() -> T,
+  mut reference: impl FnMut() -> U,
+) -> (CostSamples, CostSamples) {
+  for iteration in 0..WARMUP_ITERATIONS {
+    if iteration & 1 == 0 {
+      black_box(subject());
+      black_box(reference());
+    } else {
+      black_box(reference());
+      black_box(subject());
+    }
+  }
+  let mut subject_samples = [0.0; SAMPLES];
+  let mut reference_samples = [0.0; SAMPLES];
+  for index in 0..SAMPLES {
+    if index & 1 == 0 {
+      subject_samples[index] = measure_cost(&mut subject);
+      reference_samples[index] = measure_cost(&mut reference);
+    } else {
+      reference_samples[index] = measure_cost(&mut reference);
+      subject_samples[index] = measure_cost(&mut subject);
+    }
+  }
+  (CostSamples { samples: subject_samples }, CostSamples { samples: reference_samples })
+}
+
+fn measure_cost<T>(sample: &mut impl FnMut() -> T) -> f64 {
+  let start = host_now_nanos();
+  for _ in 0..ITERATIONS {
+    black_box(sample());
+  }
+  (host_now_nanos() - start) / ITERATIONS as f64
 }
 
 fn host_now_nanos() -> f64 {
@@ -542,6 +663,14 @@ fn typed_row(
   if let Some(benchmark) = benchmark {
     object.insert("benchmark".into(), json!(benchmark));
   }
+  row
+}
+
+fn paired_row(mut row: Value, pair_id: &str) -> Value {
+  row
+    .as_object_mut()
+    .expect("clock row")
+    .insert("paired_sample_id".into(), json!(pair_id));
   row
 }
 
