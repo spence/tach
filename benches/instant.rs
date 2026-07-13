@@ -4462,6 +4462,9 @@ fn write_thread_cpu_selection() {
   .expect("write macOS thread-CPU selector evidence");
 }
 
+#[cfg(all(not(feature = "bench-internal"), target_os = "macos"))]
+fn write_thread_cpu_selection() {}
+
 #[cfg(not(all(
   feature = "bench-internal",
   any(
@@ -4652,7 +4655,7 @@ fn native_thread_cpu_now() -> u64 {
 const NATIVE_THREAD_CPU_BENCH_ID: &str =
   "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id";
 
-#[cfg(target_os = "macos")]
+#[cfg(all(feature = "bench-internal", target_os = "macos"))]
 const MACOS_THREAD_CPU_MECHANISM: &str = "macos_clock_gettime_nsec_np_thread_cpu";
 
 #[cfg(target_os = "macos")]
