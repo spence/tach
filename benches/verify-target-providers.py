@@ -1013,7 +1013,9 @@ def ordered_instant_route(target: str, mode: str) -> dict:
       ),
       "ordering": "runtime-selected complete barrier + QPC compound provider",
       "required_patterns": [
-        "qpc_ticks_ordered_after_selection",
+        # LLVM can preserve the cold helper or inline it into this exact
+        # bench-internal wrapper when composing the optimized implementation IR.
+        r"(?:qpc_ticks_ordered_after_selection|windows_ticks_ordered_after_selection)",
         r'asm sideeffect inteldialect "lfence"',
         r'asm sideeffect inteldialect "mfence"',
         r'asm sideeffect inteldialect "rdtscp\\0Alfence"',

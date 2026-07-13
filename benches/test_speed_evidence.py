@@ -1594,6 +1594,11 @@ declare void @clock_gettime()
       inlined_vdso_call.replace("i64", "i32"),
       module.direct_vdso_hot_patterns("i686-unknown-linux-gnu")[-1],
     )
+    windows_ordered_pattern = module.ordered_instant_route(
+      "x86_64-pc-windows-msvc", "default"
+    )["required_patterns"][0]
+    self.assertRegex("qpc_ticks_ordered_after_selection", windows_ordered_pattern)
+    self.assertRegex("windows_ticks_ordered_after_selection", windows_ordered_pattern)
 
   def test_emscripten_target_proof_uses_guarded_host_imports(self) -> None:
     path = Path(__file__).with_name("verify-target-providers.py")
