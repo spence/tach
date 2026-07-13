@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Extract per-clock now()/elapsed() medians from a criterion output tree.
+"""Extract per-clock now()/elapsed() medians from Criterion data.
 
 Usage: extract_speed.py <path-to-target/criterion>
+       extract_speed.py --collector-bundle <path-to-bundle>
 
 Prints JSON {clock: {"now": ns, "elapsed": ns}} for the speed-bench clocks.
 Thread-CPU entries additionally carry the provider and read-cost labels encoded
@@ -12,9 +13,574 @@ Every cell of the campaign (local, EC2, Docker-Alpine musl, Windows) funnels
 through this so the extraction arithmetic is identical everywhere.
 """
 
+import argparse
+import hashlib
 import json
+import os
+import re
+import stat
 import sys
-from pathlib import Path
+import tempfile
+from pathlib import Path, PurePosixPath
+
+COLLECTOR_SCHEMA = "tach-speed-collector-v1"
+COLLECTOR_MANIFEST_FILENAME = "tach-speed-collector.json"
+COLLECTOR_CRITERION_DIRECTORY = "criterion"
+RUNTIME_ATTESTATION_FILENAME = "runtime-attestation.json"
+RUNTIME_ATTESTATION_SCHEMA = "tach-benchmark-runtime-v2"
+THREAD_CPU_BEHAVIOR_FILENAME = "thread-cpu-behavior.json"
+THREAD_CPU_BEHAVIOR_SCHEMA = "tach-thread-cpu-behavior-v2"
+WALL_SELECTOR_FILENAMES = (
+    "linux-x86-wall-selection.json",
+    "linux-aarch64-wall-selection.json",
+    "residual-wall-selection.json",
+    "apple-wall-selection.json",
+    "windows-wall-selection.json",
+)
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+_SOURCE_REVISION = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
+RUNTIME_BUILD_MODE_FEATURES = {
+    "default": ("bench-internal", "thread-cpu-inline"),
+    "no-default": ("bench-internal",),
+    "emscripten-pthreads": (
+        "bench-internal",
+        "emscripten-pthreads",
+        "thread-cpu-inline",
+    ),
+}
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        result[key] = value
+    return result
+
+
+def _json_object_from_bytes(value: bytes, description: str) -> dict:
+    try:
+        parsed = json.loads(
+            value.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_json_keys,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise RuntimeError(f"could not load {description}: {error}") from error
+    if not isinstance(parsed, dict):
+        raise RuntimeError(f"{description} must be a JSON object")
+    return parsed
+
+
+def _read_regular_file_bytes(path: Path, description: str) -> bytes:
+    """Read one opened regular file without following a final-component link."""
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise RuntimeError(f"could not open {description} {path}: {error}") from error
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise RuntimeError(f"{description} is not a regular file: {path}")
+        with os.fdopen(descriptor, "rb", closefd=True) as source:
+            descriptor = -1
+            return source.read()
+    except OSError as error:
+        raise RuntimeError(f"could not read {description} {path}: {error}") from error
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
+def load_json_object_with_bytes(path: Path, description: str) -> tuple[dict, bytes]:
+    """Load one JSON object and retain the exact bytes used to parse it."""
+
+    value = _read_regular_file_bytes(path, description)
+    return _json_object_from_bytes(value, f"{description} {path}"), value
+
+
+def load_json_object(path: Path, description: str) -> dict:
+    """Load one JSON object while rejecting duplicate keys at every depth."""
+
+    value, _ = load_json_object_with_bytes(path, description)
+    return value
+
+
+def validate_runtime_attestation(value: object, context: str = "runtime attestation") -> dict:
+    """Validate the Rust-emitted Criterion invocation identity without enriching it."""
+
+    expected_keys = {
+        "schema",
+        "invocation_id",
+        "harness",
+        "target",
+        "features",
+        "build_mode",
+        "build_profile",
+        "source_revision",
+        "runner",
+        "output_isolated",
+    }
+    if not isinstance(value, dict) or set(value) != expected_keys:
+        raise RuntimeError(f"malformed {context}: unexpected shape")
+    if value.get("schema") != RUNTIME_ATTESTATION_SCHEMA:
+        raise RuntimeError(f"malformed {context}: unsupported schema")
+    invocation_id = value.get("invocation_id")
+    if not isinstance(invocation_id, str) or not invocation_id.strip():
+        raise RuntimeError(f"malformed {context}: missing invocation ID")
+    if value.get("harness") != "criterion":
+        raise RuntimeError(f"malformed {context}: harness is not Criterion")
+
+    target = value.get("target")
+    if (
+        not isinstance(target, dict)
+        or set(target) != {"arch", "os", "env"}
+        or not isinstance(target.get("arch"), str)
+        or not target["arch"].strip()
+        or not isinstance(target.get("os"), str)
+        or not target["os"].strip()
+        or not isinstance(target.get("env"), str)
+    ):
+        raise RuntimeError(f"malformed {context}: target identity")
+
+    features = value.get("features")
+    if (
+        not isinstance(features, list)
+        or not all(isinstance(feature, str) and feature for feature in features)
+        or features != sorted(features)
+        or len(features) != len(set(features))
+    ):
+        raise RuntimeError(f"malformed {context}: enabled features")
+    build_mode = value.get("build_mode")
+    expected_features = RUNTIME_BUILD_MODE_FEATURES.get(build_mode)
+    if expected_features is None or features != list(expected_features):
+        raise RuntimeError(f"malformed {context}: build mode")
+    if value.get("build_profile") not in {"debug", "optimized"}:
+        raise RuntimeError(f"malformed {context}: build profile")
+
+    source_revision = value.get("source_revision")
+    if source_revision is not None and (
+        not isinstance(source_revision, str)
+        or _SOURCE_REVISION.fullmatch(source_revision) is None
+    ):
+        raise RuntimeError(f"malformed {context}: source revision")
+    runner = value.get("runner")
+    if runner is not None and (
+        not isinstance(runner, str) or not runner.strip()
+    ):
+        raise RuntimeError(f"malformed {context}: runner")
+    if type(value.get("output_isolated")) is not bool:
+        raise RuntimeError(f"malformed {context}: output isolation")
+    return value
+
+
+def sha256_file(path: Path, description: str = "file") -> str:
+    """Return a regular file's content digest, rejecting links and special files."""
+
+    try:
+        mode = path.lstat().st_mode
+    except OSError as error:
+        raise RuntimeError(f"could not stat {description} {path}: {error}") from error
+    if not stat.S_ISREG(mode):
+        raise RuntimeError(f"{description} is not a regular file: {path}")
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as source:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError as error:
+        raise RuntimeError(f"could not hash {description} {path}: {error}") from error
+    return digest.hexdigest()
+
+
+def _safe_relative_path(value: object, context: str) -> PurePosixPath:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise RuntimeError(f"{context} is not a safe relative path")
+    path = PurePosixPath(value)
+    if (
+        path.is_absolute()
+        or not path.parts
+        or any(part in {"", ".", ".."} for part in path.parts)
+        or path.as_posix() != value
+    ):
+        raise RuntimeError(f"{context} is not a safe relative path")
+    return path
+
+
+def regular_file_tree(root: Path, description: str) -> dict[str, Path]:
+    """Enumerate a directory's regular-file tree without following links."""
+
+    try:
+        root_mode = root.lstat().st_mode
+    except OSError as error:
+        raise RuntimeError(f"could not stat {description} {root}: {error}") from error
+    if not stat.S_ISDIR(root_mode):
+        raise RuntimeError(f"{description} is not a directory: {root}")
+
+    files = {}
+
+    def visit(directory: Path) -> None:
+        try:
+            children = sorted(directory.iterdir(), key=lambda child: child.name)
+        except OSError as error:
+            raise RuntimeError(f"could not read {description} {directory}: {error}") from error
+        for child in children:
+            relative = child.relative_to(root).as_posix()
+            _safe_relative_path(relative, f"{description} path {relative!r}")
+            try:
+                mode = child.lstat().st_mode
+            except OSError as error:
+                raise RuntimeError(f"could not stat {description} entry {child}: {error}") from error
+            if stat.S_ISDIR(mode):
+                visit(child)
+            elif stat.S_ISREG(mode):
+                if relative in files:
+                    raise RuntimeError(f"duplicate {description} path {relative!r}")
+                files[relative] = child
+            else:
+                raise RuntimeError(
+                    f"{description} contains a nonregular input at {relative!r}"
+                )
+
+    visit(root)
+    return files
+
+
+def validate_thread_cpu_behavior_attestation(
+    criterion_dir: Path,
+    attestation: dict,
+) -> dict | None:
+    """Load the optional v2 semantic sidecar bound to this invocation.
+
+    This checks only the sidecar's identity and top-level shape.  The evidence
+    layer owns validation of its raw probe samples and derived summaries.
+    """
+
+    behavior_path = criterion_dir / THREAD_CPU_BEHAVIOR_FILENAME
+    if not behavior_path.exists():
+        return None
+    try:
+        behavior_mode = behavior_path.lstat().st_mode
+    except OSError as error:
+        raise RuntimeError(
+            f"could not stat thread-CPU behavior sidecar {behavior_path}: {error}"
+        ) from error
+    if not stat.S_ISREG(behavior_mode):
+        raise RuntimeError(
+            f"thread-CPU behavior sidecar is not a regular file: {behavior_path}"
+        )
+    behavior = load_json_object(behavior_path, "thread-CPU behavior sidecar")
+    expected_keys = {
+        "schema",
+        "runtime_attestation",
+        "direct_benchmark",
+        "sample_count",
+        "busy",
+        "sleep",
+        "sibling_isolation",
+    }
+    if not isinstance(behavior, dict) or set(behavior) != expected_keys:
+        raise RuntimeError("thread-CPU behavior sidecar has an unexpected v2 shape")
+    if behavior.get("schema") != THREAD_CPU_BEHAVIOR_SCHEMA:
+        raise RuntimeError("thread-CPU behavior sidecar has an unsupported schema")
+    if (
+        not isinstance(behavior.get("direct_benchmark"), str)
+        or not behavior["direct_benchmark"]
+        or type(behavior.get("sample_count")) is not int
+        or behavior["sample_count"] <= 0
+        or not all(
+            isinstance(behavior.get(phase), dict)
+            for phase in ("busy", "sleep", "sibling_isolation")
+        )
+    ):
+        raise RuntimeError("thread-CPU behavior sidecar has malformed v2 fields")
+    embedded = validate_runtime_attestation(
+        behavior.get("runtime_attestation"),
+        "thread-CPU behavior runtime attestation",
+    )
+    if embedded != attestation:
+        raise RuntimeError(
+            "thread-CPU behavior runtime attestation disagrees with runtime-attestation.json"
+        )
+    return behavior
+
+
+def _expected_wall_selector_filename(attestation: dict) -> str | None:
+    target = attestation["target"]
+    architecture = target["arch"]
+    operating_system = target["os"]
+    if operating_system == "macos":
+        return "apple-wall-selection.json"
+    if operating_system == "windows":
+        return "windows-wall-selection.json"
+    if operating_system == "freebsd":
+        return "residual-wall-selection.json"
+    if operating_system in {"linux", "android"}:
+        if architecture in {"x86", "x86_64"}:
+            return "linux-x86-wall-selection.json"
+        if architecture == "aarch64":
+            return "linux-aarch64-wall-selection.json"
+        if architecture in {"arm", "s390x", "riscv64", "loongarch64", "powerpc64"}:
+            return "residual-wall-selection.json"
+    return None
+
+
+def select_attested_wall_selector(
+    criterion_dir: Path,
+    attestation: dict,
+    available_files: set[str] | None = None,
+) -> str | None:
+    """Choose the one wall selector permitted by the runtime target identity."""
+
+    if available_files is None:
+        available_files = set(
+            regular_file_tree(criterion_dir, "Criterion selector tree")
+        )
+    recognized = sorted(set(WALL_SELECTOR_FILENAMES) & available_files)
+    expected = _expected_wall_selector_filename(attestation)
+    target = attestation["target"]
+    target_name = f"{target['arch']}-{target['os']}-{target['env']}"
+    if expected is None:
+        if recognized:
+            raise RuntimeError(
+                "attested target "
+                f"{target_name!r} cannot use recognized wall selector sidecars: {recognized!r}"
+            )
+        return None
+    if not recognized:
+        raise RuntimeError(
+            f"attested target {target_name!r} is missing wall selector {expected!r}"
+        )
+    if len(recognized) != 1:
+        raise RuntimeError(
+            f"attested target {target_name!r} has multiple wall selector sidecars: "
+            f"{recognized!r}"
+        )
+    if recognized[0] != expected:
+        raise RuntimeError(
+            f"wall selector {recognized[0]!r} cannot belong to attested target "
+            f"{target_name!r}; expected {expected!r}"
+        )
+    return expected
+
+
+def _relative_file_path(root: Path, relative: str) -> Path:
+    return root.joinpath(*PurePosixPath(relative).parts)
+
+
+def _collector_bundle_inputs(bundle_dir: Path) -> tuple[Path, dict, dict[str, str], bytes]:
+    """Read and validate the immutable manifest inputs for one observation."""
+
+    try:
+        bundle_mode = bundle_dir.lstat().st_mode
+    except OSError as error:
+        raise RuntimeError(f"could not stat collector bundle {bundle_dir}: {error}") from error
+    if not stat.S_ISDIR(bundle_mode):
+        raise RuntimeError(f"collector bundle is not a directory: {bundle_dir}")
+
+    try:
+        entries = {entry.name: entry for entry in bundle_dir.iterdir()}
+    except OSError as error:
+        raise RuntimeError(f"could not read collector bundle {bundle_dir}: {error}") from error
+    expected_entries = {COLLECTOR_MANIFEST_FILENAME, COLLECTOR_CRITERION_DIRECTORY}
+    if set(entries) != expected_entries:
+        raise RuntimeError(
+            "collector bundle has unexpected top-level entries: "
+            f"missing={sorted(expected_entries - set(entries))!r}, "
+            f"unexpected={sorted(set(entries) - expected_entries)!r}"
+        )
+
+    manifest_path = entries[COLLECTOR_MANIFEST_FILENAME]
+    criterion_dir = entries[COLLECTOR_CRITERION_DIRECTORY]
+    try:
+        manifest_mode = manifest_path.lstat().st_mode
+    except OSError as error:
+        raise RuntimeError(f"could not stat collector manifest {manifest_path}: {error}") from error
+    if not stat.S_ISREG(manifest_mode):
+        raise RuntimeError(f"collector manifest is not a regular file: {manifest_path}")
+    manifest, manifest_bytes = load_json_object_with_bytes(
+        manifest_path,
+        "collector manifest",
+    )
+    if set(manifest) != {"schema", "runtime_attestation", "files"}:
+        raise RuntimeError("malformed collector manifest: unexpected shape")
+    if manifest.get("schema") != COLLECTOR_SCHEMA:
+        raise RuntimeError("malformed collector manifest: unsupported schema")
+    attestation = validate_runtime_attestation(
+        manifest.get("runtime_attestation"),
+        "collector manifest runtime attestation",
+    )
+
+    hashes = manifest.get("files")
+    if not isinstance(hashes, dict) or not hashes:
+        raise RuntimeError("malformed collector manifest: missing file hashes")
+    if list(hashes) != sorted(hashes):
+        raise RuntimeError("malformed collector manifest: file hashes are not sorted")
+    file_hashes = {}
+    for relative, digest in hashes.items():
+        normalized = _safe_relative_path(relative, "collector manifest file path")
+        normalized_text = normalized.as_posix()
+        if normalized_text in file_hashes:
+            raise RuntimeError(f"duplicate collector manifest file path {relative!r}")
+        if not isinstance(digest, str) or _SHA256.fullmatch(digest) is None:
+            raise RuntimeError(f"malformed collector manifest hash for {relative!r}")
+        file_hashes[normalized_text] = digest
+    if RUNTIME_ATTESTATION_FILENAME not in file_hashes:
+        raise RuntimeError("collector manifest is missing runtime-attestation.json")
+    return criterion_dir, attestation, file_hashes, manifest_bytes
+
+
+def _assert_tree_matches_manifest(
+    criterion_dir: Path,
+    file_hashes: dict[str, str],
+    description: str,
+) -> dict[str, Path]:
+    files = regular_file_tree(criterion_dir, description)
+    expected_files = set(file_hashes)
+    actual_files = set(files)
+    if actual_files != expected_files:
+        raise RuntimeError(
+            f"{description} does not match manifest: "
+            f"missing={sorted(expected_files - actual_files)!r}, "
+            f"unexpected={sorted(actual_files - expected_files)!r}"
+        )
+    return files
+
+
+def _collector_attestation(attestation: dict, manifest_bytes: bytes) -> dict:
+    return {
+        "schema": COLLECTOR_SCHEMA,
+        "invocation_id": attestation["invocation_id"],
+        "runtime_attestation": attestation,
+        "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+    }
+
+
+def _copy_manifest_file_to_snapshot(
+    source: Path,
+    destination: Path,
+    expected_digest: str,
+    relative: str,
+) -> None:
+    """Copy one manifest path while hashing the exact opened source bytes."""
+
+    flags = os.O_RDONLY
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(source, flags)
+    except OSError as error:
+        raise RuntimeError(
+            f"could not open collector Criterion input {relative!r}: {error}"
+        ) from error
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise RuntimeError(
+                f"collector Criterion input is not a regular file: {relative!r}"
+            )
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256()
+        with os.fdopen(descriptor, "rb", closefd=True) as source_file:
+            descriptor = -1
+            with destination.open("xb") as destination_file:
+                for chunk in iter(lambda: source_file.read(1024 * 1024), b""):
+                    digest.update(chunk)
+                    destination_file.write(chunk)
+        if digest.hexdigest() != expected_digest:
+            raise RuntimeError(f"collector hash mismatch for {relative!r}")
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
+def extract_collector_bundle_observation(bundle_dir: Path) -> dict:
+    """Snapshot a verified bundle, then return values parsed only from that snapshot."""
+
+    criterion_dir, attestation, file_hashes, manifest_bytes = _collector_bundle_inputs(
+        bundle_dir
+    )
+    _assert_tree_matches_manifest(
+        criterion_dir,
+        file_hashes,
+        "collector Criterion tree",
+    )
+    with tempfile.TemporaryDirectory(prefix="tach-speed-collector-observation-") as directory:
+        snapshot = Path(directory) / COLLECTOR_CRITERION_DIRECTORY
+        for relative, digest in file_hashes.items():
+            _copy_manifest_file_to_snapshot(
+                _relative_file_path(criterion_dir, relative),
+                _relative_file_path(snapshot, relative),
+                digest,
+                relative,
+            )
+
+        snapshot_files = _assert_tree_matches_manifest(
+            snapshot,
+            file_hashes,
+            "collector snapshot Criterion tree",
+        )
+        copied_attestation = validate_runtime_attestation(
+            load_json_object(
+                snapshot / RUNTIME_ATTESTATION_FILENAME,
+                "snapshot runtime attestation",
+            ),
+            "snapshot runtime attestation",
+        )
+        if copied_attestation != attestation:
+            raise RuntimeError(
+                "snapshot runtime attestation disagrees with the collector manifest"
+            )
+        behavior = validate_thread_cpu_behavior_attestation(snapshot, attestation)
+        selector = select_attested_wall_selector(
+            snapshot,
+            attestation,
+            set(snapshot_files),
+        )
+        clocks = extract_criterion_directory(
+            snapshot,
+            wall_selector_filename=selector,
+        )
+        return {
+            "clocks": clocks,
+            "thread_cpu_behavior": behavior,
+            "collector_attestation": _collector_attestation(
+                attestation,
+                manifest_bytes,
+            ),
+        }
+
+
+def validate_collector_bundle(bundle_dir: Path) -> dict:
+    """Verify a bundle in place; use the observation API before extracting it."""
+
+    criterion_dir, attestation, file_hashes, manifest_bytes = _collector_bundle_inputs(
+        bundle_dir
+    )
+    copied_files = _assert_tree_matches_manifest(
+        criterion_dir,
+        file_hashes,
+        "collector Criterion tree",
+    )
+    for relative, path in copied_files.items():
+        if sha256_file(path, "collector Criterion input") != file_hashes[relative]:
+            raise RuntimeError(f"collector hash mismatch for {relative!r}")
+    copied_attestation = validate_runtime_attestation(
+        load_json_object(
+            criterion_dir / RUNTIME_ATTESTATION_FILENAME,
+            "copied runtime attestation",
+        ),
+        "copied runtime attestation",
+    )
+    if copied_attestation != attestation:
+        raise RuntimeError(
+            "copied runtime attestation disagrees with the collector manifest"
+        )
+    validate_thread_cpu_behavior_attestation(criterion_dir, attestation)
+    select_attested_wall_selector(criterion_dir, attestation, set(copied_files))
+    return {
+        "criterion_dir": criterion_dir,
+        "collector_attestation": _collector_attestation(attestation, manifest_bytes),
+    }
 
 WALL_FUNS = ["tach", "tach_ordered", "quanta", "fastant", "minstant", "std"]
 # Criterion sanitizes the group label "Instant::now()" -> dir "Instant__now()"
@@ -54,6 +620,9 @@ TACH_CPU_PROVIDERS = {
 }
 NATIVE_PROVIDER_LABELS = {
     "clock_gettime_clock_thread_cputime_id": "clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "libc_clock_gettime_clock_thread_cputime_id": (
+        "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)"
+    ),
     "inline_syscall_clock_thread_cputime_id": (
         "inline syscall(CLOCK_THREAD_CPUTIME_ID)"
     ),
@@ -75,6 +644,7 @@ def criterion_benchmarks(
 
     expected_group_id = CRITERION_GROUP_IDS.get(group_dir)
     benchmarks = []
+    identities: dict[str, Path] = {}
     for directory in group.iterdir():
         estimates = directory / "new" / "estimates.json"
         if not directory.is_dir() or not estimates.exists():
@@ -83,7 +653,7 @@ def criterion_benchmarks(
         identity = directory.name
         metadata_path = directory / "new" / "benchmark.json"
         if metadata_path.exists():
-            metadata = json.loads(metadata_path.read_text())
+            metadata = load_json_object(metadata_path, "Criterion benchmark metadata")
             group_id = metadata.get("group_id")
             function_id = metadata.get("function_id")
             full_id = metadata.get("full_id")
@@ -97,6 +667,13 @@ def criterion_benchmarks(
                     f"malformed Criterion benchmark identity in {metadata_path}"
                 )
             identity = function_id
+        existing = identities.get(identity)
+        if existing is not None:
+            raise RuntimeError(
+                f"duplicate Criterion benchmark identity {identity!r} under {group}: "
+                f"{[existing.name, directory.name]}"
+            )
+        identities[identity] = directory
         benchmarks.append((estimates.stat().st_mtime_ns, identity, directory))
     return benchmarks
 
@@ -106,28 +683,26 @@ def find_exact_benchmark(
 ) -> Path:
     group = criterion_dir / group_dir
     matches = [
-        (modified, directory)
-        for modified, identity, directory in criterion_benchmarks(
-            criterion_dir, group_dir
-        )
+        directory
+        for _, identity, directory in criterion_benchmarks(criterion_dir, group_dir)
         if identity == fn
     ]
     if not matches:
         raise RuntimeError(f"expected benchmark {fn!r} under {group}, found none")
-    newest_time = max(modified for modified, _ in matches)
-    newest = [directory for modified, directory in matches if modified == newest_time]
-    if len(newest) != 1:
+    if len(matches) != 1:
         raise RuntimeError(
-            f"ambiguous newest benchmark {fn!r} under {group}: "
-            f"{[directory.name for directory in newest]}"
+            f"ambiguous benchmark {fn!r} under {group}: "
+            f"{[directory.name for directory in matches]}"
         )
-    return newest[0]
+    return matches[0]
 
 
 def median_estimate(criterion_dir: Path, group_dir: str, fn: str) -> dict:
     directory = find_exact_benchmark(criterion_dir, group_dir, fn)
-    with (directory / "new" / "estimates.json").open() as f:
-        median = json.load(f)["median"]
+    median = load_json_object(
+        directory / "new" / "estimates.json",
+        "Criterion estimates",
+    )["median"]
     return {
         "point": median["point_estimate"],
         "ci95": [
@@ -145,19 +720,17 @@ def add_estimate(entry: dict, kind: str, estimate: dict) -> None:
 def find_benchmark(criterion_dir: Path, group_dir: str, prefix: str) -> str:
   group = criterion_dir / group_dir
   matches = sorted(
-    (modified, identity)
-    for modified, identity, _ in criterion_benchmarks(criterion_dir, group_dir)
+    identity
+    for _, identity, _ in criterion_benchmarks(criterion_dir, group_dir)
     if identity == prefix or identity.startswith(f"{prefix}__")
   )
   if not matches:
     raise RuntimeError(
       f"expected a {prefix!r} benchmark under {group}, found none"
     )
-  newest_time = matches[-1][0]
-  newest = [name for modified, name in matches if modified == newest_time]
-  if len(newest) != 1:
-    raise RuntimeError(f"ambiguous newest {prefix!r} benchmark under {group}: {newest}")
-  return newest[0]
+  if len(matches) != 1:
+    raise RuntimeError(f"ambiguous {prefix!r} benchmark under {group}: {matches}")
+  return matches[0]
 
 
 def has_benchmark(criterion_dir: Path, group_dir: str, prefix: str) -> bool:
@@ -178,7 +751,7 @@ def thread_cpu_entry(criterion_dir: Path, prefix: str) -> dict:
         )
 
     suffix = benchmark.removeprefix(f"{prefix}__")
-    entry = {}
+    entry = {"benchmark": benchmark}
     for kind, group in THREAD_CPU_GROUPS.items():
         add_estimate(entry, kind, median_estimate(criterion_dir, group, benchmark))
     if prefix == "tach_thread_cpu":
@@ -207,7 +780,7 @@ def add_thread_cpu_selector_evidence(criterion_dir: Path, out: dict) -> None:
     if not path.exists():
         return
 
-    selection = json.loads(path.read_text())
+    selection = load_json_object(path, "thread-CPU selector")
     out["tach_thread_cpu"]["selection"] = selection
     if selection.get("selection_kind") == "fixed_native":
         add_fixed_native_thread_cpu_selector_evidence(
@@ -564,19 +1137,22 @@ def wall_candidate_read_cost(benchmark: str) -> str:
     return "inline"
 
 
-def add_wall_selector_evidence(criterion_dir: Path, out: dict) -> None:
-    for filename in (
-        "linux-x86-wall-selection.json",
-        "linux-aarch64-wall-selection.json",
-        "residual-wall-selection.json",
-        "apple-wall-selection.json",
-        "windows-wall-selection.json",
-    ):
+def add_wall_selector_evidence(
+    criterion_dir: Path,
+    out: dict,
+    wall_selector_filename: str | None = None,
+) -> None:
+    filenames = (
+        (wall_selector_filename,)
+        if wall_selector_filename is not None
+        else WALL_SELECTOR_FILENAMES
+    )
+    for filename in filenames:
         path = criterion_dir / filename
         if not path.exists():
             continue
 
-        selection = json.loads(path.read_text())
+        selection = load_json_object(path, "wall selector")
         out["tach"]["selection"] = selection
         # `tach_ordered.selection` retains the architecture-protocol evidence
         # emitted by ordered-selection.json; this record proves the complete
@@ -684,8 +1260,12 @@ def add_selected_wall_evidence(criterion_dir: Path, out: dict) -> None:
         out[prefix] = entry
 
 
-def main() -> None:
-    criterion_dir = Path(sys.argv[1])
+def extract_criterion_directory(
+    criterion_dir: Path,
+    wall_selector_filename: str | None = None,
+) -> dict:
+    """Extract clocks from a raw Criterion directory without collector checks."""
+
     out = {}
     for fn in WALL_FUNS:
         entry = {}
@@ -696,25 +1276,64 @@ def main() -> None:
     out["tach_ordered"]["time_domain"] = "ordered wall"
     ordered_selection = criterion_dir / "ordered-selection.json"
     if ordered_selection.exists():
-        selection_data = json.loads(ordered_selection.read_text())
+        selection_data = load_json_object(ordered_selection, "ordered selector")
         out["tach_ordered"]["selection"] = selection_data
         for candidate in selection_data.get("eligible_direct_candidates", []):
             estimate = median_estimate(
                 criterion_dir, WALL_GROUPS["now"], candidate
             )
             entry = {
-                "provider": candidate.removeprefix("direct_ordered__"),
+                "provider": candidate.removeprefix("direct_ordered_wall__").removeprefix(
+                    "direct_ordered__"
+                ),
                 "read_cost": "inline",
                 "time_domain": "ordered wall",
                 "benchmark": candidate,
             }
             add_estimate(entry, "now", estimate)
             out[candidate] = entry
-    add_wall_selector_evidence(criterion_dir, out)
+    add_wall_selector_evidence(criterion_dir, out, wall_selector_filename)
     add_selected_wall_evidence(criterion_dir, out)
     out["tach_thread_cpu"] = thread_cpu_entry(criterion_dir, "tach_thread_cpu")
     out["native_thread_cpu"] = thread_cpu_entry(criterion_dir, "native_thread_cpu")
     add_thread_cpu_selector_evidence(criterion_dir, out)
+    return out
+
+
+def extract_collector_bundle(bundle_dir: Path) -> dict:
+    """Extract a collector bundle through an isolated verified observation."""
+
+    observation = extract_collector_bundle_observation(bundle_dir)
+    out = observation["clocks"]
+    out["collector_attestation"] = observation["collector_attestation"]
+    return out
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="extract tach speed clocks from Criterion data"
+    )
+    parser.add_argument(
+        "criterion_dir",
+        nargs="?",
+        type=Path,
+        help="raw Criterion output directory",
+    )
+    parser.add_argument(
+        "--collector-bundle",
+        type=Path,
+        help="verified tach-speed-collector bundle directory",
+    )
+    args = parser.parse_args()
+    if (args.criterion_dir is None) == (args.collector_bundle is None):
+        parser.error("provide exactly one raw Criterion directory or --collector-bundle")
+    try:
+        if args.collector_bundle is not None:
+            out = extract_collector_bundle(args.collector_bundle)
+        else:
+            out = extract_criterion_directory(args.criterion_dir)
+    except RuntimeError as error:
+        parser.error(str(error))
     json.dump(out, sys.stdout, indent=2)
     print()
 

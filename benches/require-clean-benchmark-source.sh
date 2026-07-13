@@ -11,12 +11,15 @@ paths=(
   src
   tests
   benches/bench_data.py
+  benches/collect-speed-bundle.py
   benches/compose-speed.py
+  benches/compose-supplemental-speed.py
   benches/extract_speed.py
   benches/instant.rs
   benches/lambda-speed/Cargo.lock
   benches/lambda-speed/Cargo.toml
   benches/lambda-speed/src
+  benches/release_matrix.py
   benches/require-clean-benchmark-source.sh
   benches/probes/aarch64-thread-pmu.c
   benches/route-coverage.toml
@@ -25,11 +28,17 @@ paths=(
   benches/run-speed-lambda.sh
   benches/run-speed-local.sh
   benches/run-thread-pmu-aws.sh
+  benches/seal-speed-source.py
   benches/speed_evidence.py
   benches/summary.py
   benches/summary-thread-cpu.py
   benches/summary-use-cases.py
+  benches/test_bench_data.py
   benches/test_extract_speed.py
+  benches/test_release_evidence_validation.py
+  benches/test_release_matrix.py
+  benches/test_release_matrix_wiring.py
+  benches/test_runner_wiring.py
   benches/test_speed_evidence.py
   benches/validate-speed-evidence.py
   benches/validate-release-evidence.py

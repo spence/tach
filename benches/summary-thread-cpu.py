@@ -9,20 +9,41 @@ OrderedInstant charts. Each cell must carry `tach_thread_cpu` and
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import shutil
 import subprocess
 from pathlib import Path
+import sys
 
-import bench_data
-import speed_evidence
 import summary
 
 
 ROOT = Path(__file__).resolve().parent
+RELEASE_VALIDATOR_PATH = ROOT / "validate-release-evidence.py"
+RELEASE_VALIDATOR_MODULE = "tach_release_evidence_for_thread_cpu_chart"
 CRATES = [
   ("tach_thread_cpu@0.2.0", "#D72D24"),
   ("native_thread_cpu", "#5B6472"),
 ]
+
+
+def load_release_validator():
+  """Load the release gate as an in-process snapshot provider."""
+  if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+  module = sys.modules.get(RELEASE_VALIDATOR_MODULE)
+  if module is not None:
+    return module
+  spec = importlib.util.spec_from_file_location(
+    RELEASE_VALIDATOR_MODULE,
+    RELEASE_VALIDATOR_PATH,
+  )
+  if spec is None or spec.loader is None:
+    raise RuntimeError("could not load validate-release-evidence.py")
+  module = importlib.util.module_from_spec(spec)
+  sys.modules[RELEASE_VALIDATOR_MODULE] = module
+  spec.loader.exec_module(module)
+  return module
 
 
 def compact_provider(label: str) -> str:
@@ -76,14 +97,18 @@ def groups(cells, kind: str):
   return output
 
 
-def render(documents, output_dir: Path, png: bool = True) -> None:
-  report = speed_evidence.validate_campaign_for_checkout(documents, ROOT.parent)
-  if not report["passed"]:
-    raise ValueError("benchmark evidence failed:\n  " + "\n  ".join(report["failures"]))
+def cells_from_release_snapshot(snapshot) -> list[tuple[tuple[str, str, str], dict]]:
+  """Build chart cells only from the full-gate snapshot's captured primary bytes."""
+  documents = snapshot.primary_chart_documents()
   cells = [
     ((document["title"], document["instance"], document["triple"]), document["clocks"])
-    for document in documents
+    for _, document in sorted(documents.items(), key=lambda item: item[1].get("order", 99))
   ]
+  return cells
+
+
+def render_cells(cells, output_dir: Path, png: bool = True) -> None:
+  """Render already-admitted chart cells without reading evidence paths."""
   now_groups = groups(cells, "now")
   elapsed_groups = groups(cells, "elapsed")
   if len(now_groups) != 6:
@@ -126,6 +151,11 @@ def render(documents, output_dir: Path, png: bool = True) -> None:
     )
 
 
+def render(snapshot, output_dir: Path, png: bool = True) -> None:
+  """Render a release claim from one successful full-release snapshot."""
+  render_cells(cells_from_release_snapshot(snapshot), output_dir, png)
+
+
 def main() -> None:
   parser = argparse.ArgumentParser()
   parser.add_argument("--data-dir", type=Path, default=ROOT)
@@ -136,8 +166,12 @@ def main() -> None:
   if not args.svg_only and shutil.which("rsvg-convert") is None:
     raise SystemExit("rsvg-convert is required to render the benchmark PNG")
   try:
+    snapshot = load_release_validator().require_validated_release_snapshot(
+      args.data_dir,
+      ROOT.parent,
+    )
     render(
-      bench_data.load_cell_documents(args.data_dir),
+      snapshot,
       args.output_dir,
       png=not args.svg_only,
     )

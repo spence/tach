@@ -1,17 +1,41 @@
 #!/usr/bin/env python3
-"""Validate the six-cell evidence behind tach's three-use-case speed claim."""
+"""Validate every release evidence requirement behind tach's public claims."""
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 from pathlib import Path
-
-import bench_data
-import speed_evidence
-
+import sys
 
 ROOT = Path(__file__).resolve().parent
+RELEASE_VALIDATOR_PATH = ROOT / "validate-release-evidence.py"
+RELEASE_VALIDATOR_MODULE = "tach_release_evidence_for_speed_claims"
+
+
+def load_release_validator():
+  """Load the release gate as an in-process API, preserving its snapshot types."""
+  if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+  module = sys.modules.get(RELEASE_VALIDATOR_MODULE)
+  if module is not None:
+    return module
+  spec = importlib.util.spec_from_file_location(
+    RELEASE_VALIDATOR_MODULE,
+    RELEASE_VALIDATOR_PATH,
+  )
+  if spec is None or spec.loader is None:
+    raise RuntimeError("could not load validate-release-evidence.py")
+  module = importlib.util.module_from_spec(spec)
+  sys.modules[RELEASE_VALIDATOR_MODULE] = module
+  spec.loader.exec_module(module)
+  return module
+
+
+def validate(data_dir: Path, checkout_root: Path = ROOT.parent) -> dict:
+  """Validate the complete release claim, not a primary-only subset."""
+  return load_release_validator().validate_release_evidence(data_dir, checkout_root)
 
 
 def main() -> None:
@@ -19,10 +43,10 @@ def main() -> None:
   parser.add_argument("--data-dir", type=Path, default=ROOT)
   parser.add_argument("--output", type=Path)
   args = parser.parse_args()
-  report = speed_evidence.validate_campaign_for_checkout(
-    bench_data.load_cell_documents(args.data_dir),
-    ROOT.parent,
-  )
+  try:
+    report = validate(args.data_dir)
+  except ValueError as error:
+    parser.error(str(error))
   rendered = json.dumps(report, indent=2) + "\n"
   if args.output:
     args.output.write_text(rendered)

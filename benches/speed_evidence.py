@@ -3,16 +3,34 @@
 from __future__ import annotations
 
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import random
 import re
+import stat
 import statistics
 import subprocess
 
 
 LOCAL_COMPETITORS = ("quanta", "fastant", "minstant", "std")
 METRICS = ("now", "elapsed")
+APPLE_AARCH64_QUANTA_INELIGIBILITY_REASON = (
+  "apple_bare_cntvct_omits_xnu_wake_correction_and_may_suspend_diverge"
+)
+APPLE_AARCH64_QUANTA_IMPLEMENTATION = (
+  "quanta reads bare CNTVCT_EL0 on aarch64-apple-darwin; unlike XNU's "
+  "wake-corrected wall-clock path, that counter can time-warp or diverge "
+  "across suspend"
+)
 BENCHMARK_FEATURES = ("bench-internal", "thread-cpu-inline")
+BENCHMARK_FEATURES_BY_BUILD_MODE = {
+  "default": BENCHMARK_FEATURES,
+  "no-default": ("bench-internal",),
+  "emscripten-pthreads": (
+    "bench-internal",
+    "emscripten-pthreads",
+    "thread-cpu-inline",
+  ),
+}
 STRICT_THREAD_CPU_PROVIDER_COSTS = {
   "Linux perf task-clock read": "system call",
   "POSIX thread CPU clock": "system call",
@@ -82,12 +100,15 @@ BENCHMARK_SOURCE_PATHS = (
   "src",
   "tests",
   "benches/bench_data.py",
+  "benches/collect-speed-bundle.py",
   "benches/compose-speed.py",
+  "benches/compose-supplemental-speed.py",
   "benches/extract_speed.py",
   "benches/instant.rs",
   "benches/lambda-speed/Cargo.toml",
   "benches/lambda-speed/Cargo.lock",
   "benches/lambda-speed/src",
+  "benches/release_matrix.py",
   "benches/require-clean-benchmark-source.sh",
   "benches/probes/aarch64-thread-pmu.c",
   "benches/route-coverage.toml",
@@ -96,79 +117,195 @@ BENCHMARK_SOURCE_PATHS = (
   "benches/run-speed-lambda.sh",
   "benches/run-speed-local.sh",
   "benches/run-thread-pmu-aws.sh",
+  "benches/seal-speed-source.py",
   "benches/speed_evidence.py",
   "benches/summary.py",
   "benches/summary-thread-cpu.py",
   "benches/summary-use-cases.py",
+  "benches/test_bench_data.py",
   "benches/test_extract_speed.py",
   "benches/test_speed_evidence.py",
+  "benches/test_release_evidence_validation.py",
+  "benches/test_release_matrix.py",
+  "benches/test_release_matrix_wiring.py",
+  "benches/test_runner_wiring.py",
   "benches/validate-speed-evidence.py",
   "benches/validate-release-evidence.py",
   "benches/validate-supplemental-thread-cpu.py",
   "benches/verify-target-providers.py",
 )
-EXPECTED_ENVIRONMENTS = (
-  (0, "Apple Silicon", "M1 Max MacBook Pro", "aarch64-apple-darwin", "criterion", "bench"),
-  (1, "AWS Graviton 3", "c7g.large", "aarch64-unknown-linux-gnu", "criterion", "bench"),
-  (2, "AWS Intel", "c7i.large", "x86_64-unknown-linux-gnu", "criterion", "bench"),
-  (
+PRIMARY_SPEED_SCHEMA = "tach-speed-primary-v1"
+PRIMARY_SPEED_REPORT_SCHEMA = "tach-speed-primary-report-v1"
+PRIMARY_EVIDENCE_KIND = "full_speed"
+PRIMARY_SPEED_CELLS = {
+  "speed-0-apple.json": (
+    0,
+    "Apple Silicon",
+    "M1 Max MacBook Pro",
+    "aarch64-apple-darwin",
+    "criterion",
+    "default",
+  ),
+  "speed-1-c7g.json": (
+    1,
+    "AWS Graviton 3",
+    "c7g.large",
+    "aarch64-unknown-linux-gnu",
+    "criterion",
+    "default",
+  ),
+  "speed-2-inteln.json": (
+    2,
+    "AWS Intel",
+    "c7i.large",
+    "x86_64-unknown-linux-gnu",
+    "criterion",
+    "default",
+  ),
+  "speed-3-intelm.json": (
     3,
     "AWS Intel (musl)",
     "c7i.large + Alpine",
     "x86_64-unknown-linux-musl",
     "criterion",
-    "bench",
+    "default",
   ),
-  (4, "GitHub Windows", "windows-2025", "x86_64-pc-windows-msvc", "criterion", "bench"),
-  (
+  "speed-4-windows.json": (
+    4,
+    "GitHub Windows",
+    "windows-2025",
+    "x86_64-pc-windows-msvc",
+    "criterion",
+    "default",
+  ),
+  "speed-5-lambda.json": (
     5,
     "AWS Lambda",
     "provided.al2023 1024MB",
     "x86_64-unknown-linux-gnu",
     "lambda",
-    "release",
+    None,
   ),
+}
+EXPECTED_PRIMARY_IDENTITIES = tuple(
+  values[:5] for values in PRIMARY_SPEED_CELLS.values()
 )
 
 SUPPLEMENTAL_SPEED_CELLS = {
   "speed-supplemental-macos-x86_64.json": (
-    "x86_64-apple-darwin", "criterion", "full_speed_cell"
+    "x86_64-apple-darwin", "criterion", "full_speed_cell", "default"
   ),
   "speed-supplemental-windows-i686.json": (
-    "i686-pc-windows-msvc", "criterion", "full_speed_cell"
+    "i686-pc-windows-msvc", "criterion", "full_speed_cell", "default"
   ),
   "speed-supplemental-windows-aarch64.json": (
-    "aarch64-pc-windows-msvc", "criterion", "full_speed_cell"
+    "aarch64-pc-windows-msvc", "criterion", "full_speed_cell", "default"
   ),
   "speed-supplemental-linux-i686.json": (
-    "i686-unknown-linux-gnu", "criterion", "full_speed_cell"
+    "i686-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
   ),
   "speed-supplemental-freebsd-x86_64.json": (
-    "x86_64-unknown-freebsd", "criterion", "full_speed_cell"
+    "x86_64-unknown-freebsd", "criterion", "full_speed_cell", "default"
   ),
   "speed-supplemental-wasm-node.json": (
-    "wasm32-unknown-unknown", "node-wasm-bindgen", "full_speed_cell"
+    "wasm32-unknown-unknown", "node-wasm-bindgen", "full_speed_cell", "default"
   ),
   "speed-supplemental-emscripten-node.json": (
-    "wasm32-unknown-emscripten", "emcc-node", "full_speed_cell"
+    "wasm32-unknown-emscripten", "emcc-node", "full_speed_cell", "default"
   ),
   "speed-supplemental-wasi-p1-node.json": (
-    "wasm32-wasip1", "node-uvwasi", "full_speed_cell"
+    "wasm32-wasip1", "node-uvwasi", "full_speed_cell", "default"
   ),
   "speed-supplemental-wasi-p1-wasmtime.json": (
-    "wasm32-wasip1", "wasmtime", "tagged_wall_fallback"
+    "wasm32-wasip1", "wasmtime", "tagged_wall_fallback", "default"
   ),
   "speed-supplemental-wasi-p2-wasmtime.json": (
-    "wasm32-wasip2", "wasmtime-component", "tagged_wall_fallback"
+    "wasm32-wasip2", "wasmtime-component", "tagged_wall_fallback", "default"
   ),
   "speed-supplemental-browser-negative.json": (
-    "wasm32-unknown-unknown", "browser", "tagged_wall_fallback"
+    "wasm32-unknown-unknown", "browser", "tagged_wall_fallback", "default"
   ),
   "speed-supplemental-wasip1-threads-smoke.json": (
-    "wasm32-wasip1-threads", "wasi-threads-smoke", "runtime_smoke"
+    "wasm32-wasip1-threads", "wasi-threads-smoke", "runtime_smoke", "default"
   ),
   "speed-supplemental-wasm32v1-none-smoke.json": (
-    "wasm32v1-none", "wasm32v1-none-smoke", "runtime_smoke"
+    "wasm32v1-none", "wasm32v1-none-smoke", "runtime_smoke", "default"
+  ),
+}
+
+# Supplemental artifacts are runtime evidence.  The route-coverage TOML is a
+# separate, static admission contract and must never be used to fill in an
+# observed selector or benchmark identity here.
+SUPPLEMENTAL_SPEED_SCHEMA = "tach-speed-supplemental-v4"
+SUPPLEMENTAL_SELECTION_PROFILES = frozenset({
+  "runtime_tournament",
+  "fixed_native",
+  "availability_fallback",
+  "fallback_only",
+})
+SUPPLEMENTAL_ROUTE_ROWS = {
+  "instant": ("tach", "direct_selected_wall", "instant"),
+  "ordered": ("tach_ordered", "direct_selected_ordered_wall", "ordered"),
+  "thread_cpu": ("tach_thread_cpu", "direct_selected_thread_cpu", "thread_cpu"),
+}
+RUNTIME_ATTESTATION_SCHEMA = "tach-benchmark-runtime-v2"
+RUNTIME_SMOKE_ATTESTATION_SCHEMA = "tach-runtime-smoke-attestation-v1"
+COLLECTOR_ATTESTATION_SCHEMA = "tach-speed-collector-v1"
+COLLECTOR_BUNDLE_DESCRIPTOR_SCHEMA = "tach-speed-collector-v1"
+THREAD_CPU_BEHAVIOR_SCHEMA = "tach-thread-cpu-behavior-v2"
+THREAD_CPU_BEHAVIOR_SAMPLE_COUNT = 3
+THREAD_CPU_BEHAVIOR_PHASES = ("busy", "sleep", "sibling_isolation")
+THREAD_CPU_BEHAVIOR_FIELDS = (
+  "wall_delta_ns",
+  "public_delta_ns",
+  "direct_delta_ns",
+)
+
+RUNTIME_TARGETS = {
+  "aarch64-apple-darwin": {"arch": "aarch64", "os": "macos", "env": ""},
+  "aarch64-unknown-linux-gnu": {"arch": "aarch64", "os": "linux", "env": "gnu"},
+  "x86_64-unknown-linux-gnu": {"arch": "x86_64", "os": "linux", "env": "gnu"},
+  "x86_64-unknown-linux-musl": {"arch": "x86_64", "os": "linux", "env": "musl"},
+  "x86_64-pc-windows-msvc": {"arch": "x86_64", "os": "windows", "env": "msvc"},
+  "x86_64-apple-darwin": {"arch": "x86_64", "os": "macos", "env": ""},
+  "i686-pc-windows-msvc": {"arch": "x86", "os": "windows", "env": "msvc"},
+  "aarch64-pc-windows-msvc": {"arch": "aarch64", "os": "windows", "env": "msvc"},
+  "i686-unknown-linux-gnu": {"arch": "x86", "os": "linux", "env": "gnu"},
+  "x86_64-unknown-freebsd": {"arch": "x86_64", "os": "freebsd", "env": ""},
+  "wasm32-unknown-unknown": {"arch": "wasm32", "os": "unknown", "env": ""},
+  "wasm32-unknown-emscripten": {"arch": "wasm32", "os": "emscripten", "env": ""},
+  "wasm32-wasip1": {"arch": "wasm32", "os": "wasi", "env": "p1"},
+  "wasm32-wasip2": {"arch": "wasm32", "os": "wasi", "env": "p2"},
+  "wasm32-wasip1-threads": {"arch": "wasm32", "os": "wasi", "env": "p1"},
+  "wasm32v1-none": {"arch": "wasm32", "os": "none", "env": ""},
+}
+SUPPLEMENTAL_RUNTIME_TARGETS = RUNTIME_TARGETS
+
+SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES = {
+  "x86_64-apple-darwin": (
+    "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
+    "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  "i686-pc-windows-msvc": (
+    "native_thread_cpu__get_thread_times_current_thread_pseudohandle",
+    "GetThreadTimes(current-thread pseudo-handle)",
+    "system call",
+  ),
+  "aarch64-pc-windows-msvc": (
+    "native_thread_cpu__get_thread_times_current_thread_pseudohandle",
+    "GetThreadTimes(current-thread pseudo-handle)",
+    "system call",
+  ),
+  "i686-unknown-linux-gnu": (
+    "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+    "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  "x86_64-unknown-freebsd": (
+    "native_thread_cpu__clock_gettime_clock_thread_cputime_id",
+    "clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
   ),
 }
 
@@ -200,7 +337,18 @@ def local_reference_eligibility(target_triple: str | None) -> dict[str, dict]:
     }
     for name in LOCAL_COMPETITORS
   }
-  if not isinstance(target_triple, str) or "-windows-" not in target_triple:
+  if not isinstance(target_triple, str):
+    return eligibility
+
+  if target_triple == "aarch64-apple-darwin":
+    eligibility["quanta"] = {
+      "eligible": False,
+      "reason": APPLE_AARCH64_QUANTA_INELIGIBILITY_REASON,
+      "implementation": APPLE_AARCH64_QUANTA_IMPLEMENTATION,
+    }
+    return eligibility
+
+  if "-windows-" not in target_triple:
     return eligibility
 
   for name in ("fastant", "minstant"):
@@ -2782,7 +2930,7 @@ def validate_lambda_samples(context: str, clocks: dict, failures: list[str]) -> 
 
 def git_command(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
   return subprocess.run(
-    ["git", *args],
+    ["git", "--no-replace-objects", *args],
     cwd=root,
     capture_output=True,
     text=True,
@@ -3259,69 +3407,561 @@ def validate_cell(
   }
 
 
-def validate_campaign(documents: list[dict]) -> dict:
-  failures = []
-  results = []
-  if len(documents) != len(EXPECTED_ENVIRONMENTS):
+def _valid_full_revision(value: object) -> bool:
+  return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", value) is not None
+
+
+def benchmark_features_for_build_mode(build_mode: object) -> tuple[str, ...] | None:
+  """Return the exact Cargo feature identity for one advertised build mode."""
+  return (
+    BENCHMARK_FEATURES_BY_BUILD_MODE.get(build_mode)
+    if isinstance(build_mode, str)
+    else None
+  )
+
+
+def validate_runtime_attestation(
+  context: str,
+  attestation: object,
+  expected_triple: str,
+  expected_harness: str,
+  expected_build_mode: str,
+  expected_revision: object,
+  failures: list[str],
+) -> dict:
+  """Validate target/build identity emitted by the measured runtime itself."""
+  target = RUNTIME_TARGETS.get(expected_triple)
+  expected_keys = {
+    "schema",
+    "invocation_id",
+    "harness",
+    "target",
+    "features",
+    "build_mode",
+    "build_profile",
+    "source_revision",
+    "runner",
+    "output_isolated",
+  }
+  if not isinstance(attestation, dict) or set(attestation) != expected_keys:
+    failures.append(f"{context}: runtime attestation schema changed")
+    return {}
+  if attestation.get("schema") != RUNTIME_ATTESTATION_SCHEMA:
+    failures.append(f"{context}: runtime attestation version changed")
+  invocation_id = attestation.get("invocation_id")
+  if not isinstance(invocation_id, str) or not re.fullmatch(r"[A-Za-z0-9._:-]+", invocation_id):
+    failures.append(f"{context}: runtime attestation has no opaque invocation ID")
+  if attestation.get("harness") != expected_harness:
+    failures.append(f"{context}: runtime attestation harness disagrees with artifact")
+  if target is None or attestation.get("target") != target:
+    failures.append(f"{context}: runtime attestation target disagrees with artifact")
+  features = attestation.get("features")
+  expected_features = benchmark_features_for_build_mode(expected_build_mode)
+  if (
+    not isinstance(features, list)
+    or features != sorted(features)
+    or len(set(features)) != len(features)
+    or not all(isinstance(feature, str) and feature for feature in features)
+    or attestation.get("build_mode") != expected_build_mode
+    or expected_features is None
+    or features != list(expected_features)
+  ):
     failures.append(
-      f"expected {len(EXPECTED_ENVIRONMENTS)} environments, found {len(documents)}"
+      f"{context}: runtime attestation feature set differs from build mode "
+      f"{expected_build_mode!r}"
+    )
+  if attestation.get("build_profile") != "optimized":
+    failures.append(f"{context}: runtime attestation is not an optimized benchmark build")
+  revision = attestation.get("source_revision")
+  if not _valid_full_revision(revision) or revision != expected_revision:
+    failures.append(f"{context}: runtime attestation source revision is not bound")
+  if not isinstance(attestation.get("runner"), str) or not attestation["runner"].strip():
+    failures.append(f"{context}: runtime attestation has no runner identity")
+  if attestation.get("output_isolated") is not True:
+    failures.append(f"{context}: runtime attestation did not isolate Criterion output")
+  return attestation
+
+
+def validate_collector_attestation(
+  context: str,
+  collector: object,
+  expected_triple: str,
+  expected_harness: str,
+  expected_build_mode: str,
+  expected_revision: object,
+  failures: list[str],
+) -> dict:
+  """Validate a digest-bound Criterion collection before accepting its clocks."""
+  expected_keys = {
+    "schema",
+    "invocation_id",
+    "runtime_attestation",
+    "manifest_sha256",
+  }
+  if not isinstance(collector, dict) or set(collector) != expected_keys:
+    failures.append(f"{context}: collector attestation schema changed")
+    return {}
+  if collector.get("schema") != COLLECTOR_ATTESTATION_SCHEMA:
+    failures.append(f"{context}: collector attestation version changed")
+  if not isinstance(collector.get("manifest_sha256"), str) or not re.fullmatch(
+    r"[0-9a-f]{64}", collector["manifest_sha256"]
+  ):
+    failures.append(f"{context}: collector manifest digest is malformed")
+  attestation = validate_runtime_attestation(
+    context,
+    collector.get("runtime_attestation"),
+    expected_triple,
+    expected_harness,
+    expected_build_mode,
+    expected_revision,
+    failures,
+  )
+  if collector.get("invocation_id") != attestation.get("invocation_id"):
+    failures.append(f"{context}: collector and runtime invocation IDs disagree")
+  return attestation
+
+
+def validate_collector_bundle_descriptor(
+  context: str,
+  descriptor: object,
+  collector: object,
+  failures: list[str],
+) -> None:
+  """Bind a serialized cell to the immutable bundle it was extracted from."""
+  expected_keys = {"schema", "path", "manifest_sha256"}
+  if not isinstance(descriptor, dict) or set(descriptor) != expected_keys:
+    failures.append(f"{context}: collector bundle descriptor schema changed")
+    return
+  relative = descriptor.get("path")
+  path = PurePosixPath(relative) if isinstance(relative, str) else None
+  if (
+    not isinstance(relative, str)
+    or not relative
+    or "\\" in relative
+    or path is None
+    or path.is_absolute()
+    or any(part in {"", ".", ".."} for part in path.parts)
+    or path.as_posix() != relative
+  ):
+    failures.append(f"{context}: collector bundle path is not a safe relative path")
+  if (
+    descriptor.get("schema") != COLLECTOR_BUNDLE_DESCRIPTOR_SCHEMA
+    or not isinstance(collector, dict)
+    or descriptor.get("manifest_sha256") != collector.get("manifest_sha256")
+  ):
+    failures.append(f"{context}: collector bundle descriptor disagrees with clocks")
+
+
+def validate_provenance_runtime_binding(
+  context: str,
+  provenance: object,
+  attestation: object,
+  failures: list[str],
+) -> None:
+  """Require document provenance to repeat the collector-emitted build identity."""
+  if not isinstance(provenance, dict) or not isinstance(attestation, dict):
+    failures.append(f"{context}: provenance cannot bind runtime identity")
+    return
+  expected = {
+    "harness": attestation.get("harness"),
+    "source_revision": attestation.get("source_revision"),
+    "runner": attestation.get("runner"),
+    "build_profile": attestation.get("build_profile"),
+    "build_mode": attestation.get("build_mode"),
+    "features": attestation.get("features"),
+  }
+  if any(provenance.get(field) != value for field, value in expected.items()):
+    failures.append(f"{context}: document provenance disagrees with runtime identity")
+
+
+def runtime_identity_provenance(attestation: object) -> dict:
+  """Copy only collector-emitted identity fields into a composed document."""
+  if not isinstance(attestation, dict):
+    return {}
+  return {
+    field: attestation.get(field)
+    for field in (
+      "harness",
+      "source_revision",
+      "runner",
+      "build_profile",
+      "build_mode",
+      "features",
+    )
+  }
+
+
+def _primary_cell_result(
+  artifact_id: str,
+  document: object,
+  failures: list[str],
+  *,
+  three_clock_speed: object = None,
+  bound_observation: bool = False,
+  bundle_path: Path | None = None,
+) -> dict:
+  """Render one stable primary-cell result, including failed partial identities."""
+  provenance = document.get("provenance") if isinstance(document, dict) else None
+  provenance = provenance if isinstance(provenance, dict) else {}
+  return {
+    "artifact_id": artifact_id,
+    "source_revision": provenance.get("source_revision"),
+    "triple": document.get("triple") if isinstance(document, dict) else None,
+    "build_mode": document.get("build_mode") if isinstance(document, dict) else None,
+    "evidence_kind": document.get("evidence_kind") if isinstance(document, dict) else None,
+    "bound_observation": bound_observation,
+    "bundle_path": str(bundle_path) if bundle_path is not None else None,
+    "three_clock_speed": three_clock_speed if three_clock_speed is not None else {},
+    "passed": not failures,
+    "failures": failures,
+  }
+
+
+def validate_primary_speed_cell(artifact_id: str, document: object) -> dict:
+  """Validate one primary speed cell before its retained bundle is re-extracted."""
+  context = f"primary {artifact_id}"
+  failures: list[str] = []
+  expected = PRIMARY_SPEED_CELLS.get(artifact_id)
+  if expected is None:
+    return _primary_cell_result(
+      artifact_id,
+      document,
+      [f"{context}: unknown primary artifact"],
+    )
+  order, title, instance, triple, harness, expected_build_mode = expected
+  if not isinstance(document, dict):
+    return _primary_cell_result(
+      artifact_id,
+      document,
+      [f"{context}: document is not an object"],
     )
 
+  expected_document_keys = {
+    "schema",
+    "artifact_id",
+    "title",
+    "instance",
+    "triple",
+    "order",
+    "build_mode",
+    "evidence_kind",
+    "provenance",
+    "collector_bundle",
+    "collector_attestation",
+    "clocks",
+  }
+  if set(document) != expected_document_keys:
+    failures.append(f"{context}: document schema changed")
+  provenance = document.get("provenance")
+  provenance_fields = {
+    "harness",
+    "source_revision",
+    "runner",
+    "build_profile",
+    "build_mode",
+    "features",
+  }
+  if not isinstance(provenance, dict) or set(provenance) != provenance_fields:
+    failures.append(f"{context}: provenance schema changed")
+    provenance = {}
+  identity = (
+    document.get("order"),
+    document.get("title"),
+    document.get("instance"),
+    document.get("triple"),
+    provenance.get("harness"),
+  )
+  if (
+    document.get("schema") != PRIMARY_SPEED_SCHEMA
+    or document.get("artifact_id") != artifact_id
+    or identity != (order, title, instance, triple, harness)
+    or document.get("evidence_kind") != PRIMARY_EVIDENCE_KIND
+  ):
+    failures.append(f"{context}: identity does not match the primary campaign")
+  if expected_build_mode is not None and document.get("build_mode") != expected_build_mode:
+    failures.append(
+      f"{context}: build mode does not match the primary campaign "
+      f"{expected_build_mode!r}"
+    )
+  if harness != "criterion":
+    failures.append(
+      f"{context}: {harness!r} requires a host observation protocol; "
+      "Criterion collector bundles cannot prove this cell"
+    )
+
+  revision = provenance.get("source_revision")
+  if not _valid_full_revision(revision):
+    failures.append(f"{context}: invalid full source revision")
+  runtime_attestation = validate_collector_attestation(
+    context,
+    document.get("collector_attestation"),
+    triple,
+    harness,
+    expected_build_mode if expected_build_mode is not None else document.get("build_mode"),
+    revision,
+    failures,
+  )
+  validate_collector_bundle_descriptor(
+    context,
+    document.get("collector_bundle"),
+    document.get("collector_attestation"),
+    failures,
+  )
+  validate_provenance_runtime_binding(context, provenance, runtime_attestation, failures)
+
+  clocks = document.get("clocks")
+  three_clock_speed = {}
+  if not isinstance(clocks, dict):
+    failures.append(f"{context}: missing clocks object")
+  elif "collector_attestation" in clocks:
+    failures.append(f"{context}: clocks must not carry a second collector attestation")
+  elif not failures:
+    cell_failures, three_clock_speed = validate_cell(context, clocks, triple)
+    failures.extend(cell_failures)
+  return _primary_cell_result(
+    artifact_id,
+    document,
+    failures,
+    three_clock_speed=three_clock_speed,
+  )
+
+
+def compose_primary_speed_cell(
+  artifact_id: str,
+  title: str,
+  instance: str,
+  triple: str,
+  order: int,
+  clocks: object,
+  collector_attestation: object,
+  collector_bundle_path: object,
+) -> dict:
+  """Compose one canonical primary cell from a verified Criterion observation."""
+  expected = PRIMARY_SPEED_CELLS.get(artifact_id)
+  if expected is None:
+    raise ValueError(f"unknown primary artifact {artifact_id!r}")
+  _, _, _, _, harness, _ = expected
+  if harness != "criterion":
+    raise ValueError(
+      f"{artifact_id} requires a host observation protocol; "
+      "this composer only accepts Criterion collector bundles"
+    )
+  runtime_attestation = (
+    collector_attestation.get("runtime_attestation")
+    if isinstance(collector_attestation, dict)
+    else None
+  )
+  document = {
+    "schema": PRIMARY_SPEED_SCHEMA,
+    "artifact_id": artifact_id,
+    "title": title,
+    "instance": instance,
+    "triple": triple,
+    "order": order,
+    "build_mode": (
+      runtime_attestation.get("build_mode")
+      if isinstance(runtime_attestation, dict)
+      else None
+    ),
+    "evidence_kind": PRIMARY_EVIDENCE_KIND,
+    "provenance": runtime_identity_provenance(runtime_attestation),
+    "collector_bundle": {
+      "schema": COLLECTOR_BUNDLE_DESCRIPTOR_SCHEMA,
+      "path": collector_bundle_path,
+      "manifest_sha256": (
+        collector_attestation.get("manifest_sha256")
+        if isinstance(collector_attestation, dict)
+        else None
+      ),
+    },
+    "collector_attestation": collector_attestation,
+    "clocks": clocks,
+  }
+  report = validate_primary_speed_cell(artifact_id, document)
+  if not report["passed"]:
+    raise ValueError("primary cell does not validate:\n  " + "\n  ".join(report["failures"]))
+  return document
+
+
+def retained_primary_collector_bundle_path(
+  artifact_id: str,
+  cell_path: Path,
+  document: object,
+) -> tuple[Path | None, str | None]:
+  """Resolve a primary collector bundle without permitting path escapes or links."""
+  descriptor = document.get("collector_bundle") if isinstance(document, dict) else None
+  relative = descriptor.get("path") if isinstance(descriptor, dict) else None
+  if not isinstance(relative, str) or not relative or "\\" in relative:
+    return None, f"primary {artifact_id}: collector bundle descriptor has no safe relative path"
+  bundle_parts = PurePosixPath(relative)
+  if (
+    bundle_parts.is_absolute()
+    or not bundle_parts.parts
+    or any(part in {"", ".", ".."} for part in bundle_parts.parts)
+    or bundle_parts.as_posix() != relative
+  ):
+    return None, f"primary {artifact_id}: collector bundle descriptor has no safe relative path"
+  try:
+    cell_mode = cell_path.lstat().st_mode
+  except OSError as error:
+    return None, f"primary {artifact_id}: could not stat cell document: {error}"
+  if not stat.S_ISREG(cell_mode):
+    return None, f"primary {artifact_id}: cell document is not a regular file"
+  if cell_path.name != artifact_id:
+    return None, f"primary {artifact_id}: cell path does not match artifact ID"
+  try:
+    cell_directory = cell_path.parent.resolve(strict=True)
+  except OSError as error:
+    return None, f"primary {artifact_id}: could not resolve cell directory: {error}"
+  candidate = cell_directory.joinpath(*bundle_parts.parts)
+  try:
+    candidate.resolve(strict=False).relative_to(cell_directory)
+  except ValueError:
+    return None, f"primary {artifact_id}: collector bundle escapes the cell directory"
+  current = cell_directory
+  bundle_mode = None
+  for part in bundle_parts.parts:
+    current /= part
+    try:
+      bundle_mode = current.lstat().st_mode
+    except FileNotFoundError:
+      return None, f"primary {artifact_id}: retained collector bundle is missing"
+    except OSError as error:
+      return None, f"primary {artifact_id}: could not stat retained collector bundle: {error}"
+    if stat.S_ISLNK(bundle_mode):
+      return None, f"primary {artifact_id}: retained collector bundle must not contain symbolic links"
+  if bundle_mode is None or not stat.S_ISDIR(bundle_mode):
+    return None, f"primary {artifact_id}: retained collector bundle is not a directory"
+  return current, None
+
+
+def validate_primary_speed_cell_from_bundle(
+  artifact_id: str,
+  document: object,
+  bundle_dir: Path,
+) -> dict:
+  """Re-extract a primary cell's retained bundle before accepting its clocks."""
+  report = validate_primary_speed_cell(artifact_id, document)
+  failures = list(report["failures"])
+  binding_failures: list[str] = []
+  expected = PRIMARY_SPEED_CELLS.get(artifact_id)
+  if expected is None:
+    binding_failures.append(f"primary {artifact_id}: unknown primary artifact")
+  elif expected[4] != "criterion":
+    binding_failures.append(
+      f"primary {artifact_id}: {expected[4]!r} requires a host observation protocol"
+    )
+  else:
+    try:
+      import extract_speed
+
+      observation = extract_speed.extract_collector_bundle_observation(bundle_dir)
+    except (OSError, RuntimeError, ValueError) as error:
+      binding_failures.append(
+        f"primary {artifact_id}: cannot verify retained collector bundle: {error}"
+      )
+    else:
+      observed_clocks = observation.get("clocks")
+      observed_collector = observation.get("collector_attestation")
+      if document.get("clocks") != observed_clocks:
+        binding_failures.append(
+          f"primary {artifact_id}: serialized clocks differ from retained collector bundle"
+        )
+      if document.get("collector_attestation") != observed_collector:
+        binding_failures.append(
+          f"primary {artifact_id}: serialized collector attestation differs from retained collector bundle"
+        )
+      descriptor = document.get("collector_bundle") if isinstance(document, dict) else None
+      if isinstance(descriptor, dict) and isinstance(observed_collector, dict):
+        if descriptor.get("manifest_sha256") != observed_collector.get("manifest_sha256"):
+          binding_failures.append(
+            f"primary {artifact_id}: retained collector bundle digest changed"
+          )
+
+  all_failures = [*failures, *binding_failures]
+  report["bundle_binding"] = {
+    "path": str(bundle_dir),
+    "passed": not binding_failures,
+  }
+  report["bound_observation"] = not all_failures
+  report["passed"] = not all_failures
+  report["failures"] = all_failures
+  return report
+
+
+def validate_primary_speed_campaign(
+  documents: dict[str, dict],
+  cell_paths: dict[str, Path] | None = None,
+) -> dict:
+  """Validate the exact primary six-cell campaign through retained observations."""
+  failures: list[str] = []
+  results = []
+  if not isinstance(documents, dict):
+    return {
+      "schema": PRIMARY_SPEED_REPORT_SCHEMA,
+      "source_revision": None,
+      "passed": False,
+      "failures": ["primary campaign documents must be keyed by artifact ID"],
+      "cells": [],
+    }
+  expected_names = set(PRIMARY_SPEED_CELLS)
+  actual_names = set(documents)
+  if actual_names != expected_names:
+    failures.append(
+      "primary three-clock artifacts differ: "
+      f"missing={sorted(expected_names - actual_names)!r}, "
+      f"unexpected={sorted(actual_names - expected_names)!r}"
+    )
   identities = []
-  for document in documents:
-    provenance = document.get("provenance")
+  revisions = set()
+  for artifact_id in PRIMARY_SPEED_CELLS:
+    if artifact_id not in documents:
+      continue
+    document = documents[artifact_id]
+    provenance = document.get("provenance") if isinstance(document, dict) else None
     provenance = provenance if isinstance(provenance, dict) else {}
     identities.append((
-      document.get("order"),
-      document.get("title"),
-      document.get("instance"),
-      document.get("triple"),
+      document.get("order") if isinstance(document, dict) else None,
+      document.get("title") if isinstance(document, dict) else None,
+      document.get("instance") if isinstance(document, dict) else None,
+      document.get("triple") if isinstance(document, dict) else None,
       provenance.get("harness"),
-      provenance.get("cargo_profile"),
     ))
-  if tuple(identities) != EXPECTED_ENVIRONMENTS:
+    cell_path = cell_paths.get(artifact_id) if isinstance(cell_paths, dict) else None
+    bundle_path = None
+    bundle_error = None
+    if isinstance(cell_path, Path):
+      bundle_path, bundle_error = retained_primary_collector_bundle_path(
+        artifact_id, cell_path, document
+      )
+    if bundle_path is not None:
+      result = validate_primary_speed_cell_from_bundle(
+        artifact_id, document, bundle_path
+      )
+    else:
+      result = validate_primary_speed_cell(artifact_id, document)
+      result["failures"].append(
+        bundle_error or f"primary {artifact_id}: missing retained collector bundle path"
+      )
+      result["passed"] = False
+      result["bound_observation"] = False
+    failures.extend(result["failures"])
+    revision = result.get("source_revision")
+    if _valid_full_revision(revision):
+      revisions.add(revision)
+    results.append(result)
+  if tuple(identities) != EXPECTED_PRIMARY_IDENTITIES:
     failures.append(
-      "campaign environments differ from the exact six-platform contract: "
+      "primary campaign environments differ from the exact six-platform contract: "
       f"{identities!r}"
     )
-
-  revisions = set()
-  for document in documents:
-    context = document.get("title", "unnamed environment")
-    provenance = document.get("provenance")
-    if not isinstance(provenance, dict):
-      failures.append(f"{context}: missing build provenance")
-    else:
-      revision = provenance.get("source_revision")
-      rustc = provenance.get("rustc")
-      if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", revision):
-        failures.append(f"{context}: invalid full source revision")
-      else:
-        revisions.add(revision)
-      if not isinstance(rustc, str) or not rustc.startswith("rustc "):
-        failures.append(f"{context}: invalid rustc provenance")
-      expected_features = list(BENCHMARK_FEATURES)
-      if sorted(provenance.get("features", [])) != expected_features:
-        failures.append(f"{context}: benchmark feature set changed")
-
-    clocks = document.get("clocks")
-    if not isinstance(clocks, dict):
-      failures.append(f"{context}: missing clocks object")
-      continue
-    if provenance.get("harness") == "lambda":
-      validate_lambda_samples(context, clocks, failures)
-    cell_failures, result = validate_cell(context, clocks, document.get("triple"))
-    failures.extend(cell_failures)
-    results.append({"environment": context, **result})
-
   if len(revisions) != 1:
-    failures.append(f"campaign must use one source revision: {sorted(revisions)}")
-
+    failures.append(f"primary campaign must use one source revision: {sorted(revisions)}")
   return {
-    "schema": "tach-speed-evidence-v3",
+    "schema": PRIMARY_SPEED_REPORT_SCHEMA,
     "claim": (
       "each tach timer selects the fastest audited eligible reliable steady-state provider "
-      "for its contract in every measured environment"
+      "for its contract in every measured primary environment"
     ),
     "equivalence_rule": (
       "tach is faster than or materially tied with every eligible reference: its point "
@@ -3330,8 +3970,393 @@ def validate_campaign(documents: list[dict]) -> dict:
     "source_revision": next(iter(revisions)) if len(revisions) == 1 else None,
     "passed": not failures,
     "failures": failures,
-    "environments": results,
+    "cells": results,
   }
+
+
+def validate_campaign(
+  documents: dict[str, dict],
+  cell_paths: dict[str, Path] | None = None,
+) -> dict:
+  """Compatibility entry point for the now bundle-bound primary campaign."""
+  return validate_primary_speed_campaign(documents, cell_paths)
+
+
+def _semantic_summary(samples: object) -> dict:
+  """Return the reproducible median summary for one semantic probe phase."""
+  if not isinstance(samples, list) or len(samples) != THREAD_CPU_BEHAVIOR_SAMPLE_COUNT:
+    raise ValueError("semantic phase needs exactly three raw samples")
+  normalized = []
+  for sample in samples:
+    if (
+      not isinstance(sample, dict)
+      or set(sample) != set(THREAD_CPU_BEHAVIOR_FIELDS)
+      or not all(
+        type(sample[field]) is int and sample[field] >= 0
+        for field in THREAD_CPU_BEHAVIOR_FIELDS
+      )
+    ):
+      raise ValueError("semantic samples must contain only non-negative integer deltas")
+    normalized.append({field: sample[field] for field in THREAD_CPU_BEHAVIOR_FIELDS})
+  return {
+    field: statistics.median(sample[field] for sample in normalized)
+    for field in THREAD_CPU_BEHAVIOR_FIELDS
+  }
+
+
+def _fallback_advances_during_sleep(summary: dict) -> bool:
+  tolerance = max(100_000.0, summary["wall_delta_ns"] * 0.01)
+  return (
+    summary["public_delta_ns"] > tolerance
+    and summary["direct_delta_ns"] > tolerance
+  )
+
+
+def _validate_raw_thread_cpu_behavior(raw: object) -> dict:
+  """Validate the agreed sidecar without changing its collector-owned fields."""
+  expected_keys = {
+    "schema",
+    "direct_benchmark",
+    "sample_count",
+    "runtime_attestation",
+    *THREAD_CPU_BEHAVIOR_PHASES,
+  }
+  if not isinstance(raw, dict) or set(raw) != expected_keys:
+    raise ValueError("thread-CPU behavior sidecar has an unexpected shape")
+  if raw.get("schema") != THREAD_CPU_BEHAVIOR_SCHEMA:
+    raise ValueError("thread-CPU behavior sidecar schema changed")
+  if not isinstance(raw.get("direct_benchmark"), str) or not raw["direct_benchmark"]:
+    raise ValueError("thread-CPU behavior sidecar has no direct benchmark identity")
+  sample_count = raw.get("sample_count")
+  if sample_count != THREAD_CPU_BEHAVIOR_SAMPLE_COUNT:
+    raise ValueError("thread-CPU behavior sidecar has an invalid sample count")
+  summaries = {}
+  for phase in THREAD_CPU_BEHAVIOR_PHASES:
+    probe = raw.get(phase)
+    if not isinstance(probe, dict) or set(probe) != {*THREAD_CPU_BEHAVIOR_FIELDS, "samples"}:
+      raise ValueError(f"{phase} semantic sidecar shape changed")
+    samples = probe.get("samples")
+    if not isinstance(samples, list) or len(samples) != sample_count:
+      raise ValueError(f"{phase} sample count does not match the sidecar")
+    reproduced = _semantic_summary(samples)
+    if any(probe.get(field) != value for field, value in reproduced.items()):
+      raise ValueError(f"{phase} semantic summary does not reproduce")
+    summaries[phase] = reproduced
+  return summaries
+
+
+def build_thread_cpu_behavior(raw: object, time_domain: object) -> dict:
+  """Preserve the sidecar and add only classifications derived from clocks."""
+  summaries = _validate_raw_thread_cpu_behavior(raw)
+  if time_domain not in ("thread CPU", "monotonic wall fallback"):
+    raise ValueError("extracted public clock has an unknown thread time domain")
+  return {
+    **raw,
+    "time_domain": time_domain,
+    "tagged_wall_fallback": time_domain == "monotonic wall fallback",
+    "wall_time_advanced_during_sleep": _fallback_advances_during_sleep(
+      summaries["sleep"]
+    ),
+  }
+
+
+def validate_thread_cpu_behavior(
+  context: str,
+  behavior: object,
+  expected_time_domain: str,
+  expected_direct_benchmark: object,
+  expected_runtime_attestation: object,
+  failures: list[str],
+) -> dict:
+  """Validate raw semantic samples, their derived summary, and their contract."""
+  if not isinstance(behavior, dict):
+    failures.append(f"{context}: missing current-thread CPU semantic probes")
+    return {}
+  expected_keys = {
+    "schema",
+    "direct_benchmark",
+    "sample_count",
+    "runtime_attestation",
+    *THREAD_CPU_BEHAVIOR_PHASES,
+    "time_domain",
+    "tagged_wall_fallback",
+    "wall_time_advanced_during_sleep",
+  }
+  if set(behavior) != expected_keys or behavior.get("schema") != THREAD_CPU_BEHAVIOR_SCHEMA:
+    failures.append(f"{context}: thread-CPU semantic evidence schema changed")
+    return {}
+  if behavior.get("time_domain") != expected_time_domain:
+    failures.append(f"{context}: semantic probes changed the declared thread timeline")
+    return {}
+  if (
+    not isinstance(expected_direct_benchmark, str)
+    or not expected_direct_benchmark
+    or behavior.get("direct_benchmark") != expected_direct_benchmark
+  ):
+    failures.append(f"{context}: semantic probes are not bound to native_thread_cpu")
+  if behavior.get("runtime_attestation") != expected_runtime_attestation:
+    failures.append(f"{context}: semantic probes came from another runtime invocation")
+  expected_tag = expected_time_domain == "monotonic wall fallback"
+  if behavior.get("tagged_wall_fallback") is not expected_tag:
+    failures.append(f"{context}: semantic fallback tag disagrees with the time domain")
+
+  raw_sidecar = {
+    key: behavior[key]
+    for key in (
+      "schema",
+      "direct_benchmark",
+      "sample_count",
+      "runtime_attestation",
+      *THREAD_CPU_BEHAVIOR_PHASES,
+    )
+    if key in behavior
+  }
+  try:
+    summaries = _validate_raw_thread_cpu_behavior(raw_sidecar)
+  except ValueError as error:
+    failures.append(f"{context}: {error}")
+    return {}
+
+  results = {}
+  for phase in THREAD_CPU_BEHAVIOR_PHASES:
+    reproduced = summaries[phase]
+    wall_delta = reproduced["wall_delta_ns"]
+    public_delta = reproduced["public_delta_ns"]
+    direct_delta = reproduced["direct_delta_ns"]
+    if phase == "busy":
+      tolerance = max(100_000.0, direct_delta * 0.05)
+      passed = (
+        public_delta > 0
+        and direct_delta > 0
+        and abs(public_delta - direct_delta) <= tolerance
+      )
+    elif expected_time_domain == "thread CPU":
+      tolerance = max(100_000.0, wall_delta * 0.01)
+      passed = public_delta <= tolerance and direct_delta <= tolerance
+    else:
+      tolerance = max(100_000.0, wall_delta * 0.01)
+      passed = public_delta > tolerance and direct_delta > tolerance
+    results[phase] = {
+      "summary": reproduced,
+      "tolerance_ns": tolerance,
+      "passed": passed,
+    }
+    if not passed:
+      failures.append(f"{context}: {phase} {expected_time_domain} semantic probe failed")
+
+  sleep = summaries["sleep"]
+  expected_sleep_advance = _fallback_advances_during_sleep(sleep)
+  if behavior.get("wall_time_advanced_during_sleep") is not expected_sleep_advance:
+    failures.append(f"{context}: sleep fallback classification does not reproduce")
+  if expected_tag and not expected_sleep_advance:
+    failures.append(f"{context}: fallback did not advance during sleep")
+  return results
+
+
+def _supplemental_benchmark_matches_key(row_name: str, benchmark: object) -> bool:
+  if not isinstance(benchmark, str) or not benchmark:
+    return False
+  if row_name == "native_thread_cpu":
+    return benchmark.startswith("native_thread_cpu__") and len(benchmark) > len(
+      "native_thread_cpu__"
+    )
+  if row_name == "direct_failure_fallback_thread_cpu":
+    return benchmark.startswith("direct_fallback_thread_cpu__")
+  if row_name.startswith((
+    "direct_wall__",
+    "direct_ordered_wall__",
+    "direct_thread_cpu__",
+    "direct_fallback_thread_cpu__",
+  )):
+    return benchmark == row_name
+  return benchmark == row_name or benchmark.startswith(f"{row_name}__")
+
+
+def validate_supplemental_benchmark_identities(
+  context: str,
+  clocks: object,
+  coverage: object,
+  target_triple: str,
+  failures: list[str],
+) -> None:
+  """Exact/direct rows and the semantic native reference carry benchmark IDs."""
+  if not isinstance(clocks, dict) or not isinstance(coverage, dict):
+    failures.append(f"{context}: missing extracted clocks")
+    return
+  required_rows = {"native_thread_cpu"}
+  for route in coverage.values():
+    if not isinstance(route, dict):
+      continue
+    selected = route.get("selected_row")
+    candidates = route.get("eligible_exact_rows")
+    if isinstance(selected, str):
+      required_rows.add(selected)
+    if isinstance(candidates, list):
+      required_rows.update(candidate for candidate in candidates if isinstance(candidate, str))
+  for row_name in sorted(required_rows):
+    row = clocks.get(row_name)
+    if not isinstance(row, dict):
+      failures.append(f"{context}: missing benchmark row {row_name}")
+      continue
+    if not _supplemental_benchmark_matches_key(row_name, row.get("benchmark")):
+      failures.append(f"{context}: benchmark identity is missing or mislabeled for {row_name}")
+  native_expected = SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES.get(target_triple)
+  native = clocks.get("native_thread_cpu")
+  if native_expected is not None:
+    expected_benchmark, expected_provider, expected_cost = native_expected
+    if not isinstance(native, dict) or any(
+      native.get(field) != value
+      for field, value in (
+        ("benchmark", expected_benchmark),
+        ("provider", expected_provider),
+        ("read_cost", expected_cost),
+        ("time_domain", "thread CPU"),
+      )
+    ):
+      failures.append(f"{context}: native thread-CPU benchmark identity changed")
+
+
+def _wall_selector_for_route(clocks: dict, use_case: str) -> tuple[object, object, object, object]:
+  public_name, _, domain = SUPPLEMENTAL_ROUTE_ROWS[use_case]
+  public = clocks.get(public_name)
+  if not isinstance(public, dict):
+    return None, None, None, None
+  key = "selection" if use_case == "instant" else "wall_selection"
+  selection = public.get(key)
+  if not isinstance(selection, dict):
+    return selection, None, None, None
+  candidates = selection.get("eligible_direct_candidates")
+  selected = selection.get("selected_provider")
+  selected_benchmarks = selection.get("selected_native_benchmark")
+  if not isinstance(candidates, dict) or not isinstance(selected, dict) or not isinstance(
+    selected_benchmarks, dict
+  ):
+    return selection, None, None, None
+  return selection, candidates.get(domain), selected.get(domain), selected_benchmarks.get(domain)
+
+
+def _thread_cpu_selector_for_route(clocks: dict) -> tuple[object, object, object, object]:
+  public = clocks.get("tach_thread_cpu")
+  if not isinstance(public, dict):
+    return None, None, None, None
+  selection = public.get("selection")
+  if not isinstance(selection, dict):
+    return selection, None, None, None
+  return (
+    selection,
+    selection.get("eligible_direct_candidates"),
+    selection.get("selected_mechanism"),
+    selection.get("selected_native_benchmark"),
+  )
+
+
+def observed_supplemental_selection_profiles(clocks: object) -> dict:
+  """Classify profiles from collector-observed selector metadata alone."""
+  if not isinstance(clocks, dict):
+    raise ValueError("supplemental selector profiles need extracted clocks")
+  profiles = {}
+  for use_case in ("instant", "ordered"):
+    selection, _, _, _ = _wall_selector_for_route(clocks, use_case)
+    if not isinstance(selection, dict):
+      raise ValueError(f"{use_case} selector metadata is incomplete")
+    if isinstance(selection.get("fixed_provider"), dict):
+      profiles[use_case] = "fixed_native"
+    elif any(key in selection for key in ("probe", "instant_probe", "architecture")):
+      profiles[use_case] = "runtime_tournament"
+    else:
+      raise ValueError(f"{use_case} selector profile is not observable")
+
+  selection, _, _, _ = _thread_cpu_selector_for_route(clocks)
+  if not isinstance(selection, dict):
+    raise ValueError("thread_cpu selector metadata is incomplete")
+  kind = selection.get("selection_kind")
+  if kind in ("runtime_tournament", "tournament", "tournament_with_measured_runner_up"):
+    profiles["thread_cpu"] = "runtime_tournament"
+  elif kind in ("fixed_native", "fixed_candidate"):
+    profiles["thread_cpu"] = "fixed_native"
+  elif kind in ("availability_fallback", "fixed_windows_thread_times"):
+    profiles["thread_cpu"] = "availability_fallback"
+  elif kind == "fallback_only":
+    profiles["thread_cpu"] = "fallback_only"
+  else:
+    raise ValueError("thread_cpu selector profile is not observable")
+  return profiles
+
+
+def _validate_supplemental_selection_profile(
+  context: str,
+  use_case: str,
+  profile: object,
+  selection: object,
+  target_triple: str,
+  failures: list[str],
+) -> None:
+  if profile not in SUPPLEMENTAL_SELECTION_PROFILES:
+    failures.append(f"{context}: {use_case} has an unknown selection profile")
+    return
+  if not isinstance(selection, dict):
+    failures.append(f"{context}: {use_case} route lacks observed selector metadata")
+    return
+
+  if use_case in ("instant", "ordered"):
+    if profile not in ("runtime_tournament", "fixed_native"):
+      failures.append(f"{context}: {use_case} uses a thread-only selection profile")
+      return
+    if profile == "runtime_tournament" and not any(
+      key in selection for key in ("probe", "instant_probe", "architecture")
+    ):
+      failures.append(f"{context}: {use_case} runtime tournament has no selector evidence")
+    if profile == "fixed_native":
+      fixed = selection.get("fixed_provider")
+      if isinstance(fixed, dict) and use_case in fixed:
+        fixed = fixed[use_case]
+      selected = selection.get("selected_provider")
+      selected = selected.get(use_case) if isinstance(selected, dict) else selected
+      if (
+        not isinstance(fixed, dict)
+        or fixed.get("candidate") != selected
+        or fixed.get("time_domain") != f"{use_case} wall"
+        or not isinstance(fixed.get("native_primitive"), str)
+        or not fixed["native_primitive"].strip()
+        or not isinstance(fixed.get("selection_basis"), str)
+        or not fixed["selection_basis"].strip()
+      ):
+        failures.append(f"{context}: {use_case} fixed-native route has no fixed-provider basis")
+    return
+
+  selection_kind = selection.get("selection_kind")
+  if profile == "runtime_tournament":
+    if selection_kind not in ("runtime_tournament", "tournament", "tournament_with_measured_runner_up"):
+      failures.append(f"{context}: thread CPU runtime tournament has the wrong selector kind")
+    if "perf" in selection and "native_entry_probe" in selection:
+      validate_thread_cpu_selector(context, selection, failures, target_triple)
+  elif profile == "fixed_native":
+    fixed = selection.get("fixed_provider")
+    if (
+      selection_kind != "fixed_native"
+      or not isinstance(fixed, dict)
+      or fixed.get("candidate") != selection.get("selected_mechanism")
+      or fixed.get("time_domain") != "thread CPU"
+      or not isinstance(fixed.get("native_primitive"), str)
+      or not fixed["native_primitive"].strip()
+      or not isinstance(fixed.get("selection_basis"), str)
+      or not fixed["selection_basis"].strip()
+      or not isinstance(selection.get("read_cost_basis"), str)
+      or not selection["read_cost_basis"].strip()
+    ):
+      failures.append(f"{context}: thread CPU fixed-native selector is incomplete")
+    if target_triple.endswith("-apple-darwin"):
+      validate_thread_cpu_selector(context, selection, failures, target_triple)
+  elif profile == "availability_fallback":
+    if selection_kind not in ("availability_fallback", "fixed_windows_thread_times"):
+      failures.append(f"{context}: thread CPU availability selector has the wrong kind")
+    if not isinstance(selection.get("failure_fallback"), dict):
+      failures.append(f"{context}: thread CPU availability selector lacks a fallback branch")
+    if selection_kind == "fixed_windows_thread_times":
+      validate_thread_cpu_selector(context, selection, failures, target_triple)
+  else:
+    if selection_kind != "fallback_only" or selection.get("time_domain") != "monotonic wall fallback":
+      failures.append(f"{context}: thread CPU fallback-only selector is incomplete")
 
 
 def validate_supplemental_route_coverage(
@@ -3341,46 +4366,52 @@ def validate_supplemental_route_coverage(
 ) -> dict:
   clocks = document.get("clocks")
   coverage = document.get("route_coverage")
-  if not isinstance(clocks, dict) or not isinstance(coverage, dict):
+  profiles = document.get("selection_profiles")
+  if (
+    not isinstance(clocks, dict)
+    or not isinstance(coverage, dict)
+    or not isinstance(profiles, dict)
+  ):
     failures.append(f"{context}: missing three-use-case route coverage")
     return {}
-
-  mode = document.get("mode")
-  expected = {
-    "instant": ("tach", "direct_selected_wall", "instant"),
-    "ordered": ("tach_ordered", "direct_selected_ordered_wall", "ordered"),
-    "thread_cpu": ("tach_thread_cpu", "direct_selected_thread_cpu", "thread_cpu"),
-  }
-  if set(coverage) != set(expected):
+  if set(coverage) != set(SUPPLEMENTAL_ROUTE_ROWS) or set(profiles) != set(
+    SUPPLEMENTAL_ROUTE_ROWS
+  ):
     failures.append(f"{context}: route coverage must contain exactly all three public timers")
     return {}
+  try:
+    observed_profiles = observed_supplemental_selection_profiles(clocks)
+  except ValueError as error:
+    failures.append(f"{context}: {error}")
+  else:
+    if profiles != observed_profiles:
+      failures.append(f"{context}: declared selection profiles disagree with observed selectors")
 
   results = {}
-  for use_case, (expected_public, default_selected, selection_domain) in expected.items():
+  mode = document.get("mode")
+  target_triple = document.get("triple")
+  if not isinstance(target_triple, str):
+    target_triple = ""
+  for use_case, (expected_public, expected_selected, _) in SUPPLEMENTAL_ROUTE_ROWS.items():
     route = coverage.get(use_case)
+    profile = profiles.get(use_case)
     if not isinstance(route, dict):
       failures.append(f"{context}: malformed {use_case} route coverage")
       continue
     public_name = route.get("public_row")
     selected_name = route.get("selected_row")
     candidates = route.get("eligible_exact_rows")
-    selection_kind = route.get("selection_kind")
     if (
-      public_name != expected_public
-      or not isinstance(selected_name, str)
-      or not selected_name
+      set(route) != {"public_row", "selected_row", "eligible_exact_rows"}
+      or public_name != expected_public
+      or selected_name != expected_selected
       or not isinstance(candidates, list)
       or not candidates
       or len(set(candidates)) != len(candidates)
       or not all(isinstance(candidate, str) and candidate for candidate in candidates)
-      or selection_kind not in ("runtime_tournament", "unique_provider", "fallback_only")
     ):
       failures.append(f"{context}: malformed {use_case} route identity")
       continue
-    if len(candidates) > 1 and selection_kind != "runtime_tournament":
-      failures.append(f"{context}: {use_case} has multiple routes without a runtime tournament")
-    if selection_kind in ("unique_provider", "fallback_only") and len(candidates) != 1:
-      failures.append(f"{context}: {use_case} non-tournament route is not unique")
 
     public = clocks.get(public_name)
     selected = clocks.get(selected_name)
@@ -3390,6 +4421,36 @@ def validate_supplemental_route_coverage(
     validate_ci(context, public_name, public, failures)
     validate_ci(context, selected_name, selected, failures)
 
+    if use_case in ("instant", "ordered"):
+      selection, declared, selected_provider, selected_benchmark = _wall_selector_for_route(
+        clocks, use_case
+      )
+    else:
+      selection, declared, selected_provider, selected_benchmark = _thread_cpu_selector_for_route(
+        clocks
+      )
+    _validate_supplemental_selection_profile(
+      context, use_case, profile, selection, target_triple, failures
+    )
+    if declared != candidates:
+      failures.append(f"{context}: {use_case} selector candidates disagree with exact rows")
+    if selected_provider != selected.get("provider"):
+      failures.append(f"{context}: {use_case} selected route identity disagrees")
+    if selected_benchmark != selected.get("benchmark"):
+      failures.append(f"{context}: {use_case} selected benchmark identity disagrees")
+    if use_case == "thread_cpu" and isinstance(selection, dict):
+      if selection.get("selected_read_cost") != selected.get("read_cost"):
+        failures.append(f"{context}: thread_cpu selected read cost disagrees")
+
+    expected_domain = (
+      "monotonic wall fallback"
+      if use_case == "thread_cpu" and mode == "tagged_wall_fallback"
+      else ("thread CPU" if use_case == "thread_cpu" else f"{use_case} wall")
+    )
+    for row_name, row in ((public_name, public), (selected_name, selected)):
+      if row.get("time_domain") != expected_domain:
+        failures.append(f"{context}: {row_name} changed the declared {use_case} timeline")
+
     candidate_rows = {}
     for candidate in candidates:
       row = clocks.get(candidate)
@@ -3397,49 +4458,29 @@ def validate_supplemental_route_coverage(
         failures.append(f"{context}: {use_case} lacks eligible exact row {candidate}")
         continue
       validate_ci(context, candidate, row, failures)
-      benchmark = row.get("benchmark")
-      if benchmark is not None and benchmark != candidate and not benchmark.startswith(
-        f"{candidate}__"
-      ):
+      if row.get("benchmark") != candidate:
         failures.append(f"{context}: {use_case} exact row {candidate} is mislabeled")
+      if row.get("time_domain") != expected_domain:
+        failures.append(f"{context}: {use_case} exact row {candidate} changed time domain")
+      if use_case in ("instant", "ordered"):
+        expected_identity = exact_wall_candidate_identity(use_case, candidate)
+        if expected_identity is None or any(
+          row.get(field) != value for field, value in expected_identity.items()
+        ):
+          failures.append(f"{context}: {use_case} exact row {candidate} changed provider identity")
+      else:
+        mechanism = candidate.removeprefix("direct_thread_cpu__")
+        if mechanism == candidate or row.get("provider") != mechanism:
+          failures.append(f"{context}: thread_cpu exact row {candidate} changed provider identity")
+        if isinstance(selection, dict) and mechanism == selection.get("selected_mechanism"):
+          expected_cost = selection.get("selected_read_cost")
+        elif mechanism.startswith("linux_perf_mmap__"):
+          expected_cost = "inline"
+        else:
+          expected_cost = "system call"
+        if row.get("read_cost") != expected_cost:
+          failures.append(f"{context}: thread_cpu exact row {candidate} changed read cost")
       candidate_rows[candidate] = row
-
-    candidate_providers = {
-      row.get("provider") for row in candidate_rows.values() if isinstance(row.get("provider"), str)
-    }
-    if (
-      isinstance(selected.get("provider"), str)
-      and candidate_providers
-      and selected.get("provider") not in candidate_providers
-    ):
-      failures.append(f"{context}: {use_case} selected route is not an eligible exact provider")
-
-    selection = None
-    if selection_domain in ("instant", "ordered"):
-      selection = clocks.get("tach", {}).get("selection")
-      selected_mapping = selection.get("selected_provider") if isinstance(selection, dict) else None
-      declared = (
-        selection.get("eligible_direct_candidates", {}).get(selection_domain)
-        if isinstance(selection, dict)
-        and isinstance(selection.get("eligible_direct_candidates"), dict)
-        else None
-      )
-      selected_provider = (
-        selected_mapping.get(selection_domain) if isinstance(selected_mapping, dict) else None
-      )
-    else:
-      selection = public.get("selection")
-      declared = selection.get("eligible_direct_candidates") if isinstance(selection, dict) else None
-      selected_provider = (
-        selection.get("selected_mechanism") if isinstance(selection, dict) else None
-      )
-    if selection_kind == "runtime_tournament":
-      if not isinstance(selection, dict):
-        failures.append(f"{context}: {use_case} tournament lacks selector evidence")
-      if declared != candidates:
-        failures.append(f"{context}: {use_case} eligible route enumeration disagrees")
-      if selected_provider != selected.get("provider"):
-        failures.append(f"{context}: {use_case} selected route identity disagrees")
 
     route_results = {}
     for candidate, row in candidate_rows.items():
@@ -3466,17 +4507,8 @@ def validate_supplemental_route_coverage(
           result["passed"] for result in metrics.values()
         ),
       }
-
-    expected_cpu_domain = (
-      "monotonic wall fallback" if mode == "tagged_wall_fallback" else "thread CPU"
-    )
-    if use_case == "thread_cpu":
-      for row_name, row in ((public_name, public), (selected_name, selected)):
-        if row.get("time_domain") != expected_cpu_domain:
-          failures.append(f"{context}: {row_name} changed the declared thread timeline")
-
     results[use_case] = {
-      "selection_kind": selection_kind,
+      "selection_profile": profile,
       "selected_row": selected_name,
       "eligible_exact_routes": route_results,
       "passed": (
@@ -3487,43 +4519,395 @@ def validate_supplemental_route_coverage(
   return results
 
 
-def validate_native_thread_cpu_behavior(
-  context: str,
-  behavior: object,
-  failures: list[str],
+def _selector_route_inputs(clocks: dict, use_case: str) -> tuple[list[str], str]:
+  if use_case in ("instant", "ordered"):
+    selection, candidates, _, selected_benchmark = _wall_selector_for_route(clocks, use_case)
+  else:
+    selection, candidates, _, selected_benchmark = _thread_cpu_selector_for_route(clocks)
+  if not isinstance(selection, dict) or not isinstance(candidates, list) or not isinstance(
+    selected_benchmark, str
+  ):
+    raise ValueError(f"{use_case} selector metadata is incomplete")
+  return candidates, selected_benchmark
+
+
+def supplemental_route_coverage_from_clocks(
+  clocks: object,
+  selection_profiles: object,
 ) -> dict:
-  if not isinstance(behavior, dict):
-    failures.append(f"{context}: missing current-thread CPU semantic probes")
-    return {}
-  results = {}
-  for phase in ("busy", "sleep", "sibling_isolation"):
-    probe = behavior.get(phase)
-    if not isinstance(probe, dict) or not all(
-      finite_number(probe.get(field)) and probe[field] >= 0
-      for field in ("wall_delta_ns", "public_delta_ns", "direct_delta_ns")
-    ):
-      failures.append(f"{context}: malformed {phase} semantic probe")
+  """Derive route rows solely from observed extractor output and typed profiles."""
+  if not isinstance(clocks, dict):
+    raise ValueError("supplemental composer needs an extracted clocks object")
+  if not isinstance(selection_profiles, dict) or set(selection_profiles) != set(
+    SUPPLEMENTAL_ROUTE_ROWS
+  ) or any(profile not in SUPPLEMENTAL_SELECTION_PROFILES for profile in selection_profiles.values()):
+    raise ValueError("supplemental composer needs one known profile per timer")
+  observed_profiles = observed_supplemental_selection_profiles(clocks)
+  if selection_profiles != observed_profiles:
+    raise ValueError("supplemental composer profiles do not match observed selectors")
+  routes = {}
+  for use_case, (public_name, selected_name, _) in SUPPLEMENTAL_ROUTE_ROWS.items():
+    candidates, selected_benchmark = _selector_route_inputs(clocks, use_case)
+    selected = clocks.get(selected_name)
+    if not isinstance(selected, dict) or selected.get("benchmark") != selected_benchmark:
+      raise ValueError(f"{use_case} selected row does not match observed selector metadata")
+    routes[use_case] = {
+      "public_row": public_name,
+      "selected_row": selected_name,
+      "eligible_exact_rows": list(candidates),
+    }
+  return routes
+
+
+def _selector_free_clocks(clocks: dict) -> dict:
+  """Keep speed comparison independent from profile-specific selector schemas."""
+  result = {}
+  for name, entry in clocks.items():
+    if not isinstance(entry, dict):
+      result[name] = entry
       continue
-    wall_delta = probe["wall_delta_ns"]
-    public_delta = probe["public_delta_ns"]
-    direct_delta = probe["direct_delta_ns"]
-    if phase == "busy":
-      tolerance = max(100_000.0, direct_delta * 0.05)
-      passed = (
-        public_delta > 0
-        and direct_delta > 0
-        and abs(public_delta - direct_delta) <= tolerance
-      )
+    copied = dict(entry)
+    copied.pop("selection", None)
+    copied.pop("wall_selection", None)
+    result[name] = copied
+  return result
+
+
+def validate_supplemental_speed_cell(name: str, document: object) -> dict:
+  """Validate one externally-produced supplemental evidence cell."""
+  failures: list[str] = []
+  expected = SUPPLEMENTAL_SPEED_CELLS.get(name)
+  context = f"supplemental {name}"
+  if expected is None:
+    return {
+      "artifact": name,
+      "passed": False,
+      "failures": [f"{context}: unknown supplemental artifact"],
+    }
+  expected_triple, expected_harness, mode, expected_build_mode = expected
+  if not isinstance(document, dict):
+    return {
+      "artifact": name,
+      "passed": False,
+      "failures": [f"{context}: document is not an object"],
+    }
+  expected_document_keys = {
+    "schema",
+    "triple",
+    "mode",
+    "build_mode",
+    "provenance",
+    "evidence_class",
+  }
+  if mode == "runtime_smoke":
+    expected_document_keys.update({
+      "passed",
+      "smoke_schema",
+      "runtime_attestation",
+      "assertions",
+    })
+  else:
+    expected_document_keys.update({
+      "collector_bundle",
+      "clocks",
+      "selection_profiles",
+      "route_coverage",
+      "thread_cpu_behavior",
+    })
+  if set(document) != expected_document_keys:
+    failures.append(f"{context}: document schema changed")
+  provenance = document.get("provenance")
+  if (
+    document.get("schema") != SUPPLEMENTAL_SPEED_SCHEMA
+    or document.get("triple") != expected_triple
+    or document.get("mode") != mode
+    or document.get("build_mode") != expected_build_mode
+    or not isinstance(provenance, dict)
+    or provenance.get("harness") != expected_harness
+  ):
+    failures.append(f"{context}: identity/provenance does not match the checked cell")
+  revision = provenance.get("source_revision") if isinstance(provenance, dict) else None
+  if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", revision):
+    failures.append(f"{context}: invalid full source revision")
+
+  if mode == "runtime_smoke":
+    assertions = document.get("assertions")
+    if (
+      document.get("evidence_class") != "runtime_smoke"
+      or document.get("passed") is not True
+      or document.get("smoke_schema") != RUNTIME_SMOKE_ATTESTATION_SCHEMA
+      or not isinstance(assertions, list)
+      or not assertions
+      or not all(isinstance(assertion, str) and assertion for assertion in assertions)
+    ):
+      failures.append(f"{context}: malformed runtime smoke evidence")
+    runtime_attestation = validate_runtime_attestation(
+      context,
+      document.get("runtime_attestation"),
+      expected_triple,
+      expected_harness,
+      expected_build_mode,
+      revision,
+      failures,
+    )
+    validate_provenance_runtime_binding(context, provenance, runtime_attestation, failures)
+    return {
+      "artifact": name,
+      "mode": mode,
+      "build_mode": expected_build_mode,
+      "source_revision": revision,
+      "passed": not failures,
+      "failures": failures,
+    }
+
+  clocks = document.get("clocks")
+  if document.get("evidence_class") != "measured_external_runtime" or not isinstance(
+    clocks, dict
+  ):
+    failures.append(f"{context}: malformed measured three-clock evidence")
+    return {
+      "artifact": name,
+      "mode": mode,
+      "build_mode": expected_build_mode,
+      "source_revision": revision,
+      "passed": False,
+      "failures": failures,
+    }
+  runtime_attestation = validate_collector_attestation(
+    context,
+    clocks.get("collector_attestation"),
+    expected_triple,
+    expected_harness,
+    expected_build_mode,
+    revision,
+    failures,
+  )
+  validate_collector_bundle_descriptor(
+    context, document.get("collector_bundle"), clocks.get("collector_attestation"), failures
+  )
+  validate_provenance_runtime_binding(context, provenance, runtime_attestation, failures)
+  route_results = validate_supplemental_route_coverage(context, document, failures)
+  validate_supplemental_benchmark_identities(
+    context, clocks, document.get("route_coverage"), expected_triple, failures
+  )
+  expected_domain = "monotonic wall fallback" if mode == "tagged_wall_fallback" else "thread CPU"
+  native = clocks.get("native_thread_cpu")
+  direct_benchmark = native.get("benchmark") if isinstance(native, dict) else None
+  semantic_results = validate_thread_cpu_behavior(
+    context,
+    document.get("thread_cpu_behavior"),
+    expected_domain,
+    direct_benchmark,
+    runtime_attestation,
+    failures,
+  )
+
+  cell_report = {}
+  if mode == "full_speed_cell":
+    required_clocks = {
+      "tach", "tach_ordered", "quanta", "fastant", "minstant", "std",
+      "tach_thread_cpu", "native_thread_cpu",
+    }
+    if not required_clocks <= set(clocks):
+      failures.append(f"{context}: full speed cell omits public/reference clocks")
     else:
-      tolerance = max(100_000.0, wall_delta * 0.01)
-      passed = public_delta <= tolerance and direct_delta <= tolerance
-    results[phase] = {"passed": passed, "tolerance_ns": tolerance}
-    if not passed:
-      failures.append(f"{context}: {phase} thread-CPU semantic probe failed")
-  return results
+      cell_failures, cell_report = validate_cell(
+        context, _selector_free_clocks(clocks), expected_triple
+      )
+      failures.extend(cell_failures)
+
+  if mode == "tagged_wall_fallback":
+    public = clocks.get("tach_thread_cpu")
+    if not isinstance(public, dict) or public.get("time_domain") != expected_domain:
+      failures.append(f"{context}: fallback runtime was not explicitly tagged as wall time")
+  return {
+    "artifact": name,
+    "mode": mode,
+    "build_mode": expected_build_mode,
+    "source_revision": revision,
+    "three_clock_speed": cell_report,
+    "route_coverage": route_results,
+    "semantics": semantic_results,
+    "passed": not failures,
+    "failures": failures,
+  }
 
 
-def validate_supplemental_speed_campaign(documents: dict[str, dict]) -> dict:
+def compose_supplemental_speed_cell(
+  name: str,
+  clocks: object,
+  raw_behavior: object,
+  source_revision: str,
+  selection_profiles: object,
+  provenance_extra: object = None,
+  runtime_smoke: object = None,
+  collector_bundle_path: object = "collector.bundle",
+) -> dict:
+  """Compose one validated supplemental cell without consulting static declarations."""
+  expected = SUPPLEMENTAL_SPEED_CELLS.get(name)
+  if expected is None:
+    raise ValueError(f"unknown supplemental artifact {name!r}")
+  triple, harness, mode, build_mode = expected
+  extra = {} if provenance_extra is None else provenance_extra
+  if not isinstance(extra, dict) or any(
+    key in {
+      "harness",
+      "source_revision",
+      "runner",
+      "build_profile",
+      "build_mode",
+      "features",
+    }
+    for key in extra
+  ):
+    raise ValueError("supplemental provenance extras cannot replace identity fields")
+  if mode == "runtime_smoke":
+    if not isinstance(runtime_smoke, dict) or set(runtime_smoke) != {
+      "schema", "runtime_attestation", "assertions"
+    } or runtime_smoke.get("schema") != RUNTIME_SMOKE_ATTESTATION_SCHEMA:
+      raise ValueError("runtime smoke composition needs a producer attestation")
+    runtime_attestation = runtime_smoke["runtime_attestation"]
+    provenance = runtime_identity_provenance(runtime_attestation)
+    if provenance.get("source_revision") != source_revision:
+      raise ValueError("runtime smoke source revision does not match its attestation")
+    document = {
+      "schema": SUPPLEMENTAL_SPEED_SCHEMA,
+      "triple": triple,
+      "mode": mode,
+      "build_mode": build_mode,
+      "provenance": {**provenance, **extra},
+    }
+    document.update({
+      "evidence_class": "runtime_smoke",
+      "passed": True,
+      "smoke_schema": runtime_smoke["schema"],
+      "runtime_attestation": runtime_smoke["runtime_attestation"],
+      "assertions": runtime_smoke["assertions"],
+    })
+  else:
+    collector = clocks.get("collector_attestation") if isinstance(clocks, dict) else None
+    runtime_attestation = (
+      collector.get("runtime_attestation") if isinstance(collector, dict) else None
+    )
+    provenance = runtime_identity_provenance(runtime_attestation)
+    if provenance.get("source_revision") != source_revision:
+      raise ValueError("collector source revision does not match the requested revision")
+    document = {
+      "schema": SUPPLEMENTAL_SPEED_SCHEMA,
+      "triple": triple,
+      "mode": mode,
+      "build_mode": build_mode,
+      "provenance": {**provenance, **extra},
+    }
+    public_thread_cpu = clocks.get("tach_thread_cpu") if isinstance(clocks, dict) else None
+    public_time_domain = (
+      public_thread_cpu.get("time_domain")
+      if isinstance(public_thread_cpu, dict)
+      else None
+    )
+    document.update({
+      "evidence_class": "measured_external_runtime",
+      "collector_bundle": {
+        "schema": COLLECTOR_BUNDLE_DESCRIPTOR_SCHEMA,
+        "path": collector_bundle_path,
+        "manifest_sha256": collector.get("manifest_sha256")
+        if isinstance(collector, dict) else None,
+      },
+      "clocks": clocks,
+      "selection_profiles": selection_profiles,
+      "route_coverage": supplemental_route_coverage_from_clocks(
+        clocks, selection_profiles
+      ),
+      "thread_cpu_behavior": build_thread_cpu_behavior(raw_behavior, public_time_domain),
+    })
+  report = validate_supplemental_speed_cell(name, document)
+  if not report["passed"]:
+    raise ValueError("supplemental cell does not validate:\n  " + "\n  ".join(report["failures"]))
+  return document
+
+
+def validate_supplemental_speed_cell_from_bundle(
+  name: str,
+  document: object,
+  bundle_dir: Path,
+) -> dict:
+  """Re-extract a cell from its retained bundle before accepting a speed claim."""
+  report = validate_supplemental_speed_cell(name, document)
+  failures = list(report["failures"])
+  binding_failures: list[str] = []
+  context = f"supplemental {name}"
+  expected = SUPPLEMENTAL_SPEED_CELLS.get(name)
+  if expected is None or not isinstance(document, dict):
+    return report
+  _, _, mode, _ = expected
+  if mode != "full_speed_cell":
+    binding_failures.append(f"{context}: this evidence mode has no retained collector bundle")
+  else:
+    try:
+      import extract_speed
+
+      observation = extract_speed.extract_collector_bundle_observation(bundle_dir)
+    except (OSError, RuntimeError, ValueError) as error:
+      binding_failures.append(f"{context}: cannot verify retained collector bundle: {error}")
+    else:
+      extracted_clocks = observation.get("clocks")
+      collector = observation.get("collector_attestation")
+      observed_clocks = (
+        {**extracted_clocks, "collector_attestation": collector}
+        if isinstance(extracted_clocks, dict) and isinstance(collector, dict)
+        else extracted_clocks
+      )
+      observed_behavior = observation.get("thread_cpu_behavior")
+      if document.get("clocks") != observed_clocks:
+        binding_failures.append(
+          f"{context}: serialized clocks differ from retained collector bundle"
+        )
+      if not isinstance(observed_clocks, dict) or not isinstance(observed_behavior, dict):
+        binding_failures.append(
+          f"{context}: retained collector bundle lacks measured thread CPU data"
+        )
+      else:
+        public = observed_clocks.get("tach_thread_cpu")
+        time_domain = public.get("time_domain") if isinstance(public, dict) else None
+        try:
+          observed_semantics = build_thread_cpu_behavior(observed_behavior, time_domain)
+        except ValueError as error:
+          binding_failures.append(
+            f"{context}: retained thread-CPU behavior is malformed: {error}"
+          )
+        else:
+          if document.get("thread_cpu_behavior") != observed_semantics:
+            binding_failures.append(
+              f"{context}: serialized thread-CPU behavior differs from retained collector bundle"
+            )
+      descriptor = document.get("collector_bundle")
+      if isinstance(descriptor, dict) and isinstance(collector, dict):
+        if descriptor.get("manifest_sha256") != collector.get("manifest_sha256"):
+          binding_failures.append(f"{context}: retained collector bundle digest changed")
+
+  report["bundle_binding"] = {
+    "path": str(bundle_dir),
+    "passed": not binding_failures,
+  }
+  report["failures"] = [*failures, *binding_failures]
+  report["passed"] = not report["failures"]
+  return report
+
+
+def validate_supplemental_speed_campaign(
+  documents: dict[str, dict],
+  cell_paths: dict[str, Path] | None = None,
+  require_bound_observations: bool = True,
+) -> dict:
+  """Validate supplemental evidence, requiring retained observations by default.
+
+  Full Criterion cells are release evidence only when their serialized claims
+  reproduce from a retained collector bundle. Runtime-smoke cells are the one
+  intentionally data-free mode: their producer attestation is the evidence.
+  Tagged wall fallbacks need their own attested observation protocol before
+  they can become release evidence, so this verifier keeps them fail-closed.
+  `require_bound_observations=False` is limited to structural unit tests.
+  """
   failures = []
   results = []
   expected_names = set(SUPPLEMENTAL_SPEED_CELLS)
@@ -3537,91 +4921,57 @@ def validate_supplemental_speed_campaign(documents: dict[str, dict]) -> dict:
   revisions = set()
   for name in sorted(expected_names & actual_names):
     document = documents[name]
-    expected_triple, expected_harness, mode = SUPPLEMENTAL_SPEED_CELLS[name]
-    context = f"supplemental {name}"
-    provenance = document.get("provenance")
-    if (
-      document.get("schema") != "tach-speed-supplemental-v2"
-      or document.get("triple") != expected_triple
-      or document.get("mode") != mode
-      or not isinstance(provenance, dict)
-      or provenance.get("harness") != expected_harness
-    ):
-      failures.append(f"{context}: identity/provenance does not match the checked cell")
-      continue
-    revision = provenance.get("source_revision")
-    if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", revision):
-      failures.append(f"{context}: invalid full source revision")
-    else:
-      revisions.add(revision)
-    if mode == "runtime_smoke":
-      assertions = document.get("assertions")
-      if (
-        document.get("evidence_class") != "runtime_smoke"
-        or document.get("passed") is not True
-        or not isinstance(assertions, list)
-        or not assertions
-        or not all(isinstance(assertion, str) and assertion for assertion in assertions)
-      ):
-        failures.append(f"{context}: malformed runtime smoke evidence")
-      results.append({"artifact": name, "mode": mode, "passed": document.get("passed") is True})
-      continue
-
-    route_results = validate_supplemental_route_coverage(context, document, failures)
-    clocks = document.get("clocks")
-    public = clocks.get("tach_thread_cpu") if isinstance(clocks, dict) else None
-    if mode == "tagged_wall_fallback":
-      behavior = document.get("thread_cpu_behavior")
-      passed = (
-        document.get("evidence_class") == "measured_external_runtime"
-        and isinstance(public, dict)
-        and public.get("time_domain") == "monotonic wall fallback"
-        and isinstance(behavior, dict)
-        and behavior.get("tagged_wall_fallback") is True
-        and behavior.get("wall_time_advanced_during_sleep") is True
-        and set(route_results) == {"instant", "ordered", "thread_cpu"}
-        and all(result.get("passed") is True for result in route_results.values())
-      )
-      if not passed:
-        failures.append(f"{context}: fallback runtime was not explicitly tagged as wall time")
-      results.append({"artifact": name, "mode": mode, "passed": passed})
-      continue
-
-    if document.get("evidence_class") != "measured_external_runtime" or not isinstance(clocks, dict):
-      failures.append(f"{context}: malformed measured three-clock evidence")
-      continue
-    required_clocks = {
-      "tach", "tach_ordered", "quanta", "fastant", "minstant", "std",
-      "tach_thread_cpu", "native_thread_cpu",
-    }
-    if not required_clocks <= set(clocks):
-      failures.append(f"{context}: full speed cell omits public/reference clocks")
-      cell_report = {}
-    else:
-      cell_failures, cell_report = validate_cell(context, clocks, expected_triple)
-      failures.extend(cell_failures)
-    semantic_results = validate_native_thread_cpu_behavior(
-      context, document.get("thread_cpu_behavior"), failures
+    expected = SUPPLEMENTAL_SPEED_CELLS[name]
+    _, _, mode, _ = expected
+    cell_path = cell_paths.get(name) if cell_paths is not None else None
+    descriptor = document.get("collector_bundle") if isinstance(document, dict) else None
+    relative = descriptor.get("path") if isinstance(descriptor, dict) else None
+    bundle_path = PurePosixPath(relative) if isinstance(relative, str) else None
+    safe_bundle_path = (
+      bundle_path is not None
+      and relative
+      and "\\" not in relative
+      and not bundle_path.is_absolute()
+      and all(part not in {"", ".", ".."} for part in bundle_path.parts)
+      and bundle_path.as_posix() == relative
     )
-    results.append({
-      "artifact": name,
-      "mode": mode,
-      "three_clock_speed": cell_report,
-      "route_coverage": route_results,
-      "semantics": semantic_results,
-      "passed": not any(failure.startswith(context) for failure in failures),
-    })
+    if mode == "runtime_smoke":
+      result = validate_supplemental_speed_cell(name, document)
+    elif mode == "full_speed_cell" and cell_path is not None and safe_bundle_path:
+      result = validate_supplemental_speed_cell_from_bundle(
+        name, document, cell_path.parent / bundle_path
+      )
+    elif mode == "full_speed_cell" and require_bound_observations:
+      result = validate_supplemental_speed_cell(name, document)
+      result["failures"].append(
+        f"supplemental {name}: missing retained collector bundle path"
+      )
+      result["passed"] = False
+    elif mode == "tagged_wall_fallback" and require_bound_observations:
+      result = validate_supplemental_speed_cell(name, document)
+      result["failures"].append(
+        f"supplemental {name}: tagged wall fallback requires a producer-specific "
+        "attested observation bundle"
+      )
+      result["passed"] = False
+    else:
+      result = validate_supplemental_speed_cell(name, document)
+    failures.extend(result["failures"])
+    revision = result.get("source_revision")
+    if isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", revision):
+      revisions.add(revision)
+    results.append({key: value for key, value in result.items() if key != "failures"})
   if len(revisions) != 1:
     failures.append(f"supplemental campaign must use one source revision: {sorted(revisions)}")
   return {
     "schema": "tach-speed-supplemental-report-v2",
     "claim_scope": (
-      "external runtime coverage for all three public timing contracts on hosted targets "
-      "absent from the six-cell campaign"
+      "external runtime coverage for all three public timing contracts on the declared "
+      "target/build-mode/host-runtime identities absent from the six-cell campaign"
     ),
     "evidence_class_invariant": (
       "measured runtime, tagged wall fallback, and runtime smoke evidence remain distinct; "
-      "compile/codegen proof is never accepted as latency evidence"
+      "the static route manifest and compile/codegen proof are never accepted as latency evidence"
     ),
     "source_revision": next(iter(revisions)) if len(revisions) == 1 else None,
     "passed": not failures,
@@ -3630,8 +4980,16 @@ def validate_supplemental_speed_campaign(documents: dict[str, dict]) -> dict:
   }
 
 
-def validate_campaign_for_checkout(documents: list[dict], root: Path) -> dict:
-  report = validate_campaign(documents)
+def validate_campaign_for_checkout(
+  documents: dict[str, dict],
+  root: Path,
+  cell_paths: dict[str, Path] | None = None,
+) -> dict:
+  """Validate a retained primary campaign and bind its common source checkout."""
+  report = validate_primary_speed_campaign(
+    documents,
+    cell_paths,
+  )
   revision = report.get("source_revision")
   if isinstance(revision, str):
     binding_failures, binding = validate_checkout_binding(root, revision)

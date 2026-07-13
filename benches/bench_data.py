@@ -21,10 +21,29 @@ from pathlib import Path
 _DIR = Path(__file__).resolve().parent
 
 
+def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    document: dict[str, object] = {}
+    for key, value in pairs:
+        if key in document:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        document[key] = value
+    return document
+
+
+def load_json_document(path: Path) -> dict:
+    """Load one evidence document without conflating it with static manifests."""
+    document = json.loads(
+        Path(path).read_text(), object_pairs_hook=_reject_duplicate_json_keys
+    )
+    if not isinstance(document, dict):
+        raise ValueError(f"evidence document is not a JSON object: {path}")
+    return document
+
+
 def load_cell_documents(directory=_DIR):
     documents = []
     for p in sorted(Path(directory).glob("speed-[0-9]-*.json")):
-        d = json.loads(p.read_text())
+        d = load_json_document(p)
         documents.append(d)
     documents.sort(key=lambda d: d.get("order", 99))
     return documents
@@ -33,7 +52,7 @@ def load_cell_documents(directory=_DIR):
 def load_supplemental_speed_documents(directory=_DIR):
     documents = {}
     for path in sorted(Path(directory).glob("speed-supplemental-*.json")):
-        documents[path.name] = json.loads(path.read_text())
+        documents[path.name] = load_json_document(path)
     return documents
 
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import importlib.util
+import io
 import json
 import re
 import statistics
@@ -12,6 +14,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import extract_speed
@@ -177,6 +180,24 @@ PROFILE_CONTRACT_BY_TIMER_PROFILE = {
 def target_provider_module():
   path = Path(__file__).with_name("verify-target-providers.py")
   spec = importlib.util.spec_from_file_location("verify_target_providers", path)
+  assert spec is not None and spec.loader is not None
+  module = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(module)
+  return module
+
+
+def supplemental_composer_module():
+  path = Path(__file__).with_name("compose-supplemental-speed.py")
+  spec = importlib.util.spec_from_file_location("compose_supplemental_speed", path)
+  assert spec is not None and spec.loader is not None
+  module = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(module)
+  return module
+
+
+def primary_composer_module():
+  path = Path(__file__).with_name("compose-speed.py")
+  spec = importlib.util.spec_from_file_location("compose_speed", path)
   assert spec is not None and spec.loader is not None
   module = importlib.util.module_from_spec(spec)
   spec.loader.exec_module(module)
@@ -467,6 +488,61 @@ def clocks(
     "time_domain": "thread CPU",
   }
   return values
+
+
+def synthetic_runtime_attestation(
+  triple: str,
+  harness: str,
+  revision: str,
+  build_mode: str,
+) -> dict:
+  return {
+    "schema": speed_evidence.RUNTIME_ATTESTATION_SCHEMA,
+    "invocation_id": f"synthetic-{triple.replace('-', '_')}",
+    "harness": harness,
+    "target": copy.deepcopy(speed_evidence.SUPPLEMENTAL_RUNTIME_TARGETS[triple]),
+    "features": list(speed_evidence.benchmark_features_for_build_mode(build_mode) or ()),
+    "build_mode": build_mode,
+    "build_profile": "optimized",
+    "source_revision": revision,
+    "runner": "synthetic-runtime",
+    "output_isolated": True,
+  }
+
+
+def primary_speed_observation(
+  artifact_id: str = "speed-0-apple.json",
+  revision: str = "1" * 40,
+) -> tuple[dict, dict]:
+  _, _, _, triple, harness, build_mode = speed_evidence.PRIMARY_SPEED_CELLS[artifact_id]
+  assert harness == "criterion"
+  assert isinstance(build_mode, str)
+  attestation = synthetic_runtime_attestation(triple, harness, revision, build_mode)
+  collector = {
+    "schema": speed_evidence.COLLECTOR_ATTESTATION_SCHEMA,
+    "invocation_id": attestation["invocation_id"],
+    "runtime_attestation": attestation,
+    "manifest_sha256": "f" * 64,
+  }
+  return clocks(), collector
+
+
+def primary_speed_document(
+  artifact_id: str = "speed-0-apple.json",
+  revision: str = "1" * 40,
+) -> dict:
+  order, title, instance, triple, _, _ = speed_evidence.PRIMARY_SPEED_CELLS[artifact_id]
+  values, collector = primary_speed_observation(artifact_id, revision)
+  return speed_evidence.compose_primary_speed_cell(
+    artifact_id,
+    title,
+    instance,
+    triple,
+    order,
+    values,
+    collector,
+    "collector.bundle",
+  )
 
 
 def adaptive_thread_cpu_selection() -> dict:
@@ -884,24 +960,79 @@ def apple_aarch64_wall_selection() -> dict:
   }
 
 
+def apple_aarch64_complete_cell() -> tuple[dict, dict]:
+  selection = apple_aarch64_wall_selection()
+  values = clocks()
+  values["tach"]["selection"] = selection
+  for domain, prefix in (
+    ("instant", "direct_wall__"),
+    ("ordered", "direct_ordered_wall__"),
+  ):
+    for benchmark in selection["eligible_direct_candidates"][domain]:
+      values[benchmark] = {
+        **estimate(10.0),
+        "provider": benchmark.removeprefix(prefix),
+        "read_cost": "inline",
+        "time_domain": f"{domain} wall",
+        "benchmark": benchmark,
+      }
+  for domain, benchmark, public_key in (
+    ("instant", "direct_selected_wall", "tach"),
+    ("ordered", "direct_selected_ordered_wall", "tach_ordered"),
+  ):
+    selected_benchmark = selection["selected_native_benchmark"][domain]
+    values[benchmark] = {
+      **estimate(10.0),
+      "provider": selection["selected_provider"][domain],
+      "read_cost": "inline",
+      "time_domain": f"{domain} wall",
+      "benchmark": selected_benchmark,
+    }
+    assert values[public_key]["now"] == values[benchmark]["now"]
+  return selection, values
+
+
 def supplemental_speed_documents() -> dict[str, dict]:
   revision = "1" * 40
   documents = {}
-  for artifact, (triple, harness, mode) in speed_evidence.SUPPLEMENTAL_SPEED_CELLS.items():
+  for artifact, (triple, harness, mode, build_mode) in speed_evidence.SUPPLEMENTAL_SPEED_CELLS.items():
+    attestation = synthetic_runtime_attestation(triple, harness, revision, build_mode)
     document = {
-      "schema": "tach-speed-supplemental-v2",
+      "schema": speed_evidence.SUPPLEMENTAL_SPEED_SCHEMA,
       "triple": triple,
       "mode": mode,
-      "provenance": {"harness": harness, "source_revision": revision},
+      "build_mode": build_mode,
+      "provenance": speed_evidence.runtime_identity_provenance(attestation),
     }
     if mode == "runtime_smoke":
       document.update({
         "evidence_class": "runtime_smoke",
         "passed": True,
+        "smoke_schema": speed_evidence.RUNTIME_SMOKE_ATTESTATION_SCHEMA,
+        "runtime_attestation": attestation,
         "assertions": ["provider constructed and returned monotonic values"],
       })
     else:
       values = clocks()
+      values["tach"]["time_domain"] = "instant wall"
+      values["tach_ordered"]["time_domain"] = "ordered wall"
+      native_identity = speed_evidence.SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES.get(triple)
+      if native_identity is None:
+        values["native_thread_cpu"]["benchmark"] = "native_thread_cpu__native_thread_clock"
+      else:
+        benchmark, provider, read_cost = native_identity
+        values["native_thread_cpu"].update({
+          "benchmark": benchmark,
+          "provider": provider,
+          "read_cost": read_cost,
+          "time_domain": "thread CPU",
+        })
+      values["collector_attestation"] = {
+        "schema": speed_evidence.COLLECTOR_ATTESTATION_SCHEMA,
+        "invocation_id": attestation["invocation_id"],
+        "runtime_attestation": copy.deepcopy(attestation),
+        "manifest_sha256": "f" * 64,
+      }
       values["direct_selected_wall"] = {
         **estimate(10.0),
         "provider": "exact_instant_wall",
@@ -924,12 +1055,37 @@ def supplemental_speed_documents() -> dict[str, dict]:
         **values["direct_selected_ordered_wall"],
         "benchmark": "direct_ordered_wall__exact_ordered_wall",
       }
+      wall_selection = {
+        "selection_kind": "runtime_tournament",
+        "selected_provider": {
+          "instant": "exact_instant_wall",
+          "ordered": "exact_ordered_wall",
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__exact_instant_wall",
+          "ordered": "direct_selected_ordered_wall__exact_ordered_wall",
+        },
+        "eligible_direct_candidates": {
+          "instant": ["direct_wall__exact_instant_wall"],
+          "ordered": ["direct_ordered_wall__exact_ordered_wall"],
+        },
+        "probe": {"selection_basis": "synthetic complete-path tournament"},
+      }
+      values["tach"]["selection"] = copy.deepcopy(wall_selection)
+      values["tach_ordered"]["wall_selection"] = copy.deepcopy(wall_selection)
       if mode == "tagged_wall_fallback":
         values["tach_thread_cpu"] = {
           **estimate(10.0),
           "provider": "monotonic wall clock",
           "read_cost": "host call",
           "time_domain": "monotonic wall fallback",
+        }
+        values["native_thread_cpu"] = {
+          **estimate(10.0),
+          "provider": "native wall fallback",
+          "read_cost": "host call",
+          "time_domain": "monotonic wall fallback",
+          "benchmark": "native_thread_cpu__monotonic_wall_fallback",
         }
         values["direct_selected_thread_cpu"] = {
           **estimate(10.0),
@@ -938,58 +1094,121 @@ def supplemental_speed_documents() -> dict[str, dict]:
           "time_domain": "monotonic wall fallback",
           "benchmark": "direct_selected_thread_cpu__exact_thread_wall_fallback",
         }
-        behavior = {
-          "tagged_wall_fallback": True,
-          "wall_time_advanced_during_sleep": True,
+        values["direct_thread_cpu__exact_thread_wall_fallback"] = {
+          **estimate(10.0),
+          "provider": "exact_thread_wall_fallback",
+          "read_cost": "host call",
+          "time_domain": "monotonic wall fallback",
+          "benchmark": "direct_thread_cpu__exact_thread_wall_fallback",
+        }
+        thread_selection = {
+          "selection_kind": "fallback_only",
+          "selected_provider": "monotonic_wall_clock",
+          "selected_mechanism": "exact_thread_wall_fallback",
+          "selected_read_cost": "host call",
+          "selected_native_benchmark": "direct_selected_thread_cpu__exact_thread_wall_fallback",
+          "eligible_direct_candidates": ["direct_thread_cpu__exact_thread_wall_fallback"],
+          "time_domain": "monotonic wall fallback",
+        }
+        phase_samples = {
+          phase: [
+            {
+              "wall_delta_ns": 50_000_000,
+              "public_delta_ns": 49_900_000,
+              "direct_delta_ns": 49_900_000,
+            }
+            for _ in range(3)
+          ]
+          for phase in ("busy", "sleep", "sibling_isolation")
+        }
+        profiles = {
+          "instant": "runtime_tournament",
+          "ordered": "runtime_tournament",
+          "thread_cpu": "fallback_only",
         }
       else:
+        values["direct_thread_cpu__native_thread_clock"] = {
+          **estimate(10.0),
+          "provider": "native_thread_clock",
+          "read_cost": "system call",
+          "time_domain": "thread CPU",
+          "benchmark": "direct_thread_cpu__native_thread_clock",
+        }
         values["direct_selected_thread_cpu"] = {
-          **values["native_thread_cpu"],
+          **estimate(10.0),
+          "provider": "native_thread_clock",
+          "read_cost": "system call",
+          "time_domain": "thread CPU",
           "benchmark": "direct_selected_thread_cpu__native_thread_clock",
         }
-        behavior = {
-          "busy": {
-            "wall_delta_ns": 50_000_000,
-            "public_delta_ns": 49_900_000,
-            "direct_delta_ns": 49_900_000,
-          },
-          "sleep": {
-            "wall_delta_ns": 50_000_000,
-            "public_delta_ns": 10_000,
-            "direct_delta_ns": 10_000,
-          },
-          "sibling_isolation": {
-            "wall_delta_ns": 50_000_000,
-            "public_delta_ns": 10_000,
-            "direct_delta_ns": 10_000,
-          },
+        thread_selection = {
+          "selection_kind": "runtime_tournament",
+          "selected_provider": "posix_thread_cpu_clock",
+          "selected_mechanism": "native_thread_clock",
+          "selected_read_cost": "system call",
+          "selected_native_benchmark": "direct_selected_thread_cpu__native_thread_clock",
+          "eligible_direct_candidates": ["direct_thread_cpu__native_thread_clock"],
+        }
+        phase_samples = {
+          "busy": [
+            {
+              "wall_delta_ns": 50_000_000,
+              "public_delta_ns": 49_900_000,
+              "direct_delta_ns": 49_900_000,
+            }
+            for _ in range(3)
+          ],
+          "sleep": [
+            {
+              "wall_delta_ns": 50_000_000,
+              "public_delta_ns": 10_000,
+              "direct_delta_ns": 10_000,
+            }
+            for _ in range(3)
+          ],
+          "sibling_isolation": [
+            {
+              "wall_delta_ns": 50_000_000,
+              "public_delta_ns": 10_000,
+              "direct_delta_ns": 10_000,
+            }
+            for _ in range(3)
+          ],
+        }
+        profiles = {
+          "instant": "runtime_tournament",
+          "ordered": "runtime_tournament",
+          "thread_cpu": "runtime_tournament",
+        }
+      values["tach_thread_cpu"]["selection"] = thread_selection
+      behavior_sidecar = {
+        "schema": speed_evidence.THREAD_CPU_BEHAVIOR_SCHEMA,
+        "direct_benchmark": values["native_thread_cpu"]["benchmark"],
+        "sample_count": 3,
+        "runtime_attestation": copy.deepcopy(
+          values["collector_attestation"]["runtime_attestation"]
+        ),
+      }
+      for phase, samples in phase_samples.items():
+        behavior_sidecar[phase] = {
+          **speed_evidence._semantic_summary(samples),
+          "samples": samples,
         }
       document.update({
         "evidence_class": "measured_external_runtime",
-        "clocks": values,
-        "route_coverage": {
-          "instant": {
-            "public_row": "tach",
-            "selected_row": "direct_selected_wall",
-            "eligible_exact_rows": ["direct_wall__exact_instant_wall"],
-            "selection_kind": "unique_provider",
-          },
-          "ordered": {
-            "public_row": "tach_ordered",
-            "selected_row": "direct_selected_ordered_wall",
-            "eligible_exact_rows": ["direct_ordered_wall__exact_ordered_wall"],
-            "selection_kind": "unique_provider",
-          },
-          "thread_cpu": {
-            "public_row": "tach_thread_cpu",
-            "selected_row": "direct_selected_thread_cpu",
-            "eligible_exact_rows": ["direct_selected_thread_cpu"],
-            "selection_kind": (
-              "fallback_only" if mode == "tagged_wall_fallback" else "unique_provider"
-            ),
-          },
+        "collector_bundle": {
+          "schema": speed_evidence.COLLECTOR_BUNDLE_DESCRIPTOR_SCHEMA,
+          "path": "synthetic.bundle",
+          "manifest_sha256": "f" * 64,
         },
-        "thread_cpu_behavior": behavior,
+        "clocks": values,
+        "selection_profiles": profiles,
+        "route_coverage": speed_evidence.supplemental_route_coverage_from_clocks(
+          values, profiles
+        ),
+        "thread_cpu_behavior": speed_evidence.build_thread_cpu_behavior(
+          behavior_sidecar, values["tach_thread_cpu"]["time_domain"]
+        ),
       })
     documents[artifact] = document
   return documents
@@ -1257,12 +1476,16 @@ define void @tach_probe_instant_now_elapsed() {
 
   def test_supplemental_runtime_schema_never_accepts_codegen_as_speed(self) -> None:
     documents = supplemental_speed_documents()
-    report = speed_evidence.validate_supplemental_speed_campaign(documents)
+    report = speed_evidence.validate_supplemental_speed_campaign(
+      documents, require_bound_observations=False
+    )
     self.assertTrue(report["passed"], report["failures"])
 
     missing = copy.deepcopy(documents)
     missing.pop("speed-supplemental-freebsd-x86_64.json")
-    report = speed_evidence.validate_supplemental_speed_campaign(missing)
+    report = speed_evidence.validate_supplemental_speed_campaign(
+      missing, require_bound_observations=False
+    )
     self.assertFalse(report["passed"])
     self.assertTrue(any("missing=" in failure for failure in report["failures"]))
 
@@ -1270,11 +1493,564 @@ define void @tach_probe_instant_now_elapsed() {
     codegen_only["speed-supplemental-macos-x86_64.json"]["evidence_class"] = (
       "unique_provider_source_codegen_proven"
     )
-    report = speed_evidence.validate_supplemental_speed_campaign(codegen_only)
+    report = speed_evidence.validate_supplemental_speed_campaign(
+      codegen_only, require_bound_observations=False
+    )
     self.assertFalse(report["passed"])
     self.assertTrue(
       any("malformed measured three-clock" in failure for failure in report["failures"])
     )
+
+  def test_supplemental_release_validation_requires_retained_observations(self) -> None:
+    report = speed_evidence.validate_supplemental_speed_campaign(
+      supplemental_speed_documents()
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any(
+      "missing retained collector bundle path" in failure
+      for failure in report["failures"]
+    ))
+    self.assertTrue(any(
+      "tagged wall fallback requires a producer-specific attested observation bundle"
+      in failure
+      for failure in report["failures"]
+    ))
+    self.assertFalse(any(
+      "wasip1-threads-smoke" in failure and "bundle" in failure
+      for failure in report["failures"]
+    ))
+
+  def test_supplemental_cell_reextracts_its_retained_bundle(self) -> None:
+    artifact = "speed-supplemental-macos-x86_64.json"
+    document = supplemental_speed_documents()[artifact]
+    raw_behavior = {
+      key: copy.deepcopy(document["thread_cpu_behavior"][key])
+      for key in (
+        "schema",
+        "direct_benchmark",
+        "sample_count",
+        "runtime_attestation",
+        *speed_evidence.THREAD_CPU_BEHAVIOR_PHASES,
+      )
+    }
+    observed_clocks = copy.deepcopy(document["clocks"])
+    collector = observed_clocks.pop("collector_attestation")
+    observation = {
+      "clocks": observed_clocks,
+      "thread_cpu_behavior": raw_behavior,
+      "collector_attestation": collector,
+    }
+    with mock.patch.object(
+      extract_speed,
+      "extract_collector_bundle_observation",
+      return_value=observation,
+    ):
+      report = speed_evidence.validate_supplemental_speed_cell_from_bundle(
+        artifact, document, Path("/retained/collector.bundle")
+      )
+      self.assertTrue(report["passed"], report["failures"])
+      self.assertTrue(report["bundle_binding"]["passed"])
+
+      changed_clock = copy.deepcopy(document)
+      changed_clock["clocks"]["tach"]["now"] = 999.0
+      report = speed_evidence.validate_supplemental_speed_cell_from_bundle(
+        artifact, changed_clock, Path("/retained/collector.bundle")
+      )
+      self.assertFalse(report["passed"])
+      self.assertTrue(any(
+        "serialized clocks differ from retained collector bundle" in failure
+        for failure in report["failures"]
+      ))
+
+      changed_digest = copy.deepcopy(document)
+      changed_digest["collector_bundle"]["manifest_sha256"] = "0" * 64
+      report = speed_evidence.validate_supplemental_speed_cell_from_bundle(
+        artifact, changed_digest, Path("/retained/collector.bundle")
+      )
+      self.assertFalse(report["passed"])
+      self.assertTrue(any(
+        "retained collector bundle digest changed" in failure
+        for failure in report["failures"]
+      ))
+
+  def test_supplemental_composer_accepts_criterion_collector_cell(self) -> None:
+    fixture = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
+    raw_behavior = {
+      key: copy.deepcopy(fixture["thread_cpu_behavior"][key])
+      for key in (
+        "schema",
+        "direct_benchmark",
+        "sample_count",
+        "runtime_attestation",
+        "busy",
+        "sleep",
+        "sibling_isolation",
+      )
+    }
+    composer = supplemental_composer_module()
+    document = composer.compose(
+      "speed-supplemental-macos-x86_64.json",
+      copy.deepcopy(fixture["clocks"]),
+      raw_behavior,
+      "1" * 40,
+      copy.deepcopy(fixture["selection_profiles"]),
+      {"runtime": "synthetic"},
+      [],
+    )
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", document
+    )
+    self.assertTrue(report["passed"], report["failures"])
+    self.assertEqual(
+      document["thread_cpu_behavior"]["direct_benchmark"],
+      document["clocks"]["native_thread_cpu"]["benchmark"],
+    )
+    self.assertEqual(document["provenance"]["runtime"], "synthetic")
+
+  def test_primary_composer_derives_identity_from_a_collector_bundle(self) -> None:
+    artifact_id = "speed-0-apple.json"
+    values, collector = primary_speed_observation(artifact_id)
+    observation = {
+      "clocks": copy.deepcopy(values),
+      "collector_attestation": copy.deepcopy(collector),
+    }
+    composer = primary_composer_module()
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      bundle = root / "collector.bundle"
+      bundle.mkdir()
+      output = root / artifact_id
+      with mock.patch.object(
+        sys,
+        "argv",
+        [
+          "compose-speed.py",
+          str(output),
+          "--collector-bundle",
+          str(bundle),
+        ],
+      ), mock.patch.object(
+        composer.extract_speed,
+        "extract_collector_bundle_observation",
+        return_value=observation,
+      ) as extract:
+        composer.main()
+
+      extract.assert_called_once_with(bundle)
+      document = json.loads(output.read_text())
+
+    self.assertEqual(document["artifact_id"], artifact_id)
+    self.assertEqual(document["build_mode"], "default")
+    self.assertEqual(document["evidence_kind"], "full_speed")
+    self.assertEqual(document["collector_bundle"]["path"], "collector.bundle")
+    self.assertEqual(
+      document["provenance"],
+      speed_evidence.runtime_identity_provenance(collector["runtime_attestation"]),
+    )
+    self.assertNotIn("rustc", document["provenance"])
+    report = speed_evidence.validate_primary_speed_cell(artifact_id, document)
+    self.assertTrue(report["passed"], report["failures"])
+
+  def test_primary_composer_rejects_lambda_before_collector_read(self) -> None:
+    composer = primary_composer_module()
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      stderr = io.StringIO()
+      with (
+        mock.patch.object(
+          sys,
+          "argv",
+          [
+            "compose-speed.py",
+            str(root / "speed-5-lambda.json"),
+            "--collector-bundle",
+            str(root / "pretend-criterion.bundle"),
+          ],
+        ),
+        mock.patch.object(
+          composer.extract_speed, "extract_collector_bundle_observation"
+        ) as extract,
+        contextlib.redirect_stderr(stderr),
+      ):
+        with self.assertRaises(SystemExit) as exit_error:
+          composer.main()
+
+    self.assertEqual(exit_error.exception.code, 2)
+    self.assertIn("host observation protocol", stderr.getvalue())
+    extract.assert_not_called()
+
+  def test_primary_bound_cell_reextracts_the_retained_collector_bundle(self) -> None:
+    artifact_id = "speed-0-apple.json"
+    document = primary_speed_document(artifact_id)
+    values, collector = primary_speed_observation(artifact_id)
+    observation = {
+      "clocks": copy.deepcopy(values),
+      "collector_attestation": copy.deepcopy(collector),
+    }
+    with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+      extract_speed,
+      "extract_collector_bundle_observation",
+      return_value=observation,
+    ):
+      bundle = Path(directory) / "collector.bundle"
+      bundle.mkdir()
+      report = speed_evidence.validate_primary_speed_cell_from_bundle(
+        artifact_id, document, bundle
+      )
+      self.assertTrue(report["passed"], report["failures"])
+      self.assertTrue(report["bound_observation"])
+      self.assertEqual(report["artifact_id"], artifact_id)
+      self.assertEqual(report["source_revision"], "1" * 40)
+      self.assertEqual(report["triple"], "aarch64-apple-darwin")
+      self.assertEqual(report["build_mode"], "default")
+      self.assertEqual(report["evidence_kind"], "full_speed")
+
+      changed = copy.deepcopy(document)
+      changed["clocks"]["tach"]["now"] = 9.0
+      report = speed_evidence.validate_primary_speed_cell_from_bundle(
+        artifact_id, changed, bundle
+      )
+      self.assertFalse(report["passed"])
+      self.assertFalse(report["bound_observation"])
+      self.assertTrue(any(
+        "serialized clocks differ from retained collector bundle" in failure
+        for failure in report["failures"]
+      ))
+
+  def test_primary_campaign_rejects_missing_or_legacy_bundle_evidence(self) -> None:
+    artifact_id = "speed-0-apple.json"
+    document = primary_speed_document(artifact_id)
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      cell_path = root / artifact_id
+      cell_path.write_text(json.dumps(document))
+      report = speed_evidence.validate_primary_speed_campaign(
+        {artifact_id: document}, {artifact_id: cell_path}
+      )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any(
+      "retained collector bundle is missing" in failure
+      for failure in report["failures"]
+    ))
+
+    legacy = json.loads((ROOT / "benches" / artifact_id).read_text())
+    legacy_report = speed_evidence.validate_primary_speed_cell(artifact_id, legacy)
+    self.assertFalse(legacy_report["passed"])
+    self.assertTrue(any(
+      "document schema changed" in failure for failure in legacy_report["failures"]
+    ))
+
+  def test_primary_validator_rejects_provenance_and_build_mode_drift(self) -> None:
+    artifact_id = "speed-0-apple.json"
+    document = primary_speed_document(artifact_id)
+    runner_drift = copy.deepcopy(document)
+    runner_drift["provenance"]["runner"] = "wrong-runner"
+    report = speed_evidence.validate_primary_speed_cell(artifact_id, runner_drift)
+    self.assertFalse(report["passed"])
+    self.assertTrue(any(
+      "document provenance disagrees with runtime identity" in failure
+      for failure in report["failures"]
+    ))
+
+    build_drift = copy.deepcopy(document)
+    runtime = build_drift["collector_attestation"]["runtime_attestation"]
+    runtime["build_mode"] = "no-default"
+    runtime["features"] = ["bench-internal"]
+    build_drift["build_mode"] = "no-default"
+    build_drift["provenance"]["build_mode"] = "no-default"
+    build_drift["provenance"]["features"] = ["bench-internal"]
+    report = speed_evidence.validate_primary_speed_cell(artifact_id, build_drift)
+    self.assertFalse(report["passed"])
+    self.assertTrue(any(
+      "build mode does not match the primary campaign" in failure
+      for failure in report["failures"]
+    ))
+
+  def test_supplemental_composer_rejects_host_harness_before_collector_read(self) -> None:
+    artifact = "speed-supplemental-wasm-node.json"
+    fixture = supplemental_speed_documents()[artifact]
+    raw_behavior = {
+      key: copy.deepcopy(fixture["thread_cpu_behavior"][key])
+      for key in (
+        "schema",
+        "direct_benchmark",
+        "sample_count",
+        "runtime_attestation",
+        "busy",
+        "sleep",
+        "sibling_isolation",
+      )
+    }
+    composer = supplemental_composer_module()
+    with self.assertRaisesRegex(ValueError, "host observation protocol"):
+      composer.compose(
+        artifact,
+        copy.deepcopy(fixture["clocks"]),
+        raw_behavior,
+        "1" * 40,
+        copy.deepcopy(fixture["selection_profiles"]),
+        {},
+        [],
+      )
+
+    with tempfile.TemporaryDirectory() as temporary_directory:
+      stderr = io.StringIO()
+      output = Path(temporary_directory) / "cell.json"
+      with (
+        mock.patch.object(
+          sys,
+          "argv",
+          [
+            "compose-supplemental-speed.py",
+            "--artifact",
+            artifact,
+            "--output",
+            str(output),
+            "--source-revision",
+            "1" * 40,
+            "--collector-bundle",
+            str(Path(temporary_directory) / "pretend-criterion.bundle"),
+          ],
+        ),
+        mock.patch.object(
+          composer.extract_speed, "extract_collector_bundle_observation"
+        ) as extract,
+        contextlib.redirect_stderr(stderr),
+      ):
+        with self.assertRaises(SystemExit) as exit_error:
+          composer.main()
+
+    self.assertEqual(exit_error.exception.code, 2)
+    self.assertIn("host observation protocol", stderr.getvalue())
+    extract.assert_not_called()
+
+  def test_supplemental_composer_rejects_mislabeled_rows_and_semantic_summaries(self) -> None:
+    fixture = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
+    raw_behavior = {
+      key: copy.deepcopy(fixture["thread_cpu_behavior"][key])
+      for key in (
+        "schema",
+        "direct_benchmark",
+        "sample_count",
+        "runtime_attestation",
+        "busy",
+        "sleep",
+        "sibling_isolation",
+      )
+    }
+    composer = supplemental_composer_module()
+    mislabeled = copy.deepcopy(fixture["clocks"])
+    mislabeled["direct_selected_wall"]["benchmark"] = "direct_selected_wall__wrong"
+    with self.assertRaisesRegex(ValueError, "selected row does not match"):
+      composer.compose(
+        "speed-supplemental-macos-x86_64.json",
+        mislabeled,
+        copy.deepcopy(raw_behavior),
+        "1" * 40,
+        copy.deepcopy(fixture["selection_profiles"]),
+        {},
+        [],
+      )
+
+    mislabeled_profile = copy.deepcopy(fixture["selection_profiles"])
+    mislabeled_profile["thread_cpu"] = "fixed_native"
+    with self.assertRaisesRegex(ValueError, "profiles do not match observed selectors"):
+      composer.compose(
+        "speed-supplemental-macos-x86_64.json",
+        copy.deepcopy(fixture["clocks"]),
+        copy.deepcopy(raw_behavior),
+        "1" * 40,
+        mislabeled_profile,
+        {},
+        [],
+      )
+
+    summary_tampered = copy.deepcopy(raw_behavior)
+    summary_tampered["sleep"]["public_delta_ns"] += 1
+    with self.assertRaisesRegex(ValueError, "summary does not reproduce"):
+      composer.compose(
+        "speed-supplemental-macos-x86_64.json",
+        copy.deepcopy(fixture["clocks"]),
+        summary_tampered,
+        "1" * 40,
+        copy.deepcopy(fixture["selection_profiles"]),
+        {},
+        [],
+      )
+
+  def test_supplemental_validator_rejects_selector_or_direct_binding_drift(self) -> None:
+    document = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
+    selector_drift = copy.deepcopy(document)
+    selector_drift["route_coverage"]["thread_cpu"]["eligible_exact_rows"] = []
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", selector_drift
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("malformed thread_cpu route identity" in item for item in report["failures"]))
+
+    direct_drift = copy.deepcopy(document)
+    direct_drift["thread_cpu_behavior"]["direct_benchmark"] = "native_thread_cpu__other"
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", direct_drift
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("not bound to native_thread_cpu" in item for item in report["failures"]))
+
+  def test_supplemental_validator_rejects_cross_target_or_cross_run_inputs(self) -> None:
+    macos = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
+    relabeled = copy.deepcopy(macos)
+    relabeled["triple"] = "i686-pc-windows-msvc"
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-windows-i686.json", relabeled
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("attestation target disagrees" in item for item in report["failures"]))
+
+    cross_run = copy.deepcopy(macos)
+    cross_run["thread_cpu_behavior"]["runtime_attestation"]["invocation_id"] = "other-run"
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", cross_run
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("another runtime invocation" in item for item in report["failures"]))
+
+  def test_supplemental_validator_binds_runtime_provenance_and_features(self) -> None:
+    artifact = "speed-supplemental-macos-x86_64.json"
+    document = supplemental_speed_documents()[artifact]
+
+    runner_drift = copy.deepcopy(document)
+    runner_drift["provenance"]["runner"] = "wrong-runner"
+    report = speed_evidence.validate_supplemental_speed_cell(artifact, runner_drift)
+    self.assertFalse(report["passed"])
+    self.assertTrue(any(
+      "document provenance disagrees with runtime identity" in failure
+      for failure in report["failures"]
+    ))
+
+    for features in (
+      ["bench-internal"],
+      ["bench-internal", "recalibrate-background", "thread-cpu-inline"],
+    ):
+      with self.subTest(features=features):
+        feature_drift = copy.deepcopy(document)
+        feature_drift["provenance"]["features"] = features
+        feature_drift["clocks"]["collector_attestation"]["runtime_attestation"][
+          "features"
+        ] = features
+        feature_drift["thread_cpu_behavior"]["runtime_attestation"][
+          "features"
+        ] = features
+        report = speed_evidence.validate_supplemental_speed_cell(artifact, feature_drift)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(
+          "feature set differs from build mode" in failure
+          for failure in report["failures"]
+        ))
+
+  def test_build_modes_have_exact_noninterchangeable_attestation_signatures(self) -> None:
+    self.assertEqual(
+      extract_speed.RUNTIME_BUILD_MODE_FEATURES,
+      speed_evidence.BENCHMARK_FEATURES_BY_BUILD_MODE,
+    )
+    triple = "x86_64-apple-darwin"
+    revision = "1" * 40
+    no_default = synthetic_runtime_attestation(
+      triple, "criterion", revision, "no-default"
+    )
+    failures: list[str] = []
+    speed_evidence.validate_runtime_attestation(
+      "no-default fixture",
+      no_default,
+      triple,
+      "criterion",
+      "no-default",
+      revision,
+      failures,
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(
+      no_default["features"],
+      list(speed_evidence.BENCHMARK_FEATURES_BY_BUILD_MODE["no-default"]),
+    )
+
+    default_failures: list[str] = []
+    speed_evidence.validate_runtime_attestation(
+      "default fixture",
+      no_default,
+      triple,
+      "criterion",
+      "default",
+      revision,
+      default_failures,
+    )
+    self.assertTrue(any(
+      "feature set differs from build mode 'default'" in failure
+      for failure in default_failures
+    ))
+
+  def test_supplemental_validator_rejects_weak_native_or_exact_thread_cpu_rows(self) -> None:
+    document = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
+    weak_native = copy.deepcopy(document)
+    weak_native["clocks"]["native_thread_cpu"]["benchmark"] = "native_thread_cpu"
+    weak_native["thread_cpu_behavior"]["direct_benchmark"] = "native_thread_cpu"
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", weak_native
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("native thread-CPU benchmark identity changed" in item for item in report["failures"]))
+
+    exact_drift = copy.deepcopy(document)
+    candidate = exact_drift["route_coverage"]["thread_cpu"]["eligible_exact_rows"][0]
+    exact_drift["clocks"][candidate]["provider"] = "wrong_direct_provider"
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", exact_drift
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("changed provider identity" in item for item in report["failures"]))
+
+  def test_supplemental_validator_requires_exact_integer_sidecar_samples(self) -> None:
+    document = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
+    wrong_count = copy.deepcopy(document)
+    wrong_count["thread_cpu_behavior"]["sample_count"] = 4
+    for phase in speed_evidence.THREAD_CPU_BEHAVIOR_PHASES:
+      samples = wrong_count["thread_cpu_behavior"][phase]["samples"]
+      samples.append(copy.deepcopy(samples[-1]))
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", wrong_count
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("invalid sample count" in item for item in report["failures"]))
+
+    float_sample = copy.deepcopy(document)
+    float_sample["thread_cpu_behavior"]["sleep"]["samples"][0]["public_delta_ns"] = 10.0
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-macos-x86_64.json", float_sample
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("integer deltas" in item for item in report["failures"]))
+
+  def test_supplemental_runtime_smoke_requires_producer_attestation(self) -> None:
+    document = supplemental_speed_documents()["speed-supplemental-wasip1-threads-smoke.json"]
+    document.pop("runtime_attestation")
+    report = speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-wasip1-threads-smoke.json", document
+    )
+    self.assertFalse(report["passed"])
+    self.assertTrue(any("runtime attestation" in item for item in report["failures"]))
+
+  def test_supplemental_runtime_smoke_cannot_carry_a_collector_bundle(self) -> None:
+    artifact = "speed-supplemental-wasip1-threads-smoke.json"
+    document = supplemental_speed_documents()[artifact]
+    document["collector_bundle"] = {
+      "schema": speed_evidence.COLLECTOR_BUNDLE_DESCRIPTOR_SCHEMA,
+      "path": "not-a-runtime-smoke.bundle",
+      "manifest_sha256": "0" * 64,
+    }
+    report = speed_evidence.validate_supplemental_speed_cell(artifact, document)
+    self.assertFalse(report["passed"])
+    self.assertTrue(any(
+      "document schema changed" in failure for failure in report["failures"]
+    ))
 
   def test_aarch64_pmccntr_negative_evidence_is_reproducible_and_ineligible(self) -> None:
     root = Path(__file__).resolve().parents[1]
@@ -1404,34 +2180,7 @@ define void @tach_probe_instant_now_elapsed() {
       self.assertNotIn(stale_provider, harness_source)
 
   def test_apple_aarch64_selector_requires_every_now_and_elapsed_route(self) -> None:
-    selection = apple_aarch64_wall_selection()
-    values = clocks()
-    values["tach"]["selection"] = selection
-    for domain, prefix in (
-      ("instant", "direct_wall__"),
-      ("ordered", "direct_ordered_wall__"),
-    ):
-      for benchmark in selection["eligible_direct_candidates"][domain]:
-        values[benchmark] = {
-          **estimate(10.0),
-          "provider": benchmark.removeprefix(prefix),
-          "read_cost": "inline",
-          "time_domain": f"{domain} wall",
-          "benchmark": benchmark,
-        }
-    for domain, benchmark, public_key in (
-      ("instant", "direct_selected_wall", "tach"),
-      ("ordered", "direct_selected_ordered_wall", "tach_ordered"),
-    ):
-      selected_benchmark = selection["selected_native_benchmark"][domain]
-      values[benchmark] = {
-        **estimate(10.0),
-        "provider": selection["selected_provider"][domain],
-        "read_cost": "inline",
-        "time_domain": f"{domain} wall",
-        "benchmark": selected_benchmark,
-      }
-      self.assertEqual(values[public_key]["now"], values[benchmark]["now"])
+    selection, values = apple_aarch64_complete_cell()
 
     failures, report = speed_evidence.validate_cell(
       "Apple aarch64", values, "aarch64-apple-darwin"
@@ -1576,6 +2325,47 @@ define void @tach_probe_instant_now_elapsed() {
     )
     self.assertTrue(any("Instant now is materially slower than quanta" in item for item in failures))
     self.assertFalse(report["same_thread_elapsed"]["now"]["passed"])
+
+  def test_apple_aarch64_quanta_bare_counter_is_ineligible_only_on_that_target(self) -> None:
+    apple = speed_evidence.local_reference_eligibility("aarch64-apple-darwin")
+    quanta = apple["quanta"]
+    self.assertFalse(quanta["eligible"])
+    self.assertEqual(
+      quanta["reason"],
+      speed_evidence.APPLE_AARCH64_QUANTA_INELIGIBILITY_REASON,
+    )
+    self.assertEqual(
+      quanta["implementation"],
+      speed_evidence.APPLE_AARCH64_QUANTA_IMPLEMENTATION,
+    )
+    self.assertIn("bare CNTVCT_EL0", quanta["implementation"])
+    self.assertIn("wake-corrected", quanta["implementation"])
+    self.assertIn("suspend", quanta["implementation"])
+
+    for target in ("aarch64-unknown-linux-gnu", "x86_64-apple-darwin"):
+      with self.subTest(target=target):
+        self.assertTrue(
+          speed_evidence.local_reference_eligibility(target)["quanta"]["eligible"]
+        )
+
+  def test_apple_aarch64_quanta_row_is_reported_but_does_not_gate_a_valid_cell(self) -> None:
+    _, values = apple_aarch64_complete_cell()
+    values["quanta"] = estimate(1.0)
+
+    failures, report = speed_evidence.validate_cell(
+      "Apple aarch64", values, "aarch64-apple-darwin"
+    )
+
+    self.assertEqual(failures, [])
+    comparison = report["same_thread_elapsed"]["now"]["comparisons"]["quanta"]
+    self.assertEqual(comparison["reference_ns"], 1.0)
+    self.assertFalse(comparison["eligible_for_reliable_contract"])
+    self.assertEqual(
+      comparison["eligibility_reason"],
+      speed_evidence.APPLE_AARCH64_QUANTA_INELIGIBILITY_REASON,
+    )
+    self.assertFalse(comparison["passed"])
+    self.assertTrue(report["same_thread_elapsed"]["now"]["passed"])
 
   def test_windows_same_thread_gate_excludes_non_qpc_contracts_but_keeps_rows(self) -> None:
     values = clocks()
@@ -2612,6 +3402,36 @@ define void @tach_probe_instant_now_elapsed() {
       git(root, "commit", "-qm", "changed source")
       failures, binding = speed_evidence.validate_checkout_binding(root, revision)
       self.assertTrue(any("committed benchmark inputs changed" in item for item in failures))
+      self.assertFalse(binding["committed_tree_inputs_unchanged"])
+
+  def test_checkout_binding_rejects_a_git_replace_substituted_revision(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      git(root, "init", "-q")
+      git(root, "config", "user.name", "tach test")
+      git(root, "config", "user.email", "tach-test@example.invalid")
+      (root / "src").mkdir()
+      (root / "src/lib.rs").write_text("pub fn measured() {}\n")
+      git(root, "add", "src/lib.rs")
+      git(root, "commit", "-qm", "measured source")
+      revision = git(root, "rev-parse", "HEAD")
+
+      (root / "src/lib.rs").write_text("pub fn substituted() {}\n")
+      git(root, "add", "src/lib.rs")
+      git(root, "commit", "-qm", "substituted source")
+      forged = git(root, "rev-parse", "HEAD")
+      git(root, "replace", revision, forged)
+
+      # Ordinary Git revision lookup now substitutes F for R. The campaign
+      # validator must instead compare R's actual committed inputs.
+      self.assertEqual(
+        git(root, "diff", "--name-only", revision, "HEAD", "--", "src"),
+        "",
+      )
+      failures, binding = speed_evidence.validate_checkout_binding(root, revision)
+      self.assertTrue(any(
+        "committed benchmark inputs changed" in failure for failure in failures
+      ))
       self.assertFalse(binding["committed_tree_inputs_unchanged"])
 
   def test_campaign_revision_is_not_self_pinned(self) -> None:

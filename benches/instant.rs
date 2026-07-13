@@ -1,6 +1,7 @@
 #![allow(clippy::cast_precision_loss)]
 
 #[cfg(all(
+  feature = "thread-cpu-inline",
   any(target_os = "android", target_os = "linux"),
   any(target_arch = "x86_64", target_arch = "aarch64"),
 ))]
@@ -1393,7 +1394,150 @@ macro_rules! with_apple_aarch64_ordered_read {
   }};
 }
 
+fn criterion_target_env() -> &'static str {
+  if cfg!(target_env = "gnu") {
+    "gnu"
+  } else if cfg!(target_env = "musl") {
+    "musl"
+  } else if cfg!(target_env = "msvc") {
+    "msvc"
+  } else if cfg!(target_env = "uclibc") {
+    "uclibc"
+  } else if cfg!(target_env = "sgx") {
+    "sgx"
+  } else if cfg!(target_env = "newlib") {
+    "newlib"
+  } else if cfg!(target_env = "p1") {
+    "p1"
+  } else if cfg!(target_env = "p2") {
+    "p2"
+  } else if cfg!(target_env = "") {
+    ""
+  } else {
+    "unknown"
+  }
+}
+
+fn valid_benchmark_source_revision(value: &str) -> bool {
+  matches!(value.len(), 40 | 64)
+    && value.bytes().all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+}
+
+fn criterion_evidence_mode() -> bool {
+  matches!(std::env::var("TACH_BENCH_EVIDENCE").as_deref(), Ok("1"))
+}
+
+fn criterion_build_mode() -> &'static str {
+  if cfg!(feature = "recalibrate-background") {
+    "unsupported-recalibrate-background"
+  } else if cfg!(feature = "emscripten-pthreads") && cfg!(feature = "thread-cpu-inline") {
+    "emscripten-pthreads"
+  } else if cfg!(feature = "emscripten-pthreads") {
+    "unsupported-emscripten-pthreads-no-default"
+  } else if cfg!(feature = "thread-cpu-inline") {
+    "default"
+  } else {
+    "no-default"
+  }
+}
+
+fn criterion_runtime_attestation() -> &'static serde_json::Value {
+  use std::collections::hash_map::DefaultHasher;
+  use std::hash::{Hash, Hasher};
+  use std::sync::OnceLock;
+  use std::time::{SystemTime, UNIX_EPOCH};
+
+  static ATTESTATION: OnceLock<serde_json::Value> = OnceLock::new();
+  ATTESTATION.get_or_init(|| {
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
+    let stack_nonce = (&now as *const u128) as usize;
+    let mut invocation = DefaultHasher::new();
+    std::process::id().hash(&mut invocation);
+    now.hash(&mut invocation);
+    stack_nonce.hash(&mut invocation);
+    let invocation_id = format!("criterion-{:016x}", invocation.finish());
+    let features = [
+      #[cfg(feature = "bench-internal")]
+      "bench-internal",
+      #[cfg(feature = "emscripten-pthreads")]
+      "emscripten-pthreads",
+      #[cfg(feature = "recalibrate-background")]
+      "recalibrate-background",
+      #[cfg(feature = "thread-cpu-inline")]
+      "thread-cpu-inline",
+    ];
+    let source_revision = std::env::var("TACH_BENCH_SOURCE_REVISION")
+      .ok()
+      .filter(|revision| valid_benchmark_source_revision(revision));
+    let runner = std::env::var("TACH_BENCH_RUNNER").ok().and_then(|runner| {
+      let runner = runner.trim();
+      (!runner.is_empty()).then(|| runner.to_owned())
+    });
+    serde_json::json!({
+      "schema": "tach-benchmark-runtime-v2",
+      "invocation_id": invocation_id,
+      "harness": "criterion",
+      "target": {
+        "arch": std::env::consts::ARCH,
+        "os": std::env::consts::OS,
+        "env": criterion_target_env(),
+      },
+      "features": features,
+      "build_mode": criterion_build_mode(),
+      "build_profile": if cfg!(debug_assertions) { "debug" } else { "optimized" },
+      "source_revision": source_revision,
+      "runner": runner,
+      "output_isolated": criterion_evidence_mode(),
+    })
+  })
+}
+
+fn write_criterion_runtime_attestation() -> serde_json::Value {
+  use std::fs;
+  use std::path::PathBuf;
+  use std::sync::OnceLock;
+
+  static ATTESTATION_WRITTEN: OnceLock<()> = OnceLock::new();
+
+  let attestation = criterion_runtime_attestation().clone();
+  ATTESTATION_WRITTEN.get_or_init(|| {
+    let target = std::env::var_os("CARGO_TARGET_DIR")
+      .map(PathBuf::from)
+      .unwrap_or_else(|| PathBuf::from("target"));
+    let directory = target.join("criterion");
+    if criterion_evidence_mode() {
+      match fs::symlink_metadata(&directory) {
+        Ok(metadata) => {
+          assert!(
+            metadata.file_type().is_dir() && !metadata.file_type().is_symlink(),
+            "evidence Criterion output must be an ordinary directory: {}",
+            directory.display(),
+          );
+          let mut entries =
+            fs::read_dir(&directory).expect("read existing Criterion evidence directory");
+          assert!(
+            entries.next().is_none(),
+            "evidence Criterion output must start empty; use a fresh CARGO_TARGET_DIR",
+          );
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+          panic!("inspect Criterion evidence directory {}: {error}", directory.display(),)
+        }
+      }
+    }
+    fs::create_dir_all(&directory).expect("create Criterion runtime-attestation directory");
+    fs::write(
+      directory.join("runtime-attestation.json"),
+      serde_json::to_vec_pretty(&attestation).expect("serialize Criterion runtime attestation"),
+    )
+    .expect("write Criterion runtime attestation");
+  });
+  attestation
+}
+
 fn bench_now(c: &mut Criterion) {
+  write_criterion_runtime_attestation();
   // Prime the lazy frequency calibration so it doesn't land in the first
   // measured sample.
   quanta::Instant::now();
@@ -1572,6 +1716,15 @@ fn bench_now(c: &mut Criterion) {
   #[cfg(all(feature = "bench-internal", target_os = "macos"))]
   {
     let native = MachAbsoluteTimeDirect::for_current_machine();
+    #[cfg(target_arch = "x86_64")]
+    g.bench_function("direct_wall__apple_mach_absolute_time", |b| {
+      b.iter(|| black_box(native.now_ticks()));
+    });
+    #[cfg(target_arch = "x86_64")]
+    g.bench_function("direct_ordered_wall__apple_mach_absolute_time", |b| {
+      b.iter(|| black_box(native.now_ticks()));
+    });
+    #[cfg(target_arch = "aarch64")]
     g.bench_function("native_wall__mach_absolute_time", |b| {
       b.iter(|| black_box(native.now_ticks()));
     });
@@ -1838,9 +1991,9 @@ fn write_apple_wall_selection() {
     .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
     .collect();
   #[cfg(target_arch = "x86_64")]
-  let mut instant_candidates = vec!["native_wall__mach_absolute_time"];
+  let mut instant_candidates = vec!["direct_wall__apple_mach_absolute_time"];
   #[cfg(target_arch = "x86_64")]
-  let mut ordered_candidates = vec!["native_wall__mach_absolute_time"];
+  let mut ordered_candidates = vec!["direct_ordered_wall__apple_mach_absolute_time"];
   #[cfg(target_arch = "x86_64")]
   if AppleX86CommpageDirect::try_for_current_machine().is_some() {
     instant_candidates.push("direct_wall__apple_commpage_lfence_rdtsc_nanotime");
@@ -1947,9 +2100,27 @@ fn write_windows_wall_selection() {
       "instant": instant_provider,
       "ordered": ordered_provider,
     },
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{instant_provider}"),
+      "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
+    },
     "eligible_direct_candidates": {
       "instant": ["direct_wall__windows_qpc"],
       "ordered": ordered_candidates,
+    },
+    "fixed_provider": {
+      "instant": {
+        "candidate": instant_provider,
+        "native_primitive": "QueryPerformanceCounter",
+        "selection_basis": "QPC is Windows' documented high-resolution reliable process-wide interval timeline",
+        "time_domain": "instant wall",
+      },
+      "ordered": {
+        "candidate": ordered_provider,
+        "native_primitive": "QueryPerformanceCounter with the selected ordering boundary",
+        "selection_basis": "the selected barrier plus QPC path is the fixed Windows cross-thread wall-clock route for this architecture",
+        "time_domain": "ordered wall",
+      },
     },
     "ineligible_direct_candidates": ineligible_direct_candidates,
     "decision_rule": "QPC is Windows' supported high-resolution reliable process-wide interval timeline; x86 barriers are measured as complete barrier+QPC paths, while Arm64 uses the minimal architecturally sufficient dmb ishld; isb sequence",
@@ -2127,7 +2298,7 @@ fn write_ordered_selection() {
     }
   }
   #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
-  candidates.push("native_wall__mach_absolute_time");
+  candidates.push("direct_ordered_wall__apple_mach_absolute_time");
   #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
   if AppleX86CommpageDirect::try_for_current_machine().is_some() {
     candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
@@ -2183,6 +2354,7 @@ fn write_ordered_selection() {
 fn write_ordered_selection() {}
 
 fn bench_elapsed(c: &mut Criterion) {
+  write_criterion_runtime_attestation();
   quanta::Instant::now();
   fastant::Instant::now();
   minstant::Instant::now();
@@ -2375,6 +2547,21 @@ fn bench_elapsed(c: &mut Criterion) {
   #[cfg(all(feature = "bench-internal", target_os = "macos"))]
   {
     let native = MachAbsoluteTimeDirect::for_current_machine();
+    #[cfg(target_arch = "x86_64")]
+    g.bench_function("direct_wall__apple_mach_absolute_time", |b| {
+      b.iter(|| {
+        let start = native.now_ticks();
+        black_box(native.elapsed_since(start))
+      });
+    });
+    #[cfg(target_arch = "x86_64")]
+    g.bench_function("direct_ordered_wall__apple_mach_absolute_time", |b| {
+      b.iter(|| {
+        let start = native.now_ticks();
+        black_box(native.elapsed_since(start))
+      });
+    });
+    #[cfg(target_arch = "aarch64")]
     g.bench_function("native_wall__mach_absolute_time", |b| {
       b.iter(|| {
         let start = native.now_ticks();
@@ -2866,6 +3053,7 @@ fn thread_cpu_path_mechanism(path: &str) -> Option<String> {
 }
 
 fn bench_thread_cpu_now(c: &mut Criterion) {
+  write_criterion_runtime_attestation();
   // Provider selection is intentionally outside the measured loop: the API's
   // contract is steady-state `now()`, after the calling thread's assessment.
   let tach_id = thread_cpu_bench_id();
@@ -3024,10 +3212,11 @@ fn bench_thread_cpu_now(c: &mut Criterion) {
   }
   #[cfg(any(
     all(
-      target_arch = "x86_64",
-      any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+      feature = "thread-cpu-inline",
+      any(target_arch = "x86_64", target_arch = "aarch64"),
+      any(target_os = "linux", target_os = "android"),
     ),
-    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "x86_64", target_os = "freebsd"),
   ))]
   {
     let evidence = tach::bench::thread_cpu_native64_selection_measurements();
@@ -3057,6 +3246,22 @@ fn bench_thread_cpu_now(c: &mut Criterion) {
           b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_raw_nanos()))
         });
       }
+    }
+  }
+  #[cfg(all(
+    not(feature = "thread-cpu-inline"),
+    any(target_arch = "x86_64", target_arch = "aarch64"),
+    any(target_os = "linux", target_os = "android"),
+  ))]
+  {
+    const PROVIDER: &str = "libc_clock_gettime";
+    g.bench_function(format!("direct_thread_cpu__{PROVIDER}"), |b| {
+      b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_libc_nanos()))
+    });
+    if thread_cpu_selected_path_is("posix_thread_cpu") {
+      g.bench_function(format!("direct_selected_thread_cpu__{PROVIDER}"), |b| {
+        b.iter(|| black_box(tach::bench::thread_cpu_native64_exact_libc_nanos()))
+      });
     }
   }
   #[cfg(all(target_arch = "x86", target_os = "linux"))]
@@ -3175,6 +3380,7 @@ fn bench_thread_cpu_now(c: &mut Criterion) {
 }
 
 fn bench_thread_cpu_elapsed(c: &mut Criterion) {
+  write_criterion_runtime_attestation();
   let tach_id = thread_cpu_bench_id();
   let mut g = c.benchmark_group("ThreadCpuInstant::now() + elapsed()");
   g.bench_function(tach_id, |b| {
@@ -3359,10 +3565,11 @@ fn bench_thread_cpu_elapsed(c: &mut Criterion) {
   }
   #[cfg(any(
     all(
-      target_arch = "x86_64",
-      any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+      feature = "thread-cpu-inline",
+      any(target_arch = "x86_64", target_arch = "aarch64"),
+      any(target_os = "linux", target_os = "android"),
     ),
-    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "x86_64", target_os = "freebsd"),
   ))]
   {
     let evidence = tach::bench::thread_cpu_native64_selection_measurements();
@@ -3412,6 +3619,32 @@ fn bench_thread_cpu_elapsed(c: &mut Criterion) {
           })
         });
       }
+    }
+  }
+  #[cfg(all(
+    not(feature = "thread-cpu-inline"),
+    any(target_arch = "x86_64", target_arch = "aarch64"),
+    any(target_os = "linux", target_os = "android"),
+  ))]
+  {
+    const PROVIDER: &str = "libc_clock_gettime";
+    g.bench_function(format!("direct_thread_cpu__{PROVIDER}"), |b| {
+      b.iter(|| {
+        let start = tach::bench::thread_cpu_native64_exact_libc_nanos();
+        black_box(Duration::from_nanos(
+          tach::bench::thread_cpu_native64_exact_libc_nanos().saturating_sub(start),
+        ))
+      })
+    });
+    if thread_cpu_selected_path_is("posix_thread_cpu") {
+      g.bench_function(format!("direct_selected_thread_cpu__{PROVIDER}"), |b| {
+        b.iter(|| {
+          let start = tach::bench::thread_cpu_native64_exact_libc_nanos();
+          black_box(Duration::from_nanos(
+            tach::bench::thread_cpu_native64_exact_libc_nanos().saturating_sub(start),
+          ))
+        })
+      });
     }
   }
   #[cfg(all(target_arch = "x86", target_os = "linux"))]
@@ -3899,6 +4132,7 @@ fn write_thread_cpu_perf_selection() {
     })
   });
   let payload = serde_json::json!({
+    "selection_kind": "tournament_with_measured_runner_up",
     "selected_provider": selected_provider,
     "selected_mechanism": selected_mechanism,
     "selected_read_cost": selected_read_cost,
@@ -3981,12 +4215,125 @@ fn write_thread_cpu_perf_selection() {}
 
 #[cfg(all(
   feature = "bench-internal",
+  not(feature = "thread-cpu-inline"),
+  any(
+    all(target_arch = "x86", target_os = "linux"),
+    all(
+      any(target_arch = "x86_64", target_arch = "aarch64"),
+      any(target_os = "linux", target_os = "android"),
+    ),
+  ),
+))]
+fn write_fixed_native_thread_cpu_selection(
+  selected_mechanism: &'static str,
+  native_primitive: &'static str,
+  supported_architectures: &[&str],
+  selection_basis: &'static str,
+) {
+  use std::fs;
+  use std::path::PathBuf;
+
+  assert_eq!(
+    ThreadCpuInstant::provider(),
+    ThreadCpuProvider::PosixThreadCpuClock,
+    "no-default ThreadCpuInstant must retain its fixed native provider",
+  );
+  assert_eq!(
+    ThreadCpuInstant::read_cost_hint(),
+    ThreadCpuReadCost::SystemCall,
+    "no-default ThreadCpuInstant must retain its system-call cost classification",
+  );
+
+  let direct_candidate = format!("direct_thread_cpu__{selected_mechanism}");
+  let selected_benchmark = format!("direct_selected_thread_cpu__{selected_mechanism}");
+  let payload = serde_json::json!({
+    "selection_kind": "fixed_native",
+    "selected_provider": "posix_thread_cpu_clock",
+    "selected_mechanism": selected_mechanism,
+    "selected_read_cost": "system call",
+    "selected_native_benchmark": selected_benchmark,
+    "fallback_provider": null,
+    "fallback_mechanism": null,
+    "fallback_read_cost": null,
+    "fallback_native_benchmark": null,
+    "eligible_direct_candidates": [direct_candidate],
+    "fixed_provider": {
+      "candidate": selected_mechanism,
+      "supported_architectures": supported_architectures,
+      "native_primitive": native_primitive,
+      "selection_basis": selection_basis,
+      "time_domain": "thread CPU",
+    },
+    "read_cost_basis": "CLOCK_THREAD_CPUTIME_ID is a kernel-entry SystemCall tier through the public current-thread CPU-time entry",
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("thread-cpu-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize fixed native thread-CPU selector"),
+  )
+  .expect("write fixed native thread-CPU selector evidence");
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  not(feature = "thread-cpu-inline"),
+  any(
+    all(target_arch = "x86_64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+  ),
+))]
+fn write_thread_cpu_selection() {
+  write_fixed_native_thread_cpu_selection(
+    "libc_clock_gettime",
+    "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    &["x86_64", "aarch64"],
+    "with thread-cpu-inline disabled, libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID) is the public current-thread CPU-time entry",
+  );
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  not(feature = "thread-cpu-inline"),
+  target_arch = "x86",
+  target_os = "linux",
+))]
+fn write_thread_cpu_selection() {
+  let selected_mechanism = tach::bench::thread_cpu_i686_native_provider();
+  let native_primitive = match selected_mechanism {
+    "libc_clock_gettime" => "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "linux_i686_time32_syscall" => "i386 int 0x80 SYS_clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "linux_i686_time64_syscall" => "i386 int 0x80 SYS_clock_gettime64(CLOCK_THREAD_CPUTIME_ID)",
+    "monotonic_wall_fallback" => {
+      panic!("no-default Linux i686 fixed-native selector reached a wall-clock fallback")
+    }
+    other => panic!("no-default Linux i686 selector chose an unknown mechanism: {other}"),
+  };
+  write_fixed_native_thread_cpu_selection(
+    selected_mechanism,
+    native_primitive,
+    &["x86"],
+    "the initialized Linux i686 CLOCK_THREAD_CPUTIME_ID entry is the public no-default current-thread CPU-time route",
+  );
+}
+
+#[cfg(all(
+  feature = "bench-internal",
   any(
     all(
+      feature = "thread-cpu-inline",
       target_arch = "x86_64",
-      any(target_os = "linux", target_os = "android", target_os = "freebsd"),
+      any(target_os = "linux", target_os = "android"),
     ),
-    all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+    all(target_arch = "x86_64", target_os = "freebsd"),
+    all(
+      feature = "thread-cpu-inline",
+      target_arch = "aarch64",
+      any(target_os = "linux", target_os = "android"),
+    ),
   ),
 ))]
 fn write_thread_cpu_selection() {
@@ -4001,7 +4348,7 @@ fn write_thread_cpu_selection() {
   if evidence.raw_available {
     candidates.push(format!("direct_thread_cpu__{}", evidence.raw_provider));
   }
-  let payload = serde_json::json!({
+  let mut payload = serde_json::json!({
     "selected_provider": "posix_thread_cpu_clock",
     "selected_mechanism": evidence.selected_provider,
     "selected_read_cost": "system call",
@@ -4041,6 +4388,16 @@ fn write_thread_cpu_selection() {
     },
     "read_cost_basis": "CLOCK_THREAD_CPUTIME_ID remains a kernel-entry SystemCall tier through either the libc wrapper or raw ABI; relative wrapper speed does not change mechanism class",
   });
+  #[cfg(target_os = "freebsd")]
+  {
+    payload["selection_kind"] = serde_json::json!("fixed_native");
+    payload["fixed_provider"] = serde_json::json!({
+      "candidate": "clock_gettime_clock_thread_cputime_id",
+      "native_primitive": "clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+      "selection_basis": "FreeBSD exposes CLOCK_THREAD_CPUTIME_ID as its direct current-thread CPU clock; the measured libc/raw entry choice does not change that timer contract",
+      "time_domain": "thread CPU",
+    });
+  }
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
@@ -4112,6 +4469,12 @@ fn write_thread_cpu_selection() {
     ),
     all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
   ),
+)))]
+#[cfg(not(all(
+  feature = "bench-internal",
+  not(feature = "thread-cpu-inline"),
+  target_arch = "x86",
+  target_os = "linux",
 )))]
 #[cfg(not(target_os = "macos"))]
 #[cfg(not(target_os = "windows"))]
@@ -4209,15 +4572,26 @@ fn write_thread_cpu_selection() {
 #[cfg(all(not(feature = "bench-internal"), target_os = "windows"))]
 fn write_thread_cpu_selection() {}
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(all(
+  feature = "thread-cpu-inline",
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86_64", target_arch = "aarch64"),
+))]
 const NATIVE_THREAD_CPU_BENCH_ID: &str =
   "native_thread_cpu__inline_syscall_clock_thread_cputime_id";
+
+#[cfg(all(
+  any(target_os = "android", target_os = "linux"),
+  not(all(feature = "thread-cpu-inline", any(target_arch = "x86_64", target_arch = "aarch64"),)),
+))]
+const NATIVE_THREAD_CPU_BENCH_ID: &str =
+  "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id";
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[inline(always)]
 fn native_thread_cpu_now() -> u64 {
   let mut value = MaybeUninit::<libc::timespec>::uninit();
-  #[cfg(target_arch = "x86_64")]
+  #[cfg(all(feature = "thread-cpu-inline", target_arch = "x86_64"))]
   let status = {
     let mut status = libc::SYS_clock_gettime;
     // SAFETY: this is the Linux x86_64 syscall ABI and value is writable
@@ -4235,7 +4609,7 @@ fn native_thread_cpu_now() -> u64 {
     }
     status
   };
-  #[cfg(target_arch = "aarch64")]
+  #[cfg(all(feature = "thread-cpu-inline", target_arch = "aarch64"))]
   let status = {
     let mut status = libc::c_long::from(libc::CLOCK_THREAD_CPUTIME_ID);
     // SAFETY: this is the Linux-kernel aarch64 syscall ABI and value is writable
@@ -4251,7 +4625,10 @@ fn native_thread_cpu_now() -> u64 {
     }
     status
   };
-  #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+  #[cfg(not(all(
+    feature = "thread-cpu-inline",
+    any(target_arch = "x86_64", target_arch = "aarch64"),
+  )))]
   let status: libc::c_long = {
     // SAFETY: the pointer is writable timespec storage and the clock ID names
     // the calling thread's CPU-time clock.
@@ -4366,7 +4743,250 @@ fn native_thread_cpu_now() -> u64 {
   kernel_100ns.saturating_add(user_100ns).saturating_mul(100)
 }
 
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+const THREAD_CPU_BEHAVIOR_SAMPLE_COUNT: usize = 3;
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+const THREAD_CPU_BEHAVIOR_WINDOW: Duration = Duration::from_millis(20);
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+#[derive(Clone, Copy)]
+struct ThreadCpuBehaviorSample {
+  wall_delta_ns: u64,
+  public_delta_ns: u64,
+  direct_delta_ns: u64,
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+fn duration_as_nanos(duration: Duration) -> u64 {
+  duration
+    .as_nanos()
+    .try_into()
+    .expect("thread-CPU behavior duration exceeded u64 nanoseconds")
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+fn assert_native_thread_cpu_behavior_provider() {
+  let provider = ThreadCpuInstant::provider();
+  let read_cost = ThreadCpuInstant::read_cost_hint();
+  assert!(
+    provider.measures_thread_cpu_time(),
+    "thread-CPU semantic sidecar cannot use a wall fallback: {provider:?}",
+  );
+  assert!(
+    !matches!(read_cost, ThreadCpuReadCost::HostCall | ThreadCpuReadCost::Unavailable),
+    "thread-CPU semantic sidecar cannot use a host or unavailable read cost: {read_cost:?}",
+  );
+
+  #[cfg(target_os = "linux")]
+  assert!(
+    matches!(
+      (provider, read_cost),
+      (ThreadCpuProvider::LinuxPerfMmap, ThreadCpuReadCost::Inline)
+        | (ThreadCpuProvider::LinuxPerfRead, ThreadCpuReadCost::SystemCall)
+        | (ThreadCpuProvider::PosixThreadCpuClock, ThreadCpuReadCost::SystemCall)
+    ),
+    "Linux thread-CPU provider introspection is not a native route: {provider:?} / {read_cost:?}",
+  );
+  #[cfg(any(target_os = "macos", target_os = "freebsd"))]
+  assert_eq!(
+    (provider, read_cost),
+    (ThreadCpuProvider::PosixThreadCpuClock, ThreadCpuReadCost::SystemCall),
+    "POSIX thread-CPU provider introspection changed",
+  );
+  #[cfg(target_os = "windows")]
+  assert_eq!(
+    (provider, read_cost),
+    (ThreadCpuProvider::WindowsThreadTimes, ThreadCpuReadCost::SystemCall),
+    "Windows thread-CPU provider introspection changed",
+  );
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+fn sample_thread_cpu_behavior(operation: impl FnOnce()) -> ThreadCpuBehaviorSample {
+  let wall_start = StdInstant::now();
+  let public_start = ThreadCpuInstant::now();
+  assert!(
+    public_start.measures_thread_cpu_time(),
+    "thread-CPU semantic sidecar started on a wall fallback",
+  );
+  let direct_start = native_thread_cpu_now();
+
+  operation();
+
+  let direct_end = native_thread_cpu_now();
+  let public_end = ThreadCpuInstant::now();
+  assert!(
+    public_end.measures_thread_cpu_time(),
+    "thread-CPU semantic sidecar ended on a wall fallback",
+  );
+  let public_delta = public_end
+    .checked_duration_since(public_start)
+    .expect("thread-CPU semantic sidecar changed domains or moved backward");
+  assert!(direct_end >= direct_start, "native thread-CPU reference moved backward",);
+
+  ThreadCpuBehaviorSample {
+    wall_delta_ns: duration_as_nanos(wall_start.elapsed()),
+    public_delta_ns: duration_as_nanos(public_delta),
+    direct_delta_ns: direct_end - direct_start,
+  }
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+#[inline(never)]
+fn consume_current_thread_cpu_for(duration: Duration) {
+  let start = StdInstant::now();
+  let mut state = 0_u64;
+  while start.elapsed() < duration {
+    state = state
+      .wrapping_mul(6_364_136_223_846_793_005)
+      .wrapping_add(1_442_695_040_888_963_407);
+    black_box(state);
+  }
+  black_box(state);
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+fn sample_thread_cpu_sibling_isolation() -> ThreadCpuBehaviorSample {
+  use std::sync::{Arc, Barrier};
+
+  let gate = Arc::new(Barrier::new(2));
+  let sibling = std::thread::spawn({
+    let gate = Arc::clone(&gate);
+    move || {
+      gate.wait();
+      consume_current_thread_cpu_for(Duration::from_millis(40));
+    }
+  });
+
+  let sample = sample_thread_cpu_behavior(|| {
+    gate.wait();
+    std::thread::sleep(THREAD_CPU_BEHAVIOR_WINDOW);
+  });
+  sibling
+    .join()
+    .expect("sibling thread panicked during thread-CPU isolation probe");
+  sample
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+fn median_thread_cpu_behavior(values: [u64; THREAD_CPU_BEHAVIOR_SAMPLE_COUNT]) -> u64 {
+  let mut values = values;
+  values.sort_unstable();
+  values[THREAD_CPU_BEHAVIOR_SAMPLE_COUNT / 2]
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+fn summarize_thread_cpu_behavior(
+  samples: [ThreadCpuBehaviorSample; THREAD_CPU_BEHAVIOR_SAMPLE_COUNT],
+) -> serde_json::Value {
+  let wall_delta_ns = median_thread_cpu_behavior(samples.map(|sample| sample.wall_delta_ns));
+  let public_delta_ns = median_thread_cpu_behavior(samples.map(|sample| sample.public_delta_ns));
+  let direct_delta_ns = median_thread_cpu_behavior(samples.map(|sample| sample.direct_delta_ns));
+  let samples = samples.map(|sample| {
+    serde_json::json!({
+      "wall_delta_ns": sample.wall_delta_ns,
+      "public_delta_ns": sample.public_delta_ns,
+      "direct_delta_ns": sample.direct_delta_ns,
+    })
+  });
+
+  serde_json::json!({
+    "wall_delta_ns": wall_delta_ns,
+    "public_delta_ns": public_delta_ns,
+    "direct_delta_ns": direct_delta_ns,
+    "samples": samples,
+  })
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+))]
+fn bench_thread_cpu_behavior(_c: &mut Criterion) {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let runtime_attestation = write_criterion_runtime_attestation();
+  assert_native_thread_cpu_behavior_provider();
+  let busy = [
+    sample_thread_cpu_behavior(|| consume_current_thread_cpu_for(THREAD_CPU_BEHAVIOR_WINDOW)),
+    sample_thread_cpu_behavior(|| consume_current_thread_cpu_for(THREAD_CPU_BEHAVIOR_WINDOW)),
+    sample_thread_cpu_behavior(|| consume_current_thread_cpu_for(THREAD_CPU_BEHAVIOR_WINDOW)),
+  ];
+  let sleep = [
+    sample_thread_cpu_behavior(|| std::thread::sleep(THREAD_CPU_BEHAVIOR_WINDOW)),
+    sample_thread_cpu_behavior(|| std::thread::sleep(THREAD_CPU_BEHAVIOR_WINDOW)),
+    sample_thread_cpu_behavior(|| std::thread::sleep(THREAD_CPU_BEHAVIOR_WINDOW)),
+  ];
+  let sibling_isolation = [
+    sample_thread_cpu_sibling_isolation(),
+    sample_thread_cpu_sibling_isolation(),
+    sample_thread_cpu_sibling_isolation(),
+  ];
+  assert_native_thread_cpu_behavior_provider();
+
+  let payload = serde_json::json!({
+    "schema": "tach-thread-cpu-behavior-v2",
+    "runtime_attestation": runtime_attestation,
+    "direct_benchmark": NATIVE_THREAD_CPU_BENCH_ID,
+    "sample_count": THREAD_CPU_BEHAVIOR_SAMPLE_COUNT,
+    "busy": summarize_thread_cpu_behavior(busy),
+    "sleep": summarize_thread_cpu_behavior(sleep),
+    "sibling_isolation": summarize_thread_cpu_behavior(sibling_isolation),
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create Criterion directory for thread-CPU behavior");
+  fs::write(
+    directory.join("thread-cpu-behavior.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize thread-CPU behavior"),
+  )
+  .expect("write thread-CPU behavior");
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "windows",),
+)))]
+fn bench_thread_cpu_behavior(_c: &mut Criterion) {
+  write_criterion_runtime_attestation();
+}
+
 fn bench_ordered(c: &mut Criterion) {
+  write_criterion_runtime_attestation();
   let mut g = c.benchmark_group("Ordered Instant::now()");
   g.bench_function("tach::OrderedInstant", |b| {
     b.iter(|| black_box(OrderedInstant::now()));
@@ -4397,6 +5017,7 @@ fn bench_ordered(c: &mut Criterion) {
 // doesn't dilute the signal. This is the group that exposes the saturating_sub
 // cost most directly.
 fn bench_elapsed_only(c: &mut Criterion) {
+  write_criterion_runtime_attestation();
   let mut g = c.benchmark_group("elapsed() only");
   let tach_start = Instant::now();
   g.bench_function("tach::Instant", |b| {
@@ -4425,5 +5046,6 @@ criterion_group!(
   bench_thread_cpu_elapsed,
   bench_elapsed_only,
   bench_ordered,
+  bench_thread_cpu_behavior,
 );
 criterion_main!(benches);
