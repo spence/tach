@@ -632,9 +632,7 @@ pub(crate) fn bench_selection_evidence() -> BenchWallSelectionEvidence {
     performance_batches_ns: core::array::from_fn(|index| {
       wall_performance_sample_nanos(index as u32) as u64
     }),
-    hrtime_batches_ns: core::array::from_fn(|index| {
-      wall_hrtime_sample_nanos(index as u32) as u64
-    }),
+    hrtime_batches_ns: core::array::from_fn(|index| wall_hrtime_sample_nanos(index as u32) as u64),
     allowance_ns: wall_allowance_nanos() as u64,
     hrtime_decisive_wins: wall_hrtime_decisive_wins(),
     ordered_performance_median_ns: ordered_wall_performance_median_nanos() as u64,
