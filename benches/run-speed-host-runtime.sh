@@ -47,6 +47,15 @@ case "$output_name" in
     ordered_profile="fixed_native"
     thread_cpu_profile="fallback_only"
     ;;
+  speed-supplemental-wasi-p2-wasmtime.json)
+    invocation_prefix="wasi-p2-wasmtime"
+    runner="wasmtime-component"
+    target="wasm32-wasip2"
+    runtime_kind="wasip2-wasmtime"
+    instant_profile="fixed_native"
+    ordered_profile="fixed_native"
+    thread_cpu_profile="fallback_only"
+    ;;
   *)
     echo "unsupported host-runtime evidence artifact: $output_name" >&2
     exit 2
@@ -90,6 +99,9 @@ case "$runtime_kind" in
   wasip1-wasmtime)
     cargo_args+=(--bin tach-host-runtime-wasip1 --features wasip1-host)
     ;;
+  wasip2-wasmtime)
+    cargo_args+=(--bin tach-host-runtime-wasip2 --features wasip2-host)
+    ;;
 esac
 env \
   CARGO_TARGET_DIR="$target_dir" \
@@ -112,6 +124,9 @@ case "$runtime_kind" in
     ;;
   wasip1-node|wasip1-wasmtime)
     runtime="$target_dir/$target/release/tach-host-runtime-wasip1.wasm"
+    ;;
+  wasip2-wasmtime)
+    runtime="$target_dir/$target/release/tach-host-runtime-wasip2.wasm"
     ;;
 esac
 

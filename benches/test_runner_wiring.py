@@ -67,6 +67,7 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertIn("speed-supplemental-emscripten-node.json", source)
         self.assertIn("speed-supplemental-wasi-p1-node.json", source)
         self.assertIn("speed-supplemental-wasi-p1-wasmtime.json", source)
+        self.assertIn("speed-supplemental-wasi-p2-wasmtime.json", source)
         self.assertIn("wasm-bindgen", source)
         self.assertIn("tach-host-runtime-emscripten", source)
         self.assertIn("tach-host-runtime-wasip1", source)

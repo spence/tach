@@ -18,10 +18,16 @@ name = "tach-host-runtime-wasip1"
 path = "src/bin/wasip1.rs"
 required-features = ["wasip1-host"]
 
+[[bin]]
+name = "tach-host-runtime-wasip2"
+path = "src/bin/wasip2.rs"
+required-features = ["wasip2-host"]
+
 [features]
 emscripten-host = []
 wasip1-host = []
 wasip1-node-host = ["wasip1-host"]
+wasip2-host = []
 
 [dependencies]
 fastant = "0.1.11"

@@ -1,5 +1,3 @@
-#![cfg(all(target_os = "wasi", target_env = "p1"))]
-
 use std::hint::black_box;
 use std::time::Duration;
 
@@ -9,9 +7,9 @@ use tach::{Instant, OrderedInstant, ThreadCpuInstant, ThreadCpuProvider, ThreadC
 const ITERATIONS: usize = 10_000;
 const SAMPLES: usize = 31;
 const WARMUP_ITERATIONS: usize = 100_000;
-const INSTANT_PAIR: &str = "wasip1-instant-v1";
-const ORDERED_PAIR: &str = "wasip1-ordered-v1";
-const THREAD_PAIR: &str = "wasip1-thread-v1";
+const INSTANT_PAIR: &str = "wasi-instant-v1";
+const ORDERED_PAIR: &str = "wasi-ordered-v1";
+const THREAD_PAIR: &str = "wasi-thread-v1";
 
 #[cfg(feature = "wasip1-node-host")]
 #[link(wasm_import_module = "tach_host")]
@@ -41,6 +39,7 @@ struct BehaviorSample {
 
 #[derive(Clone, Copy)]
 enum ThreadRoute {
+  #[cfg(target_env = "p1")]
   Native,
   WallFallback,
 }
@@ -50,15 +49,23 @@ impl ThreadRoute {
     if ThreadCpuInstant::read_cost_hint() != ThreadCpuReadCost::HostCall {
       return Err("WASI thread route changed its read-cost class".into());
     }
-    match ThreadCpuInstant::provider() {
+    let provider = ThreadCpuInstant::provider();
+    #[cfg(target_env = "p1")]
+    match provider {
       ThreadCpuProvider::WasiThreadCpuClock => Ok(Self::Native),
       ThreadCpuProvider::MonotonicWallClock => Ok(Self::WallFallback),
       provider => Err(format!("unexpected WASI thread provider: {provider:?}")),
+    }
+    #[cfg(target_env = "p2")]
+    match provider {
+      ThreadCpuProvider::MonotonicWallClock => Ok(Self::WallFallback),
+      provider => Err(format!("unexpected WASI Preview 2 thread provider: {provider:?}")),
     }
   }
 
   const fn provider_name(self) -> &'static str {
     match self {
+      #[cfg(target_env = "p1")]
       Self::Native => "WASI thread CPU clock",
       Self::WallFallback => "monotonic wall clock",
     }
@@ -66,6 +73,7 @@ impl ThreadRoute {
 
   const fn mechanism(self) -> &'static str {
     match self {
+      #[cfg(target_env = "p1")]
       Self::Native => "wasi_thread_cpu_clock",
       Self::WallFallback => "wasi_clock_monotonic",
     }
@@ -73,6 +81,7 @@ impl ThreadRoute {
 
   const fn time_domain(self) -> &'static str {
     match self {
+      #[cfg(target_env = "p1")]
       Self::Native => "thread CPU",
       Self::WallFallback => "monotonic wall fallback",
     }
@@ -80,6 +89,7 @@ impl ThreadRoute {
 
   fn read(self) -> u64 {
     match self {
+      #[cfg(target_env = "p1")]
       Self::Native => tach::bench::wasi_exact_thread_cpu_nanos()
         .expect("WASI thread CPU clock disappeared after selection"),
       Self::WallFallback => tach::bench::wasi_exact_wall_ticks(),
@@ -297,8 +307,18 @@ fn runtime_attestation() -> Result<Value, String> {
   Ok(json!({
     "schema": "tach-benchmark-runtime-v2",
     "invocation_id": invocation_id,
-    "harness": if cfg!(feature = "wasip1-node-host") { "node-uvwasi" } else { "wasmtime" },
-    "target": {"arch": "wasm32", "os": "wasi", "env": "p1"},
+    "harness": if cfg!(feature = "wasip1-node-host") {
+      "node-uvwasi"
+    } else if cfg!(target_env = "p2") {
+      "wasmtime-component"
+    } else {
+      "wasmtime"
+    },
+    "target": {
+      "arch": "wasm32",
+      "os": "wasi",
+      "env": if cfg!(target_env = "p2") { "p2" } else { "p1" },
+    },
     "features": ["bench-internal", "thread-cpu-inline"],
     "build_mode": "default",
     "build_profile": if cfg!(debug_assertions) { "debug" } else { "optimized" },
@@ -309,6 +329,16 @@ fn runtime_attestation() -> Result<Value, String> {
 }
 
 fn wall_selection() -> Value {
+  let native_primitive = if cfg!(target_env = "p2") {
+    "wasi:clocks/monotonic-clock.now"
+  } else {
+    "wasi_snapshot_preview1.clock_time_get(CLOCK_MONOTONIC)"
+  };
+  let instant_basis = if cfg!(target_env = "p2") {
+    "WASI Preview 2 defines one native monotonic wall-clock interface"
+  } else {
+    "WASI Preview 1 defines one native monotonic wall clock"
+  };
   json!({
     "selection_kind": "fixed_native",
     "selected_provider": {
@@ -327,13 +357,13 @@ fn wall_selection() -> Value {
       "instant": {
         "candidate": "wasi_clock_monotonic",
         "time_domain": "instant wall",
-        "native_primitive": "wasi_snapshot_preview1.clock_time_get(CLOCK_MONOTONIC)",
-        "selection_basis": "WASI Preview 1 defines one native monotonic wall clock",
+        "native_primitive": native_primitive,
+        "selection_basis": instant_basis,
       },
       "ordered": {
         "candidate": "wasi_clock_monotonic",
         "time_domain": "ordered wall",
-        "native_primitive": "wasi_snapshot_preview1.clock_time_get(CLOCK_MONOTONIC)",
+        "native_primitive": native_primitive,
         "selection_basis": "the WASI host call is the cross-thread ordering boundary",
       },
     },
@@ -342,6 +372,7 @@ fn wall_selection() -> Value {
 
 fn thread_cpu_selection(route: ThreadRoute) -> Value {
   match route {
+    #[cfg(target_env = "p1")]
     ThreadRoute::Native => json!({
       "selection_kind": "availability_fallback",
       "selected_provider": "wasi_thread_cpu_clock",

@@ -1379,7 +1379,6 @@ class SpeedEvidenceTests(unittest.TestCase):
       {
         "criterion_linux_rare_no_default",
         "wasm_browser",
-        "wasi_p2_wasmtime",
         "wasi_p1_threads_smoke",
         "wasm32v1_none_smoke",
       },
