@@ -139,7 +139,7 @@ python3 "$source_dir/benches/compose-supplemental-speed.py" \
   --collector-bundle "$bundle_dir" \
   --instant-profile runtime_tournament \
   --ordered-profile runtime_tournament \
-  --thread-cpu-profile fixed_native
+  --thread-cpu-profile runtime_tournament
 echo "wrote $composed_output with retained collector bundle $bundle_dir"
 
 aws_ ec2 terminate-instances --instance-ids "$instance_id" >/dev/null

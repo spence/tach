@@ -90,6 +90,7 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertNotIn('compose-speed.py"', source)
         self.assertIn("--artifact speed-supplemental-freebsd-x86_64.json", source)
         self.assertIn("--collector-bundle", source)
+        self.assertIn("--thread-cpu-profile runtime_tournament", source)
 
     def test_aws_correctness_gate_retains_failure_and_prevents_sealing(self) -> None:
         source = self.source("run-speed-aws.sh")

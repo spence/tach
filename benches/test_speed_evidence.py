@@ -680,6 +680,54 @@ def adaptive_thread_cpu_selection() -> dict:
   }
 
 
+def freebsd_thread_cpu_selection() -> dict:
+  selection = adaptive_thread_cpu_selection()
+  mechanism = selection["native_entry_probe"]["selected_provider"]
+  selection.update({
+    "selection_kind": "tournament_with_measured_runner_up",
+    "selected_provider": "posix_thread_cpu_clock",
+    "selected_read_cost": "system call",
+    "selected_mechanism": mechanism,
+    "selected_native_benchmark": f"direct_selected_thread_cpu__{mechanism}",
+    "fallback_provider": None,
+    "fallback_read_cost": None,
+    "fallback_mechanism": None,
+    "fallback_native_benchmark": None,
+    "eligible_direct_candidates": [
+      "direct_thread_cpu__libc_entry",
+      "direct_thread_cpu__raw_entry",
+    ],
+  })
+  selection["perf"] = {
+    "event_available": False,
+    "path_probe": None,
+    "mmap": {
+      "supported_on_target": False,
+      "available": False,
+      "read_cost": "inline",
+      "selected_mechanism": None,
+      "selected_candidate_benchmark": None,
+      "eligible_benchmarks": [],
+      "counter_probe": None,
+    },
+    "read": {
+      "supported_on_target": False,
+      "available": False,
+      "read_cost": "system call",
+      "selected_mechanism": None,
+      "selected_candidate_benchmark": None,
+      "eligible_benchmarks": [],
+      "entry_probe": None,
+    },
+    "measurement_clock": (
+      "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the "
+      "candidate under test"
+    ),
+    "decision_rule": "no perf provider exists on FreeBSD",
+  }
+  return selection
+
+
 def windows_thread_cpu_selection() -> dict:
   mechanism = "get_thread_times_current_thread_pseudohandle"
   return {
@@ -3073,6 +3121,21 @@ declare void @generic_implementation()
       "macOS wrong target", selection, failures, "x86_64-unknown-linux-gnu"
     )
     self.assertTrue(any("unsupported target" in item for item in failures))
+
+  def test_freebsd_thread_cpu_selector_is_a_native_entry_tournament(self) -> None:
+    selection = freebsd_thread_cpu_selection()
+    failures: list[str] = []
+    result = speed_evidence.validate_thread_cpu_selector(
+      "FreeBSD runtime tournament",
+      selection,
+      failures,
+      "x86_64-unknown-freebsd",
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(result["winner"], "posix_thread_cpu_clock")
+    self.assertEqual(result["selected_mechanism"], "raw_entry")
+    self.assertEqual(result["perf_counter"], {})
+    self.assertEqual(result["perf_read_entry"], {})
 
   def test_windows_thread_cpu_claim_requires_public_direct_parity_for_both_metrics(self) -> None:
     selection = windows_thread_cpu_selection()

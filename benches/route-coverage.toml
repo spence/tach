@@ -94,7 +94,7 @@ state = "ready"
 entrypoints = [".github/workflows/bench-speed-windows.yml", "benches/instant.rs", "benches/extract_speed.py"]
 
 [[producer]]
-id = "criterion_freebsd_fixed_native"
+id = "criterion_freebsd_runtime_tournament"
 kind = "criterion"
 state = "ready"
 entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-freebsd-aws.sh"]
@@ -272,11 +272,11 @@ native_primitive = "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)"
 time_domain = "thread CPU"
 
 [[case]]
-id = "freebsd_fixed_native"
+id = "freebsd_runtime_tournament"
 targets = ["x86_64-unknown-freebsd"]
 modes = ["default", "no-default"]
 runtime_profile = "freebsd_criterion"
-producer = "criterion_freebsd_fixed_native"
+producer = "criterion_freebsd_runtime_tournament"
 route_contract = "three_timer_direct"
 static_contract = true
 runtime_proof = "not_collected"
@@ -284,12 +284,12 @@ runtime_proof = "not_collected"
 [case.selection_profiles]
 instant = "runtime_tournament"
 ordered = "runtime_tournament"
-thread_cpu = "fixed_native"
+thread_cpu = "runtime_tournament"
 
 [case.profile_contracts]
 instant = "wall_runtime_tournament"
 ordered = "wall_runtime_tournament"
-thread_cpu = "thread_cpu_fixed_native"
+thread_cpu = "thread_cpu_runtime_tournament"
 
 [[case]]
 id = "lambda_x86_64_default"

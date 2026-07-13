@@ -1480,23 +1480,29 @@ def validate_thread_cpu_selector(
     failures.append(f"{context}: malformed perf provider evidence")
     return {}
   architecture = target_triple.split("-", 1)[0] if isinstance(target_triple, str) else None
-  expected_mmap_support = architecture in (
-    "x86_64",
-    "i686",
-    "aarch64",
-    "arm",
-    "armv7",
-    "riscv64gc",
-    "riscv64",
-  ) if architecture is not None else mmap.get("supported_on_target")
-  expected_read_support = (
-    target_triple is not None
+  linux_or_android = (
+    isinstance(target_triple, str)
     and (
       "-unknown-linux-" in target_triple
       or target_triple.endswith("-linux-android")
       or target_triple.endswith("-linux-gnu")
       or target_triple.endswith("-linux-musl")
     )
+  )
+  expected_mmap_support = (
+    linux_or_android
+    and architecture in (
+      "x86_64",
+      "i686",
+      "aarch64",
+      "arm",
+      "armv7",
+      "riscv64gc",
+      "riscv64",
+    )
+  ) if architecture is not None else mmap.get("supported_on_target")
+  expected_read_support = (
+    linux_or_android
     and architecture in (
       "x86_64", "i686", "aarch64", "arm", "armv7", "riscv64gc", "riscv64",
       "s390x", "loongarch64", "powerpc64", "powerpc64le",
