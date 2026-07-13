@@ -59,6 +59,9 @@ const PROVIDER_CLOCK_MONOTONIC_RAW_VDSO: u8 = 10;
 const PROVIDER_CLOCK_BOOTTIME: u8 = 11;
 const PROVIDER_CLOCK_BOOTTIME_SYSCALL: u8 = 12;
 const PROVIDER_CLOCK_BOOTTIME_VDSO: u8 = 13;
+const MAX_ORDERED_HOT_SCALE: u64 = u64::MAX >> 8;
+const REENTRANT_ORDERED_HOT_STATE: u64 =
+  ((1_u64 << 32) << 8) | PROVIDER_CLOCK_MONOTONIC_SYSCALL as u64;
 
 const MAX_INSTANT_CANDIDATES: usize = 10;
 const MAX_ORDERED_CANDIDATES: usize = 11;
@@ -173,6 +176,7 @@ static INSTANT_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
+static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(REENTRANT_ORDERED_HOT_STATE);
 
 // Probe readers retain the same predicted atomic-load branch as the public
 // paths while the public provider states remain SELECTING.
@@ -499,7 +503,12 @@ fn ticks_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
-  match ORDERED_PROVIDER.load(Ordering::Relaxed) {
+  read_hot_ordered_provider(ORDERED_PROVIDER.load(Ordering::Relaxed))
+}
+
+#[inline(always)]
+fn read_hot_ordered_provider(provider: u8) -> u64 {
+  match provider {
     PROVIDER_ISB_CNTVCT => super::aarch64::cntvct_after_isb(),
     PROVIDER_CNTVCTSS => super::aarch64::cntvctss(),
     PROVIDER_CLOCK_MONOTONIC => clock_monotonic_ordered(),
@@ -513,6 +522,27 @@ pub fn ticks_ordered() -> u64 {
     PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso_ordered(),
     _ => ticks_ordered_after_selection(),
   }
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
+  let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
+  (read_hot_ordered_provider(state as u8), state >> 8)
+}
+
+pub(crate) const fn ordered_hot_scale_fits(scale: u64) -> bool {
+  scale <= MAX_ORDERED_HOT_SCALE
+}
+
+pub(crate) fn update_ordered_hot_scale(scale: u64) {
+  let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
+  publish_ordered_hot_state(state as u8, scale);
+}
+
+fn publish_ordered_hot_state(provider: u8, scale: u64) {
+  debug_assert!(ordered_hot_scale_fits(scale));
+  ORDERED_HOT_STATE.store(scale << 8 | u64::from(provider), Ordering::Release);
 }
 
 #[cold]
@@ -818,7 +848,7 @@ fn selected_instant_provider() -> u8 {
 }
 
 fn selected_ordered_provider() -> u8 {
-  super::select_thread_owned_process_provider(
+  let provider = super::select_thread_owned_process_provider(
     &ORDERED_PROVIDER,
     PROVIDER_UNKNOWN,
     PROVIDER_SELECTING,
@@ -826,7 +856,19 @@ fn selected_ordered_provider() -> u8 {
     &ORDERED_PROVIDER_OWNER_TID,
     PROVIDER_CLOCK_MONOTONIC_SYSCALL,
     detect_ordered_provider,
-  )
+  );
+  if ORDERED_PROVIDER.load(Ordering::Acquire) == provider {
+    let frequency = if matches!(provider, PROVIDER_ISB_CNTVCT | PROVIDER_CNTVCTSS) {
+      direct_frequency()
+    } else {
+      1_000_000_000
+    };
+    let scale = super::scale_from_ratio(1_000_000_000, frequency);
+    assert!(ordered_hot_scale_fits(scale), "tach: selected ordered aarch64 scale is not packable");
+    super::ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+    publish_ordered_hot_state(provider, scale);
+  }
+  provider
 }
 
 #[cold]
