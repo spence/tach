@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Implement and seal the WASI Preview 2 Wasmtime component producer, then complete the browser negative and remaining runtime-smoke routes before freezing the matrix revision.
+> Next:       Complete the browser negative producer and the wasm32-wasip1-threads/wasm32v1-none smoke producers, then freeze one source revision and rerun every admitted producer.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed the adaptive WASI Preview 1 Node/Wasmtime producer at 15efe24 and the paired host-comparison protocol at a5b48d5/e82d980, then sealed both hosts from the exact archived revision e82d98063e0e15b2176058905c657200273ab09d. · By: nsr · e82d980
+> Last verified: 2026-07-13 · Changed: Extended the shared WASI harness to a real Preview 2 component at 5e1588e and sealed Wasmtime's five-process producer from exact revision 5e1588e02383e1d674420bb9c3ae822ce9d968b1. · By: nsr · 5e1588e
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

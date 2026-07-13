@@ -200,6 +200,12 @@ decision; never silently omit a failing target.
 - Next: Implement and seal the WASI Preview 2 Wasmtime component producer, then complete the browser negative and remaining runtime-smoke routes before freezing the matrix revision.
 - Board: Node/Wasm, Emscripten/Node, WASI P1/Node, and WASI P1/Wasmtime are proven; Preview 2 and smoke/negative routes remain.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Extended the shared WASI harness to a real Preview 2 component at 5e1588e and sealed Wasmtime's five-process producer from exact revision 5e1588e02383e1d674420bb9c3ae822ce9d968b1.
+- Found: The retained Preview 2 bundle re-extracted with zero failures. Instant measured 113.5875 ns versus std 120.2083 ns and quanta 126.7666 ns; OrderedInstant measured 112.3834 ns. Preview 2 exposes no current-thread CPU interface, so ThreadCpuInstant truthfully reported monotonic wall fallback at 112.425 ns versus its exact wall route at 112.2 ns; busy, sleep, and sibling-delay fallback semantics passed.
+- Next: Complete the browser negative producer and the wasm32-wasip1-threads/wasm32v1-none smoke producers, then freeze one source revision and rerun every admitted producer.
+- Board: All Node/Emscripten/WASI hosted routes are proven; browser negative and two runtime-smoke routes remain before matrix freeze.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
