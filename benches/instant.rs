@@ -104,6 +104,72 @@ macro_rules! register_selected_elapsed {
   }};
 }
 
+#[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+const WALL_PUBLIC_EXACT_BATCHES: usize = 9;
+#[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+const WALL_PUBLIC_EXACT_READS: usize = 65_536;
+
+#[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+#[inline(never)]
+fn measure_wall_read_batch<F, T>(read: &mut F) -> u64
+where
+  F: FnMut() -> T,
+{
+  let started = StdInstant::now();
+  for _ in 0..WALL_PUBLIC_EXACT_READS {
+    black_box(read());
+  }
+  u64::try_from(started.elapsed().as_nanos()).expect("wall parity batch exceeded u64 nanoseconds")
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+fn measure_wall_public_exact<P, PT, D, DT>(mut public: P, mut direct: D) -> serde_json::Value
+where
+  P: FnMut() -> PT,
+  D: FnMut() -> DT,
+{
+  for _ in 0..4_096 {
+    black_box(public());
+    black_box(direct());
+  }
+
+  let mut public_batches_ns = [0_u64; WALL_PUBLIC_EXACT_BATCHES];
+  let mut direct_batches_ns = [0_u64; WALL_PUBLIC_EXACT_BATCHES];
+  for batch in 0..WALL_PUBLIC_EXACT_BATCHES {
+    if batch & 1 == 0 {
+      public_batches_ns[batch] = measure_wall_read_batch(&mut public);
+      direct_batches_ns[batch] = measure_wall_read_batch(&mut direct);
+    } else {
+      direct_batches_ns[batch] = measure_wall_read_batch(&mut direct);
+      public_batches_ns[batch] = measure_wall_read_batch(&mut public);
+    }
+  }
+
+  serde_json::json!({
+    "selection_kind": "paired_public_exact_parity",
+    "reads_per_batch": WALL_PUBLIC_EXACT_READS,
+    "required_decisive_losses": 8,
+    "equivalence_band": {
+      "floor_ns_per_read": 1,
+      "relative_denominator": 20,
+    },
+    "batch_order": "public-first on even batches; exact-first on odd batches",
+    "measurement_clock": "std::time::Instant outside the measured read loop",
+    "public_batches_ns": public_batches_ns,
+    "exact_batches_ns": direct_batches_ns,
+  })
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
+macro_rules! measure_apple_public_exact {
+  (instant, $read:path) => {
+    measure_wall_public_exact(|| Instant::now(), || $read())
+  };
+  (ordered, $read:path) => {
+    measure_wall_public_exact(|| OrderedInstant::now(), || $read())
+  };
+}
+
 #[cfg(all(
   feature = "bench-internal",
   any(target_os = "android", target_os = "linux"),
@@ -2028,6 +2094,19 @@ fn write_apple_wall_selection() {
       "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
     },
   });
+  #[cfg(target_arch = "aarch64")]
+  let payload = {
+    let mut payload = payload;
+    let instant_probe =
+      with_apple_aarch64_instant_read!(instant_provider, measure_apple_public_exact, instant);
+    let ordered_probe =
+      with_apple_aarch64_ordered_read!(ordered_provider, measure_apple_public_exact, ordered);
+    payload["public_exact_probe"] = serde_json::json!({
+      "instant": instant_probe,
+      "ordered": ordered_probe,
+    });
+    payload
+  };
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));

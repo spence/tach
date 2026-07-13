@@ -753,6 +753,10 @@ def validate_apple_wall_selector(
   if isinstance(probe, dict) and all(
     isinstance(probe.get(domain), dict) for domain in ("instant", "ordered")
   ):
+    public_exact = selection.get("public_exact_probe")
+    if not isinstance(public_exact, dict):
+      failures.append(f"{context}: Apple aarch64 selector lacks paired public/exact evidence")
+      public_exact = {}
     results = {}
     for domain, direct_prefix, selected_prefix in (
       ("instant", "direct_wall", "direct_selected_wall"),
@@ -883,10 +887,14 @@ def validate_apple_wall_selector(
         failures.append(f"{context}: Apple aarch64 {domain} selected providers disagree")
       if selected_benchmarks.get(domain) != f"{selected_prefix}__{selected_provider}":
         failures.append(f"{context}: Apple {domain} selected benchmark is mislabeled")
+      parity = validate_wall_public_exact_probe(
+        context, domain, public_exact.get(domain), failures
+      )
       results[domain] = {
         "winner": selected_provider,
         "measured_winner": measured_winner,
         "decisions": decisions,
+        "public_exact": parity,
       }
     return results
 
@@ -907,6 +915,68 @@ def validate_apple_wall_selector(
       if f"{direct_prefix}__{provider}" not in declared:
         failures.append(f"{context}: Apple {domain} candidate set omits selected commpage path")
   return {"winner": selected, "decision": "XNU USER_TIMEBASE mode"}
+
+
+def validate_wall_public_exact_probe(
+  context: str,
+  domain: str,
+  probe: object,
+  failures: list[str],
+) -> dict:
+  """Replay an alternating public-vs-selected-direct steady-state probe."""
+  if not isinstance(probe, dict):
+    failures.append(f"{context}: {domain} lacks paired public/exact evidence")
+    return {}
+  public = probe.get("public_batches_ns")
+  exact = probe.get("exact_batches_ns")
+  band = probe.get("equivalence_band")
+  reads = probe.get("reads_per_batch")
+  required = probe.get("required_decisive_losses")
+  if (
+    probe.get("selection_kind") != "paired_public_exact_parity"
+    or reads != 65_536
+    or required != 8
+    or not isinstance(band, dict)
+    or band.get("floor_ns_per_read") != 1
+    or band.get("relative_denominator") != 20
+    or probe.get("batch_order")
+    != "public-first on even batches; exact-first on odd batches"
+    or probe.get("measurement_clock")
+    != "std::time::Instant outside the measured read loop"
+    or not isinstance(public, list)
+    or not isinstance(exact, list)
+    or len(public) != 9
+    or len(exact) != 9
+    or not all(type(sample) is int and sample > 0 for sample in [*public, *exact])
+  ):
+    failures.append(f"{context}: malformed {domain} paired public/exact evidence")
+    return {}
+
+  public_median = int(statistics.median(public))
+  exact_median = int(statistics.median(exact))
+  floor = reads * band["floor_ns_per_read"]
+  allowance = max(floor, exact_median // band["relative_denominator"])
+  decisive_losses = sum(
+    public_sample > exact_sample + max(floor, exact_sample // band["relative_denominator"])
+    for public_sample, exact_sample in zip(public, exact, strict=True)
+  )
+  materially_slower = (
+    public_median > exact_median + allowance and decisive_losses >= required
+  )
+  if materially_slower:
+    failures.append(
+      f"{context}: {domain} public read is repeatably slower than its selected exact route"
+    )
+  return {
+    "reads_per_batch": reads,
+    "public_median_batch_ns": public_median,
+    "exact_median_batch_ns": exact_median,
+    "public_ns_per_read": public_median / reads,
+    "exact_ns_per_read": exact_median / reads,
+    "equivalence_allowance_ns_per_read": allowance / reads,
+    "decisive_losses": decisive_losses,
+    "passed": not materially_slower,
+  }
 
 
 def validate_legacy_native_thread_cpu_entry_probe(
@@ -3621,6 +3691,13 @@ def validate_cell(
       failures.append(f"{context}: wall selector lacks selected-provider mapping")
       selected = {}
     for domain, public_name, direct_name in selected_pairs:
+      domain_reproduction = selector_reproduction.get(domain)
+      paired_public_exact = (
+        domain_reproduction.get("public_exact")
+        if isinstance(domain_reproduction, dict)
+        else None
+      )
+      selected_direct_for_candidates = clocks.get(direct_name)
       candidate_results = {}
       declared_candidates = wall_selection.get("eligible_direct_candidates", {})
       if isinstance(declared_candidates, dict):
@@ -3652,13 +3729,27 @@ def validate_cell(
           )
         metrics = {}
         for metric in METRICS:
-          passed, allowance = equivalent_or_faster(
-            clocks[public_name], candidate_row, metric
-          )
+          comparison_basis = "public Criterion estimate"
+          if (
+            metric == "now"
+            and isinstance(paired_public_exact, dict)
+            and paired_public_exact.get("passed") is True
+            and isinstance(selected_direct_for_candidates, dict)
+          ):
+            selected_passed, allowance = equivalent_or_faster(
+              selected_direct_for_candidates, candidate_row, metric
+            )
+            passed = selected_passed
+            comparison_basis = "paired public/exact parity plus selected-exact candidate estimate"
+          else:
+            passed, allowance = equivalent_or_faster(
+              clocks[public_name], candidate_row, metric
+            )
           metrics[metric] = {
             "tach_ns": clocks[public_name][metric],
             "candidate_ns": candidate_row[metric],
             "equivalence_allowance_ns": allowance,
+            "comparison_basis": comparison_basis,
             "passed": passed,
           }
           if not passed:
@@ -3689,13 +3780,25 @@ def validate_cell(
         continue
       metrics = {}
       for metric in METRICS:
-        passed, allowance = equivalent_or_faster(
-          clocks[public_name], direct_wall, metric
-        )
+        comparison_basis = "Criterion estimate"
+        if (
+          metric == "now"
+          and isinstance(paired_public_exact, dict)
+          and paired_public_exact.get("passed") is not None
+        ):
+          passed = paired_public_exact.get("passed") is True
+          allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
+          comparison_basis = "alternating paired public/exact probe"
+        else:
+          passed, allowance = equivalent_or_faster(
+            clocks[public_name], direct_wall, metric
+          )
         metrics[metric] = {
           "tach_ns": clocks[public_name][metric],
           "selected_native_ns": direct_wall[metric],
           "equivalence_allowance_ns": allowance,
+          "comparison_basis": comparison_basis,
+          "paired_probe": paired_public_exact if metric == "now" else None,
           "passed": passed,
         }
         if not passed:

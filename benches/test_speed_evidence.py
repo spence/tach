@@ -1000,6 +1000,19 @@ def apple_aarch64_wall_selection() -> dict:
     "instant": "apple_continuous_hw_acntvct_base",
     "ordered": "apple_continuous_hw_acntvct_base",
   }
+  public_exact_probe = {
+    "selection_kind": "paired_public_exact_parity",
+    "reads_per_batch": 65_536,
+    "required_decisive_losses": 8,
+    "equivalence_band": {
+      "floor_ns_per_read": 1,
+      "relative_denominator": 20,
+    },
+    "batch_order": "public-first on even batches; exact-first on odd batches",
+    "measurement_clock": "std::time::Instant outside the measured read loop",
+    "public_batches_ns": [650_000] * 9,
+    "exact_batches_ns": [600_000] * 9,
+  }
   return {
     "selected_provider": selected,
     "selected_native_benchmark": {
@@ -1013,6 +1026,10 @@ def apple_aarch64_wall_selection() -> dict:
     "probe": {
       "instant": copy.deepcopy(domain_probe),
       "ordered": copy.deepcopy(domain_probe),
+    },
+    "public_exact_probe": {
+      "instant": copy.deepcopy(public_exact_probe),
+      "ordered": copy.deepcopy(public_exact_probe),
     },
   }
 
@@ -2597,6 +2614,12 @@ declare void @generic_implementation()
         "apple_continuous_hw_acntvct_base",
       )
       self.assertTrue(report["selected_wall_provider_parity"][domain]["passed"])
+      self.assertEqual(
+        report["selected_wall_provider_parity"][domain]["metrics"]["now"][
+          "comparison_basis"
+        ],
+        "alternating paired public/exact probe",
+      )
 
     missing = copy.deepcopy(values)
     missing.pop(selection["eligible_direct_candidates"]["instant"][-1])
@@ -2610,6 +2633,14 @@ declare void @generic_implementation()
     failures = []
     speed_evidence.validate_apple_wall_selector("tampered", tampered, failures)
     self.assertTrue(any("winner does not reproduce" in failure for failure in failures))
+
+    slower_public = copy.deepcopy(selection)
+    slower_public["public_exact_probe"]["ordered"]["public_batches_ns"] = [800_000] * 9
+    failures = []
+    speed_evidence.validate_apple_wall_selector("slower public", slower_public, failures)
+    self.assertTrue(
+      any("ordered public read is repeatably slower" in failure for failure in failures)
+    )
 
   def test_apple_aarch64_extractor_completes_duplicate_ordered_elapsed_rows(self) -> None:
     selection = apple_aarch64_wall_selection()
