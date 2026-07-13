@@ -495,13 +495,20 @@ def synthetic_runtime_attestation(
   harness: str,
   revision: str,
   build_mode: str,
+  *,
+  runtime_smoke: bool = False,
 ) -> dict:
+  features = (
+    speed_evidence.runtime_smoke_features_for_build_mode(build_mode)
+    if runtime_smoke
+    else speed_evidence.benchmark_features_for_build_mode(build_mode)
+  )
   return {
     "schema": speed_evidence.RUNTIME_ATTESTATION_SCHEMA,
     "invocation_id": f"synthetic-{triple.replace('-', '_')}",
     "harness": harness,
     "target": copy.deepcopy(speed_evidence.SUPPLEMENTAL_RUNTIME_TARGETS[triple]),
-    "features": list(speed_evidence.benchmark_features_for_build_mode(build_mode) or ()),
+    "features": list(features or ()),
     "build_mode": build_mode,
     "build_profile": "optimized",
     "source_revision": revision,
@@ -998,7 +1005,13 @@ def supplemental_speed_documents() -> dict[str, dict]:
   revision = "1" * 40
   documents = {}
   for artifact, (triple, harness, mode, build_mode) in speed_evidence.SUPPLEMENTAL_SPEED_CELLS.items():
-    attestation = synthetic_runtime_attestation(triple, harness, revision, build_mode)
+    attestation = synthetic_runtime_attestation(
+      triple,
+      harness,
+      revision,
+      build_mode,
+      runtime_smoke=mode == "runtime_smoke",
+    )
     document = {
       "schema": speed_evidence.SUPPLEMENTAL_SPEED_SCHEMA,
       "triple": triple,
@@ -1379,8 +1392,6 @@ class SpeedEvidenceTests(unittest.TestCase):
       {
         "criterion_linux_rare_no_default",
         "wasm_browser",
-        "wasi_p1_threads_smoke",
-        "wasm32v1_none_smoke",
       },
     )
     self.assertEqual(

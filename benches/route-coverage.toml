@@ -150,14 +150,14 @@ entrypoints = ["src/arch/fallback.rs", "src/arch/thread_cpu.rs", "benches/host-r
 [[producer]]
 id = "wasi_p1_threads_smoke"
 kind = "runtime_smoke"
-state = "planned"
-entrypoints = ["src/arch/thread_cpu.rs", "benches/verify-target-providers.py"]
+state = "ready"
+entrypoints = ["src/arch/thread_cpu.rs", "benches/runtime-smoke/Cargo.toml", "benches/runtime-smoke/src/bin/wasip1_threads.rs", "benches/run-runtime-smoke.sh"]
 
 [[producer]]
 id = "wasm32v1_none_smoke"
 kind = "runtime_smoke"
-state = "planned"
-entrypoints = ["src/arch/wasm.rs", "benches/verify-target-providers.py"]
+state = "ready"
+entrypoints = ["src/arch/wasm.rs", "benches/runtime-smoke/Cargo.toml", "benches/runtime-smoke/src/lib.rs", "benches/run-runtime-smoke.sh"]
 
 [[case]]
 id = "linux_android_adaptive_default"

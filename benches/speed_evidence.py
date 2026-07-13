@@ -3905,6 +3905,14 @@ def benchmark_features_for_build_mode(build_mode: object) -> tuple[str, ...] | N
   )
 
 
+def runtime_smoke_features_for_build_mode(build_mode: object) -> tuple[str, ...] | None:
+  """Return the public tach features exercised by a runtime-smoke build."""
+  return {
+    "default": ("thread-cpu-inline",),
+    "no-default": (),
+  }.get(build_mode) if isinstance(build_mode, str) else None
+
+
 def validate_runtime_attestation(
   context: str,
   attestation: object,
@@ -3913,6 +3921,8 @@ def validate_runtime_attestation(
   expected_build_mode: str,
   expected_revision: object,
   failures: list[str],
+  *,
+  runtime_smoke: bool = False,
 ) -> dict:
   """Validate target/build identity emitted by the measured runtime itself."""
   target = RUNTIME_TARGETS.get(expected_triple)
@@ -3941,7 +3951,11 @@ def validate_runtime_attestation(
   if target is None or attestation.get("target") != target:
     failures.append(f"{context}: runtime attestation target disagrees with artifact")
   features = attestation.get("features")
-  expected_features = benchmark_features_for_build_mode(expected_build_mode)
+  expected_features = (
+    runtime_smoke_features_for_build_mode(expected_build_mode)
+    if runtime_smoke
+    else benchmark_features_for_build_mode(expected_build_mode)
+  )
   if (
     not isinstance(features, list)
     or features != sorted(features)
@@ -5135,6 +5149,7 @@ def validate_supplemental_speed_cell(name: str, document: object) -> dict:
       expected_build_mode,
       revision,
       failures,
+      runtime_smoke=True,
     )
     validate_provenance_runtime_binding(context, provenance, runtime_attestation, failures)
     return {
