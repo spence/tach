@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Recollect Apple, Node/Wasm, Chromium, Emscripten, and runtime-smoke cells at 1a7808b; then collect every native/cloud cell, validate the unified matrix, and generate the final PNG.
+> Next:       Recollect every admitted local, hosted, native, and cloud producer at frozen revision 1047ca0, then validate the unified matrix and generate the final PNG.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed paired Wasm public/exact route evidence at 73c1f32 and the nanosecond host ThreadCpuInstant elapsed specialization at 1a7808b; the benchmark source guard accepts 1a7808b as the common revision. · By: nsr · 1a7808b
+> Last verified: 2026-07-13 · Changed: Committed 1047ca0 to let wall-tagged host ThreadCpuInstant elapsed reads use the sticky selected wall timeline directly, without a second generic CPU-provider dispatch. · By: nsr · 1047ca0
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

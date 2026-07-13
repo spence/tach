@@ -222,6 +222,12 @@ decision; never silently omit a failing target.
 - Next: Recollect Apple, Node/Wasm, Chromium, Emscripten, and runtime-smoke cells at 1a7808b; then collect every native/cloud cell, validate the unified matrix, and generate the final PNG.
 - Board: Frozen 1a7808b; three WASI hosted cells pass, with the remaining local/browser and native/cloud matrix still to collect.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed 1047ca0 to let wall-tagged host ThreadCpuInstant elapsed reads use the sticky selected wall timeline directly, without a second generic CPU-provider dispatch.
+- Found: The full Chromium campaign at 1a7808b showed a repeatable 4-7.5 ns paired elapsed overhead despite tied single reads. A source-local Chromium proof after the fix measured 123.5 ns public versus 121.5 ns exact with a 2.5 ns paired delta, inside the equivalence allowance; Rust tests, Clippy, 175 evidence tests, and all affected host target builds pass.
+- Next: Recollect every admitted local, hosted, native, and cloud producer at frozen revision 1047ca0, then validate the unified matrix and generate the final PNG.
+- Board: Frozen 1047ca0 closes the residual browser fallback elapsed overhead; full source-consistent recollection is underway.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
