@@ -48,12 +48,19 @@ class SealedRunnerWiringTests(unittest.TestCase):
                 self.assertNotIn("clocks-out.json", source)
 
     def test_primary_and_supplemental_runners_use_their_correct_composers(self) -> None:
-        for filename in ("run-speed-local.sh", "run-speed-aws.sh"):
-            with self.subTest(runner=filename):
-                source = self.source(filename)
-                self.assertIn("compose-speed.py", source)
-                self.assertNotIn("compose-supplemental-speed.py", source)
-                self.assertIn("--collector-bundle", source)
+        source = self.source("run-speed-local.sh")
+        self.assertIn("compose-speed.py", source)
+        self.assertNotIn("compose-supplemental-speed.py", source)
+        self.assertIn("--collector-bundle", source)
+
+        source = self.source("run-speed-aws.sh")
+        self.assertIn("compose-speed.py", source)
+        self.assertIn("compose-supplemental-speed.py", source)
+        self.assertIn("speed-supplemental-linux-x86_64-no-default.json", source)
+        self.assertIn("speed-supplemental-linux-aarch64-no-default.json", source)
+        self.assertIn("speed-supplemental-linux-musl-x86_64-no-default.json", source)
+        self.assertIn("--thread-cpu-profile runtime_tournament", source)
+        self.assertIn("--collector-bundle", source)
 
         source = self.source("run-speed-lambda.sh")
         self.assertIn("compose-speed.py", source)

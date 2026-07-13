@@ -262,6 +262,15 @@ SUPPLEMENTAL_SPEED_CELLS = {
   "speed-supplemental-linux-i686.json": (
     "i686-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
   ),
+  "speed-supplemental-linux-x86_64-no-default.json": (
+    "x86_64-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-aarch64-no-default.json": (
+    "aarch64-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-musl-x86_64-no-default.json": (
+    "x86_64-unknown-linux-musl", "criterion", "full_speed_cell", "no-default"
+  ),
   "speed-supplemental-freebsd-x86_64.json": (
     "x86_64-unknown-freebsd", "criterion", "full_speed_cell", "default"
   ),

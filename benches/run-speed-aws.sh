@@ -1,35 +1,49 @@
 #!/usr/bin/env bash
 # Provision EC2, run a source-sealed Criterion campaign, collect its retained
-# bundle, compose the canonical primary cell, pull it back, then terminate.
+# bundle, compose the selected primary or no-default supplemental cell, pull it
+# back, then terminate.
 #
-# Usage: benches/run-speed-aws.sh <cell-name> <instance-type> [--use-docker-alpine]
+# Usage: benches/run-speed-aws.sh <cell-name> <instance-type> [--use-docker-alpine] [--no-default]
 #   e.g. benches/run-speed-aws.sh c7g    c7g.large
 #        benches/run-speed-aws.sh inteln c7i.large
 #        benches/run-speed-aws.sh intelm c7i.large --use-docker-alpine
 #
 # Requires: aws CLI profile "tach". Self-terminates on exit (trap) and on shutdown.
-# Output: a fresh /tmp/tach-speed-<cell>.* directory containing the canonical
-# primary JSON cell and its retained collector.bundle.
+# Output: a fresh /tmp/tach-speed-<cell>.* directory containing the selected
+# source-bound JSON cell and its retained collector.bundle.
 set -euo pipefail
 
-CELL="${1:?usage: run-speed-aws.sh <cell-name> <instance-type> [--use-docker-alpine]}"
+CELL="${1:?usage: run-speed-aws.sh <cell-name> <instance-type> [--use-docker-alpine] [--no-default]}"
 INSTANCE_TYPE="${2:?need instance type (e.g. c7g.large)}"
 USE_ALPINE=0
-[ "${3:-}" = "--use-docker-alpine" ] && USE_ALPINE=1
+BUILD_MODE=default
+for option in "${@:3}"; do
+  case "$option" in
+    --use-docker-alpine) USE_ALPINE=1 ;;
+    --no-default) BUILD_MODE=no-default ;;
+    *)
+      echo "unknown option: $option" >&2
+      exit 2
+      ;;
+  esac
+done
 
 case "$CELL" in
   c7g|graviton)
-    artifact_id="speed-1-c7g.json"
+    default_artifact_id="speed-1-c7g.json"
+    no_default_artifact_id="speed-supplemental-linux-aarch64-no-default.json"
     runner="aws-c7g"
     expected_mode=gnu
     ;;
   inteln|c7i|gnu)
-    artifact_id="speed-2-inteln.json"
+    default_artifact_id="speed-2-inteln.json"
+    no_default_artifact_id="speed-supplemental-linux-x86_64-no-default.json"
     runner="aws-inteln"
     expected_mode=gnu
     ;;
   intelm|musl)
-    artifact_id="speed-3-intelm.json"
+    default_artifact_id="speed-3-intelm.json"
+    no_default_artifact_id="speed-supplemental-linux-musl-x86_64-no-default.json"
     runner="aws-intelm"
     expected_mode=musl
     ;;
@@ -42,6 +56,11 @@ case "$CELL" in
     exit 2
     ;;
 esac
+if [ "$BUILD_MODE" = no-default ]; then
+  artifact_id="$no_default_artifact_id"
+else
+  artifact_id="$default_artifact_id"
+fi
 if [ "$expected_mode" = musl ] && [ "$USE_ALPINE" != 1 ]; then
   echo "$CELL requires --use-docker-alpine for its musl primary identity" >&2
   exit 2
@@ -149,6 +168,7 @@ set -eu
 MODE="$1"
 SOURCE_REVISION="$2"
 RUNNER="$3"
+BUILD_MODE="$4"
 cd "$HOME/tach"
 
 # The EC2 cells exercise both sides of tach's Linux provider policy: make the
@@ -167,6 +187,7 @@ if [ "$MODE" = musl ]; then
     -e TACH_BENCH_EVIDENCE=1 \
     -e TACH_BENCH_SOURCE_REVISION="$SOURCE_REVISION" \
     -e TACH_BENCH_RUNNER="$RUNNER" \
+    -e BUILD_MODE="$BUILD_MODE" \
     -v "$HOME/tach:/work" -w /work alpine:3.20 sh -c '
     set -eu
     apk add --no-cache build-base curl python3 >/dev/null 2>&1
@@ -193,11 +214,22 @@ if [ "$MODE" = musl ]; then
       printf "=== gate %s status: %s ===\n" "$gate_name" "$gate_status"
       return "$gate_status"
     }
-    run_logged_gate cargo-test cargo test --locked --release --tests --features bench-internal
+    if [ "$BUILD_MODE" = no-default ]; then
+      run_logged_gate cargo-test cargo test --locked --release --tests \
+        --no-default-features --features bench-internal
+    else
+      run_logged_gate cargo-test cargo test --locked --release --tests --features bench-internal
+    fi
     export CARGO_TARGET_DIR="$target_dir"
-    python3 benches/seal-speed-source.py "$target_dir/criterion" -- \
-      cargo bench --locked --bench instant --features bench-internal -- \
-        --warm-up-time 1 --measurement-time 3
+    if [ "$BUILD_MODE" = no-default ]; then
+      python3 benches/seal-speed-source.py "$target_dir/criterion" -- \
+        cargo bench --locked --bench instant --no-default-features --features bench-internal -- \
+          --warm-up-time 1 --measurement-time 3
+    else
+      python3 benches/seal-speed-source.py "$target_dir/criterion" -- \
+        cargo bench --locked --bench instant --features bench-internal -- \
+          --warm-up-time 1 --measurement-time 3
+    fi
     python3 benches/collect-speed-bundle.py "$target_dir/criterion" /work/collector.bundle
   '
   sudo chown -R "$(id -u):$(id -g)" "$HOME/tach/collector.bundle"
@@ -226,14 +258,25 @@ else
     printf "=== gate %s status: %s ===\n" "$gate_name" "$gate_status"
     return "$gate_status"
   }
-  run_logged_gate cargo-test cargo test --locked --release --tests --features bench-internal
+  if [ "$BUILD_MODE" = no-default ]; then
+    run_logged_gate cargo-test cargo test --locked --release --tests \
+      --no-default-features --features bench-internal
+  else
+    run_logged_gate cargo-test cargo test --locked --release --tests --features bench-internal
+  fi
   export CARGO_TARGET_DIR="$target_dir"
   export TACH_BENCH_EVIDENCE=1
   export TACH_BENCH_SOURCE_REVISION="$SOURCE_REVISION"
   export TACH_BENCH_RUNNER="$RUNNER"
-  python3 benches/seal-speed-source.py "$target_dir/criterion" -- \
-    cargo bench --locked --bench instant --features bench-internal -- \
-      --warm-up-time 1 --measurement-time 3
+  if [ "$BUILD_MODE" = no-default ]; then
+    python3 benches/seal-speed-source.py "$target_dir/criterion" -- \
+      cargo bench --locked --bench instant --no-default-features --features bench-internal -- \
+        --warm-up-time 1 --measurement-time 3
+  else
+    python3 benches/seal-speed-source.py "$target_dir/criterion" -- \
+      cargo bench --locked --bench instant --features bench-internal -- \
+        --warm-up-time 1 --measurement-time 3
+  fi
   python3 benches/collect-speed-bundle.py "$target_dir/criterion" "$HOME/tach/collector.bundle"
 fi
 tar -czf "$HOME/tach/collector.bundle.tgz" -C "$HOME/tach" collector.bundle
@@ -243,13 +286,24 @@ $SCP "$REMOTE" "ec2-user@$IP:/tmp/remote-speed.sh"
 MODE=gnu
 [ "$USE_ALPINE" = 1 ] && MODE=musl
 echo "=== running sealed speed bench on instance (mode=$MODE) ==="
-$SSH "sh /tmp/remote-speed.sh '$MODE' '$SOURCE_REVISION' '$runner'"
+$SSH "sh /tmp/remote-speed.sh '$MODE' '$SOURCE_REVISION' '$runner' '$BUILD_MODE'"
 
 $SCP "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"
 tar -xzf "$BUNDLE_ARCHIVE" -C "$RESULT_DIR"
 rm -f "$BUNDLE_ARCHIVE"
-python3 "$SOURCE_DIR/benches/compose-speed.py" "$COMPOSED_OUT" \
-  --collector-bundle "$BUNDLE_DIR"
+if [ "$BUILD_MODE" = no-default ]; then
+  python3 "$SOURCE_DIR/benches/compose-supplemental-speed.py" \
+    --artifact "$artifact_id" \
+    --output "$COMPOSED_OUT" \
+    --source-revision "$SOURCE_REVISION" \
+    --collector-bundle "$BUNDLE_DIR" \
+    --instant-profile runtime_tournament \
+    --ordered-profile runtime_tournament \
+    --thread-cpu-profile runtime_tournament
+else
+  python3 "$SOURCE_DIR/benches/compose-speed.py" "$COMPOSED_OUT" \
+    --collector-bundle "$BUNDLE_DIR"
+fi
 echo "wrote $COMPOSED_OUT with retained collector bundle $BUNDLE_DIR"
 
 # Post-run termination is synchronous; the trap remains the failure backstop.
