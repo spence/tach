@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -57,6 +58,54 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertNotIn('compose-speed.py"', source)
         self.assertIn("--artifact speed-supplemental-freebsd-x86_64.json", source)
         self.assertIn("--collector-bundle", source)
+
+    def test_aws_correctness_gate_retains_failure_and_prevents_sealing(self) -> None:
+        source = self.source("run-speed-aws.sh")
+        functions = []
+        lines = source.splitlines()
+        for index, line in enumerate(lines):
+            if line.lstrip() != "run_logged_gate() {":
+                continue
+            indent = line[:len(line) - len(line.lstrip())]
+            for end in range(index + 1, len(lines)):
+                if lines[end] == f"{indent}}}":
+                    functions.append("\n".join(lines[index:end + 1]))
+                    break
+
+        self.assertEqual(len(functions), 2)
+        gate_call = (
+            "run_logged_gate cargo-test cargo test --locked --release "
+            "--tests --features bench-internal"
+        )
+        self.assertEqual(source.count(gate_call), 2)
+        self.assertNotIn(f"{gate_call} >/dev/null", source)
+        for function in functions:
+            with self.subTest(function=function):
+                completed = subprocess.run(
+                    ["sh", "-c", f"""
+set -eu
+{function}
+run_logged_gate cargo-test sh -c \
+  'printf "retained stdout\\n"; printf "retained stderr\\n" >&2; exit 101' \
+  diagnostic 'one spaced' one spaced "quote'arg"
+printf "SEAL_RAN\\n"
+"""],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+
+                self.assertEqual(completed.returncode, 101)
+                self.assertIn("retained stdout", completed.stdout)
+                self.assertIn("retained stderr", completed.stderr)
+                self.assertIn("gate cargo-test command:", completed.stdout)
+                self.assertIn(
+                    " 'diagnostic' 'one spaced' 'one' 'spaced' "
+                    "'quote'\\''arg' ===",
+                    completed.stdout,
+                )
+                self.assertIn("gate cargo-test status: 101", completed.stdout)
+                self.assertNotIn("SEAL_RAN", completed.stdout)
 
     def test_aws_rejects_unsupported_alias_before_any_aws_call(self) -> None:
         source = self.source("run-speed-aws.sh")

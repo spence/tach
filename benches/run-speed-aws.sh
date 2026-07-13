@@ -176,7 +176,25 @@ if [ "$MODE" = musl ]; then
       echo "fresh benchmark target already exists: $target_dir" >&2
       exit 1
     fi
-    cargo test --locked --release --tests --features bench-internal >/dev/null 2>&1
+    run_logged_gate() {
+      gate_name="$1"
+      shift
+      printf "=== gate %s command:" "$gate_name"
+      for gate_arg in "$@"; do
+        printf " '"
+        printf "%s" "$gate_arg" | sed "s/'/'\\\\''/g"
+        printf "'"
+      done
+      printf " ===\n"
+      if "$@"; then
+        gate_status=0
+      else
+        gate_status=$?
+      fi
+      printf "=== gate %s status: %s ===\n" "$gate_name" "$gate_status"
+      return "$gate_status"
+    }
+    run_logged_gate cargo-test cargo test --locked --release --tests --features bench-internal
     export CARGO_TARGET_DIR="$target_dir"
     python3 benches/seal-speed-source.py "$target_dir/criterion" -- \
       cargo bench --locked --bench instant --features bench-internal -- \
@@ -192,7 +210,25 @@ else
     echo "fresh benchmark target already exists: $target_dir" >&2
     exit 1
   fi
-  cargo test --locked --release --tests --features bench-internal >/dev/null 2>&1
+  run_logged_gate() {
+    gate_name="$1"
+    shift
+    printf "=== gate %s command:" "$gate_name"
+    for gate_arg in "$@"; do
+      printf " '"
+      printf "%s" "$gate_arg" | sed "s/'/'\\\\''/g"
+      printf "'"
+    done
+    printf " ===\n"
+    if "$@"; then
+      gate_status=0
+    else
+      gate_status=$?
+    fi
+    printf "=== gate %s status: %s ===\n" "$gate_name" "$gate_status"
+    return "$gate_status"
+  }
+  run_logged_gate cargo-test cargo test --locked --release --tests --features bench-internal
   export CARGO_TARGET_DIR="$target_dir"
   export TACH_BENCH_EVIDENCE=1
   export TACH_BENCH_SOURCE_REVISION="$SOURCE_REVISION"
