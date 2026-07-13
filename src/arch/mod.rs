@@ -419,6 +419,13 @@ pub(crate) fn ordered_ticks_with_scale() -> (u64, u64) {
 }
 
 pub(crate) fn publish_ordered_nanos_per_tick_q32(scale: u64) {
+  #[cfg(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  ))]
+  if !linux_x86_wall::ordered_hot_scale_fits(scale) {
+    return;
+  }
   ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
   #[cfg(all(
     any(target_os = "android", target_os = "linux"),

@@ -121,6 +121,8 @@ const REENTRANT_SOURCE: u8 = SOURCE_TIME32_MONOTONIC;
 const REENTRANT_INSTANT_PROVIDER: u8 = PROVIDER_SOURCE_BASE + REENTRANT_SOURCE;
 const REENTRANT_ORDERED_PROVIDER: u8 =
   ORDERED_OS_BASE + REENTRANT_SOURCE * ORDERED_BARRIER_VARIANTS + ORDERED_BARRIER_CPUID;
+const MAX_ORDERED_HOT_SCALE: u64 = u64::MAX >> 8;
+const REENTRANT_ORDERED_HOT_STATE: u64 = ((1_u64 << 32) << 8) | REENTRANT_ORDERED_PROVIDER as u64;
 
 const PROBE_BATCHES: usize = 9;
 const PROBE_READS: u64 = 4096;
@@ -140,7 +142,7 @@ static INSTANT_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
-static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(0);
+static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(REENTRANT_ORDERED_HOT_STATE);
 static TSC_FREQUENCY: AtomicU64 = AtomicU64::new(0);
 static INSTANT_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_LIBC_MONOTONIC);
 static ORDERED_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
@@ -374,36 +376,20 @@ fn read_hot_ordered_provider(provider: u8) -> u64 {
 #[allow(clippy::inline_always)]
 pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
-  if state != 0 {
-    return (read_hot_ordered_provider(state as u8), state >> 8);
-  }
-  ticks_ordered_with_scale_cold()
+  (read_hot_ordered_provider(state as u8), state >> 8)
 }
 
-#[cold]
-#[inline(never)]
-fn ticks_ordered_with_scale_cold() -> (u64, u64) {
-  let ticks = ticks_ordered();
-  let provider = ORDERED_PROVIDER.load(Ordering::Acquire);
-  let scale = super::ORDERED_NANOS_PER_TICK_Q32.load(Ordering::Acquire);
-  if !matches!(provider, PROVIDER_UNKNOWN | PROVIDER_SELECTING) {
-    publish_ordered_hot_state(provider, scale);
-  }
-  (ticks, scale)
+pub(crate) const fn ordered_hot_scale_fits(scale: u64) -> bool {
+  scale <= MAX_ORDERED_HOT_SCALE
 }
 
 pub(crate) fn update_ordered_hot_scale(scale: u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
-  if state != 0 {
-    publish_ordered_hot_state(state as u8, scale);
-  }
+  publish_ordered_hot_state(state as u8, scale);
 }
 
 fn publish_ordered_hot_state(provider: u8, scale: u64) {
-  if scale > u64::MAX >> 8 {
-    ORDERED_HOT_STATE.store(0, Ordering::Release);
-    return;
-  }
+  debug_assert!(ordered_hot_scale_fits(scale));
   let state = scale << 8 | u64::from(provider);
   ORDERED_HOT_STATE.store(state, Ordering::Release);
 }
@@ -1235,7 +1221,7 @@ fn selected_instant_provider() -> u8 {
 }
 
 fn selected_ordered_provider() -> u8 {
-  super::select_thread_owned_process_provider(
+  let provider = super::select_thread_owned_process_provider(
     &ORDERED_PROVIDER,
     PROVIDER_UNKNOWN,
     PROVIDER_SELECTING,
@@ -1243,7 +1229,12 @@ fn selected_ordered_provider() -> u8 {
     &ORDERED_PROVIDER_OWNER_TID,
     REENTRANT_ORDERED_PROVIDER,
     detect_ordered_provider,
-  )
+  );
+  if ORDERED_PROVIDER.load(Ordering::Acquire) == provider {
+    let scale = super::ORDERED_NANOS_PER_TICK_Q32.load(Ordering::Acquire);
+    publish_ordered_hot_state(provider, scale);
+  }
+  provider
 }
 
 #[cold]
@@ -1334,7 +1325,8 @@ fn detect_ordered_provider() -> u8 {
   });
   let provider = tournament.selected_provider;
   let scale = super::scale_from_ratio(1_000_000_000, frequency_for(provider));
-  super::publish_ordered_nanos_per_tick_q32(scale);
+  assert!(ordered_hot_scale_fits(scale), "tach: selected ordered x86 scale is not packable");
+  super::ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
   provider
 }
 
