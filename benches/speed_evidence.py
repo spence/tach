@@ -999,6 +999,21 @@ def validate_wall_public_exact_probe(
   }
 
 
+def wall_public_exact_metric(reproduction: object, metric: str) -> dict | None:
+  """Return metric-specific parity, accepting the legacy now-only shape."""
+  if not isinstance(reproduction, dict):
+    return None
+  parity = reproduction.get("public_exact")
+  if not isinstance(parity, dict):
+    return None
+  metric_parity = parity.get(metric)
+  if isinstance(metric_parity, dict):
+    return metric_parity
+  if metric == "now" and "passed" in parity:
+    return parity
+  return None
+
+
 def validate_legacy_native_thread_cpu_entry_probe(
   context: str,
   probe: dict,
@@ -1997,9 +2012,13 @@ def validate_linux_x86_wall_selector(
   candidates = selection.get("eligible_direct_candidates")
   selected_benchmarks = selection.get("selected_native_benchmark")
   probe = selection.get("probe")
+  public_exact = selection.get("public_exact_probe")
   if not all(isinstance(value, dict) for value in (selected, candidates, selected_benchmarks, probe)):
     failures.append(f"{context}: malformed Linux x86 wall selector metadata")
     return {}
+  if not isinstance(public_exact, dict):
+    failures.append(f"{context}: Linux x86 wall selector lacks paired public/exact evidence")
+    public_exact = {}
   reads = probe.get("reads_per_batch")
   required = probe.get("required_decisive_wins")
   if required != 8:
@@ -2060,9 +2079,23 @@ def validate_linux_x86_wall_selector(
         strict=True,
       )
     ]
-    output[domain] = validate_tournament(
+    result = validate_tournament(
       f"{context}: Linux x86 {domain}", names, batches, steps, reads, required, provider, failures
     )
+    domain_public_exact = public_exact.get(domain)
+    if not isinstance(domain_public_exact, dict):
+      failures.append(f"{context}: Linux x86 {domain} lacks metric parity evidence")
+      domain_public_exact = {}
+    result["public_exact"] = {
+      metric: validate_wall_public_exact_probe(
+        context,
+        f"Linux x86 {domain} {metric}",
+        domain_public_exact.get(metric),
+        failures,
+      )
+      for metric in METRICS
+    }
+    output[domain] = result
 
     eligibility = probe.get(f"{domain}_eligibility")
     if eligibility == "pr_get_tsc_not_enabled":
@@ -3712,11 +3745,6 @@ def validate_cell(
       selected = {}
     for domain, public_name, direct_name in selected_pairs:
       domain_reproduction = selector_reproduction.get(domain)
-      paired_public_exact = (
-        domain_reproduction.get("public_exact")
-        if isinstance(domain_reproduction, dict)
-        else None
-      )
       selected_direct_for_candidates = clocks.get(direct_name)
       candidate_results = {}
       declared_candidates = wall_selection.get("eligible_direct_candidates", {})
@@ -3749,10 +3777,10 @@ def validate_cell(
           )
         metrics = {}
         for metric in METRICS:
+          paired_public_exact = wall_public_exact_metric(domain_reproduction, metric)
           comparison_basis = "public Criterion estimate"
           if (
-            metric == "now"
-            and isinstance(paired_public_exact, dict)
+            isinstance(paired_public_exact, dict)
             and paired_public_exact.get("passed") is True
             and isinstance(selected_direct_for_candidates, dict)
           ):
@@ -3800,10 +3828,10 @@ def validate_cell(
         continue
       metrics = {}
       for metric in METRICS:
+        paired_public_exact = wall_public_exact_metric(domain_reproduction, metric)
         comparison_basis = "Criterion estimate"
         if (
-          metric == "now"
-          and isinstance(paired_public_exact, dict)
+          isinstance(paired_public_exact, dict)
           and paired_public_exact.get("passed") is not None
         ):
           passed = paired_public_exact.get("passed") is True
@@ -3818,7 +3846,7 @@ def validate_cell(
           "selected_native_ns": direct_wall[metric],
           "equivalence_allowance_ns": allowance,
           "comparison_basis": comparison_basis,
-          "paired_probe": paired_public_exact if metric == "now" else None,
+          "paired_probe": paired_public_exact,
           "passed": passed,
         }
         if not passed:
@@ -5035,6 +5063,14 @@ def validate_supplemental_route_coverage(
     wall_selector_reproduction = validate_residual_wall_selector(
       context, wall_selection, clocks, failures
     )
+  elif (
+    isinstance(wall_selection, dict)
+    and isinstance(wall_selection.get("probe"), dict)
+    and "instant_candidate_names" in wall_selection["probe"]
+  ):
+    wall_selector_reproduction = validate_linux_x86_wall_selector(
+      context, wall_selection, failures
+    )
   for use_case, (expected_public, expected_selected, _) in SUPPLEMENTAL_ROUTE_ROWS.items():
     route = coverage.get(use_case)
     profile = profiles.get(use_case)
@@ -5129,17 +5165,28 @@ def validate_supplemental_route_coverage(
     for candidate, row in candidate_rows.items():
       metrics = {}
       comparison = public if row.get("provider") == selected.get("provider") else selected
-      comparison_basis = (
+      default_comparison_basis = (
         "public versus its selected exact route"
         if comparison is public
         else "selected exact route versus another eligible route"
       )
       for metric in METRICS:
-        try:
-          passed, allowance = equivalent_or_faster(comparison, row, metric)
-        except (KeyError, TypeError):
-          failures.append(f"{context}: malformed {use_case} estimate for {candidate}")
-          continue
+        comparison_basis = default_comparison_basis
+        paired_public_exact = (
+          wall_public_exact_metric(wall_selector_reproduction.get(use_case), metric)
+          if comparison is public and use_case in ("instant", "ordered")
+          else None
+        )
+        if isinstance(paired_public_exact, dict) and paired_public_exact.get("passed") is not None:
+          passed = paired_public_exact.get("passed") is True
+          allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
+          comparison_basis = "alternating paired public/exact probe"
+        else:
+          try:
+            passed, allowance = equivalent_or_faster(comparison, row, metric)
+          except (KeyError, TypeError):
+            failures.append(f"{context}: malformed {use_case} estimate for {candidate}")
+            continue
         metrics[metric] = {
           "public_ns": public[metric],
           "comparison_ns": comparison[metric],

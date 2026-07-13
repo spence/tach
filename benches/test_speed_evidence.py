@@ -1034,6 +1034,72 @@ def apple_aarch64_wall_selection() -> dict:
   }
 
 
+def linux_x86_wall_selection() -> dict:
+  parity = {
+    "selection_kind": "paired_public_exact_parity",
+    "reads_per_batch": 65_536,
+    "required_decisive_losses": 8,
+    "equivalence_band": {
+      "floor_ns_per_read": 1,
+      "relative_denominator": 20,
+    },
+    "batch_order": "public-first on even batches; exact-first on odd batches",
+    "measurement_clock": "std::time::Instant outside the measured read loop",
+    "public_batches_ns": [100_000] * 9,
+    "exact_batches_ns": [90_000] * 9,
+  }
+  probe = {
+    "reads_per_batch": 4_096,
+    "required_decisive_wins": 8,
+  }
+  for domain, provider in (
+    ("instant", "linux_kernel_eligible_tsc"),
+    ("ordered", "linux_kernel_eligible_tsc_x86_lfence_rdtsc"),
+  ):
+    probe.update({
+      f"{domain}_candidate_count": 1,
+      f"{domain}_candidate_names": [provider],
+      f"{domain}_candidate_eligible": [True],
+      f"{domain}_candidate_batches_ns": [[90_000] * 9],
+      f"{domain}_candidate_medians_ns": [90_000],
+      f"{domain}_tournament_decision_count": 0,
+      f"{domain}_tournament_challengers": [],
+      f"{domain}_tournament_incumbents": [],
+      f"{domain}_tournament_winners": [],
+      f"{domain}_tournament_allowances_ns": [],
+      f"{domain}_tournament_decisive_wins": [],
+      f"{domain}_tournament_challenger_selected": [],
+      f"{domain}_eligibility": "eligible",
+    })
+  return {
+    "selected_provider": {
+      "instant": "linux_kernel_eligible_tsc",
+      "ordered": "linux_kernel_eligible_tsc_x86_lfence_rdtsc",
+    },
+    "selected_native_benchmark": {
+      "instant": "direct_selected_wall__linux_kernel_eligible_tsc",
+      "ordered": (
+        "direct_selected_ordered_wall__"
+        "linux_kernel_eligible_tsc_x86_lfence_rdtsc"
+      ),
+    },
+    "eligible_direct_candidates": {
+      "instant": ["direct_wall__linux_kernel_eligible_tsc"],
+      "ordered": [
+        "direct_ordered_wall__linux_kernel_eligible_tsc_x86_lfence_rdtsc"
+      ],
+    },
+    "probe": probe,
+    "public_exact_probe": {
+      domain: {
+        metric: copy.deepcopy(parity)
+        for metric in speed_evidence.METRICS
+      }
+      for domain in ("instant", "ordered")
+    },
+  }
+
+
 def apple_aarch64_complete_cell() -> tuple[dict, dict]:
   selection = apple_aarch64_wall_selection()
   values = clocks()
@@ -3908,6 +3974,99 @@ declare void @generic_implementation()
     failures = []
     speed_evidence.validate_windows_wall_selector("tampered", tampered, failures)
     self.assertTrue(any("exclusion lacks a reason" in item for item in failures))
+
+  def test_linux_x86_wall_selector_replays_metric_paired_parity(self) -> None:
+    selection = linux_x86_wall_selection()
+    failures: list[str] = []
+    result = speed_evidence.validate_linux_x86_wall_selector(
+      "synthetic", selection, failures
+    )
+    self.assertEqual(failures, [])
+    for domain in ("instant", "ordered"):
+      self.assertEqual(result[domain]["winner"], selection["selected_provider"][domain])
+      self.assertTrue(result[domain]["public_exact"]["now"]["passed"])
+      self.assertTrue(result[domain]["public_exact"]["elapsed"]["passed"])
+
+    missing = copy.deepcopy(selection)
+    del missing["public_exact_probe"]["ordered"]["elapsed"]
+    failures = []
+    speed_evidence.validate_linux_x86_wall_selector("missing", missing, failures)
+    self.assertTrue(any("ordered elapsed lacks paired" in item for item in failures))
+
+    slower = copy.deepcopy(selection)
+    slower["public_exact_probe"]["ordered"]["elapsed"]["public_batches_ns"] = [
+      500_000
+    ] * 9
+    failures = []
+    result = speed_evidence.validate_linux_x86_wall_selector(
+      "slower", slower, failures
+    )
+    self.assertFalse(result["ordered"]["public_exact"]["elapsed"]["passed"])
+    self.assertTrue(any("public read is repeatably slower" in item for item in failures))
+
+  def test_linux_x86_route_gates_prefer_retained_pairs_to_independent_ci_edges(self) -> None:
+    document = copy.deepcopy(
+      supplemental_speed_documents()[
+        "speed-supplemental-linux-x86_64-no-default.json"
+      ]
+    )
+    values = document["clocks"]
+    selection = linux_x86_wall_selection()
+    values["tach"]["selection"] = copy.deepcopy(selection)
+    values["tach_ordered"]["wall_selection"] = copy.deepcopy(selection)
+    for domain, prefix, selected_key in (
+      ("instant", "direct_wall__", "direct_selected_wall"),
+      ("ordered", "direct_ordered_wall__", "direct_selected_ordered_wall"),
+    ):
+      for benchmark in selection["eligible_direct_candidates"][domain]:
+        values[benchmark] = {
+          **estimate(10.0),
+          "provider": benchmark.removeprefix(prefix),
+          "read_cost": "inline",
+          "time_domain": f"{domain} wall",
+          "benchmark": benchmark,
+        }
+      values[selected_key] = {
+        **estimate(10.0),
+        "provider": selection["selected_provider"][domain],
+        "read_cost": "inline",
+        "time_domain": f"{domain} wall",
+        "benchmark": selection["selected_native_benchmark"][domain],
+      }
+      document["route_coverage"][domain]["eligible_exact_rows"] = copy.deepcopy(
+        selection["eligible_direct_candidates"][domain]
+      )
+
+    values["tach_ordered"].update({
+      "elapsed": 20.0,
+      "elapsed_ci95": [20.0, 20.0],
+    })
+    values["std"] = estimate(30.0)
+    failures: list[str] = []
+    result = speed_evidence.validate_supplemental_route_coverage(
+      "synthetic", document, failures
+    )
+    self.assertEqual(failures, [])
+    selected = selection["eligible_direct_candidates"]["ordered"][0]
+    elapsed = result["ordered"]["eligible_exact_routes"][selected]["metrics"][
+      "elapsed"
+    ]
+    self.assertTrue(elapsed["passed"])
+    self.assertEqual(
+      elapsed["comparison_basis"], "alternating paired public/exact probe"
+    )
+    primary_values = copy.deepcopy(values)
+    primary_values["tach_thread_cpu"].pop("selection", None)
+    primary_failures, primary = speed_evidence.validate_cell(
+      "synthetic primary", primary_values, "x86_64-unknown-linux-gnu"
+    )
+    self.assertEqual(primary_failures, [])
+    self.assertEqual(
+      primary["selected_wall_provider_parity"]["ordered"]["metrics"]["elapsed"][
+        "comparison_basis"
+      ],
+      "alternating paired public/exact probe",
+    )
 
   def test_residual_loongarch_selector_reproduces_and_rejects_tampering(self) -> None:
     selection = loongarch_wall_selection()
