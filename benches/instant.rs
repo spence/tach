@@ -4348,7 +4348,7 @@ fn write_thread_cpu_selection() {
   if evidence.raw_available {
     candidates.push(format!("direct_thread_cpu__{}", evidence.raw_provider));
   }
-  let mut payload = serde_json::json!({
+  let payload = serde_json::json!({
     "selected_provider": "posix_thread_cpu_clock",
     "selected_mechanism": evidence.selected_provider,
     "selected_read_cost": "system call",
@@ -4389,7 +4389,8 @@ fn write_thread_cpu_selection() {
     "read_cost_basis": "CLOCK_THREAD_CPUTIME_ID remains a kernel-entry SystemCall tier through either the libc wrapper or raw ABI; relative wrapper speed does not change mechanism class",
   });
   #[cfg(target_os = "freebsd")]
-  {
+  let payload = {
+    let mut payload = payload;
     payload["selection_kind"] = serde_json::json!("fixed_native");
     payload["fixed_provider"] = serde_json::json!({
       "candidate": "clock_gettime_clock_thread_cputime_id",
@@ -4397,7 +4398,8 @@ fn write_thread_cpu_selection() {
       "selection_basis": "FreeBSD exposes CLOCK_THREAD_CPUTIME_ID as its direct current-thread CPU clock; the measured libc/raw entry choice does not change that timer contract",
       "time_domain": "thread CPU",
     });
-  }
+    payload
+  };
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
