@@ -3651,7 +3651,7 @@ mod tests {
     let instant_before = ticks();
     let ordered_before = ticks_ordered();
     assert!(frequency() > 0);
-    assert!(ordered_frequency() > 0);
+    assert!(frequency_for(selected_ordered_provider()) > 0);
     assert!(ticks() >= instant_before);
     assert!(ticks_ordered() >= ordered_before);
 
