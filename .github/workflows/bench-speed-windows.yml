@@ -1,49 +1,190 @@
-name: bench-speed-windows
+name: hosted speed evidence
 
-# Runs the criterion speed bench on a Windows runner, extracts the wall-clock
-# and thread-CPU medians (including the actual thread-CPU provider label), and
-# commits benches/speed-4-windows.json back to the branch (via the
-# built-in GITHUB_TOKEN) so the chart campaign can pull it without a local token.
 on:
   workflow_dispatch:
-  push:
-    branches: [bench/six-clock-speed]
-    paths:
-      - Cargo.lock
-      - Cargo.toml
-      - benches/compose-speed.py
-      - benches/extract_speed.py
-      - benches/instant.rs
-      - benches/require-clean-benchmark-source.sh
-      - benches/speed_evidence.py
-      - src/**
-      - tests/**
 
 permissions:
-  contents: write
+  contents: read
+
+env:
+  TACH_FREEZE_SHA: ${{ github.sha }}
 
 jobs:
-  bench:
+  windows-campaign-cell:
+    name: Windows 2025 canonical cell
     runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --release --tests --features bench-internal,thread-cpu-inline
-      - run: cargo bench --bench instant --features bench-internal,thread-cpu-inline -- --warm-up-time 1 --measurement-time 3
-      - name: Extract + compose Windows cell
+      - run: cargo test --locked --release --tests --features bench-internal
+      - run: cargo bench --locked --bench instant --features bench-internal -- --warm-up-time 1 --measurement-time 3
+      - name: Extract canonical Windows campaign cell
         shell: bash
         run: |
           source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
           python benches/extract_speed.py target/criterion > clocks.json
-          python benches/compose-speed.py clocks.json benches/speed-4-windows.json --title "GitHub Windows" --instance windows-2025 --triple x86_64-pc-windows-msvc --order 4 --source-revision "$source_revision" --rustc-version "$(rustc --version)" --harness criterion --cargo-profile bench
-          cat benches/speed-4-windows.json
-      - name: Commit result back
+          python benches/compose-speed.py clocks.json speed-4-windows.json \
+            --title "GitHub Windows" \
+            --instance windows-2025 \
+            --triple x86_64-pc-windows-msvc \
+            --order 4 \
+            --source-revision "$source_revision" \
+            --rustc-version "$(rustc --version)" \
+            --harness criterion \
+            --cargo-profile bench
+      - name: Upload immutable Windows campaign cell
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-windows-2025-${{ env.TACH_FREEZE_SHA }}
+          path: speed-4-windows.json
+          if-no-files-found: error
+          retention-days: 90
+
+  windows-i686-supplemental:
+    name: Windows 2025 i686 supplemental
+    runs-on: windows-2025
+    env:
+      CARGO_TARGET_DIR: target/windows-i686
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup target add i686-pc-windows-msvc
+      - run: cargo test --locked --release --tests --features bench-internal --target i686-pc-windows-msvc
+      - run: cargo bench --locked --bench instant --features bench-internal --target i686-pc-windows-msvc -- --warm-up-time 1 --measurement-time 3
+      - name: Extract supplemental i686 Windows evidence
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add benches/speed-4-windows.json
-          git commit -m "bench(speed): windows-2025 cell [skip ci]"
-          git push origin HEAD:${{ github.ref_name }}
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          mkdir -p hosted-speed-windows-2025-i686
+          python benches/extract_speed.py "$CARGO_TARGET_DIR/criterion" \
+            > hosted-speed-windows-2025-i686/clocks.json
+          printf '%s\n' "$source_revision" \
+            > hosted-speed-windows-2025-i686/source-revision.txt
+          rustc --version --verbose \
+            > hosted-speed-windows-2025-i686/rustc-version.txt
+          cp -R "$CARGO_TARGET_DIR/criterion" hosted-speed-windows-2025-i686/criterion
+      - name: Upload immutable i686 Windows evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-windows-2025-i686-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-windows-2025-i686
+          if-no-files-found: error
+          retention-days: 90
+
+  windows-arm64-supplemental:
+    name: Windows 11 Arm64 supplemental
+    runs-on: windows-11-arm
+    env:
+      CARGO_TARGET_DIR: target/windows-arm64
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup target add aarch64-pc-windows-msvc
+      - run: cargo test --locked --release --tests --features bench-internal --target aarch64-pc-windows-msvc
+      - run: cargo bench --locked --bench instant --features bench-internal --target aarch64-pc-windows-msvc -- --warm-up-time 1 --measurement-time 3
+      - name: Extract supplemental Arm64 Windows evidence
+        shell: bash
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          mkdir -p hosted-speed-windows-11-arm64
+          python benches/extract_speed.py "$CARGO_TARGET_DIR/criterion" \
+            > hosted-speed-windows-11-arm64/clocks.json
+          printf '%s\n' "$source_revision" \
+            > hosted-speed-windows-11-arm64/source-revision.txt
+          rustc --version --verbose \
+            > hosted-speed-windows-11-arm64/rustc-version.txt
+          printf '%s\n' "${PROCESSOR_IDENTIFIER:-unknown}" \
+            > hosted-speed-windows-11-arm64/cpu.txt
+          cp -R "$CARGO_TARGET_DIR/criterion" hosted-speed-windows-11-arm64/criterion
+      - name: Upload immutable Arm64 Windows evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-windows-11-arm64-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-windows-11-arm64
+          if-no-files-found: error
+          retention-days: 90
+
+  linux-i686-supplemental:
+    name: Ubuntu 24.04 i686 supplemental
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_TARGET_DIR: target/linux-i686
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup target add i686-unknown-linux-gnu
+      - name: Install i686 system toolchain
+        run: sudo apt-get update && sudo apt-get install --yes gcc-multilib libc6-dev-i386
+      - run: cargo test --locked --release --tests --features bench-internal --target i686-unknown-linux-gnu
+      - run: cargo bench --locked --bench instant --features bench-internal --target i686-unknown-linux-gnu -- --warm-up-time 1 --measurement-time 3
+      - name: Extract supplemental i686 Linux evidence
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          mkdir -p hosted-speed-ubuntu-24-i686
+          python3 benches/extract_speed.py "$CARGO_TARGET_DIR/criterion" \
+            > hosted-speed-ubuntu-24-i686/clocks.json
+          printf '%s\n' "$source_revision" \
+            > hosted-speed-ubuntu-24-i686/source-revision.txt
+          rustc --version --verbose \
+            > hosted-speed-ubuntu-24-i686/rustc-version.txt
+          uname -a > hosted-speed-ubuntu-24-i686/kernel.txt
+          lscpu > hosted-speed-ubuntu-24-i686/cpu.txt
+          cp -R "$CARGO_TARGET_DIR/criterion" hosted-speed-ubuntu-24-i686/criterion
+      - name: Upload immutable i686 Linux evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-ubuntu-24-i686-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-ubuntu-24-i686
+          if-no-files-found: error
+          retention-days: 90
+
+  macos-intel-supplemental:
+    name: macOS 15 Intel supplemental
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --locked --release --tests --features bench-internal
+      - run: cargo bench --locked --bench instant --features bench-internal -- --warm-up-time 1 --measurement-time 3
+      - name: Extract supplemental Intel macOS evidence
+        shell: bash
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          mkdir -p hosted-speed-macos-15-intel
+          python3 benches/extract_speed.py target/criterion \
+            > hosted-speed-macos-15-intel/clocks.json
+          printf '%s\n' "$source_revision" \
+            > hosted-speed-macos-15-intel/source-revision.txt
+          rustc --version > hosted-speed-macos-15-intel/rustc-version.txt
+          sw_vers > hosted-speed-macos-15-intel/macos-version.txt
+          sysctl -n machdep.cpu.brand_string \
+            > hosted-speed-macos-15-intel/cpu-brand.txt
+          cp -R target/criterion hosted-speed-macos-15-intel/criterion
+      - name: Upload immutable Intel macOS evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-macos-15-intel-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-macos-15-intel
+          if-no-files-found: error
+          retention-days: 90
