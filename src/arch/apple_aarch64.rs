@@ -178,7 +178,11 @@ pub(crate) struct SelectionEvidence {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
-  match INSTANT_SELECTOR.state.load(Ordering::Relaxed) {
+  let provider = INSTANT_SELECTOR.state.load(Ordering::Relaxed);
+  if provider == PROVIDER_ABSOLUTE_ACNTVCT {
+    return acntvct_absolute_time();
+  }
+  match provider {
     PROVIDER_MACH_ABSOLUTE => mach_absolute(),
     PROVIDER_ABSOLUTE_CNTVCT => cntvct_absolute_time(),
     PROVIDER_ABSOLUTE_CNTVCTSS => cntvctss_absolute_time(),
@@ -200,7 +204,11 @@ fn ticks_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
-  match ORDERED_SELECTOR.state.load(Ordering::Relaxed) {
+  let provider = ORDERED_SELECTOR.state.load(Ordering::Relaxed);
+  if provider == PROVIDER_ABSOLUTE_ACNTVCT {
+    return acntvct_absolute_time();
+  }
+  match provider {
     PROVIDER_MACH_ABSOLUTE => mach_absolute(),
     PROVIDER_ABSOLUTE_CNTVCT => cntvct_ordered_absolute_time(),
     PROVIDER_ABSOLUTE_CNTVCTSS => cntvctss_absolute_time(),
@@ -222,7 +230,11 @@ fn ticks_ordered_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered_unordered() -> u64 {
-  match ORDERED_SELECTOR.state.load(Ordering::Relaxed) {
+  let provider = ORDERED_SELECTOR.state.load(Ordering::Relaxed);
+  if provider == PROVIDER_ABSOLUTE_ACNTVCT {
+    return acntvct_absolute_time();
+  }
+  match provider {
     PROVIDER_MACH_ABSOLUTE => mach_absolute(),
     PROVIDER_ABSOLUTE_CNTVCT => cntvct_absolute_time(),
     PROVIDER_ABSOLUTE_CNTVCTSS => cntvctss_absolute_time(),
