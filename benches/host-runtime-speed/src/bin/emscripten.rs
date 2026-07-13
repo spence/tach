@@ -10,8 +10,15 @@ const ITERATIONS: usize = 10_000;
 const SAMPLES: usize = 31;
 const WARMUP_ITERATIONS: usize = 100_000;
 
+#[derive(Clone, Copy)]
 struct CostSamples {
   samples: [f64; SAMPLES],
+}
+
+#[derive(Clone, Copy)]
+struct WallCosts {
+  now: CostSamples,
+  elapsed: CostSamples,
 }
 
 #[derive(Clone, Copy)]
@@ -46,35 +53,43 @@ fn run_observation() -> Result<Value, String> {
   let selected_ordered = wall_selection["selected_provider"]["ordered"]
     .as_str()
     .ok_or("missing selected OrderedInstant provider")?;
+  let selected_local_read = exact_wall_reader(selected_local)?;
+  let selected_ordered_read = exact_wall_reader(selected_ordered)?;
+  let (instant_now, direct_instant_now) =
+    paired_median_cost(|| black_box(Instant::now()), || black_box(selected_local_read()));
+  let (instant_elapsed, direct_instant_elapsed) = paired_median_cost(
+    || {
+      let start = Instant::now();
+      black_box(start.elapsed())
+    },
+    || {
+      let start = selected_local_read();
+      black_box(Duration::from_nanos(selected_local_read().saturating_sub(start)))
+    },
+  );
+  let (ordered_now, direct_ordered_now) =
+    paired_median_cost(|| black_box(OrderedInstant::now()), || black_box(selected_ordered_read()));
+  let (ordered_elapsed, direct_ordered_elapsed) = paired_median_cost(
+    || {
+      let start = OrderedInstant::now();
+      black_box(start.elapsed())
+    },
+    || {
+      let start = selected_ordered_read();
+      black_box(Duration::from_nanos(selected_ordered_read().saturating_sub(start)))
+    },
+  );
+  let direct_instant = WallCosts { now: direct_instant_now, elapsed: direct_instant_elapsed };
+  let direct_ordered = WallCosts { now: direct_ordered_now, elapsed: direct_ordered_elapsed };
   let mut rows = Map::new();
 
   rows.insert(
     "tach".into(),
-    typed_row(
-      median_cost(|| black_box(Instant::now())),
-      median_cost(|| {
-        let start = Instant::now();
-        black_box(start.elapsed())
-      }),
-      selected_local,
-      "host call",
-      "instant wall",
-      None,
-    ),
+    typed_row(instant_now, instant_elapsed, selected_local, "host call", "instant wall", None),
   );
   rows.insert(
     "tach_ordered".into(),
-    typed_row(
-      median_cost(|| black_box(OrderedInstant::now())),
-      median_cost(|| {
-        let start = OrderedInstant::now();
-        black_box(start.elapsed())
-      }),
-      selected_ordered,
-      "host call",
-      "ordered wall",
-      None,
-    ),
+    typed_row(ordered_now, ordered_elapsed, selected_ordered, "host call", "ordered wall", None),
   );
   rows.insert(
     "fastant".into(),
@@ -106,10 +121,19 @@ fn run_observation() -> Result<Value, String> {
       }),
     ),
   );
-  insert_wall_candidates(&mut rows, &wall_selection)?;
-  rows.insert("direct_selected_wall".into(), selected_wall_row("instant", selected_local)?);
-  rows
-    .insert("direct_selected_ordered_wall".into(), selected_wall_row("ordered", selected_ordered)?);
+  insert_wall_candidates(
+    &mut rows,
+    &wall_selection,
+    selected_local,
+    direct_instant,
+    selected_ordered,
+    direct_ordered,
+  )?;
+  rows.insert("direct_selected_wall".into(), selected_wall_row(&rows, "instant", selected_local)?);
+  rows.insert(
+    "direct_selected_ordered_wall".into(),
+    selected_wall_row(&rows, "ordered", selected_ordered)?,
+  );
 
   rows.insert(
     "tach_thread_cpu".into(),
@@ -274,7 +298,14 @@ fn thread_cpu_selection() -> Value {
   })
 }
 
-fn insert_wall_candidates(rows: &mut Map<String, Value>, selection: &Value) -> Result<(), String> {
+fn insert_wall_candidates(
+  rows: &mut Map<String, Value>,
+  selection: &Value,
+  selected_instant: &str,
+  direct_instant: WallCosts,
+  selected_ordered: &str,
+  direct_ordered: WallCosts,
+) -> Result<(), String> {
   for domain in ["instant", "ordered"] {
     let candidates = selection["eligible_direct_candidates"][domain]
       .as_array()
@@ -285,14 +316,35 @@ fn insert_wall_candidates(rows: &mut Map<String, Value>, selection: &Value) -> R
         .split_once("__")
         .map(|(_, provider)| provider)
         .ok_or("invalid Emscripten wall candidate key")?;
-      rows.insert(benchmark.into(), exact_wall_row(domain, provider)?);
+      let selected_costs = match domain {
+        "instant" if provider == selected_instant => Some(direct_instant),
+        "ordered" if provider == selected_ordered => Some(direct_ordered),
+        _ => None,
+      };
+      let row = match selected_costs {
+        Some(costs) => exact_wall_row_from_costs(domain, provider, costs),
+        None => exact_wall_row(domain, provider)?,
+      };
+      rows.insert(benchmark.into(), row);
     }
   }
   Ok(())
 }
 
-fn selected_wall_row(domain: &str, provider: &str) -> Result<Value, String> {
-  let mut row = exact_wall_row(domain, provider)?;
+fn selected_wall_row(
+  rows: &Map<String, Value>,
+  domain: &str,
+  provider: &str,
+) -> Result<Value, String> {
+  let candidate = if domain == "instant" {
+    format!("direct_wall__{provider}")
+  } else {
+    format!("direct_ordered_wall__{provider}")
+  };
+  let mut row = rows
+    .get(&candidate)
+    .cloned()
+    .ok_or_else(|| format!("selected Emscripten wall row is missing: {candidate}"))?;
   row.as_object_mut().expect("wall row").insert(
     "benchmark".into(),
     json!(if domain == "instant" {
@@ -304,19 +356,34 @@ fn selected_wall_row(domain: &str, provider: &str) -> Result<Value, String> {
   Ok(row)
 }
 
+fn exact_wall_reader(provider: &str) -> Result<fn() -> u64, String> {
+  match provider {
+    "performance.now" => Ok(tach::bench::emscripten_exact_performance_ticks),
+    "process.hrtime.bigint" => Ok(tach::bench::emscripten_exact_hrtime_ticks),
+    _ => Err(format!("unsupported Emscripten wall provider {provider}")),
+  }
+}
+
 fn exact_wall_row(domain: &str, provider: &str) -> Result<Value, String> {
-  let read = match provider {
-    "performance.now" => tach::bench::emscripten_exact_performance_ticks,
-    "process.hrtime.bigint" => tach::bench::emscripten_exact_hrtime_ticks,
-    _ => return Err(format!("unsupported Emscripten wall provider {provider}")),
-  };
+  let read = exact_wall_reader(provider)?;
   let (now, elapsed) = cost_pair(read);
+  Ok(exact_wall_row_from_costs(domain, provider, WallCosts { now, elapsed }))
+}
+
+fn exact_wall_row_from_costs(domain: &str, provider: &str, costs: WallCosts) -> Value {
   let benchmark = if domain == "instant" {
     format!("direct_wall__{provider}")
   } else {
     format!("direct_ordered_wall__{provider}")
   };
-  Ok(typed_row(now, elapsed, provider, "host call", &format!("{domain} wall"), Some(&benchmark)))
+  typed_row(
+    costs.now,
+    costs.elapsed,
+    provider,
+    "host call",
+    &format!("{domain} wall"),
+    Some(&benchmark),
+  )
 }
 
 fn cost_pair(read: fn() -> u64) -> (CostSamples, CostSamples) {
@@ -342,6 +409,41 @@ fn median_cost<T>(mut sample: impl FnMut() -> T) -> CostSamples {
     *value = (host_now_nanos() - start) / ITERATIONS as f64;
   }
   CostSamples { samples }
+}
+
+fn paired_median_cost<T, U>(
+  mut subject: impl FnMut() -> T,
+  mut reference: impl FnMut() -> U,
+) -> (CostSamples, CostSamples) {
+  for iteration in 0..WARMUP_ITERATIONS {
+    if iteration & 1 == 0 {
+      black_box(subject());
+      black_box(reference());
+    } else {
+      black_box(reference());
+      black_box(subject());
+    }
+  }
+  let mut subject_samples = [0.0; SAMPLES];
+  let mut reference_samples = [0.0; SAMPLES];
+  for index in 0..SAMPLES {
+    if index & 1 == 0 {
+      subject_samples[index] = measure_cost(&mut subject);
+      reference_samples[index] = measure_cost(&mut reference);
+    } else {
+      reference_samples[index] = measure_cost(&mut reference);
+      subject_samples[index] = measure_cost(&mut subject);
+    }
+  }
+  (CostSamples { samples: subject_samples }, CostSamples { samples: reference_samples })
+}
+
+fn measure_cost<T>(sample: &mut impl FnMut() -> T) -> f64 {
+  let start = host_now_nanos();
+  for _ in 0..ITERATIONS {
+    black_box(sample());
+  }
+  (host_now_nanos() - start) / ITERATIONS as f64
 }
 
 fn host_now_nanos() -> f64 {
@@ -423,7 +525,7 @@ fn thread_cpu_behavior(runtime_attestation: &Value, direct_benchmark: &str) -> V
       tach_host_emscripten_shims::sleep_millis(25)
     }),
     "sibling_isolation": behavior_phase(|| {
-      tach_host_emscripten_shims::sibling_work_millis(25)
+      tach_host_emscripten_shims::sibling_work_millis(50)
     }),
   })
 }
