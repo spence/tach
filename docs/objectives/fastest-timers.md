@@ -234,6 +234,12 @@ decision; never silently omit a failing target.
 - Next: Refreeze at 4d79311 and recollect every admitted producer before unified validation and chart generation.
 - Board: Frozen 4d79311; the source-consistent runtime campaign restarts after the evidence contract rejected an honestly different producer identity.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed e40d744 to preserve Emscripten paired public/exact wall and thread-CPU samples; a clean real Emscripten producer and 176 evidence tests pass.
+- Found: Fresh 4d79311 Emscripten evidence exposed that paired measurements were serialized without their pairing identity, forcing noisy unpaired confidence intervals to reject materially tied public routes.
+- Next: Recollect every admitted producer at frozen revision e40d744, then validate the unified route matrix and generate the final PNG.
+- Board: Frozen e40d744; real Emscripten public/exact parity and selector reproduction are green, and source-consistent recollection restarts from this revision.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
