@@ -352,32 +352,52 @@ RUNTIME_TARGETS = {
 SUPPLEMENTAL_RUNTIME_TARGETS = RUNTIME_TARGETS
 
 SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES = {
-  "aarch64-unknown-linux-gnu": (
-    "native_thread_cpu__raw_syscall_clock_thread_cputime_id",
-    "raw SYS_clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
-    "system call",
-  ),
-  "x86_64-apple-darwin": (
-    "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
-    "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
-    "system call",
-  ),
-  "i686-pc-windows-msvc": (
-    "native_thread_cpu__get_thread_times_current_thread_pseudohandle",
-    "GetThreadTimes(current-thread pseudo-handle)",
-    "system call",
-  ),
-  "aarch64-pc-windows-msvc": (
-    "native_thread_cpu__get_thread_times_current_thread_pseudohandle",
-    "GetThreadTimes(current-thread pseudo-handle)",
-    "system call",
-  ),
-  "i686-unknown-linux-gnu": (
+  ("aarch64-unknown-linux-gnu", "criterion", "no-default"): (
     "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
     "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
     "system call",
   ),
-  "x86_64-unknown-freebsd": (
+  ("aarch64-unknown-linux-gnu", "lambda", "default"): (
+    "native_thread_cpu__raw_syscall_clock_thread_cputime_id",
+    "raw SYS_clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  ("x86_64-unknown-linux-gnu", "criterion", "no-default"): (
+    "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+    "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  ("x86_64-unknown-linux-gnu", "lambda", "default"): (
+    "native_thread_cpu__raw_syscall_clock_thread_cputime_id",
+    "raw SYS_clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  ("x86_64-unknown-linux-musl", "criterion", "no-default"): (
+    "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+    "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  ("x86_64-apple-darwin", "criterion", "default"): (
+    "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
+    "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  ("i686-pc-windows-msvc", "criterion", "default"): (
+    "native_thread_cpu__get_thread_times_current_thread_pseudohandle",
+    "GetThreadTimes(current-thread pseudo-handle)",
+    "system call",
+  ),
+  ("aarch64-pc-windows-msvc", "criterion", "default"): (
+    "native_thread_cpu__get_thread_times_current_thread_pseudohandle",
+    "GetThreadTimes(current-thread pseudo-handle)",
+    "system call",
+  ),
+  ("i686-unknown-linux-gnu", "criterion", "default"): (
+    "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+    "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  ("x86_64-unknown-freebsd", "criterion", "default"): (
     "native_thread_cpu__clock_gettime_clock_thread_cputime_id",
     "clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
     "system call",
@@ -4786,6 +4806,8 @@ def validate_supplemental_benchmark_identities(
   clocks: object,
   coverage: object,
   target_triple: str,
+  harness: str,
+  build_mode: str,
   failures: list[str],
 ) -> None:
   """Exact/direct rows and the semantic native reference carry benchmark IDs."""
@@ -4809,7 +4831,9 @@ def validate_supplemental_benchmark_identities(
       continue
     if not _supplemental_benchmark_matches_key(row_name, row.get("benchmark")):
       failures.append(f"{context}: benchmark identity is missing or mislabeled for {row_name}")
-  native_expected = SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES.get(target_triple)
+  native_expected = SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES.get(
+    (target_triple, harness, build_mode)
+  )
   native = clocks.get("native_thread_cpu")
   if native_expected is not None:
     expected_benchmark, expected_provider, expected_cost = native_expected
@@ -5321,7 +5345,13 @@ def validate_supplemental_speed_cell(name: str, document: object) -> dict:
   validate_provenance_runtime_binding(context, provenance, runtime_attestation, failures)
   route_results = validate_supplemental_route_coverage(context, document, failures)
   validate_supplemental_benchmark_identities(
-    context, clocks, document.get("route_coverage"), expected_triple, failures
+    context,
+    clocks,
+    document.get("route_coverage"),
+    expected_triple,
+    expected_harness,
+    expected_build_mode,
+    failures,
   )
   expected_domain = "monotonic wall fallback" if mode == "tagged_wall_fallback" else "thread CPU"
   native = clocks.get("native_thread_cpu")

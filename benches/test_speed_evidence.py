@@ -1096,7 +1096,9 @@ def supplemental_speed_documents() -> dict[str, dict]:
       values = clocks()
       values["tach"]["time_domain"] = "instant wall"
       values["tach_ordered"]["time_domain"] = "ordered wall"
-      native_identity = speed_evidence.SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES.get(triple)
+      native_identity = speed_evidence.SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES.get(
+        (triple, harness, build_mode)
+      )
       if native_identity is None:
         values["native_thread_cpu"]["benchmark"] = "native_thread_cpu__native_thread_clock"
       else:
@@ -2431,6 +2433,26 @@ declare void @generic_implementation()
     )
     self.assertFalse(report["passed"])
     self.assertTrue(any("changed provider identity" in item for item in report["failures"]))
+
+  def test_linux_aarch64_native_identity_tracks_harness_and_build_mode(self) -> None:
+    documents = supplemental_speed_documents()
+    no_default = documents["speed-supplemental-linux-aarch64-no-default.json"]
+    lambda_default = documents["speed-supplemental-lambda-aarch64.json"]
+
+    self.assertEqual(
+      no_default["clocks"]["native_thread_cpu"]["benchmark"],
+      "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+    )
+    self.assertEqual(
+      lambda_default["clocks"]["native_thread_cpu"]["benchmark"],
+      "native_thread_cpu__raw_syscall_clock_thread_cputime_id",
+    )
+    self.assertTrue(speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-linux-aarch64-no-default.json", no_default
+    )["passed"])
+    self.assertTrue(speed_evidence.validate_supplemental_speed_cell(
+      "speed-supplemental-lambda-aarch64.json", lambda_default
+    )["passed"])
 
   def test_supplemental_validator_requires_exact_integer_sidecar_samples(self) -> None:
     document = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
