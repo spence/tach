@@ -82,7 +82,7 @@ mod linux_signal_reentry {
     let worker_done = Arc::clone(&done);
     let worker = std::thread::spawn(move || {
       // SAFETY: pthread_self has no caller-side preconditions.
-      target_tx.send(unsafe { libc::pthread_self() }).unwrap();
+      target_tx.send(unsafe { libc::pthread_self() } as usize).unwrap();
       let start = ThreadCpuInstant::now();
       while SIGNAL_COUNT.load(Ordering::Relaxed) == 0 {
         core::hint::spin_loop();
@@ -97,7 +97,7 @@ mod linux_signal_reentry {
       (monotonic, provider)
     });
 
-    let target = target_rx.recv().unwrap();
+    let target = target_rx.recv().unwrap() as libc::pthread_t;
     while !done.load(Ordering::Acquire) {
       // SAFETY: target names the live worker and SIGUSR1 has the handler above.
       let status = unsafe { libc::pthread_kill(target, libc::SIGUSR1) };
