@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Recollect every admitted local, hosted, native, and cloud producer at frozen revision 1047ca0, then validate the unified matrix and generate the final PNG.
+> Next:       Refreeze at 4d79311 and recollect every admitted producer before unified validation and chart generation.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed 1047ca0 to let wall-tagged host ThreadCpuInstant elapsed reads use the sticky selected wall timeline directly, without a second generic CPU-provider dispatch. · By: nsr · 1047ca0
+> Last verified: 2026-07-13 · Changed: Committed 4d79311 so supplemental native thread-CPU identities are keyed by target, harness, and build mode; 176 evidence tests and real Graviton no-default bundle composition pass. · By: nsr · 4d79311
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

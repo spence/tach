@@ -228,6 +228,12 @@ decision; never silently omit a failing target.
 - Next: Recollect every admitted local, hosted, native, and cloud producer at frozen revision 1047ca0, then validate the unified matrix and generate the final PNG.
 - Board: Frozen 1047ca0 closes the residual browser fallback elapsed overhead; full source-consistent recollection is underway.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed 4d79311 so supplemental native thread-CPU identities are keyed by target, harness, and build mode; 176 evidence tests and real Graviton no-default bundle composition pass.
+- Found: The 1047ca0 Graviton no-default run exposed that a target-only identity table conflated Criterion libc reference measurements with Lambda raw-syscall measurements on AArch64.
+- Next: Refreeze at 4d79311 and recollect every admitted producer before unified validation and chart generation.
+- Board: Frozen 4d79311; the source-consistent runtime campaign restarts after the evidence contract rejected an honestly different producer identity.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
