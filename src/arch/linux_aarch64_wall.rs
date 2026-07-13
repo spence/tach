@@ -59,9 +59,12 @@ const PROVIDER_CLOCK_MONOTONIC_RAW_VDSO: u8 = 10;
 const PROVIDER_CLOCK_BOOTTIME: u8 = 11;
 const PROVIDER_CLOCK_BOOTTIME_SYSCALL: u8 = 12;
 const PROVIDER_CLOCK_BOOTTIME_VDSO: u8 = 13;
+const HOT_PROVIDER_ISB_CNTVCT_IDENTITY: u8 = 14;
+const HOT_PROVIDER_CNTVCTSS_IDENTITY: u8 = 15;
 const MAX_ORDERED_HOT_SCALE: u64 = u64::MAX >> 8;
+const IDENTITY_NANOS_PER_TICK_Q32: u64 = 1_u64 << 32;
 const REENTRANT_ORDERED_HOT_STATE: u64 =
-  ((1_u64 << 32) << 8) | PROVIDER_CLOCK_MONOTONIC_SYSCALL as u64;
+  (IDENTITY_NANOS_PER_TICK_Q32 << 8) | PROVIDER_CLOCK_MONOTONIC_SYSCALL as u64;
 
 const MAX_INSTANT_CANDIDATES: usize = 10;
 const MAX_ORDERED_CANDIDATES: usize = 11;
@@ -509,8 +512,8 @@ pub fn ticks_ordered() -> u64 {
 #[inline(always)]
 fn read_hot_ordered_provider(provider: u8) -> u64 {
   match provider {
-    PROVIDER_ISB_CNTVCT => super::aarch64::cntvct_after_isb(),
-    PROVIDER_CNTVCTSS => super::aarch64::cntvctss(),
+    PROVIDER_ISB_CNTVCT | HOT_PROVIDER_ISB_CNTVCT_IDENTITY => super::aarch64::cntvct_after_isb(),
+    PROVIDER_CNTVCTSS | HOT_PROVIDER_CNTVCTSS_IDENTITY => super::aarch64::cntvctss(),
     PROVIDER_CLOCK_MONOTONIC => clock_monotonic_ordered(),
     PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw_ordered(),
     PROVIDER_CLOCK_BOOTTIME => clock_boottime_ordered(),
@@ -528,7 +531,13 @@ fn read_hot_ordered_provider(provider: u8) -> u64 {
 #[allow(clippy::inline_always)]
 pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
-  (read_hot_ordered_provider(state as u8), state >> 8)
+  match state as u8 {
+    HOT_PROVIDER_ISB_CNTVCT_IDENTITY => {
+      (super::aarch64::cntvct_after_isb(), IDENTITY_NANOS_PER_TICK_Q32)
+    }
+    HOT_PROVIDER_CNTVCTSS_IDENTITY => (super::aarch64::cntvctss(), IDENTITY_NANOS_PER_TICK_Q32),
+    provider => (read_hot_ordered_provider(provider), state >> 8),
+  }
 }
 
 pub(crate) const fn ordered_hot_scale_fits(scale: u64) -> bool {
@@ -537,12 +546,22 @@ pub(crate) const fn ordered_hot_scale_fits(scale: u64) -> bool {
 
 pub(crate) fn update_ordered_hot_scale(scale: u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
-  publish_ordered_hot_state(state as u8, scale);
+  let provider = match state as u8 {
+    HOT_PROVIDER_ISB_CNTVCT_IDENTITY => PROVIDER_ISB_CNTVCT,
+    HOT_PROVIDER_CNTVCTSS_IDENTITY => PROVIDER_CNTVCTSS,
+    provider => provider,
+  };
+  publish_ordered_hot_state(provider, scale);
 }
 
 fn publish_ordered_hot_state(provider: u8, scale: u64) {
   debug_assert!(ordered_hot_scale_fits(scale));
-  ORDERED_HOT_STATE.store(scale << 8 | u64::from(provider), Ordering::Release);
+  let hot_provider = match (provider, scale) {
+    (PROVIDER_ISB_CNTVCT, IDENTITY_NANOS_PER_TICK_Q32) => HOT_PROVIDER_ISB_CNTVCT_IDENTITY,
+    (PROVIDER_CNTVCTSS, IDENTITY_NANOS_PER_TICK_Q32) => HOT_PROVIDER_CNTVCTSS_IDENTITY,
+    _ => provider,
+  };
+  ORDERED_HOT_STATE.store(scale << 8 | u64::from(hot_provider), Ordering::Release);
 }
 
 #[cold]
