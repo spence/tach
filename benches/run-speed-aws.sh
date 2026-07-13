@@ -200,6 +200,7 @@ if [ "$MODE" = musl ]; then
         --warm-up-time 1 --measurement-time 3
     python3 benches/collect-speed-bundle.py "$target_dir/criterion" /work/collector.bundle
   '
+  sudo chown -R "$(id -u):$(id -g)" "$HOME/tach/collector.bundle"
 else
   curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal >/dev/null 2>&1
   sudo dnf install -y gcc python3 >/dev/null 2>&1

@@ -111,7 +111,7 @@ printf "SEAL_RAN\\n"
         source = self.source("run-speed-aws.sh")
         marker = "-w /work alpine:3.20 sh -c '"
         payload_start = source.index(marker) + len(marker)
-        payload_end = source.index("\n  '\nelse", payload_start)
+        payload_end = source.index("\n  '\n", payload_start)
 
         self.assertNotIn("'", source[payload_start:payload_end])
 
@@ -142,6 +142,19 @@ printf "SEAL_RAN\\n"
         self.assertLess(archive, transfer)
         self.assertLess(transfer, extract)
         self.assertNotIn('$SCP -r "ec2-user@$IP:tach/collector.bundle"', source)
+
+    def test_alpine_collector_is_returned_to_the_host_user_before_archiving(self) -> None:
+        source = self.source("run-speed-aws.sh")
+        collect = source.index(
+            'collect-speed-bundle.py "$target_dir/criterion" /work/collector.bundle'
+        )
+        handoff = source.index(
+            'sudo chown -R "$(id -u):$(id -g)" "$HOME/tach/collector.bundle"'
+        )
+        archive = source.index('tar -czf "$HOME/tach/collector.bundle.tgz"')
+
+        self.assertLess(collect, handoff)
+        self.assertLess(handoff, archive)
 
     def test_every_runner_uses_an_immutable_checked_revision_snapshot(self) -> None:
         expectations = {
