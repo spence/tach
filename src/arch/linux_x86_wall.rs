@@ -993,6 +993,46 @@ fn provider_uses_tsc(provider: u8) -> bool {
   )
 }
 
+#[derive(Clone, Copy)]
+struct TscFrequencyWindow {
+  wall_start: u64,
+  tick_start: u64,
+}
+
+fn begin_tsc_frequency_window(eligibility: TscEligibility) -> Option<TscFrequencyWindow> {
+  if eligibility != TscEligibility::Eligible || TSC_FREQUENCY.load(Ordering::Relaxed) != 0 {
+    return None;
+  }
+  let wall_start = calibration_wall_nanos()?;
+  let tick_start = read_tsc();
+  Some(TscFrequencyWindow { wall_start, tick_start })
+}
+
+fn finish_tsc_frequency_window(window: Option<TscFrequencyWindow>) {
+  let Some(window) = window else {
+    return;
+  };
+  let tick_end = read_tsc();
+  let Some(wall_end) = calibration_wall_nanos() else {
+    return;
+  };
+  let Some(frequency) = frequency_from_window(window, wall_end, tick_end) else {
+    return;
+  };
+  let _ = TSC_FREQUENCY.compare_exchange(0, frequency, Ordering::Relaxed, Ordering::Relaxed);
+}
+
+fn frequency_from_window(window: TscFrequencyWindow, wall_end: u64, tick_end: u64) -> Option<u64> {
+  let wall_elapsed = wall_end.checked_sub(window.wall_start)?;
+  let ticks = tick_end.checked_sub(window.tick_start)?;
+  if wall_elapsed == 0 || ticks == 0 {
+    return None;
+  }
+  u64::try_from(u128::from(ticks) * 1_000_000_000 / u128::from(wall_elapsed))
+    .ok()
+    .filter(|frequency| *frequency != 0)
+}
+
 #[inline]
 fn frequency_for(provider: u8) -> u64 {
   if !provider_uses_tsc(provider) {
@@ -1166,6 +1206,7 @@ fn selected_ordered_provider() -> u8 {
 #[inline(never)]
 fn detect_instant_provider() -> u8 {
   let eligibility = detect_tsc_eligibility();
+  let frequency_window = begin_tsc_frequency_window(eligibility);
   let allow_libc = eligibility != TscEligibility::TscReadDisabled;
   if allow_libc {
     let _ = super::linux_vdso::install();
@@ -1178,6 +1219,7 @@ fn detect_instant_provider() -> u8 {
   ensure_instant_candidate(&mut candidates, allow_libc);
   let stopwatch = selection_stopwatch(&candidates);
   let samples = measure_instant_candidates(candidates, stopwatch);
+  finish_tsc_frequency_window(frequency_window);
   let tournament: Tournament<MAX_INSTANT_CANDIDATES, MAX_INSTANT_DECISIONS> =
     run_tournament(candidates, samples);
   #[cfg(feature = "bench-internal")]
@@ -1200,6 +1242,7 @@ fn detect_instant_provider() -> u8 {
 #[inline(never)]
 fn detect_ordered_provider() -> u8 {
   let eligibility = detect_tsc_eligibility();
+  let frequency_window = begin_tsc_frequency_window(eligibility);
   let allow_libc = eligibility != TscEligibility::TscReadDisabled;
   if allow_libc {
     let _ = super::linux_vdso::install();
@@ -1229,6 +1272,7 @@ fn detect_ordered_provider() -> u8 {
   ensure_ordered_candidate(&mut candidates, baseline_barrier, allow_libc);
   let stopwatch = selection_stopwatch(&sources);
   let samples = measure_ordered_candidates(candidates, stopwatch);
+  finish_tsc_frequency_window(frequency_window);
   let tournament: Tournament<MAX_ORDERED_CANDIDATES, MAX_ORDERED_DECISIONS> =
     run_tournament(candidates, samples);
   #[cfg(feature = "bench-internal")]
@@ -3608,6 +3652,14 @@ mod tests {
     noisy[0] = 100_000;
     noisy[1] = 100_000;
     assert!(!evaluate_challenger(noisy, incumbent).challenger_selected);
+  }
+
+  #[test]
+  fn selection_window_recovers_the_tsc_frequency() {
+    let window = TscFrequencyWindow { wall_start: 100, tick_start: 1_000 };
+    assert_eq!(frequency_from_window(window, 1_000_000_100, 2_500_001_000), Some(2_500_000_000),);
+    assert_eq!(frequency_from_window(window, 99, 2_500_001_000), None);
+    assert_eq!(frequency_from_window(window, 1_000_000_100, 999), None);
   }
 
   #[test]
