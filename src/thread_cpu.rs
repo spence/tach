@@ -255,7 +255,7 @@ impl ThreadCpuInstant {
       if (self.nanos | earlier.nanos) & WALL_DOMAIN_BIT == 0 {
         return Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos));
       }
-      self.checked_duration_since(earlier).unwrap_or_default()
+      duration_since_wall_or_mixed(*self, earlier)
     }
   }
 
@@ -326,6 +326,13 @@ impl ThreadCpuInstant {
   const fn from_nanos(nanos: u64) -> Self {
     Self { nanos, not_send_or_sync: PhantomData }
   }
+}
+
+#[cfg(any(not(target_os = "macos"), test))]
+#[cold]
+#[inline(never)]
+fn duration_since_wall_or_mixed(later: ThreadCpuInstant, earlier: ThreadCpuInstant) -> Duration {
+  later.checked_duration_since(earlier).unwrap_or_default()
 }
 
 impl Add<Duration> for ThreadCpuInstant {
