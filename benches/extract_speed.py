@@ -28,6 +28,7 @@ from pathlib import Path, PurePosixPath
 COLLECTOR_SCHEMA = "tach-speed-collector-v1"
 COLLECTOR_MANIFEST_FILENAME = "tach-speed-collector.json"
 COLLECTOR_CRITERION_DIRECTORY = "criterion"
+COLLECTOR_HOST_DIRECTORY = "host"
 RUNTIME_ATTESTATION_FILENAME = "runtime-attestation.json"
 RUNTIME_ATTESTATION_SCHEMA = "tach-benchmark-runtime-v2"
 THREAD_CPU_BEHAVIOR_FILENAME = "thread-cpu-behavior.json"
@@ -110,7 +111,7 @@ def load_json_object(path: Path, description: str) -> dict:
 
 
 def validate_runtime_attestation(value: object, context: str = "runtime attestation") -> dict:
-    """Validate the Rust-emitted Criterion invocation identity without enriching it."""
+    """Validate a runtime-emitted benchmark identity without enriching it."""
 
     expected_keys = {
         "schema",
@@ -131,8 +132,9 @@ def validate_runtime_attestation(value: object, context: str = "runtime attestat
     invocation_id = value.get("invocation_id")
     if not isinstance(invocation_id, str) or not invocation_id.strip():
         raise RuntimeError(f"malformed {context}: missing invocation ID")
-    if value.get("harness") != "criterion":
-        raise RuntimeError(f"malformed {context}: harness is not Criterion")
+    harness = value.get("harness")
+    if not isinstance(harness, str) or not harness.strip():
+        raise RuntimeError(f"malformed {context}: harness identity")
 
     target = value.get("target")
     if (
@@ -371,7 +373,9 @@ def _relative_file_path(root: Path, relative: str) -> Path:
     return root.joinpath(*PurePosixPath(relative).parts)
 
 
-def _collector_bundle_inputs(bundle_dir: Path) -> tuple[Path, dict, dict[str, str], bytes]:
+def _collector_bundle_inputs(
+    bundle_dir: Path,
+) -> tuple[Path, str, dict, dict[str, str], bytes]:
     """Read and validate the immutable manifest inputs for one observation."""
 
     try:
@@ -385,16 +389,21 @@ def _collector_bundle_inputs(bundle_dir: Path) -> tuple[Path, dict, dict[str, st
         entries = {entry.name: entry for entry in bundle_dir.iterdir()}
     except OSError as error:
         raise RuntimeError(f"could not read collector bundle {bundle_dir}: {error}") from error
-    expected_entries = {COLLECTOR_MANIFEST_FILENAME, COLLECTOR_CRITERION_DIRECTORY}
-    if set(entries) != expected_entries:
+    data_directories = {
+        name for name in (COLLECTOR_CRITERION_DIRECTORY, COLLECTOR_HOST_DIRECTORY)
+        if name in entries
+    }
+    expected_entries = {COLLECTOR_MANIFEST_FILENAME, *data_directories}
+    if len(data_directories) != 1 or set(entries) != expected_entries:
         raise RuntimeError(
             "collector bundle has unexpected top-level entries: "
-            f"missing={sorted(expected_entries - set(entries))!r}, "
-            f"unexpected={sorted(set(entries) - expected_entries)!r}"
+            "expected the manifest and exactly one observation directory, "
+            f"found={sorted(entries)!r}"
         )
 
     manifest_path = entries[COLLECTOR_MANIFEST_FILENAME]
-    criterion_dir = entries[COLLECTOR_CRITERION_DIRECTORY]
+    data_kind = data_directories.pop()
+    data_dir = entries[data_kind]
     try:
         manifest_mode = manifest_path.lstat().st_mode
     except OSError as error:
@@ -430,7 +439,7 @@ def _collector_bundle_inputs(bundle_dir: Path) -> tuple[Path, dict, dict[str, st
         file_hashes[normalized_text] = digest
     if RUNTIME_ATTESTATION_FILENAME not in file_hashes:
         raise RuntimeError("collector manifest is missing runtime-attestation.json")
-    return criterion_dir, attestation, file_hashes, manifest_bytes
+    return data_dir, data_kind, attestation, file_hashes, manifest_bytes
 
 
 def _assert_tree_matches_manifest(
@@ -498,19 +507,19 @@ def _copy_manifest_file_to_snapshot(
 def extract_collector_bundle_observation(bundle_dir: Path) -> dict:
     """Snapshot a verified bundle, then return values parsed only from that snapshot."""
 
-    criterion_dir, attestation, file_hashes, manifest_bytes = _collector_bundle_inputs(
+    data_dir, data_kind, attestation, file_hashes, manifest_bytes = _collector_bundle_inputs(
         bundle_dir
     )
     _assert_tree_matches_manifest(
-        criterion_dir,
+        data_dir,
         file_hashes,
-        "collector Criterion tree",
+        f"collector {data_kind} tree",
     )
     with tempfile.TemporaryDirectory(prefix="tach-speed-collector-observation-") as directory:
-        snapshot = Path(directory) / COLLECTOR_CRITERION_DIRECTORY
+        snapshot = Path(directory) / data_kind
         for relative, digest in file_hashes.items():
             _copy_manifest_file_to_snapshot(
-                _relative_file_path(criterion_dir, relative),
+                _relative_file_path(data_dir, relative),
                 _relative_file_path(snapshot, relative),
                 digest,
                 relative,
@@ -519,7 +528,7 @@ def extract_collector_bundle_observation(bundle_dir: Path) -> dict:
         snapshot_files = _assert_tree_matches_manifest(
             snapshot,
             file_hashes,
-            "collector snapshot Criterion tree",
+            f"collector snapshot {data_kind} tree",
         )
         copied_attestation = validate_runtime_attestation(
             load_json_object(
@@ -532,16 +541,27 @@ def extract_collector_bundle_observation(bundle_dir: Path) -> dict:
             raise RuntimeError(
                 "snapshot runtime attestation disagrees with the collector manifest"
             )
-        behavior = validate_thread_cpu_behavior_attestation(snapshot, attestation)
-        selector = select_attested_wall_selector(
-            snapshot,
-            attestation,
-            set(snapshot_files),
-        )
-        clocks = extract_criterion_directory(
-            snapshot,
-            wall_selector_filename=selector,
-        )
+        if data_kind == COLLECTOR_CRITERION_DIRECTORY:
+            if attestation.get("harness") != "criterion":
+                raise RuntimeError("Criterion bundle carries a non-Criterion attestation")
+            behavior = validate_thread_cpu_behavior_attestation(snapshot, attestation)
+            selector = select_attested_wall_selector(
+                snapshot,
+                attestation,
+                set(snapshot_files),
+            )
+            clocks = extract_criterion_directory(
+                snapshot,
+                wall_selector_filename=selector,
+            )
+        else:
+            if attestation.get("harness") == "criterion":
+                raise RuntimeError("host bundle carries a Criterion attestation")
+            import host_speed
+
+            host_observation = host_speed.extract_host_observation(snapshot, attestation)
+            clocks = host_observation["clocks"]
+            behavior = host_observation.get("thread_cpu_behavior")
         return {
             "clocks": clocks,
             "thread_cpu_behavior": behavior,
@@ -555,20 +575,20 @@ def extract_collector_bundle_observation(bundle_dir: Path) -> dict:
 def validate_collector_bundle(bundle_dir: Path) -> dict:
     """Verify a bundle in place; use the observation API before extracting it."""
 
-    criterion_dir, attestation, file_hashes, manifest_bytes = _collector_bundle_inputs(
+    data_dir, data_kind, attestation, file_hashes, manifest_bytes = _collector_bundle_inputs(
         bundle_dir
     )
     copied_files = _assert_tree_matches_manifest(
-        criterion_dir,
+        data_dir,
         file_hashes,
-        "collector Criterion tree",
+        f"collector {data_kind} tree",
     )
     for relative, path in copied_files.items():
-        if sha256_file(path, "collector Criterion input") != file_hashes[relative]:
+        if sha256_file(path, f"collector {data_kind} input") != file_hashes[relative]:
             raise RuntimeError(f"collector hash mismatch for {relative!r}")
     copied_attestation = validate_runtime_attestation(
         load_json_object(
-            criterion_dir / RUNTIME_ATTESTATION_FILENAME,
+            data_dir / RUNTIME_ATTESTATION_FILENAME,
             "copied runtime attestation",
         ),
         "copied runtime attestation",
@@ -577,10 +597,20 @@ def validate_collector_bundle(bundle_dir: Path) -> dict:
         raise RuntimeError(
             "copied runtime attestation disagrees with the collector manifest"
         )
-    validate_thread_cpu_behavior_attestation(criterion_dir, attestation)
-    select_attested_wall_selector(criterion_dir, attestation, set(copied_files))
+    if data_kind == COLLECTOR_CRITERION_DIRECTORY:
+        if attestation.get("harness") != "criterion":
+            raise RuntimeError("Criterion bundle carries a non-Criterion attestation")
+        validate_thread_cpu_behavior_attestation(data_dir, attestation)
+        select_attested_wall_selector(data_dir, attestation, set(copied_files))
+    else:
+        if attestation.get("harness") == "criterion":
+            raise RuntimeError("host bundle carries a Criterion attestation")
+        import host_speed
+
+        host_speed.extract_host_observation(data_dir, attestation)
     return {
-        "criterion_dir": criterion_dir,
+        "observation_dir": data_dir,
+        "observation_kind": data_kind,
         "collector_attestation": _collector_attestation(attestation, manifest_bytes),
     }
 

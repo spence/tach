@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compose one canonical primary cell from a retained Criterion bundle.
+"""Compose one canonical primary cell from a retained observation bundle.
 
 The primary six-cell campaign accepts no caller-supplied clocks or build
 identity.  The collector bundle supplies the measured rows and Rust-emitted
@@ -49,11 +49,6 @@ def main() -> None:
   expected = speed_evidence.PRIMARY_SPEED_CELLS.get(artifact_id)
   if expected is None:
     parser.error(f"output filename is not a canonical primary artifact: {artifact_id}")
-  if expected[4] != "criterion":
-    parser.error(
-      f"{artifact_id} requires a host observation protocol; "
-      "this composer only accepts Criterion collector bundles"
-    )
   try:
     output_directory = args.output.parent.resolve(strict=True)
   except OSError as error:

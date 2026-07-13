@@ -1,0 +1,184 @@
+"""Extraction rules for retained non-Criterion speed observations."""
+
+from __future__ import annotations
+
+import math
+from pathlib import Path
+
+import speed_evidence
+
+
+LAMBDA_RUNS = range(1, speed_evidence.LAMBDA_INVOCATIONS + 1)
+
+
+def _load_json(path: Path, description: str) -> dict:
+  # Import lazily so extract_speed can dispatch to this module without a
+  # module-initialization cycle.
+  import extract_speed
+
+  return extract_speed.load_json_object(path, description)
+
+
+def _lambda_paths(host_dir: Path) -> tuple[list[Path], list[Path]]:
+  payloads = [host_dir / f"run-{run}.json" for run in LAMBDA_RUNS]
+  metadata = [host_dir / f"invoke-{run}.json" for run in LAMBDA_RUNS]
+  return payloads, metadata
+
+
+def _aggregate_lambda_rows(runs: list[dict]) -> dict:
+  wall_selections = [run.get("wall_selection") for run in runs]
+  if not isinstance(wall_selections[0], dict) or any(
+    selection != wall_selections[0] for selection in wall_selections[1:]
+  ):
+    raise RuntimeError("Lambda wall selector metadata changed across samples")
+  wall_selection = wall_selections[0]
+  wall_candidates = wall_selection.get("eligible_direct_candidates")
+  if not isinstance(wall_candidates, dict):
+    raise RuntimeError("Lambda wall selector omitted eligible candidates")
+
+  thread_selections = [run.get("thread_cpu_selection") for run in runs]
+  if not isinstance(thread_selections[0], dict) or any(
+    selection != thread_selections[0] for selection in thread_selections[1:]
+  ):
+    raise RuntimeError("Lambda thread-CPU selector metadata changed across samples")
+  thread_selection = thread_selections[0]
+  thread_candidates = thread_selection.get("eligible_direct_candidates")
+  if (
+    not isinstance(thread_candidates, list)
+    or not thread_candidates
+    or not all(isinstance(candidate, str) and candidate for candidate in thread_candidates)
+  ):
+    raise RuntimeError("Lambda thread-CPU selector has malformed eligible candidates")
+
+  clock_keys = [
+    "tach",
+    "tach_ordered",
+    "quanta",
+    "fastant",
+    "minstant",
+    "std",
+    "tach_thread_cpu",
+    "native_thread_cpu",
+    "direct_selected_wall",
+    "direct_selected_ordered_wall",
+    "direct_selected_thread_cpu",
+  ]
+  for domain in ("instant", "ordered"):
+    candidates = wall_candidates.get(domain)
+    if (
+      not isinstance(candidates, list)
+      or not candidates
+      or not all(isinstance(candidate, str) and candidate for candidate in candidates)
+    ):
+      raise RuntimeError(f"Lambda wall selector has malformed {domain} candidates")
+    clock_keys.extend(candidates)
+  clock_keys.extend(thread_candidates)
+  if thread_selection.get("fallback_native_benchmark") is not None:
+    clock_keys.append("direct_fallback_thread_cpu")
+
+  clocks = {}
+  for key in dict.fromkeys(clock_keys):
+    rows = [run.get(key) for run in runs]
+    if not all(isinstance(row, dict) for row in rows):
+      raise RuntimeError(f"Lambda samples omitted clock row {key}")
+    entry = {}
+    for metric in speed_evidence.METRICS:
+      sample_lists = [row.get(f"{metric}_samples") for row in rows]
+      if not all(
+        isinstance(samples, list)
+        and len(samples) == speed_evidence.LAMBDA_SAMPLES_PER_INVOCATION
+        for samples in sample_lists
+      ):
+        raise RuntimeError(f"Lambda samples omitted {key}.{metric}_samples")
+      samples = [sample for values in sample_lists for sample in values]
+      if not all(
+        type(sample) in (int, float) and math.isfinite(sample) and sample >= 0
+        for sample in samples
+      ):
+        raise RuntimeError(f"Lambda samples contained invalid {key}.{metric} values")
+      point, interval = speed_evidence.lambda_median_with_ci(
+        samples,
+        f"{key}:{metric}",
+      )
+      entry[metric] = point
+      entry[f"{metric}_ci95"] = interval
+      entry[f"{metric}_samples"] = samples
+
+    exact_wall = key.startswith(("direct_wall__", "direct_ordered_wall__"))
+    carries_identity = (
+      key.startswith("direct_thread_cpu__")
+      or exact_wall
+      or key
+      in {
+        "tach_thread_cpu",
+        "native_thread_cpu",
+        "direct_selected_wall",
+        "direct_selected_ordered_wall",
+        "direct_selected_thread_cpu",
+        "direct_fallback_thread_cpu",
+      }
+    )
+    if carries_identity:
+      for field in ("provider", "read_cost", "time_domain"):
+        values = {row.get(field) for row in rows}
+        if len(values) != 1:
+          raise RuntimeError(f"{key} {field} changed across Lambda samples")
+        value = values.pop()
+        if not isinstance(value, str) or not value:
+          raise RuntimeError(f"{key} omitted {field}")
+        entry[field] = value
+      if key.startswith("direct_"):
+        benchmarks = {row.get("benchmark") for row in rows}
+        if len(benchmarks) != 1:
+          raise RuntimeError(f"{key} benchmark identity changed across Lambda samples")
+        benchmark = benchmarks.pop()
+        if not isinstance(benchmark, str) or not benchmark:
+          raise RuntimeError(f"{key} omitted its benchmark identity")
+        entry["benchmark"] = benchmark
+    clocks[key] = entry
+
+  clocks["tach"]["selection"] = wall_selection
+  clocks["tach_ordered"]["wall_selection"] = wall_selection
+  clocks["tach_thread_cpu"]["selection"] = thread_selection
+  return clocks
+
+
+def extract_lambda_observation(host_dir: Path, attestation: dict) -> dict:
+  payload_paths, metadata_paths = _lambda_paths(host_dir)
+  expected = {
+    "runtime-attestation.json",
+    *(path.name for path in payload_paths),
+    *(path.name for path in metadata_paths),
+  }
+  actual = {path.name for path in host_dir.iterdir()}
+  if actual != expected:
+    raise RuntimeError(
+      "Lambda host observation file set changed: "
+      f"missing={sorted(expected - actual)!r}, unexpected={sorted(actual - expected)!r}"
+    )
+
+  runs = []
+  for run, payload_path, metadata_path in zip(
+    LAMBDA_RUNS,
+    payload_paths,
+    metadata_paths,
+  ):
+    metadata = _load_json(metadata_path, f"Lambda invocation {run} metadata")
+    if metadata.get("StatusCode") != 200 or metadata.get("FunctionError") is not None:
+      raise RuntimeError(f"Lambda invocation {run} failed: {metadata!r}")
+    payload = _load_json(payload_path, f"Lambda invocation {run} payload")
+    if payload.get("runtime_attestation") != attestation:
+      raise RuntimeError(f"Lambda invocation {run} runtime attestation changed")
+    runs.append(payload)
+
+  return {
+    "clocks": _aggregate_lambda_rows(runs),
+    "thread_cpu_behavior": None,
+  }
+
+
+def extract_host_observation(host_dir: Path, attestation: dict) -> dict:
+  harness = attestation.get("harness")
+  if harness == "lambda":
+    return extract_lambda_observation(host_dir, attestation)
+  raise RuntimeError(f"unsupported retained host harness {harness!r}")

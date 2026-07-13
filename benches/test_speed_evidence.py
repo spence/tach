@@ -1870,33 +1870,66 @@ declare void @generic_implementation()
     report = speed_evidence.validate_primary_speed_cell(artifact_id, document)
     self.assertTrue(report["passed"], report["failures"])
 
-  def test_primary_composer_rejects_lambda_before_collector_read(self) -> None:
+  def test_primary_composer_accepts_retained_lambda_observation(self) -> None:
     composer = primary_composer_module()
+    artifact_id = "speed-5-lambda.json"
+    values = clocks()
+    for clock, row in values.items():
+      for metric in speed_evidence.METRICS:
+        samples = [row[metric]] * speed_evidence.LAMBDA_SAMPLE_COUNT
+        point, interval = speed_evidence.lambda_median_with_ci(
+          samples,
+          f"{clock}:{metric}",
+        )
+        row[metric] = point
+        row[f"{metric}_ci95"] = interval
+        row[f"{metric}_samples"] = samples
+    attestation = synthetic_runtime_attestation(
+      "x86_64-unknown-linux-gnu",
+      "lambda",
+      "1" * 40,
+      "default",
+    )
+    collector = {
+      "schema": speed_evidence.COLLECTOR_ATTESTATION_SCHEMA,
+      "invocation_id": attestation["invocation_id"],
+      "runtime_attestation": attestation,
+      "manifest_sha256": "f" * 64,
+    }
+    observation = {
+      "clocks": values,
+      "collector_attestation": collector,
+    }
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
-      stderr = io.StringIO()
+      bundle = root / "speed-5-lambda.collector.bundle"
+      bundle.mkdir()
+      output = root / artifact_id
       with (
         mock.patch.object(
           sys,
           "argv",
           [
             "compose-speed.py",
-            str(root / "speed-5-lambda.json"),
+            str(output),
             "--collector-bundle",
-            str(root / "pretend-criterion.bundle"),
+            str(bundle),
           ],
         ),
         mock.patch.object(
-          composer.extract_speed, "extract_collector_bundle_observation"
+          composer.extract_speed,
+          "extract_collector_bundle_observation",
+          return_value=observation,
         ) as extract,
-        contextlib.redirect_stderr(stderr),
       ):
-        with self.assertRaises(SystemExit) as exit_error:
-          composer.main()
+        composer.main()
 
-    self.assertEqual(exit_error.exception.code, 2)
-    self.assertIn("host observation protocol", stderr.getvalue())
-    extract.assert_not_called()
+      document = json.loads(output.read_text())
+    extract.assert_called_once_with(bundle)
+    self.assertEqual(document["provenance"]["harness"], "lambda")
+    self.assertEqual(document["build_mode"], "default")
+    report = speed_evidence.validate_primary_speed_cell(artifact_id, document)
+    self.assertTrue(report["passed"], report["failures"])
 
   def test_primary_bound_cell_reextracts_the_retained_collector_bundle(self) -> None:
     artifact_id = "speed-0-apple.json"

@@ -101,10 +101,12 @@ BENCHMARK_SOURCE_PATHS = (
   "tests",
   "benches/bench_data.py",
   "benches/collect-speed-bundle.py",
+  "benches/collect-host-speed-bundle.py",
   "benches/compose-route-observations.py",
   "benches/compose-speed.py",
   "benches/compose-supplemental-speed.py",
   "benches/extract_speed.py",
+  "benches/host_speed.py",
   "benches/instant.rs",
   "benches/lambda-speed/Cargo.toml",
   "benches/lambda-speed/Cargo.lock",
@@ -3708,12 +3710,6 @@ def validate_primary_speed_cell(artifact_id: str, document: object) -> dict:
       f"{context}: build mode does not match the primary campaign "
       f"{expected_build_mode!r}"
     )
-  if harness != "criterion":
-    failures.append(
-      f"{context}: {harness!r} requires a host observation protocol; "
-      "Criterion collector bundles cannot prove this cell"
-    )
-
   revision = provenance.get("source_revision")
   if not _valid_full_revision(revision):
     failures.append(f"{context}: invalid full source revision")
@@ -3743,6 +3739,8 @@ def validate_primary_speed_cell(artifact_id: str, document: object) -> dict:
   elif not failures:
     cell_failures, three_clock_speed = validate_cell(context, clocks, triple)
     failures.extend(cell_failures)
+    if harness == "lambda":
+      validate_lambda_samples(context, clocks, failures)
   return _primary_cell_result(
     artifact_id,
     document,
@@ -3761,16 +3759,10 @@ def compose_primary_speed_cell(
   collector_attestation: object,
   collector_bundle_path: object,
 ) -> dict:
-  """Compose one canonical primary cell from a verified Criterion observation."""
+  """Compose one canonical primary cell from a verified retained observation."""
   expected = PRIMARY_SPEED_CELLS.get(artifact_id)
   if expected is None:
     raise ValueError(f"unknown primary artifact {artifact_id!r}")
-  _, _, _, _, harness, _ = expected
-  if harness != "criterion":
-    raise ValueError(
-      f"{artifact_id} requires a host observation protocol; "
-      "this composer only accepts Criterion collector bundles"
-    )
   runtime_attestation = (
     collector_attestation.get("runtime_attestation")
     if isinstance(collector_attestation, dict)
@@ -3872,10 +3864,6 @@ def validate_primary_speed_cell_from_bundle(
   expected = PRIMARY_SPEED_CELLS.get(artifact_id)
   if expected is None:
     binding_failures.append(f"primary {artifact_id}: unknown primary artifact")
-  elif expected[4] != "criterion":
-    binding_failures.append(
-      f"primary {artifact_id}: {expected[4]!r} requires a host observation protocol"
-    )
   else:
     try:
       import extract_speed

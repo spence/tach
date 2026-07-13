@@ -17,6 +17,7 @@ SNAPSHOT_RUNNERS = (
     "run-speed-local.sh",
     "run-speed-aws.sh",
     "run-speed-freebsd-aws.sh",
+    "run-speed-lambda.sh",
 )
 
 
@@ -46,7 +47,7 @@ class SealedRunnerWiringTests(unittest.TestCase):
                 self.assertNotIn("clocks-out.json", source)
 
     def test_primary_and_supplemental_runners_use_their_correct_composers(self) -> None:
-        for filename in ("run-speed-local.sh", "run-speed-aws.sh"):
+        for filename in ("run-speed-local.sh", "run-speed-aws.sh", "run-speed-lambda.sh"):
             with self.subTest(runner=filename):
                 source = self.source(filename)
                 self.assertIn("compose-speed.py", source)
@@ -178,6 +179,12 @@ printf "SEAL_RAN\\n"
                 'tar -xzf /tmp/tach-src.tgz -C "$HOME/tach"',
                 'python3 "$source_dir/benches/compose-supplemental-speed.py"',
             ),
+            "run-speed-lambda.sh": (
+                'git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"',
+                'tar -xf - -C "$source_dir"',
+                'cd "$source_dir/benches/lambda-speed"',
+                'python3 "$source_dir/benches/compose-speed.py"',
+            ),
         }
 
         self.assertEqual(set(expectations), set(SNAPSHOT_RUNNERS))
@@ -208,23 +215,23 @@ printf "SEAL_RAN\\n"
                         source.index("aws_ ec2 describe-instances"),
                     )
 
-    def test_lambda_fails_closed_before_any_cloud_or_composer_path(self) -> None:
+    def test_lambda_retains_runtime_attested_host_observation(self) -> None:
         source = self.source("run-speed-lambda.sh")
 
-        self.assertIn(
-            "Lambda speed runner cannot currently produce retained release evidence",
-            source,
-        )
-        self.assertIn("Lambda host-observation/source-seal protocol is required", source)
-        self.assertIn("exit 2", source)
-        self.assertNotIn("aws lambda", source)
-        self.assertNotIn("cargo lambda", source)
-        self.assertNotIn("compose-speed.py", source)
-        self.assertNotIn("git archive", source)
-        self.assertNotRegex(
-            source,
-            r"(?m)^\s*(?:aws|cargo|curl|wget|ssh|scp)\b",
-        )
+        self.assertIn("require-clean-benchmark-source.sh", source)
+        self.assertIn("TACH_BENCH_SOURCE_REVISION", source)
+        self.assertIn("TACH_BENCH_INVOCATION_ID", source)
+        self.assertIn("TACH_BENCH_RUNNER", source)
+        self.assertIn("cargo lambda build --locked --release", source)
+        self.assertIn('"$host_dir/run-$run.json"', source)
+        self.assertIn('"$host_dir/invoke-$run.json"', source)
+        self.assertIn("runtime-attestation.json", source)
+        collector = source.index("collect-host-speed-bundle.py")
+        composer = source.index("compose-speed.py")
+        self.assertLess(collector, composer)
+        self.assertIn("wait_until_deleted", source)
+        self.assertIn("trap cleanup EXIT", source)
+        self.assertNotIn("benches/speed-5-lambda.json", source)
 
 
 if __name__ == "__main__":

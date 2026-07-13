@@ -11,6 +11,42 @@ const ITERATIONS: usize = 100_000;
 const SAMPLES: usize = 31;
 const WARMUP_ITERATIONS: usize = 10_000;
 
+fn benchmark_runtime_attestation() -> Result<Value, Error> {
+  let source_revision = option_env!("TACH_BENCH_SOURCE_REVISION")
+    .filter(|revision| {
+      matches!(revision.len(), 40 | 64)
+        && revision
+          .bytes()
+          .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+    })
+    .ok_or("Lambda benchmark build omitted a valid source revision")?;
+  let invocation_id = option_env!("TACH_BENCH_INVOCATION_ID")
+    .filter(|value| !value.is_empty())
+    .ok_or("Lambda benchmark build omitted its invocation ID")?;
+  let runner = option_env!("TACH_BENCH_RUNNER")
+    .filter(|value| !value.is_empty())
+    .ok_or("Lambda benchmark build omitted its runner identity")?;
+  if std::env::consts::ARCH != "x86_64" || std::env::consts::OS != "linux" {
+    return Err("Lambda primary benchmark requires x86_64 Linux".into());
+  }
+  Ok(json!({
+    "schema": "tach-benchmark-runtime-v2",
+    "invocation_id": invocation_id,
+    "harness": "lambda",
+    "target": {
+      "arch": "x86_64",
+      "os": "linux",
+      "env": "gnu",
+    },
+    "features": ["bench-internal", "thread-cpu-inline"],
+    "build_mode": "default",
+    "build_profile": if cfg!(debug_assertions) { "debug" } else { "optimized" },
+    "source_revision": source_revision,
+    "runner": runner,
+    "output_isolated": true,
+  }))
+}
+
 struct CostSamples {
   median: f64,
   samples: [f64; SAMPLES],
@@ -25,6 +61,7 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
+  let runtime_attestation = benchmark_runtime_attestation()?;
   quanta::Instant::now();
   fastant::Instant::now();
   minstant::Instant::now();
@@ -63,16 +100,12 @@ async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
   });
   let selected_instant = tach::bench::linux_x86_selected_instant_primitive();
   let selected_instant_provider = selected_instant.provider();
-  let (selected_instant_now, selected_instant_elapsed) = exact_instant_wall_cost(
-    selected_instant_provider,
-    selected_instant.nanos_per_tick_q32(),
-  );
+  let (selected_instant_now, selected_instant_elapsed) =
+    exact_instant_wall_cost(selected_instant_provider, selected_instant.nanos_per_tick_q32());
   let selected_ordered = tach::bench::linux_x86_selected_ordered_primitive();
   let selected_ordered_provider = selected_ordered.provider();
-  let (selected_ordered_now, selected_ordered_elapsed) = exact_ordered_wall_cost(
-    selected_ordered_provider,
-    selected_ordered.nanos_per_tick_q32(),
-  );
+  let (selected_ordered_now, selected_ordered_elapsed) =
+    exact_ordered_wall_cost(selected_ordered_provider, selected_ordered.nanos_per_tick_q32());
   let instant_wall_rows = exact_instant_wall_rows();
   let ordered_wall_rows = exact_ordered_wall_rows();
   let quanta_now = median_cost(|| black_box(quanta::Instant::now()));
@@ -102,6 +135,7 @@ async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
   }
 
   let mut result = json!({
+    "runtime_attestation": runtime_attestation,
     "tach": clock_json(tach_now, tach_elapsed),
     "tach_ordered": clock_json(tach_ordered_now, tach_ordered_elapsed),
     "direct_selected_wall": exact_wall_clock_json(
@@ -623,10 +657,7 @@ macro_rules! exact_instant_wall_cost {
     let elapsed = median_cost(|| {
       let start = $read();
       let elapsed = $read().saturating_sub(start);
-      black_box(tach::bench::exact_ticks_to_duration_with_scale(
-        elapsed,
-        $nanos_per_tick_q32,
-      ))
+      black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, $nanos_per_tick_q32))
     });
     (now, elapsed)
   }};
@@ -638,35 +669,18 @@ macro_rules! exact_ordered_wall_cost {
     let elapsed = median_cost(|| {
       let start = $read();
       let elapsed = $read().saturating_sub(start);
-      black_box(tach::bench::exact_ticks_to_duration_with_scale(
-        elapsed,
-        $nanos_per_tick_q32,
-      ))
+      black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, $nanos_per_tick_q32))
     });
     (now, elapsed)
   }};
 }
 
-fn exact_instant_wall_cost(
-  provider: &str,
-  nanos_per_tick_q32: u64,
-) -> (CostSamples, CostSamples) {
-  with_lambda_linux_x86_instant_read!(
-    provider,
-    exact_instant_wall_cost,
-    nanos_per_tick_q32
-  )
+fn exact_instant_wall_cost(provider: &str, nanos_per_tick_q32: u64) -> (CostSamples, CostSamples) {
+  with_lambda_linux_x86_instant_read!(provider, exact_instant_wall_cost, nanos_per_tick_q32)
 }
 
-fn exact_ordered_wall_cost(
-  provider: &str,
-  nanos_per_tick_q32: u64,
-) -> (CostSamples, CostSamples) {
-  with_lambda_linux_x86_ordered_read!(
-    provider,
-    exact_ordered_wall_cost,
-    nanos_per_tick_q32
-  )
+fn exact_ordered_wall_cost(provider: &str, nanos_per_tick_q32: u64) -> (CostSamples, CostSamples) {
+  with_lambda_linux_x86_ordered_read!(provider, exact_ordered_wall_cost, nanos_per_tick_q32)
 }
 
 fn exact_instant_wall_rows() -> serde_json::Map<String, Value> {

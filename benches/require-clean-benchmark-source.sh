@@ -12,10 +12,12 @@ paths=(
   tests
   benches/bench_data.py
   benches/collect-speed-bundle.py
+  benches/collect-host-speed-bundle.py
   benches/compose-route-observations.py
   benches/compose-speed.py
   benches/compose-supplemental-speed.py
   benches/extract_speed.py
+  benches/host_speed.py
   benches/instant.rs
   benches/lambda-speed/Cargo.lock
   benches/lambda-speed/Cargo.toml

@@ -21,6 +21,8 @@ import extract_speed
 
 BENCHES_DIR = Path(__file__).resolve().parent
 COLLECTOR_SCRIPT = BENCHES_DIR / "collect-speed-bundle.py"
+HOST_COLLECTOR_SCRIPT = BENCHES_DIR / "collect-host-speed-bundle.py"
+HOST_EXTRACTOR_SCRIPT = BENCHES_DIR / "host_speed.py"
 EXTRACTOR_SCRIPT = BENCHES_DIR / "extract_speed.py"
 SEALER_SCRIPT = BENCHES_DIR / "seal-speed-source.py"
 
@@ -39,6 +41,11 @@ collect_speed_bundle = load_script_module(
     "tach_test_collect_speed_bundle",
     COLLECTOR_SCRIPT,
 )
+host_speed = load_script_module("tach_test_host_speed", HOST_EXTRACTOR_SCRIPT)
+collect_host_speed_bundle = load_script_module(
+    "tach_test_collect_host_speed_bundle",
+    HOST_COLLECTOR_SCRIPT,
+)
 
 
 class RemoteEvidencePythonCompatibilityTests(unittest.TestCase):
@@ -47,6 +54,8 @@ class RemoteEvidencePythonCompatibilityTests(unittest.TestCase):
             (EXTRACTOR_SCRIPT, extract_speed),
             (SEALER_SCRIPT, seal_speed_source),
             (COLLECTOR_SCRIPT, collect_speed_bundle),
+            (HOST_EXTRACTOR_SCRIPT, host_speed),
+            (HOST_COLLECTOR_SCRIPT, collect_host_speed_bundle),
         )
         for path, module in modules:
             with self.subTest(module=path.name):
@@ -207,6 +216,166 @@ def rewrite_manifest(bundle: Path, manifest: dict) -> None:
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def lambda_runtime_attestation() -> dict:
+    return {
+        "schema": "tach-benchmark-runtime-v2",
+        "invocation_id": "lambda-test-invocation",
+        "harness": "lambda",
+        "target": {"arch": "x86_64", "os": "linux", "env": "gnu"},
+        "features": ["bench-internal", "thread-cpu-inline"],
+        "build_mode": "default",
+        "build_profile": "optimized",
+        "source_revision": "1" * 40,
+        "runner": "aws-lambda-x86_64",
+        "output_isolated": True,
+    }
+
+
+def write_lambda_host_observation(root: Path) -> dict:
+    attestation = lambda_runtime_attestation()
+    wall_selection = {
+        "eligible_direct_candidates": {
+            "instant": ["direct_wall__test"],
+            "ordered": ["direct_ordered_wall__test"],
+        }
+    }
+    thread_selection = {
+        "eligible_direct_candidates": ["direct_thread_cpu__test"],
+        "fallback_native_benchmark": None,
+    }
+    clock_keys = (
+        "tach",
+        "tach_ordered",
+        "quanta",
+        "fastant",
+        "minstant",
+        "std",
+        "tach_thread_cpu",
+        "native_thread_cpu",
+        "direct_selected_wall",
+        "direct_selected_ordered_wall",
+        "direct_selected_thread_cpu",
+        "direct_wall__test",
+        "direct_ordered_wall__test",
+        "direct_thread_cpu__test",
+    )
+    root.mkdir()
+    (root / "runtime-attestation.json").write_text(json.dumps(attestation))
+    for run in range(1, 6):
+        payload = {
+            "runtime_attestation": attestation,
+            "wall_selection": wall_selection,
+            "thread_cpu_selection": thread_selection,
+        }
+        for key in clock_keys:
+            row = {
+                "now_samples": [float(run)] * 31,
+                "elapsed_samples": [float(run + 1)] * 31,
+            }
+            if key.startswith("direct_") or key in {
+                "tach_thread_cpu",
+                "native_thread_cpu",
+            }:
+                row.update({
+                    "provider": f"provider-{key}",
+                    "read_cost": "system call",
+                    "time_domain": (
+                        "thread CPU"
+                        if "thread_cpu" in key or key in {"tach_thread_cpu", "native_thread_cpu"}
+                        else "instant wall"
+                    ),
+                })
+            if key.startswith("direct_"):
+                row["benchmark"] = key
+            payload[key] = row
+        (root / f"run-{run}.json").write_text(json.dumps(payload))
+        (root / f"invoke-{run}.json").write_text(json.dumps({"StatusCode": 200}))
+    return attestation
+
+
+class HostCollectorBundleTests(unittest.TestCase):
+    def test_lambda_raw_invocations_reaggregate_from_retained_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "host-input"
+            attestation = write_lambda_host_observation(host)
+            bundle = root / "bundle"
+
+            collect_host_speed_bundle.collect_host_bundle(host, bundle)
+            observation = extract_speed.extract_collector_bundle_observation(bundle)
+
+            self.assertEqual(
+                observation["collector_attestation"]["runtime_attestation"],
+                attestation,
+            )
+            self.assertEqual(observation["clocks"]["tach"]["now"], 3.0)
+            self.assertEqual(
+                len(observation["clocks"]["tach"]["now_samples"]),
+                155,
+            )
+            self.assertEqual(
+                observation["clocks"]["direct_selected_thread_cpu"]["benchmark"],
+                "direct_selected_thread_cpu",
+            )
+
+    def test_tampered_retained_lambda_payload_rejects_extraction(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "host-input"
+            write_lambda_host_observation(host)
+            bundle = root / "bundle"
+            collect_host_speed_bundle.collect_host_bundle(host, bundle)
+            payload = bundle / "host" / "run-3.json"
+            payload.write_text(payload.read_text() + "\n")
+
+            with self.assertRaisesRegex(RuntimeError, "hash mismatch"):
+                extract_speed.extract_collector_bundle_observation(bundle)
+
+    def test_host_collector_rejects_links_extra_files_and_nested_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            linked = root / "linked"
+            write_lambda_host_observation(linked)
+            (linked / "run-5.json").unlink()
+            (linked / "run-5.json").symlink_to(linked / "run-4.json")
+            with self.assertRaisesRegex(RuntimeError, "nonregular input"):
+                collect_host_speed_bundle.collect_host_bundle(
+                    linked,
+                    root / "linked-bundle",
+                )
+
+            extra = root / "extra"
+            write_lambda_host_observation(extra)
+            (extra / "unbound.json").write_text("{}")
+            with self.assertRaisesRegex(RuntimeError, "file set changed"):
+                collect_host_speed_bundle.collect_host_bundle(
+                    extra,
+                    root / "extra-bundle",
+                )
+
+            nested = root / "nested"
+            write_lambda_host_observation(nested)
+            with self.assertRaisesRegex(RuntimeError, "must not be inside"):
+                collect_host_speed_bundle.collect_host_bundle(
+                    nested,
+                    nested / "bundle",
+                )
+
+    def test_lambda_attestation_must_match_every_raw_invocation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "host-input"
+            write_lambda_host_observation(host)
+            payload_path = host / "run-4.json"
+            payload = json.loads(payload_path.read_text())
+            payload["runtime_attestation"]["invocation_id"] = "foreign-run"
+            payload_path.write_text(json.dumps(payload))
+
+            with self.assertRaisesRegex(RuntimeError, "attestation changed"):
+                collect_host_speed_bundle.collect_host_bundle(host, root / "bundle")
 
 
 class CriterionLookupTests(unittest.TestCase):
