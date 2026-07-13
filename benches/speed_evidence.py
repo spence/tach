@@ -631,11 +631,11 @@ def validate_apple_wall_selector(
           else "apple_continuous_hw_isb_cntvct_base"
         )
       expected_providers = []
+      if continuous:
+        expected_providers.append(continuous_direct)
       if absolute_direct is not None:
         expected_providers.append(absolute_direct)
       expected_providers.append("apple_mach_absolute_time")
-      if continuous:
-        expected_providers.append(continuous_direct)
       expected_providers.append("apple_mach_continuous_time")
       declared = candidates.get(domain)
       expected_rows = [f"{direct_prefix}__{provider}" for provider in expected_providers]

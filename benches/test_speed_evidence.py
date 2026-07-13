@@ -909,15 +909,15 @@ def freebsd_wall_selection() -> dict:
 
 def apple_aarch64_wall_selection() -> dict:
   candidate_names = [
+    "apple_continuous_hw_acntvct_base",
     "apple_commpage_acntvct_offset",
     "apple_mach_absolute_time",
-    "apple_continuous_hw_acntvct_base",
     "apple_mach_continuous_time",
   ]
   candidate_batches = [
+    [90_000] * 9,
     [100_000] * 9,
     [110_000] * 9,
-    [90_000] * 9,
     [95_000] * 9,
   ]
   domain_probe = {
