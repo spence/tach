@@ -179,6 +179,9 @@ pub(crate) struct SelectionEvidence {
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
   let provider = INSTANT_SELECTOR.state.load(Ordering::Relaxed);
+  if provider == PROVIDER_CONTINUOUS_ACNTVCT {
+    return acntvct_continuous_time();
+  }
   if provider == PROVIDER_ABSOLUTE_ACNTVCT {
     return acntvct_absolute_time();
   }
@@ -205,6 +208,9 @@ fn ticks_after_selection() -> u64 {
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
   let provider = ORDERED_SELECTOR.state.load(Ordering::Relaxed);
+  if provider == PROVIDER_CONTINUOUS_ACNTVCT {
+    return acntvct_continuous_time();
+  }
   if provider == PROVIDER_ABSOLUTE_ACNTVCT {
     return acntvct_absolute_time();
   }
@@ -231,6 +237,9 @@ fn ticks_ordered_after_selection() -> u64 {
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered_unordered() -> u64 {
   let provider = ORDERED_SELECTOR.state.load(Ordering::Relaxed);
+  if provider == PROVIDER_CONTINUOUS_ACNTVCT {
+    return acntvct_continuous_time();
+  }
   if provider == PROVIDER_ABSOLUTE_ACNTVCT {
     return acntvct_absolute_time();
   }
@@ -385,13 +394,16 @@ fn probe_dispatched_ticks<const ORDERED: bool>(selector: &Selector) -> u64 {
 
 fn candidates(mode: u8, continuous_hwclock: bool) -> CandidateList {
   let mut candidates = CandidateList::new();
+  // The direct continuous protocol has one commpage load, while the direct
+  // absolute protocol needs two loads and a retry check. Start with the
+  // structurally cheaper eligible route so a measured tie retains it.
+  if continuous_hwclock {
+    candidates.push(continuous_direct_provider(mode));
+  }
   if let Some(provider) = absolute_direct_provider(mode) {
     candidates.push(provider);
   }
   candidates.push(PROVIDER_MACH_ABSOLUTE);
-  if continuous_hwclock {
-    candidates.push(continuous_direct_provider(mode));
-  }
   candidates.push(PROVIDER_MACH_CONTINUOUS);
   candidates
 }
@@ -995,6 +1007,9 @@ mod tests {
         let list = candidates(mode, continuous);
         assert!(list.as_slice().contains(&PROVIDER_MACH_ABSOLUTE));
         assert!(list.as_slice().contains(&PROVIDER_MACH_CONTINUOUS));
+        if continuous {
+          assert_eq!(list.as_slice()[0], continuous_direct_provider(mode));
+        }
         assert_eq!(
           list.as_slice().iter().filter(|provider| is_continuous(**provider)).count(),
           if continuous { 2 } else { 1 }
