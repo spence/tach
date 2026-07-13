@@ -100,12 +100,20 @@ printf "SEAL_RAN\\n"
                 self.assertIn("retained stderr", completed.stderr)
                 self.assertIn("gate cargo-test command:", completed.stdout)
                 self.assertIn(
-                    " 'diagnostic' 'one spaced' 'one' 'spaced' "
-                    "'quote'\\''arg' ===",
+                    " <diagnostic> <one spaced> <one> <spaced> "
+                    "<quote'arg> ===",
                     completed.stdout,
                 )
                 self.assertIn("gate cargo-test status: 101", completed.stdout)
                 self.assertNotIn("SEAL_RAN", completed.stdout)
+
+    def test_alpine_remote_payload_has_no_literal_single_quote(self) -> None:
+        source = self.source("run-speed-aws.sh")
+        marker = "-w /work alpine:3.20 sh -c '"
+        payload_start = source.index(marker) + len(marker)
+        payload_end = source.index("\n  '\nelse", payload_start)
+
+        self.assertNotIn("'", source[payload_start:payload_end])
 
     def test_aws_rejects_unsupported_alias_before_any_aws_call(self) -> None:
         source = self.source("run-speed-aws.sh")

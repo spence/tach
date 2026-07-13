@@ -182,9 +182,7 @@ if [ "$MODE" = musl ]; then
       shift
       printf "=== gate %s command:" "$gate_name"
       for gate_arg in "$@"; do
-        printf " '"
-        printf "%s" "$gate_arg" | sed "s/'/'\\\\''/g"
-        printf "'"
+        printf " <%s>" "$gate_arg"
       done
       printf " ===\n"
       if "$@"; then
@@ -216,9 +214,7 @@ else
     shift
     printf "=== gate %s command:" "$gate_name"
     for gate_arg in "$@"; do
-      printf " '"
-      printf "%s" "$gate_arg" | sed "s/'/'\\\\''/g"
-      printf "'"
+      printf " <%s>" "$gate_arg"
     done
     printf " ===\n"
     if "$@"; then
