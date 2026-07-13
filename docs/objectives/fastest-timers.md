@@ -176,6 +176,12 @@ decision; never silently omit a failing target.
 - Next: collect and admit the Linux musl and current macOS primary cells, then FreeBSD and the remaining hosted runtime gaps without treating codegen as speed
 - Board: M1 remains 🚧 and G1 stays ⚪; EVID-LINUX-PRIMARY-SPEED is partial evidence, not a gate closure.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed the retained Lambda x86_64 host-observation producer at a646063: the runtime emits its frozen build identity, five raw AWS payloads and invocation records are digest-bound, and aggregation reproduces only from the retained bundle; 165 Python evidence tests and a real cargo-lambda Linux package build pass.
+- Found: The 136d12c AWS measurements remain useful provider diagnostics but are not final campaign evidence after benchmark-source changes; Lambda Arm64 plus Wasm/WASI producers remain unready, so M1 cannot close.
+- Next: Implement the shared Wasm/WASI host-runtime producer and Lambda Arm64 route without weakening tagged-fallback or runtime-smoke evidence classes.
+- Board: M1 remains 🚧 and G1 ⚪; Lambda x86_64 now has a retained host producer at a646063, while final measurements wait for one frozen producer revision.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

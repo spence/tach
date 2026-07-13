@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       collect and admit the Linux musl and current macOS primary cells, then FreeBSD and the remaining hosted runtime gaps without treating codegen as speed
+> Next:       Implement the shared Wasm/WASI host-runtime producer and Lambda Arm64 route without weakening tagged-fallback or runtime-smoke evidence classes.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: promoted EVID-LINUX-PRIMARY-SPEED for final source 136d12c: both default Linux primary cells independently admit and the clean 24-target provider proof passes · By: nsr · 136d12c
+> Last verified: 2026-07-13 · Changed: Committed the retained Lambda x86_64 host-observation producer at a646063: the runtime emits its frozen build identity, five raw AWS payloads and invocation records are digest-bound, and aggregation reproduces only from the retained bundle; 165 Python evidence tests and a real cargo-lambda Linux package build pass. · By: nsr · a646063
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
