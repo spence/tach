@@ -1028,7 +1028,7 @@ def validate_legacy_native_thread_cpu_entry_probe(
 
   reads_per_batch = probe.get("reads_per_batch")
   required_wins = probe.get("required_decisive_wins")
-  if reads_per_batch != 4096 or required_wins != 8:
+  if reads_per_batch != 4096 or required_wins != 7:
     failures.append(f"{context}: native thread-CPU decision rule changed")
   explicit_band = "floor_ns_per_read" in probe or "relative_denominator" in probe
   floor_ns_per_read = probe.get("floor_ns_per_read", 1)

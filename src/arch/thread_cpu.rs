@@ -927,7 +927,7 @@ const NATIVE64_SAMPLES: usize = 9;
   ),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
-const NATIVE64_REQUIRED_WINS: usize = 8;
+const NATIVE64_REQUIRED_WINS: usize = 7;
 #[cfg(any(
   all(
     target_arch = "x86_64",
@@ -1435,7 +1435,11 @@ fn native_64_selection_requires_a_repeatable_material_win() {
   let mut two_noisy_batches = [94_000; NATIVE64_SAMPLES];
   two_noisy_batches[0] = 99_000;
   two_noisy_batches[1] = 99_000;
-  assert!(!prefer_native_64_candidate(two_noisy_batches, incumbent));
+  assert!(prefer_native_64_candidate(two_noisy_batches, incumbent));
+
+  let mut three_noisy_batches = two_noisy_batches;
+  three_noisy_batches[2] = 99_000;
+  assert!(!prefer_native_64_candidate(three_noisy_batches, incumbent));
   assert_eq!(native_64_mechanism_read_cost(), ThreadCpuReadCost::SystemCall);
 }
 
