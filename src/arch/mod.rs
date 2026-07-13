@@ -59,17 +59,28 @@ pub mod x86_64;
 mod direct;
 pub use direct::{ticks, ticks_ordered, ticks_ordered_unordered};
 
-// Cached independently at each type's first elapsed/arithmetic call. Stored
-// as fixed-point Q32:
+// Stored independently as fixed-point Q32:
 //   nanos_per_tick_q32 = (nanos_numerator << 32) / ticks_denominator
 // Then converting ticks to nanos becomes (ticks * scale) >> 32, replacing the
 // per-call u128 division with a multiply + shift. Instant and OrderedInstant
 // may select different providers, so their scales must never be interchanged.
+// Most targets initialize each cache at the first elapsed/arithmetic call.
+// Linux-kernel x86 publishes the ordered scale with provider selection; its
+// initial 1 ns/tick value is the exact scale of the reentrant OS-clock route.
 //
 // `pub(crate)` so the background-recal thread can issue its own
 // Acquire/Release cycle without going through the wholesale-replace
 // public `recalibrate()` path.
 pub(crate) static NANOS_PER_TICK_Q32: AtomicU64 = AtomicU64::new(0);
+#[cfg(all(
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86", target_arch = "x86_64"),
+))]
+pub(crate) static ORDERED_NANOS_PER_TICK_Q32: AtomicU64 = AtomicU64::new(1_u64 << 32);
+#[cfg(not(all(
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86", target_arch = "x86_64"),
+)))]
 pub(crate) static ORDERED_NANOS_PER_TICK_Q32: AtomicU64 = AtomicU64::new(0);
 
 #[cfg(any(
@@ -362,15 +373,41 @@ fn initialize_nanos_per_tick_q32() -> u64 {
 #[inline]
 #[must_use]
 pub fn ordered_nanos_per_tick_q32() -> u64 {
+  #[cfg(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  ))]
+  {
+    // The selector publishes the selected domain's scale before its provider.
+    // The initial nanosecond scale is exact for the reentrant OS-clock route.
+    return ORDERED_NANOS_PER_TICK_Q32.load(Ordering::Acquire);
+  }
+
+  #[cfg(not(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  )))]
   let cached = ORDERED_NANOS_PER_TICK_Q32.load(Ordering::Relaxed);
+  #[cfg(not(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  )))]
   if cached != 0 {
     return cached;
   }
+  #[cfg(not(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  )))]
   initialize_ordered_nanos_per_tick_q32()
 }
 
 #[cold]
 #[inline(never)]
+#[cfg(not(all(
+  any(target_os = "android", target_os = "linux"),
+  any(target_arch = "x86", target_arch = "x86_64"),
+)))]
 fn initialize_ordered_nanos_per_tick_q32() -> u64 {
   let initial = read_ordered_nanos_per_tick_q32();
   let scale = match ORDERED_NANOS_PER_TICK_Q32.compare_exchange(
@@ -416,7 +453,13 @@ fn read_ordered_nanos_per_tick_q32() -> u64 {
   scale_from_ratio(u64::from(numer), u64::from(denom))
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(
+  not(target_os = "macos"),
+  not(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  )),
+))]
 #[inline]
 fn read_ordered_nanos_per_tick_q32() -> u64 {
   scale_from_ratio(1_000_000_000, read_ordered_frequency())
@@ -558,15 +601,6 @@ fn read_local_frequency() -> u64 {
   // Architectures without a direct counter use a platform monotonic source
   // whose ticks are already nanoseconds.
   1_000_000_000
-}
-
-#[cfg(all(
-  any(target_os = "android", target_os = "linux"),
-  any(target_arch = "x86_64", target_arch = "x86"),
-))]
-#[inline]
-fn read_ordered_frequency() -> u64 {
-  linux_x86_wall::ordered_frequency()
 }
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]

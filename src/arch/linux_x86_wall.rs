@@ -37,11 +37,14 @@ const PROVIDER_UNKNOWN: u8 = 0;
 const PROVIDER_SELECTING: u8 = 1;
 
 const PROVIDER_TSC: u8 = 2;
+// Keep complete ordered-TSC identities outside the dense OS-provider range.
+// Their sparse encoding emits a predictable comparison tree instead of an
+// indirect jump table on the public ordered hot path.
 const PROVIDER_TSC_LFENCE_RDTSC: u8 = 2;
-const PROVIDER_TSC_RDTSCP: u8 = 3;
-const PROVIDER_TSC_CPUID_RDTSC: u8 = 4;
-const PROVIDER_TSC_MFENCE_RDTSC: u8 = 5;
-const PROVIDER_TSC_SERIALIZE_RDTSC: u8 = 6;
+const PROVIDER_TSC_RDTSCP: u8 = 128;
+const PROVIDER_TSC_CPUID_RDTSC: u8 = 160;
+const PROVIDER_TSC_MFENCE_RDTSC: u8 = 192;
+const PROVIDER_TSC_SERIALIZE_RDTSC: u8 = 224;
 
 const SOURCE_LIBC_MONOTONIC: u8 = 0;
 const SOURCE_LIBC_MONOTONIC_RAW: u8 = 1;
@@ -979,11 +982,6 @@ pub fn frequency() -> u64 {
 }
 
 #[inline]
-pub fn ordered_frequency() -> u64 {
-  frequency_for(selected_ordered_provider())
-}
-
-#[inline]
 fn provider_uses_tsc(provider: u8) -> bool {
   matches!(
     provider,
@@ -1246,7 +1244,10 @@ fn detect_ordered_provider() -> u8 {
     baseline_barrier,
     fast_barrier,
   });
-  tournament.selected_provider
+  let provider = tournament.selected_provider;
+  let scale = super::scale_from_ratio(1_000_000_000, frequency_for(provider));
+  super::ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+  provider
 }
 
 #[inline]

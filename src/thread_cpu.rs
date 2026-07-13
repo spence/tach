@@ -252,6 +252,9 @@ impl ThreadCpuInstant {
     }
     #[cfg(any(not(target_os = "macos"), test))]
     {
+      if (self.nanos | earlier.nanos) & WALL_DOMAIN_BIT == 0 {
+        return Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos));
+      }
       self.checked_duration_since(earlier).unwrap_or_default()
     }
   }
