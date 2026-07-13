@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Extend the sealed host-runtime producer through Emscripten and WASI Preview 1/2, then rerun every admitted producer at one frozen source revision.
+> Next:       Implement and seal the WASI Preview 1 Node producer, then extend the same source-sealed contract to Wasmtime Preview 1/2 and the remaining smoke/negative routes.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed the source-sealed Node/Wasm producer at c50d2b4 and ran its exact archived revision through five fresh Node processes; supplemental validation passed with zero failures for Instant, OrderedInstant, and native Node thread CPU. · By: nsr · c50d2b4
+> Last verified: 2026-07-13 · Changed: Committed the source-sealed Emscripten/Node producer at f0bcc59 and removed its measured Wasm indirect-dispatch loss at 679db65; the public/exact harness now uses paired alternating batches. · By: nsr · 679db65
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

@@ -188,6 +188,12 @@ decision; never silently omit a failing target.
 - Next: Extend the sealed host-runtime producer through Emscripten and WASI Preview 1/2, then rerun every admitted producer at one frozen source revision.
 - Board: Node/Wasm route sealed and green at c50d2b4; Emscripten and WASI hosted routes remain.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed the source-sealed Emscripten/Node producer at f0bcc59 and removed its measured Wasm indirect-dispatch loss at 679db65; the public/exact harness now uses paired alternating batches.
+- Found: The exact archived revision 679db6514b759471b372d72cc1689f468d6515b7 produced a bundle-bound cell with zero validation failures: Instant 33.0458 ns versus selected performance.now 34.5166 ns, OrderedInstant 32.975 ns versus 33.7042 ns, and ThreadCpuInstant 1087.4459 ns versus native 1091.9792 ns. Busy, 25 ms sleep, and 50 ms sibling-isolation semantics all passed; 170 Python tests, Rust tests/clippy, three Emscripten feature checks, and the synchronous-reentry probe were green.
+- Next: Implement and seal the WASI Preview 1 Node producer, then extend the same source-sealed contract to Wasmtime Preview 1/2 and the remaining smoke/negative routes.
+- Board: Node/Wasm and Emscripten/Node are proven producers; WASI remains on the M1 critical path.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
