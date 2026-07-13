@@ -356,6 +356,11 @@ pub fn ticks() -> u64 {
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
   let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
+  read_hot_ordered_provider(provider)
+}
+
+#[inline(always)]
+fn read_hot_ordered_provider(provider: u8) -> u64 {
   match provider {
     PROVIDER_TSC_LFENCE_RDTSC => read_tsc_lfence_ordered(),
     PROVIDER_TSC_RDTSCP => read_tsc_rdtscp_ordered(),
@@ -370,7 +375,7 @@ pub fn ticks_ordered() -> u64 {
 pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
   if state != 0 {
-    return (read_ordered_provider(state as u8), state >> 8);
+    return (read_hot_ordered_provider(state as u8), state >> 8);
   }
   ticks_ordered_with_scale_cold()
 }
