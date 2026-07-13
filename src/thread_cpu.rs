@@ -232,7 +232,8 @@ impl ThreadCpuInstant {
   /// Returns the duration elapsed on this sample's timeline.
   ///
   /// Returns zero if the provider changed between the two reads.
-  #[inline]
+  #[inline(always)]
+  #[allow(clippy::inline_always)]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
     Self::now().duration_since(*self)
@@ -246,11 +247,31 @@ impl ThreadCpuInstant {
   #[inline]
   #[must_use]
   pub fn duration_since(&self, earlier: Self) -> Duration {
+    #[cfg(any(
+      target_os = "wasi",
+      target_os = "emscripten",
+      all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+    ))]
+    {
+      if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
+        return Duration::ZERO;
+      }
+      return Duration::from_nanos(
+        (self.nanos & VALUE_MASK).saturating_sub(earlier.nanos & VALUE_MASK),
+      );
+    }
     #[cfg(all(target_os = "macos", not(test)))]
     {
       Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos))
     }
-    #[cfg(any(not(target_os = "macos"), test))]
+    #[cfg(all(
+      any(not(target_os = "macos"), test),
+      not(any(
+        target_os = "wasi",
+        target_os = "emscripten",
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+      )),
+    ))]
     {
       if (self.nanos | earlier.nanos) & WALL_DOMAIN_BIT == 0 {
         return Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos));
@@ -266,11 +287,31 @@ impl ThreadCpuInstant {
   #[inline]
   #[must_use]
   pub fn checked_duration_since(&self, earlier: Self) -> Option<Duration> {
+    #[cfg(any(
+      target_os = "wasi",
+      target_os = "emscripten",
+      all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+    ))]
+    {
+      if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
+        return None;
+      }
+      return (self.nanos & VALUE_MASK)
+        .checked_sub(earlier.nanos & VALUE_MASK)
+        .map(Duration::from_nanos);
+    }
     #[cfg(all(target_os = "macos", not(test)))]
     {
       self.nanos.checked_sub(earlier.nanos).map(Duration::from_nanos)
     }
-    #[cfg(any(not(target_os = "macos"), test))]
+    #[cfg(all(
+      any(not(target_os = "macos"), test),
+      not(any(
+        target_os = "wasi",
+        target_os = "emscripten",
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+      )),
+    ))]
     {
       if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
         return None;
@@ -328,7 +369,14 @@ impl ThreadCpuInstant {
   }
 }
 
-#[cfg(any(not(target_os = "macos"), test))]
+#[cfg(all(
+  any(not(target_os = "macos"), test),
+  not(any(
+    target_os = "wasi",
+    target_os = "emscripten",
+    all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+  )),
+))]
 #[cold]
 #[inline(never)]
 fn duration_since_wall_or_mixed(later: ThreadCpuInstant, earlier: ThreadCpuInstant) -> Duration {
