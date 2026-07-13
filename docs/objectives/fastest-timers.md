@@ -211,6 +211,11 @@ decision; never silently omit a failing target.
 - Found: Wasmtime 46 executes the real WASI threads target with shared-memory enabled and selects the explicit MonotonicWallClock fallback; the wasm32v1-none module executed under Node and selected NodeThreadCpuUsage. Runtime-smoke feature attestations must describe public tach features only because bench-internal requires std and is ineligible on wasm32v1-none.
 - Next: Complete and seal the real browser fallback producer, then freeze the full admitted source revision and rerun every producer.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Added and sealed a real Chromium browser producer at 8171221d3a9cc6ae967975827775fe7c43a402e8. Five isolated browser observations passed direct-route parity for Instant, OrderedInstant, and the tagged ThreadCpuInstant performance.now fallback; c0a05ea made the release wrapper re-extract tagged fallbacks from their retained digest-bound bundles.
+- Found: Browser current-thread CPU time is genuinely unavailable, so the observed thread selector is fallback_only rather than availability_fallback. Sealed medians were 60.50 ns Instant now, 61.50 ns OrderedInstant now, and 60.00 ns ThreadCpuInstant fallback now; every public route was materially equivalent to its exact selected route and wall-fallback semantics passed busy, sleep, and sibling probes.
+- Next: Freeze one common source revision, rerun every admitted producer at that revision, and close the remaining benchmark/target-route evidence gates.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
