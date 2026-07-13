@@ -57,7 +57,8 @@ impl Instant {
   /// Saturates to zero rather than wrapping if the current read lands before
   /// `self`. See [`crate::OrderedInstant`] when the endpoint must be ordered
   /// after a cross-thread synchronization observation.
-  #[inline]
+  #[inline(always)]
+  #[allow(clippy::inline_always)]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
     let delta = arch::ticks().saturating_sub(self.0);
@@ -233,7 +234,8 @@ impl OrderedInstant {
   /// Returns the duration that has elapsed since `self` was sampled, with
   /// the end read also ordered. Use this when the elapsed end must come
   /// after some downstream synchronization point.
-  #[inline]
+  #[inline(always)]
+  #[allow(clippy::inline_always)]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
     let (ticks, scale) = arch::ordered_ticks_with_scale();

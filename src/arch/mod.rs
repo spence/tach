@@ -402,7 +402,8 @@ pub fn ordered_nanos_per_tick_q32() -> u64 {
   initialize_ordered_nanos_per_tick_q32()
 }
 
-#[inline]
+#[inline(always)]
+#[allow(clippy::inline_always)]
 pub(crate) fn ordered_ticks_with_scale() -> (u64, u64) {
   #[cfg(all(
     any(target_os = "android", target_os = "linux"),
