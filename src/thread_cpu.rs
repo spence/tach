@@ -236,6 +236,17 @@ impl ThreadCpuInstant {
   #[allow(clippy::inline_always)]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
+    #[cfg(any(
+      target_os = "wasi",
+      target_os = "emscripten",
+      all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+    ))]
+    if self.nanos & WALL_DOMAIN_BIT != 0 {
+      // These host wall selections are sticky and share `arch::ticks()`'s
+      // nanosecond timeline, so a wall-tagged sample needs no CPU-provider dispatch.
+      let now = encode_wall_ticks(arch::ticks());
+      return Duration::from_nanos(now.saturating_sub(self.nanos));
+    }
     Self::now().duration_since(*self)
   }
 
@@ -256,9 +267,7 @@ impl ThreadCpuInstant {
       if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
         return Duration::ZERO;
       }
-      return Duration::from_nanos(
-        (self.nanos & VALUE_MASK).saturating_sub(earlier.nanos & VALUE_MASK),
-      );
+      return Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos));
     }
     #[cfg(all(target_os = "macos", not(test)))]
     {
@@ -296,9 +305,7 @@ impl ThreadCpuInstant {
       if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
         return None;
       }
-      return (self.nanos & VALUE_MASK)
-        .checked_sub(earlier.nanos & VALUE_MASK)
-        .map(Duration::from_nanos);
+      return self.nanos.checked_sub(earlier.nanos).map(Duration::from_nanos);
     }
     #[cfg(all(target_os = "macos", not(test)))]
     {
