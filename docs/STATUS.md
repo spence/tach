@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Recollect every admitted producer at frozen revision e40d744, then validate the unified route matrix and generate the final PNG.
+> Next:       Freeze at 20bd114 and rerun the c7i no-default cell first; if it passes, recollect every admitted producer at that revision before unified validation and chart generation.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed e40d744 to preserve Emscripten paired public/exact wall and thread-CPU samples; a clean real Emscripten producer and 176 evidence tests pass. · By: nsr · e40d744
+> Last verified: 2026-07-13 · Changed: Committed 20bd114 so the native 64-bit thread-CPU tournament accepts a material 7-of-9 win while rejecting three noisy pairs; all 176 evidence tests, local Rust tests, formatting, and an x86_64 Linux all-target cross-build pass. · By: nsr · 20bd114
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

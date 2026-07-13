@@ -240,6 +240,12 @@ decision; never silently omit a failing target.
 - Next: Recollect every admitted producer at frozen revision e40d744, then validate the unified route matrix and generate the final PNG.
 - Board: Frozen e40d744; real Emscripten public/exact parity and selector reproduction are green, and source-consistent recollection restarts from this revision.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed 20bd114 so the native 64-bit thread-CPU tournament accepts a material 7-of-9 win while rejecting three noisy pairs; all 176 evidence tests, local Rust tests, formatting, and an x86_64 Linux all-target cross-build pass.
+- Found: A real c7i no-default run at e40d744 measured raw SYS_clock_gettime faster in 7 of 9 paired batches, but the 8-of-9 threshold selected libc and the retained Criterion bundle then proved public ThreadCpuInstant elapsed slower than the eligible raw exact route.
+- Next: Freeze at 20bd114 and rerun the c7i no-default cell first; if it passes, recollect every admitted producer at that revision before unified validation and chart generation.
+- Board: Refroze at 20bd114 after real c7i evidence exposed an over-conservative native thread-CPU selector threshold.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
