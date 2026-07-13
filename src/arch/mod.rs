@@ -402,6 +402,31 @@ pub fn ordered_nanos_per_tick_q32() -> u64 {
   initialize_ordered_nanos_per_tick_q32()
 }
 
+#[inline]
+pub(crate) fn ordered_ticks_with_scale() -> (u64, u64) {
+  #[cfg(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  ))]
+  {
+    return linux_x86_wall::ticks_ordered_with_scale();
+  }
+  #[cfg(not(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  )))]
+  (ticks_ordered(), ordered_nanos_per_tick_q32())
+}
+
+pub(crate) fn publish_ordered_nanos_per_tick_q32(scale: u64) {
+  ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+  #[cfg(all(
+    any(target_os = "android", target_os = "linux"),
+    any(target_arch = "x86", target_arch = "x86_64"),
+  ))]
+  linux_x86_wall::update_ordered_hot_scale(scale);
+}
+
 #[cold]
 #[inline(never)]
 #[cfg(not(all(
@@ -689,7 +714,7 @@ pub fn recalibrate() {
     NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
   }
   if let Some(scale) = update.ordered {
-    ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+    publish_ordered_nanos_per_tick_q32(scale);
   }
 }
 

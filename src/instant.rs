@@ -236,8 +236,9 @@ impl OrderedInstant {
   #[inline]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
-    let delta = arch::ticks_ordered().saturating_sub(self.0);
-    ordered_ticks_to_duration(delta)
+    let (ticks, scale) = arch::ordered_ticks_with_scale();
+    let delta = ticks.saturating_sub(self.0);
+    ticks_to_duration_with_scale(delta, scale)
   }
 
   /// Returns the elapsed duration with an *unordered* end read. Use this

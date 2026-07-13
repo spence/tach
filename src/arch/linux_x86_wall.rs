@@ -140,6 +140,7 @@ static INSTANT_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
+static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(0);
 static TSC_FREQUENCY: AtomicU64 = AtomicU64::new(0);
 static INSTANT_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_LIBC_MONOTONIC);
 static ORDERED_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
@@ -362,6 +363,44 @@ pub fn ticks_ordered() -> u64 {
     PROVIDER_TSC_SERIALIZE_RDTSC => read_tsc_serialize_ordered(),
     _ => read_outlined_ordered_provider(provider),
   }
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
+  let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
+  if state != 0 {
+    return (read_ordered_provider(state as u8), state >> 8);
+  }
+  ticks_ordered_with_scale_cold()
+}
+
+#[cold]
+#[inline(never)]
+fn ticks_ordered_with_scale_cold() -> (u64, u64) {
+  let ticks = ticks_ordered();
+  let provider = ORDERED_PROVIDER.load(Ordering::Acquire);
+  let scale = super::ORDERED_NANOS_PER_TICK_Q32.load(Ordering::Acquire);
+  if !matches!(provider, PROVIDER_UNKNOWN | PROVIDER_SELECTING) {
+    publish_ordered_hot_state(provider, scale);
+  }
+  (ticks, scale)
+}
+
+pub(crate) fn update_ordered_hot_scale(scale: u64) {
+  let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
+  if state != 0 {
+    publish_ordered_hot_state(state as u8, scale);
+  }
+}
+
+fn publish_ordered_hot_state(provider: u8, scale: u64) {
+  if scale > u64::MAX >> 8 {
+    ORDERED_HOT_STATE.store(0, Ordering::Release);
+    return;
+  }
+  let state = scale << 8 | u64::from(provider);
+  ORDERED_HOT_STATE.store(state, Ordering::Release);
 }
 
 /// Read an unordered endpoint in `OrderedInstant`'s selected numeric domain.
@@ -1290,7 +1329,7 @@ fn detect_ordered_provider() -> u8 {
   });
   let provider = tournament.selected_provider;
   let scale = super::scale_from_ratio(1_000_000_000, frequency_for(provider));
-  super::ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+  super::publish_ordered_nanos_per_tick_q32(scale);
   provider
 }
 
