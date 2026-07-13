@@ -1628,11 +1628,13 @@ def validate_route_patterns(
   route_name: str,
   spec: dict,
   closure: str,
+  forbidden_closure: str | None = None,
 ) -> None:
   required = spec["required_patterns"]
   forbidden = spec["forbidden_patterns"]
   missing = [pattern for pattern in required if re.search(pattern, closure) is None]
-  unexpected = [pattern for pattern in forbidden if re.search(pattern, closure) is not None]
+  forbidden_scope = closure if forbidden_closure is None else forbidden_closure
+  unexpected = [pattern for pattern in forbidden if re.search(pattern, forbidden_scope) is not None]
   if missing or unexpected:
     detail = []
     if missing:
@@ -1650,17 +1652,23 @@ def validate_codegen(
   path: Path,
   implementation_path: Path,
 ) -> dict:
-  ir = normalize_tach_ir_symbols(
-    "\n".join((path.read_text(), implementation_path.read_text()))
-  )
+  # Keep the probe crate's LTO-specialized definitions when both modules emit
+  # a symbol; the standalone implementation only fills outlined declarations.
+  probe_ir = normalize_tach_ir_symbols(path.read_text())
+  implementation_ir = normalize_tach_ir_symbols(implementation_path.read_text())
+  ir = "\n".join((implementation_ir, probe_ir))
   validated = {}
   for route_name, route in route_specs(target, mode).items():
     root = route["root"]
     spec = route["spec"]
     closure = reachable_ir(ir, root)
+    # Provider coverage can require separately emitted cold definitions. The
+    # forbidden-instruction contract belongs to the LTO-specialized public
+    # route, where constant local/ordered selection branches are eliminated.
+    public_closure = reachable_ir(probe_ir, root)
     phase_roots = route.get("phase_roots")
     if phase_roots is None:
-      validate_route_patterns(target, mode, route_name, spec, closure)
+      validate_route_patterns(target, mode, route_name, spec, closure, public_closure)
       validated[route_name] = {
         **spec,
         "root": root,
@@ -1673,7 +1681,15 @@ def validate_codegen(
     phases = {}
     for phase, phase_root in resolved_phases.items():
       phase_closure = reachable_ir(ir, phase_root)
-      validate_route_patterns(target, mode, f"{route_name}:{phase}", spec, phase_closure)
+      public_phase_closure = reachable_ir(probe_ir, phase_root)
+      validate_route_patterns(
+        target,
+        mode,
+        f"{route_name}:{phase}",
+        spec,
+        phase_closure,
+        public_phase_closure,
+      )
       phases[phase] = {"root": phase_root, "llvm_ir": str(path)}
     validated[route_name] = {
       **spec,

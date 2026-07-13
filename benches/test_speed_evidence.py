@@ -1582,6 +1582,53 @@ declare void @clock_gettime()
         "tach_probe",
       ),
     )
+    specialized_probe = """
+define void @tach_probe_specialized() {
+  call void @tach_shared_route()
+  ret void
+}
+define void @tach_shared_route() {
+  call void @probe_specialization()
+  ret void
+}
+declare void @probe_specialization()
+"""
+    generic_implementation = """
+define void @tach_shared_route() {
+  call void @generic_implementation()
+  ret void
+}
+declare void @generic_implementation()
+"""
+    specialized_closure = module.reachable_ir(
+      "\n".join((generic_implementation, specialized_probe)),
+      "tach_probe_specialized",
+    )
+    self.assertIn("@probe_specialization()", specialized_closure)
+    self.assertNotIn("@generic_implementation()", specialized_closure)
+    module.validate_route_patterns(
+      "test-target",
+      "default",
+      "test-route",
+      {
+        "required_patterns": ["@generic_implementation"],
+        "forbidden_patterns": ["@generic_implementation"],
+      },
+      generic_implementation,
+      specialized_probe,
+    )
+    with self.assertRaisesRegex(RuntimeError, "unexpected"):
+      module.validate_route_patterns(
+        "test-target",
+        "default",
+        "test-route",
+        {
+          "required_patterns": ["@generic_implementation"],
+          "forbidden_patterns": ["@probe_specialization"],
+        },
+        generic_implementation,
+        specialized_probe,
+      )
     inlined_vdso_call = """
 %function = inttoptr i64 %address to ptr
 %status = call noundef i32 %function(i32 noundef %clock_id, ptr noundef %value)
