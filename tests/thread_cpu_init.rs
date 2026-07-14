@@ -93,8 +93,20 @@ mod linux_signal_reentry {
         && last_signal
           .is_none_or(|signal_sample| end.checked_duration_since(signal_sample).is_some());
       let provider = ThreadCpuInstant::provider();
+      let mut blocked = unsafe { core::mem::zeroed::<libc::sigset_t>() };
+      // SAFETY: `blocked` is writable signal-set storage local to this thread.
+      unsafe {
+        libc::sigemptyset(&mut blocked);
+        libc::sigaddset(&mut blocked, libc::SIGUSR1);
+      }
+      // Stop delivery before publishing completion so an already-issued
+      // signal cannot enter the handler during this thread's TLS teardown.
+      // SAFETY: the set is initialized above and the old mask is not needed
+      // because this worker exits immediately after returning its result.
+      let mask_status =
+        unsafe { libc::pthread_sigmask(libc::SIG_BLOCK, &blocked, core::ptr::null_mut()) };
       worker_done.store(true, Ordering::Release);
-      (monotonic, provider)
+      (monotonic, provider, mask_status)
     });
 
     let target = target_rx.recv().unwrap() as libc::pthread_t;
@@ -106,11 +118,12 @@ mod linux_signal_reentry {
       }
     }
 
-    let (monotonic, provider) = worker.join().unwrap();
+    let (monotonic, provider, mask_status) = worker.join().unwrap();
     // SAFETY: restore the process's prior SIGUSR1 disposition.
     assert_eq!(unsafe { libc::sigaction(libc::SIGUSR1, &previous, core::ptr::null_mut()) }, 0);
 
     assert!(SIGNAL_COUNT.load(Ordering::Relaxed) > 0);
+    assert_eq!(mask_status, 0);
     assert!(!SIGNAL_FAILED.load(Ordering::Relaxed));
     assert!(provider.measures_thread_cpu_time(), "unexpected provider: {provider:?}");
     assert!(monotonic);
