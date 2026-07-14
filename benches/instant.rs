@@ -1684,7 +1684,7 @@ fn criterion_runtime_attestation() -> &'static serde_json::Value {
     now.hash(&mut invocation);
     stack_nonce.hash(&mut invocation);
     let invocation_id = format!("criterion-{:016x}", invocation.finish());
-    let features = [
+    let features: &[&str] = &[
       #[cfg(feature = "bench-internal")]
       "bench-internal",
       #[cfg(feature = "emscripten-pthreads")]
