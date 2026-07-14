@@ -122,7 +122,7 @@ const REENTRANT_INSTANT_PROVIDER: u8 = PROVIDER_SOURCE_BASE + REENTRANT_SOURCE;
 const REENTRANT_ORDERED_PROVIDER: u8 =
   ORDERED_OS_BASE + REENTRANT_SOURCE * ORDERED_BARRIER_VARIANTS + ORDERED_BARRIER_CPUID;
 const MAX_ORDERED_HOT_SCALE: u64 = u64::MAX >> 8;
-const REENTRANT_ORDERED_HOT_STATE: u64 = ((1_u64 << 32) << 8) | REENTRANT_ORDERED_PROVIDER as u64;
+const UNSELECTED_ORDERED_HOT_STATE: u64 = (1_u64 << 32) << 8;
 
 const PROBE_BATCHES: usize = 9;
 const PROBE_READS: u64 = 4096;
@@ -142,7 +142,7 @@ static INSTANT_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
-static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(REENTRANT_ORDERED_HOT_STATE);
+static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(UNSELECTED_ORDERED_HOT_STATE);
 static TSC_FREQUENCY: AtomicU64 = AtomicU64::new(0);
 static INSTANT_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_LIBC_MONOTONIC);
 static ORDERED_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
@@ -357,8 +357,8 @@ pub fn ticks() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
-  let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
-  read_hot_ordered_provider(provider)
+  let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
+  read_hot_ordered_provider(state as u8)
 }
 
 #[inline(always)]
