@@ -294,6 +294,12 @@ decision; never silently omit a failing target.
 - Next: Diagnose and correct the retained Linux x86 OrderedInstant public/exact elapsed parity failure before spending on another Intel producer; then rerun the affected canonical cells at one frozen revision.
 - Board: Canonical Graviton provider/fallback proof is green at 5dfd158; M1 remains open on the Intel OrderedInstant mismatch and remaining one-revision campaign.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Ran and rejected the 16-byte Linux x86 OrderedInstant retained-state experiment at afab34d; optimized correctness suites passed and the source-sealed c7i Criterion run reached both decisive public operations before cleanup.
+- Found: Retaining provider and scale fixed public elapsed at 43.16 ns, but regressed public now to 25.79 ns versus 21.41 ns exact and 24.74 ns std; the design moves rather than removes the dispatch cost and violates the fastest/public-exact contract.
+- Next: Keep OrderedInstant at 8 bytes and correct the repeated Linux x86 ordered dispatch without slowing now; rerun the affected canonical Intel producer only after targeted public/exact proof passes.
+- Board: Intel OrderedInstant remains the release-critical gap; the 16-byte state-retention design is dispositioned no-go and AWS cleanup is complete.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

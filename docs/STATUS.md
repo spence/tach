@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Diagnose and correct the retained Linux x86 OrderedInstant public/exact elapsed parity failure before spending on another Intel producer; then rerun the affected canonical cells at one frozen revision.
+> Next:       Keep OrderedInstant at 8 bytes and correct the repeated Linux x86 ordered dispatch without slowing now; rerun the affected canonical Intel producer only after targeted public/exact proof passes.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Sealed and independently validated the canonical c7g producer at 5dfd158: all 79 remote release/integration tests passed, the retained bundle had zero validation failures, public ThreadCpuInstant measured 57.74 ns now and 116.27 ns elapsed versus 260.46 ns and 522.87 ns for native, and the raw syscall fallback beat libc. · By: nsr · 5dfd158
+> Last verified: 2026-07-13 · Changed: Ran and rejected the 16-byte Linux x86 OrderedInstant retained-state experiment at afab34d; optimized correctness suites passed and the source-sealed c7i Criterion run reached both decisive public operations before cleanup. · By: nsr · 9ac10bd
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
