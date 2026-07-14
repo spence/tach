@@ -373,8 +373,11 @@ static ORDERED_EVIDENCE_READY: AtomicBool = AtomicBool::new(false);
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
-  match INSTANT_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_TSC => super::x86_64::rdtsc(),
+  let provider = INSTANT_PROVIDER.load(Ordering::Relaxed);
+  if provider == PROVIDER_TSC {
+    return super::x86_64::rdtsc();
+  }
+  match provider {
     PROVIDER_TIMEKEEP => instant_timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
@@ -396,8 +399,11 @@ fn ticks_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
-  match ORDERED_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_TSC => super::x86_64::rdtsc_ordered(),
+  let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
+  if provider == PROVIDER_TSC {
+    return super::x86_64::rdtsc_ordered();
+  }
+  match provider {
     PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC_MFENCE => ordered_clock_monotonic_mfence(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL_MFENCE => ordered_clock_monotonic_syscall_mfence(),
@@ -439,8 +445,11 @@ fn ticks_ordered_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered_unordered() -> u64 {
-  match ORDERED_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_TSC => super::x86_64::rdtsc(),
+  let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
+  if provider == PROVIDER_TSC {
+    return super::x86_64::rdtsc();
+  }
+  match provider {
     PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic_unordered(),
     PROVIDER_CLOCK_MONOTONIC_MFENCE
     | PROVIDER_CLOCK_MONOTONIC_CPUID
@@ -1898,8 +1907,11 @@ fn warm_candidate(ordered: bool, provider: u8) {
 
 #[inline(always)]
 fn probe_instant_hot_path() -> u64 {
-  match PROBE_INSTANT_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_TSC => super::x86_64::rdtsc(),
+  let provider = PROBE_INSTANT_PROVIDER.load(Ordering::Relaxed);
+  if provider == PROVIDER_TSC {
+    return super::x86_64::rdtsc();
+  }
+  match provider {
     PROVIDER_TIMEKEEP => timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
     _ => clock_monotonic_syscall(),
@@ -1908,8 +1920,11 @@ fn probe_instant_hot_path() -> u64 {
 
 #[inline(always)]
 fn probe_ordered_hot_path() -> u64 {
-  match PROBE_ORDERED_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_TSC => super::x86_64::rdtsc_ordered(),
+  let provider = PROBE_ORDERED_PROVIDER.load(Ordering::Relaxed);
+  if provider == PROVIDER_TSC {
+    return super::x86_64::rdtsc_ordered();
+  }
+  match provider {
     PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC_MFENCE => ordered_clock_monotonic_mfence(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL_MFENCE => ordered_clock_monotonic_syscall_mfence(),
