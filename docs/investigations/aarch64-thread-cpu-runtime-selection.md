@@ -76,6 +76,32 @@ The separate PMCCNTR experiment is not counterevidence. It compared a pinned har
 that is not a production candidate: virtualization made PMCCNTR about 23 times slower on
 `c7g.large`, while perf task-clock mmap remained the winner in every production-path observation.
 
+## Implemented policy and live verification
+
+Commit `e7cb1d0` replaces the Linux AArch64 provider-cost tournament with the supported policy:
+
+- prefer perf task-clock mmap when the event, mapping, seqlock conversion metadata, and architectural
+  counter are all usable;
+- use the selected native `CLOCK_THREAD_CPUTIME_ID` entry when that complete capability is absent or
+  an inline mmap read fails;
+- retain the paired perf-mmap, perf-read, and POSIX samples only in `bench-internal` builds as a
+  release-evidence audit. Those samples fail validation if the deterministic policy loses, but they
+  do not select the production provider.
+
+A fresh probe built from that implementation for `aarch64-unknown-linux-gnu` had SHA-256
+`c4759fd361ef3c2cdb16192e32b9041c5a222ab3bf9d58e616b5adb19ca9ad5c`. The same binary ran on
+`c7g.large` instance `i-0aee7ef7cbf6ff755` under the AL2023 image and kernel recorded above:
+
+| Fleet controls | Public provider | Cost hint | perf mmap | native POSIX | perf fd read |
+|---|---|---|---:|---:|---:|
+| `perf_event_paranoid=-1`, `perf_user_access=1` | `LinuxPerfMmap` | `Inline` | 234,008 / 57.13 ns | 1,027,518 / 250.86 ns | 1,559,709 / 380.79 ns |
+| `perf_event_paranoid=4`, `perf_user_access=0` | `PosixThreadCpuClock` | `SystemCall` | unavailable | selected | unavailable |
+
+Each timing cell is the median total for 4,096 reads followed by its per-read value. The disabled
+case also returned no perf-event evidence, proving that denial selects the native thread-CPU domain
+rather than silently substituting wall time. The instance was terminated immediately after both
+branches ran; ephemeral key pair `tach-capability-20260713-1` and its local private key were deleted.
+
 ## Limits
 
 The survey covers AWS Graviton 2–4 and a burstable Graviton 2 host, not every non-AWS hypervisor.

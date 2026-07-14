@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Replace the aarch64 perf/native cost tournament with capability-based perf-mmap selection plus native failure fallback, preserve other architectures until their own evidence is resolved, then re-freeze and revalidate.
+> Next:       Freeze e7cb1d0 plus this evidence update, rerun the canonical Graviton producer against the capability-policy schema, then resolve the retained Intel ordered-parity failure before recollecting the remaining matrix.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Ran one frozen aarch64-unknown-linux-gnu selector binary across c6g.large, c7g.large, c8g.large, and t4g.small with both production providers eligible, then recorded the raw paired batches and cleanup evidence. · By: nsr · 37c3df3
+> Last verified: 2026-07-13 · Changed: Committed e7cb1d0 to replace Linux AArch64 provider-cost selection with capability-preferred perf task-clock mmap and native thread-CPU failure fallback, while retaining paired path measurements only in benchmark evidence builds. · By: nsr · e7cb1d0
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

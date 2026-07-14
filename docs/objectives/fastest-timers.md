@@ -276,6 +276,12 @@ decision; never silently omit a failing target.
 - Found: All four Arm environments selected perf task-clock mmap by wide margins; no same-target cost-driven provider flip was observed. The repository therefore has evidence for runtime capability fallback but not for an aarch64 profitability tournament.
 - Next: Replace the aarch64 perf/native cost tournament with capability-based perf-mmap selection plus native failure fallback, preserve other architectures until their own evidence is resolved, then re-freeze and revalidate.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed e7cb1d0 to replace Linux AArch64 provider-cost selection with capability-preferred perf task-clock mmap and native thread-CPU failure fallback, while retaining paired path measurements only in benchmark evidence builds.
+- Found: A fresh same-binary c7g.large run selected LinuxPerfMmap/Inline at 57.13 ns per audited read when the perf handshake was enabled and PosixThreadCpuClock/SystemCall when both controls were denied; the enabled native and perf-read audit paths were 250.86 ns and 380.79 ns.
+- Next: Freeze e7cb1d0 plus this evidence update, rerun the canonical Graviton producer against the capability-policy schema, then resolve the retained Intel ordered-parity failure before recollecting the remaining matrix.
+- Board: M1 remains active until the revised source-sealed primary cells pass the route and parity validators.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
