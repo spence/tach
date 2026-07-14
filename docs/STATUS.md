@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       Let run 29359437933 complete, retain its macOS Intel and Windows x86_64 artifacts if both validate, and close M1 at 15/15.
+> Next:       Resolve the Windows OrderedInstant eligibility/ordering contract and remove or disprove ThreadCpuInstant public-path overhead; freeze shipping code, rerun Windows, then recollect only the closure-invalidated native rows and execute M2 release validation.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Fixed both hosted composition defects at 85e19ed, passed all 212 Python tests with one expected skip, pushed through a35bbf1, and dispatched release-missing run 29359437933. · By: nsr · a35bbf1
+> Last verified: 2026-07-14 · Changed: Completed hosted run 29359437933, retained the passing native Intel macOS artifact, and reproduced it byte-for-byte from its collector bundle (SHA-256 759d09a78a20705342f86d534fcc564d726dd74a915b925a2e161ec5d85120d4). · By: nsr · 6d2e11d
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

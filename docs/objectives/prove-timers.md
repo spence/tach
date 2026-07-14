@@ -111,27 +111,32 @@ Charts may include optional corroborating environments, but optional evidence ca
 
 | # | Decision boundary | Required environment / mode | Frozen artifact | State |
 |---:|---|---|---|---|
-| 1 | Apple AArch64 native wall and thread clocks | macOS AArch64, default | `speed-0-apple.json` | retained |
-| 2 | Apple x86 native wall and thread clocks | macOS x86_64, default | `speed-supplemental-macos-x86_64.json` | **missing** |
-| 3 | Linux x86 runtime tournament | Linux x86_64 GNU, default | `speed-2-inteln.json` | retained |
-| 4 | Linux AArch64 availability policy and profitability audit | Linux AArch64 GNU, default | `speed-1-c7g.json` | retained |
-| 5 | Windows native wall and thread clocks | Windows x86_64 MSVC, default | `speed-4-windows.json` | **missing** |
-| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-supplemental-freebsd-x86_64.json` | retained at `8968b16` |
-| 7 | JavaScript host clock | `wasm32-unknown-unknown` on Node, default | `speed-supplemental-wasm-node.json` | retained |
-| 8 | Browser fallback without native thread CPU clock | browser, default negative environment | `speed-supplemental-browser-negative.json` | retained |
-| 9 | Emscripten host clock | Emscripten on Node, default | `speed-supplemental-emscripten-node.json` | retained |
-| 10 | Emscripten pthread clock path | Emscripten pthreads | `speed-supplemental-emscripten-pthreads.json` | retained |
-| 11 | WASI Preview 1 positive host clock | WASI p1 on Node, default | `speed-supplemental-wasi-p1-node.json` | retained |
-| 12 | WASI Preview 1 fallback boundary | WASI p1 on Wasmtime, default | `speed-supplemental-wasi-p1-wasmtime.json` | retained |
-| 13 | WASI Preview 2 fallback boundary | WASI p2 on Wasmtime, default | `speed-supplemental-wasi-p2-wasmtime.json` | retained |
-| 14 | WASI threads route availability | `wasip1-threads`, default smoke | `speed-supplemental-wasip1-threads-smoke.json` | retained |
-| 15 | Minimal Wasm route availability | `wasm32v1-none`, default smoke | `speed-supplemental-wasm32v1-none-smoke.json` | retained |
+| 1 | Apple AArch64 native wall and thread clocks | macOS AArch64, default | `speed-0-apple.json` | retained at current closure |
+| 2 | Apple x86 native wall and thread clocks | macOS x86_64, default | `speed-supplemental-macos-x86_64.json` | retained at current closure; run `29359437933` |
+| 3 | Linux x86 runtime tournament | Linux x86_64 GNU, default | `speed-2-inteln.json` | older result retained; recollect after Windows route freeze |
+| 4 | Linux AArch64 availability policy and profitability audit | Linux AArch64 GNU, default | `speed-1-c7g.json` | older result retained; recollect after Windows route freeze |
+| 5 | Windows native wall and thread clocks | Windows x86_64 MSVC, default | `speed-4-windows.json` | **failing performance admission in run `29359437933`** |
+| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-supplemental-freebsd-x86_64.json` | older result retained; recollect after Windows route freeze |
+| 7 | JavaScript host clock | `wasm32-unknown-unknown` on Node, default | `speed-supplemental-wasm-node.json` | retained at current closure |
+| 8 | Browser fallback without native thread CPU clock | browser, default negative environment | `speed-supplemental-browser-negative.json` | retained at current closure |
+| 9 | Emscripten host clock | Emscripten on Node, default | `speed-supplemental-emscripten-node.json` | retained at current closure |
+| 10 | Emscripten pthread clock path | Emscripten pthreads | `speed-supplemental-emscripten-pthreads.json` | retained at current closure |
+| 11 | WASI Preview 1 positive host clock | WASI p1 on Node, default | `speed-supplemental-wasi-p1-node.json` | retained at current closure |
+| 12 | WASI Preview 1 fallback boundary | WASI p1 on Wasmtime, default | `speed-supplemental-wasi-p1-wasmtime.json` | retained at current closure |
+| 13 | WASI Preview 2 fallback boundary | WASI p2 on Wasmtime, default | `speed-supplemental-wasi-p2-wasmtime.json` | retained at current closure |
+| 14 | WASI threads route availability | `wasip1-threads`, default smoke | `speed-supplemental-wasip1-threads-smoke.json` | retained at current closure |
+| 15 | Minimal Wasm route availability | `wasm32v1-none`, default smoke | `speed-supplemental-wasm32v1-none-smoke.json` | retained at current closure |
 
 The retained Linux x86_64 musl default artifact is optional corroboration of the same Linux x86
 selector boundary. Lambda and no-default artifacts are diagnostic only. Linux x86 has an observed
 same-target capability/profitability reversal and therefore selects from measured complete paths;
 Linux AArch64 has a retained four-family no-reversal survey and keeps its simpler audited
 availability policy.
+
+The current shipping-code closure has 11/15 rows: rows 1-2 and 7-15. The older Linux and FreeBSD
+results remain useful corroboration but are not admissible for M1.G1 until recollected after the
+Windows route is frozen. Any shipping-code change made to close the Windows performance failure
+creates a new closure and requires the affected evidence set to be regenerated.
 
 The local x86_64 macOS bundle identifies its runner as Rosetta. It is compatibility evidence, not
 native Intel speed evidence, and does not satisfy row 2.
@@ -335,6 +340,12 @@ availability but may not be rendered as speed wins.
 - Found: The Windows failure was path-stat versus handle-stat representation drift in the collector; the macOS failures came from validator layers bypassing the retained paired public/exact proof. Neither was a provider-selection regression.
 - Next: Let run 29359437933 complete, retain its macOS Intel and Windows x86_64 artifacts if both validate, and close M1 at 15/15.
 - Board: M0 is complete; M1 is active at 13/15 with the focused repair rerun in progress and no owner decision pending; M2 remains not started.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M1`
+- Did: Completed hosted run 29359437933, retained the passing native Intel macOS artifact, and reproduced it byte-for-byte from its collector bundle (SHA-256 759d09a78a20705342f86d534fcc564d726dd74a915b925a2e161ec5d85120d4).
+- Found: The infrastructure and source-seal defects are closed. Windows now reaches the substantive gate and fails it: OrderedInstant now/elapsed are materially slower than std, and ThreadCpuInstant is materially slower than its direct GetThreadTimes route and native reference. The current shipping-code closure has 11/15 admissible rows; older Linux x86_64, Linux AArch64, and FreeBSD results require recollection after the Windows route freezes.
+- Next: Resolve the Windows OrderedInstant eligibility/ordering contract and remove or disprove ThreadCpuInstant public-path overhead; freeze shipping code, rerun Windows, then recollect only the closure-invalidated native rows and execute M2 release validation.
+- Board: M0 is complete. M1 is active at 11/15 on the current closure with one concrete Windows performance defect and three deferred native recollections; no owner decision or external resource blocks progress. M2 remains not started.
 
 ## /goal
 
