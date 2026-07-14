@@ -128,19 +128,24 @@ def _validated_contexts(data_dir: Path, checkout_root: Path):
     for context in contexts.values()
     if isinstance(context.get("source_revision"), str)
   }
-  if len(revisions) != 1:
-    failures.append(f"campaign must use one source revision: {sorted(revisions)!r}")
   if failures:
     raise ValueError(_failures_text(failures))
-  source_revision = next(iter(revisions))
-  checkout_failures, _ = validator.validate_shipping_code_binding(
-    checkout_root,
-    source_revision,
-    validator.REQUIRED_SHIPPING_PATHS,
-  )
-  if checkout_failures:
-    raise ValueError(_failures_text(checkout_failures))
-  matrix, _ = validator.load_campaign_route_matrix(checkout_root, source_revision)
+  matrices = {}
+  for revision in sorted(revisions):
+    checkout_failures, _ = validator.validate_shipping_code_binding(
+      checkout_root,
+      revision,
+      validator.REQUIRED_SHIPPING_PATHS,
+    )
+    if checkout_failures:
+      failures.extend(f"{revision}: {failure}" for failure in checkout_failures)
+      continue
+    matrix, _ = validator.load_campaign_route_matrix(checkout_root, revision)
+    matrices[revision] = matrix
+  if failures:
+    raise ValueError(_failures_text(failures))
+  source_revision = next(iter(revisions)) if len(revisions) == 1 else None
+  matrix = next(iter(matrices.values())) if len(matrices) == 1 else matrices
   return source_revision, matrix, snapshots, contexts
 
 
@@ -154,7 +159,7 @@ def compose_campaign(data_dir: Path, checkout_root: Path) -> dict[str, object]:
 
 def compose_validated_subset(
   source_revision: str,
-  matrix: release_matrix.RouteMatrix,
+  matrix: release_matrix.RouteMatrix | dict[str, release_matrix.RouteMatrix],
   snapshots: dict[str, object],
   contexts: dict[str, dict[str, object]],
 ) -> dict[str, object]:
@@ -164,13 +169,29 @@ def compose_validated_subset(
   artifacts = []
   for artifact_id, snapshot in sorted(snapshots.items()):
     context = contexts[artifact_id]
-    if context.get("source_revision") != source_revision:
+    artifact_revision = context.get("source_revision")
+    if not isinstance(artifact_revision, str):
+      raise ValueError(
+        _failures_text([f"artifact {artifact_id!r} has no source revision"])
+      )
+    if source_revision is not None and artifact_revision != source_revision:
       raise ValueError(
         _failures_text([f"artifact {artifact_id!r} uses a different source revision"])
       )
+    artifact_matrix = (
+      matrix.get(artifact_revision)
+      if isinstance(matrix, dict)
+      else matrix
+    )
+    if artifact_matrix is None:
+      raise ValueError(
+        _failures_text([
+          f"artifact {artifact_id!r} has no static matrix for revision {artifact_revision}"
+        ])
+      )
     matches = [
       requirement
-      for requirement in matrix.requirements
+      for requirement in artifact_matrix.requirements
       if requirement.identity.target == context["target"]
       and requirement.identity.build_mode == context["build_mode"]
       and requirement.identity.runtime_profile == context["runtime_profile"]
@@ -192,6 +213,7 @@ def compose_validated_subset(
       artifact_id,
       snapshot.sha256,
       requirement,
+      artifact_revision,
     ))
   return route_observation.compose_manifest(source_revision, artifacts)
 

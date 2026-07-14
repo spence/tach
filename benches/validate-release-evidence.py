@@ -32,6 +32,7 @@ import speed_evidence
 ROOT = Path(__file__).resolve().parent
 ROUTE_OBSERVATIONS_FILENAME = "route-observations-v1.json"
 ROUTE_OBSERVATIONS_SCHEMA = "tach-release-route-observations-v1"
+MULTI_REVISION_ROUTE_OBSERVATIONS_SCHEMA = "tach-release-route-observations-v2"
 ROUTE_COVERAGE_GIT_PATH = "benches/route-coverage.toml"
 RELEASE_BOUNDARIES_GIT_PATH = "benches/release-boundaries.toml"
 ROUTE_MANIFEST_BINDING_SCHEMA = "tach-release-route-manifest-binding-v1"
@@ -489,18 +490,21 @@ def validate_primary_snapshots(
       "primary campaign environments differ from the decision-boundary contract: "
       f"{identities!r}"
     )
-  if len(revisions) != 1:
-    failures.append(f"primary campaign must use one source revision: {sorted(revisions)}")
-  source_revision = next(iter(revisions)) if len(revisions) == 1 else None
-  if source_revision is not None:
-    checkout_failures, checkout_binding = validate_shipping_code_binding(
+  source_revisions = sorted(revisions)
+  checkout_bindings = []
+  checkout_failures = []
+  for revision in source_revisions:
+    revision_failures, binding = validate_shipping_code_binding(
       checkout_root,
-      source_revision,
+      revision,
       shipping_paths,
     )
-  else:
-    checkout_failures = ["campaign has no single source revision to bind"]
-    checkout_binding = {}
+    checkout_failures.extend(
+      f"{revision}: {failure}" for failure in revision_failures
+    )
+    checkout_bindings.append(binding)
+  if not source_revisions:
+    checkout_failures.append("campaign has no source revision to bind")
   failures.extend(checkout_failures)
   return {
     "schema": speed_evidence.PRIMARY_SPEED_REPORT_SCHEMA,
@@ -512,8 +516,12 @@ def validate_primary_snapshots(
       "tach is faster than or materially tied with every eligible reference: its point "
       "estimate and conservative 95% CI comparison fit within max(1 ns, 5%)"
     ),
-    "source_revision": source_revision,
-    "shipping_code_binding": {"passed": not checkout_failures, **checkout_binding},
+    "source_revision": source_revisions[0] if len(source_revisions) == 1 else None,
+    "source_revisions": source_revisions,
+    "shipping_code_bindings": {
+      "passed": not checkout_failures,
+      "revisions": checkout_bindings,
+    },
     "passed": not failures,
     "failures": failures,
     "cells": results,
@@ -965,18 +973,30 @@ def load_route_observations(
         )
     return [], [], report
 
-  expected_keys = {"schema", "source_revision", "bindings", "equivalences"}
-  if set(manifest) != expected_keys:
+  schema = manifest.get("schema")
+  expected_keys = (
+    {"schema", "source_revision", "bindings", "equivalences"}
+    if schema == ROUTE_OBSERVATIONS_SCHEMA
+    else {"schema", "bindings", "equivalences"}
+  )
+  if (
+    schema not in {
+      ROUTE_OBSERVATIONS_SCHEMA,
+      MULTI_REVISION_ROUTE_OBSERVATIONS_SCHEMA,
+    }
+    or set(manifest) != expected_keys
+  ):
     _binding_failure(
       report,
-      "retained route-observation manifest schema differs from tach-release-route-observations-v1",
+      "retained route-observation manifest has an unknown or malformed schema",
     )
     return [], [], report
-  if manifest.get("schema") != ROUTE_OBSERVATIONS_SCHEMA:
-    _binding_failure(report, "retained route-observation manifest has an unknown schema")
-    return [], [], report
-  manifest_revision = _source_revision(manifest.get("source_revision"))
-  if manifest_revision is None:
+  manifest_revision = (
+    _source_revision(manifest.get("source_revision"))
+    if schema == ROUTE_OBSERVATIONS_SCHEMA
+    else None
+  )
+  if schema == ROUTE_OBSERVATIONS_SCHEMA and manifest_revision is None:
     _binding_failure(report, "retained route-observation manifest has no full source revision")
     return [], [], report
   raw_bindings = manifest.get("bindings")
@@ -1048,7 +1068,10 @@ def load_route_observations(
       binding_errors.append("route_observation evidence kind does not match validated document")
     if observation.frozen.source_revision != context.get("source_revision"):
       binding_errors.append("route_observation source revision does not match validated document")
-    if observation.frozen.source_revision != manifest_revision:
+    if (
+      manifest_revision is not None
+      and observation.frozen.source_revision != manifest_revision
+    ):
       binding_errors.append("route_observation source revision does not match retained manifest")
     if observation.frozen.target != context.get("target"):
       binding_errors.append("route_observation frozen target does not match validated document")
@@ -1072,7 +1095,7 @@ def load_route_observations(
       expected_closure = route_observation.closure_digest(
         artifact_id,
         snapshot.sha256,
-        manifest_revision,
+        observation.frozen.source_revision,
         requirement,
       )
       if observation.frozen.closure_digest != expected_closure:
@@ -1173,17 +1196,61 @@ def validate_route_matrix_admission(
   )
   documents = {**primary_documents, **supplemental_documents}
   try:
-    static_matrix, manifest_binding = load_campaign_route_matrix(
-      checkout_root,
-      primary_report.get("source_revision"),
-    )
     contract_failures = []
+    revision_bindings: dict[str, dict[str, object]] = {}
+    static_matrices: dict[str, release_matrix.RouteMatrix] = {}
     for boundary in boundaries.boundaries:
-      static_requirement = static_matrix.by_identity.get(boundary.requirement.identity)
+      context = contexts.get(boundary.artifact_id)
+      revision = _source_revision(
+        context.get("source_revision") if context is not None else None
+      )
+      if revision is None:
+        contract_failures.append(
+          f"decision boundary {boundary.boundary_id!r} has no artifact source revision"
+        )
+        continue
+      if revision not in static_matrices:
+        static_matrix, route_binding = load_campaign_route_matrix(
+          checkout_root,
+          revision,
+        )
+        shipping_failures, shipping_binding = validate_shipping_code_binding(
+          checkout_root,
+          revision,
+          boundaries.shipping_paths,
+        )
+        route_binding = {
+          **route_binding,
+          "shipping_code_binding": shipping_binding,
+          "passed": route_binding["passed"] and not shipping_failures,
+          "failures": [*route_binding["failures"], *shipping_failures],
+        }
+        static_matrices[revision] = static_matrix
+        revision_bindings[revision] = route_binding
+      static_requirement = static_matrices[revision].by_identity.get(
+        boundary.requirement.identity
+      )
       if static_requirement != boundary.requirement:
         contract_failures.append(
-          f"decision boundary {boundary.boundary_id!r} does not match the frozen static route"
+          f"decision boundary {boundary.boundary_id!r} does not match the static route "
+          f"at artifact revision {revision}"
         )
+    manifest_failures = [
+      f"{revision}: {failure}"
+      for revision, revision_binding in sorted(revision_bindings.items())
+      for failure in revision_binding["failures"]
+    ]
+    if len(revision_bindings) == 1:
+      manifest_binding = next(iter(revision_bindings.values()))
+    else:
+      manifest_binding = {
+        "schema": "tach-release-route-manifest-bindings-v2",
+        "path": ROUTE_COVERAGE_GIT_PATH,
+        "source_revisions": sorted(revision_bindings),
+        "revisions": [revision_bindings[key] for key in sorted(revision_bindings)],
+        "passed": not manifest_failures,
+        "failures": manifest_failures,
+      }
     matrix = boundaries.route_matrix
     observations, equivalences, binding = load_route_observations(
       data_dir,
@@ -1212,10 +1279,10 @@ def validate_route_matrix_admission(
       "ignored_artifacts": [],
     }
     manifest_binding = {
-      "schema": ROUTE_MANIFEST_BINDING_SCHEMA,
+      "schema": "tach-release-route-manifest-bindings-v2",
       "path": ROUTE_COVERAGE_GIT_PATH,
-      "source_revision": primary_report.get("source_revision"),
-      "sha256": None,
+      "source_revisions": [],
+      "revisions": [],
       "passed": False,
       "failures": [str(error)],
     }
@@ -1317,12 +1384,6 @@ def validate_release_snapshot(
     *(f"supplemental: {failure}" for failure in supplemental["failures"]),
     *(f"route matrix: {failure}" for failure in route_matrix["failures"]),
   ]
-  if (
-    primary.get("source_revision") is not None
-    and supplemental.get("source_revision") is not None
-    and primary["source_revision"] != supplemental["source_revision"]
-  ):
-    failures.append("primary and supplemental campaigns use different source revisions")
   report = {
     "schema": "tach-release-speed-evidence-v4",
     "passed": not failures,

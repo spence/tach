@@ -6178,8 +6178,7 @@ def validate_supplemental_speed_campaign(
     if isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", revision):
       revisions.add(revision)
     results.append({key: value for key, value in result.items() if key != "failures"})
-  if len(revisions) != 1:
-    failures.append(f"supplemental campaign must use one source revision: {sorted(revisions)}")
+  source_revisions = sorted(revisions)
   return {
     "schema": "tach-speed-supplemental-report-v2",
     "claim_scope": (
@@ -6190,7 +6189,8 @@ def validate_supplemental_speed_campaign(
       "measured runtime, tagged wall fallback, and runtime smoke evidence remain distinct; "
       "the static route manifest and compile/codegen proof are never accepted as latency evidence"
     ),
-    "source_revision": next(iter(revisions)) if len(revisions) == 1 else None,
+    "source_revision": source_revisions[0] if len(source_revisions) == 1 else None,
+    "source_revisions": source_revisions,
     "passed": not failures,
     "failures": failures,
     "cells": results,

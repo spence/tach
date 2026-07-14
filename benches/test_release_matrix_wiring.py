@@ -274,6 +274,10 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
       RELEASE_VALIDATOR,
       "load_release_boundary_matrix",
       return_value=(boundaries, bound_boundary_report()),
+    ), mock.patch.object(
+      RELEASE_VALIDATOR,
+      "validate_shipping_code_binding",
+      return_value=([], {"passed": True}),
     ), campaign_loader:
       return RELEASE_VALIDATOR.validate_release_evidence(directory, directory)
 
@@ -517,6 +521,87 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
       for failure in report["route_matrix"]["bindings"]["failures"]
     ))
 
+  def test_multi_revision_manifest_binds_each_artifact_to_its_own_revision(self) -> None:
+    artifact_a = "speed-a.json"
+    artifact_b = "speed-b.json"
+    revision_a = "a" * 40
+    revision_b = "b" * 40
+    requirement_a = requirement("default")
+    requirement_b = release_matrix.CoverageRequirement(
+      release_matrix.RouteIdentity(
+        "native-b",
+        "aarch64-unknown-linux-gnu",
+        "default",
+        "native_criterion",
+      ),
+      release_matrix.EvidenceKind.FULL_SPEED,
+      "test-producer-b",
+      "three_timer_direct",
+    )
+    with tempfile.TemporaryDirectory() as temporary:
+      directory = Path(temporary)
+      write_json(directory / artifact_a, {"artifact": "a"})
+      write_json(directory / artifact_b, {"artifact": "b"})
+      snapshots = {
+        artifact: RELEASE_VALIDATOR.snapshot_evidence_document(
+          directory / artifact,
+          directory,
+          artifact,
+          "test evidence",
+        )
+        for artifact in (artifact_a, artifact_b)
+      }
+      manifest = route_observation_core.compose_manifest(None, [
+        route_observation_core.ArtifactBindingInput(
+          artifact_a,
+          snapshots[artifact_a].sha256,
+          requirement_a,
+          revision_a,
+        ),
+        route_observation_core.ArtifactBindingInput(
+          artifact_b,
+          snapshots[artifact_b].sha256,
+          requirement_b,
+          revision_b,
+        ),
+      ])
+      write_json(
+        directory / RELEASE_VALIDATOR.ROUTE_OBSERVATIONS_FILENAME,
+        manifest,
+      )
+      contexts = {
+        artifact_a: {
+          "scope": "supplemental",
+          "target": requirement_a.identity.target,
+          "build_mode": requirement_a.identity.build_mode,
+          "runtime_profile": requirement_a.identity.runtime_profile,
+          "source_revision": revision_a,
+          "evidence_kind": requirement_a.required_kind,
+        },
+        artifact_b: {
+          "scope": "supplemental",
+          "target": requirement_b.identity.target,
+          "build_mode": requirement_b.identity.build_mode,
+          "runtime_profile": requirement_b.identity.runtime_profile,
+          "source_revision": revision_b,
+          "evidence_kind": requirement_b.required_kind,
+        },
+      }
+
+      observations, equivalences, report = RELEASE_VALIDATOR.load_route_observations(
+        directory,
+        snapshots,
+        contexts,
+        release_matrix.RouteMatrix((requirement_a, requirement_b)),
+      )
+
+    self.assertTrue(report["passed"], report["failures"])
+    self.assertEqual(equivalences, [])
+    self.assertEqual(
+      {observation.frozen.source_revision for observation in observations},
+      {revision_a, revision_b},
+    )
+
 
 class ShippingCodeBindingTests(unittest.TestCase):
   def make_repository(self, root: Path) -> str:
@@ -582,6 +667,51 @@ class ShippingCodeBindingTests(unittest.TestCase):
     self.assertEqual(failures, [])
     self.assertTrue(binding["passed"])
     self.assertEqual(binding["campaign_sha256"], binding["candidate_sha256"])
+
+  def test_multiple_evidence_revisions_share_one_shipping_closure(self) -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+      root = Path(temporary)
+      first_campaign = self.make_repository(root)
+      (root / "evidence-a.json").write_text("{}\n", encoding="utf-8")
+      self.commit(root, "first evidence artifact")
+      second_campaign = git(root, "rev-parse", "HEAD")
+      (root / "evidence-b.json").write_text("{}\n", encoding="utf-8")
+      self.commit(root, "second evidence artifact")
+
+      first_failures, first_binding = RELEASE_VALIDATOR.validate_shipping_code_binding(
+        root,
+        first_campaign,
+        RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS,
+      )
+      second_failures, second_binding = RELEASE_VALIDATOR.validate_shipping_code_binding(
+        root,
+        second_campaign,
+        RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS,
+      )
+
+      self.assertEqual(first_failures, [])
+      self.assertEqual(second_failures, [])
+      self.assertEqual(
+        first_binding["campaign_sha256"],
+        second_binding["campaign_sha256"],
+      )
+      self.assertEqual(
+        first_binding["campaign_sha256"],
+        first_binding["candidate_sha256"],
+      )
+
+      (root / "src/lib.rs").write_text("pub fn changed() {}\n", encoding="utf-8")
+      self.commit(root, "change shipping implementation")
+      changed_failures, changed_binding = (
+        RELEASE_VALIDATOR.validate_shipping_code_binding(
+          root,
+          first_campaign,
+          RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS,
+        )
+      )
+
+    self.assertTrue(any("shipping code changed" in failure for failure in changed_failures))
+    self.assertFalse(changed_binding["passed"])
 
   def test_committed_or_local_shipping_change_is_rejected(self) -> None:
     with tempfile.TemporaryDirectory() as temporary:

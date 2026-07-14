@@ -134,27 +134,51 @@ class RouteObservationTests(unittest.TestCase):
       for failure in report.failures
     ))
 
-  def test_validated_subset_rejects_mixed_revision_and_unknown_identity(self) -> None:
+  def test_validated_subset_accepts_mixed_revisions_and_rejects_unknown_identity(self) -> None:
     artifact, item = requirement("speed-a.json")
-    snapshots = {artifact: SimpleNamespace(sha256="c" * 64)}
-    context = {
+    artifact_b, item_b = requirement(
+      "speed-b.json", "aarch64-unknown-linux-gnu"
+    )
+    revision_b = "d" * 40
+    snapshots = {
+      artifact: SimpleNamespace(sha256="c" * 64),
+      artifact_b: SimpleNamespace(sha256="e" * 64),
+    }
+    contexts = {artifact: {
       "target": item.identity.target,
       "build_mode": item.identity.build_mode,
       "runtime_profile": item.identity.runtime_profile,
       "evidence_kind": item.required_kind,
-      "source_revision": "d" * 40,
+      "source_revision": REVISION,
+    }, artifact_b: {
+      "target": item_b.identity.target,
+      "build_mode": item_b.identity.build_mode,
+      "runtime_profile": item_b.identity.runtime_profile,
+      "evidence_kind": item_b.required_kind,
+      "source_revision": revision_b,
+    }}
+    matrices = {
+      REVISION: release_matrix.RouteMatrix((item,)),
+      revision_b: release_matrix.RouteMatrix((item_b,)),
     }
-    matrix = release_matrix.RouteMatrix((item,))
-    with self.assertRaisesRegex(ValueError, "different source revision"):
-      COMPOSER.compose_validated_subset(
-        REVISION, matrix, snapshots, {artifact: context}
-      )
+    manifest = COMPOSER.compose_validated_subset(
+      None, matrices, snapshots, contexts
+    )
+    self.assertEqual(
+      manifest["schema"], route_observation.MULTI_REVISION_MANIFEST_SCHEMA
+    )
+    self.assertEqual(
+      {
+        binding["route_observation"]["frozen"]["source_revision"]
+        for binding in manifest["bindings"]
+      },
+      {REVISION, revision_b},
+    )
 
-    context["source_revision"] = REVISION
-    context["target"] = "i686-unknown-linux-gnu"
+    contexts[artifact]["target"] = "i686-unknown-linux-gnu"
     with self.assertRaisesRegex(ValueError, "matches 0 committed route requirements"):
       COMPOSER.compose_validated_subset(
-        REVISION, matrix, snapshots, {artifact: context}
+        None, matrices, snapshots, contexts
       )
 
   def test_exclusive_writer_rejects_existing_file_and_symlink(self) -> None:

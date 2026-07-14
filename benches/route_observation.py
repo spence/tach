@@ -11,6 +11,7 @@ import release_matrix
 
 CLOSURE_SCHEMA = "tach-route-observation-closure-v1"
 MANIFEST_SCHEMA = "tach-release-route-observations-v1"
+MULTI_REVISION_MANIFEST_SCHEMA = "tach-release-route-observations-v2"
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class ArtifactBindingInput:
   artifact_id: str
   document_sha256: str
   requirement: release_matrix.CoverageRequirement
+  source_revision: str | None = None
 
 
 def closure_digest(
@@ -49,7 +51,7 @@ def closure_digest(
 
 
 def compose_manifest(
-  source_revision: str,
+  source_revision: str | None,
   artifacts: list[ArtifactBindingInput],
 ) -> dict[str, object]:
   """Compose a deterministic manifest without accepting caller-shaped identities."""
@@ -57,21 +59,29 @@ def compose_manifest(
     raise ValueError("route-observation manifest requires at least one artifact")
   if len({artifact.artifact_id for artifact in artifacts}) != len(artifacts):
     raise ValueError("route-observation manifest contains duplicate artifacts")
+  revisions = {
+    artifact.source_revision or source_revision
+    for artifact in artifacts
+  }
+  if None in revisions:
+    raise ValueError("route-observation manifest contains an artifact without a source revision")
   bindings = []
   for artifact in sorted(artifacts, key=lambda item: item.artifact_id):
     requirement = artifact.requirement
+    artifact_revision = artifact.source_revision or source_revision
+    assert artifact_revision is not None
     observation = release_matrix.ObservedCoverage(
       artifact.artifact_id,
       requirement.identity,
       requirement.required_kind,
       release_matrix.FrozenExecution(
-        source_revision,
+        artifact_revision,
         requirement.identity.target,
         requirement.identity.runtime_profile,
         closure_digest(
           artifact.artifact_id,
           artifact.document_sha256,
-          source_revision,
+          artifact_revision,
           requirement,
         ),
       ),
@@ -81,9 +91,15 @@ def compose_manifest(
       "document_sha256": artifact.document_sha256,
       "route_observation": observation.to_mapping(),
     })
+  if len(revisions) == 1:
+    return {
+      "schema": MANIFEST_SCHEMA,
+      "source_revision": next(iter(revisions)),
+      "bindings": bindings,
+      "equivalences": [],
+    }
   return {
-    "schema": MANIFEST_SCHEMA,
-    "source_revision": source_revision,
+    "schema": MULTI_REVISION_MANIFEST_SCHEMA,
     "bindings": bindings,
     "equivalences": [],
   }
