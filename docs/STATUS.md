@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-PROVE-TIMERS` — Prove fastest eligible routes  (M0 🚧 Canonical runtime cells)
-> Next:       Collect Intel GNU no-default, Intel musl default/no-default, Lambda, and FreeBSD cells at d0fa731, then merge hosted Windows/macOS-x86 and rare-native identities before running the unified release validators.
+> Objective:  `OBJ-PROVE-TIMERS` — Prove default timer selection by decision boundary  (M0 🚧 Universal target contract)
+> Next:       Update the release validator to enforce this exact manifest and shipping-code closure, then collect only macOS x86_64, Windows x86_64, and FreeBSD x86_64.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Retained and replay-composed the exact d0fa731 Graviton default and no-default pair; the campaign manifest now binds 22 of 55 required runtime identities at one frozen source revision. · By: nsr · 7ffefae
+> Last verified: 2026-07-14 · Changed: Replaced the 55 target-by-mode runtime campaign with a three-layer proof contract: 24-target static closure, 15 runtime decision boundaries, and one publication closure. · By: nsr · 3b5ccc4
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -24,9 +24,9 @@ Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Canonical runtime cells | 🚧 | Re-run the six primary environments against one frozen revision | inline · G1⚪ |
-| `OBJ-PROVE-TIMERS.M1` | Supplemental platforms | ⚪ | Produce the required native, Wasm, and negative-environment artifacts | inline · G1⚪ |
-| `OBJ-PROVE-TIMERS.M2` | Release evidence | ⚪ | Validate performance, semantics, provenance, and regenerated charts | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M0` | Universal target contract | 🚧 | Prove every advertised target and feature route at frozen commit `d0fa731` | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M1` | Runtime decision boundaries | 🟣 | Retain the exact 15 selector, host, and runtime boundaries listed below | inline · G1⚪ · 12/15 required retained |
+| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
 Gate checklist (current milestone `OBJ-PROVE-TIMERS.M0`): G1⚪
 <!-- /render:board -->

@@ -1,70 +1,124 @@
-# `OBJ-PROVE-TIMERS` — Prove fastest eligible routes
+# `OBJ-PROVE-TIMERS` — Prove default timer selection by decision boundary
 
-**VISION slice.** Every public timing claim is reproducible from frozen evidence.
+**VISION slice.** On every advertised target, each default timer uses the fastest eligible reliable
+provider available to the running program, and every public claim states whether it is proved
+universally or measured on a named environment.
 
-This objective starts only after `OBJ-FASTEST-TIMERS` freezes the implementation and route
-contract. Its milestone table is the current-status surface; the Working Log is append-only.
+This objective proves one frozen shipping implementation without multiplying targets by build modes.
+Static target proof establishes universal route coverage. Runtime artifacts are required only where a
+selector decision, host capability, or execution environment can change the winning provider.
+
+## Success contract
+
+At one reviewed candidate revision:
+
+1. all 24 advertised target identities and all 49 supported feature configurations compile and close
+   their `Instant`, `OrderedInstant`, and `ThreadCpuInstant` routes;
+2. all 15 distinct runtime decision boundaries below have retained, source-sealed evidence;
+3. the measured shipping-code closure is unchanged from the frozen implementation; and
+4. validators, charts, README, and BENCHMARKS agree on what is universal proof and what is host
+   measurement.
+
+`--no-default-features` is a compatibility and correctness configuration. The performance promise is
+for tach's default configuration, so no-default speed duplicates are not release gates.
 
 ## Milestones
 
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Canonical runtime cells | 🚧 | Re-run the six primary environments against one frozen revision | inline · G1⚪ |
-| `OBJ-PROVE-TIMERS.M1` | Supplemental platforms | ⚪ | Produce the required native, Wasm, and negative-environment artifacts | inline · G1⚪ |
-| `OBJ-PROVE-TIMERS.M2` | Release evidence | ⚪ | Validate performance, semantics, provenance, and regenerated charts | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M0` | Universal target contract | 🚧 | Prove every advertised target and feature route at frozen commit `d0fa731` | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M1` | Runtime decision boundaries | 🟣 | Retain the exact 15 selector, host, and runtime boundaries listed below | inline · G1⚪ · 12/15 required retained |
+| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
 ---
 
-## `OBJ-PROVE-TIMERS.M0` — Canonical runtime cells
+## `OBJ-PROVE-TIMERS.M0` — Universal target contract
 
-**Description.** Capture the six primary environments with exhaustive exact and public routes for
-all three timer contracts. Every artifact must name the same frozen literal source revision and
-bind its serialized result to retained collector/source-seal material. The legacy `89b42f1`
-campaign is historical input, not a current primary proof.
+**Description.** Freeze the shipping implementation at `d0fa731` and prove the public APIs and
+optimized routes for all advertised targets. The verifier must cover 24 target identities, 49
+feature configurations, 98 warning-strict API checks, 294 optimized provider routes, 294
+`now`/elapsed closures, and 18 vDSO resolver routes. Runtime-self-selecting targets must enumerate
+all eligible providers and close the selected public/direct hot route; unique-provider and fallback
+targets are proved by source plus code generation. No-default configurations receive the same build
+and semantic coverage but do not create separate performance cells.
 
-### Gate `OBJ-PROVE-TIMERS.M0.G1` — primary cells are complete and source-bound
+### Gate `OBJ-PROVE-TIMERS.M0.G1` — all advertised target routes close at the frozen implementation
 
-Pass: the canonical six artifacts validate against the frozen implementation with replacement refs
-disabled, include the declared `now` and elapsed comparisons, reproduce from retained collectors,
-and contain no failed provider-selection reproduction.
-- **Fallback.** Rebuild the failing runner or cell-specific extractor and recollect that cell; do
-  not mix revisions or hand-edit a result.
-
----
-
-## `OBJ-PROVE-TIMERS.M1` — Supplemental platforms
-
-**Description.** Measure the remaining advertised platforms and explicit negative environments,
-including thread-CPU sleep, busy, and isolation semantics where native CPU accounting is claimed.
-Each producer must retain its own host attestation; a runnable host gap remains open rather than
-being filled by a primary-cell label.
-
-### Gate `OBJ-PROVE-TIMERS.M1.G1` — required supplemental artifacts are complete
-
-Pass: every required supplemental artifact is present, schema-valid, source-bound, and clearly
-labels measured, smoke, and negative evidence classes.
-- **Fallback.** Add or repair the missing producer and rerun only the affected target; leave the
-  claim scoped until the real artifact exists.
+Pass only when `benches/verify-target-providers.py` succeeds at literal commit `d0fa731`, its report
+contains exactly the counts above, optimized code generation contains no missing or unsupported
+route, and selector tests cover candidate enumeration, complete-path measurement, and public/direct
+route closure. The retained report must hash to
+`e2233386f3d7c64fff705f75ad089ee0dd8717809ed5eadca1b85b1547a579ba`.
+- **Fallback.** Fix the missing target, feature configuration, or codegen closure and rerun the full
+  static verifier before collecting more runtime evidence.
 
 ---
 
-## `OBJ-PROVE-TIMERS.M2` — Release evidence
+## `OBJ-PROVE-TIMERS.M1` — Runtime decision boundaries
 
-**Description.** The release report must calculate the fastest/material-tie verdict from the
-frozen artifacts and regenerate charts only after the complete validation gate passes. It binds
-strict, duplicate-free document snapshots, the campaign-commit route matrix, and the exact primary
-bytes handed to the chart renderer.
+**Description.** Runtime proof samples mechanisms, not the Cartesian product of targets, libc
+variants, and feature modes. A boundary is required when the default provider is selected by
+measurement, when host availability changes the route, or when a runtime supplies a distinct clock
+implementation. Fixed OS primitives need one representative native runtime plus M0's target proof.
+Charts may include optional corroborating environments, but optional evidence cannot block release.
 
-### Gate `OBJ-PROVE-TIMERS.M2.G1` — release validators and charts agree
+### Required runtime set
 
-Pass: the full retained release-evidence validator passes, all performance and semantic verdicts
-are honest, and the checked-in PNG/SVG summaries regenerate byte-clean from that same successful
-snapshot. Untracked charts, a primary-only report, a smoke record, or a tagged fallback cannot
-enter this gate as speed evidence.
-- **Fallback.** Preserve the failing comparison as a finding, investigate the selector or claim,
-  and narrow no contract without owner direction.
+| # | Decision boundary | Required environment / mode | Frozen artifact | State |
+|---:|---|---|---|---|
+| 1 | Apple AArch64 native wall and thread clocks | macOS AArch64, default | `speed-0-apple.json` | retained |
+| 2 | Apple x86 native wall and thread clocks | macOS x86_64, default | `speed-apple-x86_64.json` | **missing** |
+| 3 | Linux x86 runtime tournament | Linux x86_64 GNU, default | `speed-2-inteln.json` | retained |
+| 4 | Linux AArch64 runtime tournament | Linux AArch64 GNU, default | `speed-1-c7g.json` | retained |
+| 5 | Windows native wall and thread clocks | Windows x86_64 MSVC, default | `speed-4-windows.json` | **missing** |
+| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-freebsd-x86_64.json` | **missing** |
+| 7 | JavaScript host clock | `wasm32-unknown-unknown` on Node, default | `speed-supplemental-wasm-node.json` | retained |
+| 8 | Browser fallback without native thread CPU clock | browser, default negative environment | `speed-supplemental-browser-negative.json` | retained |
+| 9 | Emscripten host clock | Emscripten on Node, default | `speed-supplemental-emscripten-node.json` | retained |
+| 10 | Emscripten pthread clock path | Emscripten pthreads | `speed-supplemental-emscripten-pthreads.json` | retained |
+| 11 | WASI Preview 1 positive host clock | WASI p1 on Node, default | `speed-supplemental-wasi-p1-node.json` | retained |
+| 12 | WASI Preview 1 fallback boundary | WASI p1 on Wasmtime, default | `speed-supplemental-wasi-p1-wasmtime.json` | retained |
+| 13 | WASI Preview 2 fallback boundary | WASI p2 on Wasmtime, default | `speed-supplemental-wasi-p2-wasmtime.json` | retained |
+| 14 | WASI threads route availability | `wasip1-threads`, default smoke | `speed-supplemental-wasip1-threads-smoke.json` | retained |
+| 15 | Minimal Wasm route availability | `wasm32v1-none`, default smoke | `speed-supplemental-wasm32v1-none-smoke.json` | retained |
+
+The retained Linux x86_64 musl default artifact is optional corroboration of the same Linux x86
+selector boundary. Lambda and no-default artifacts are diagnostic only: c7g already proves a
+perf-mmap win, c7i proves a raw-syscall win, and the selector makes that decision from measured
+complete-path cost rather than instance labels or capability bits.
+
+### Gate `OBJ-PROVE-TIMERS.M1.G1` — every distinct runtime decision is observed
+
+Pass only when all 15 rows are present at the frozen shipping-code closure; every measured artifact
+is source-sealed, replay-bound, and passes timer semantics; every runtime tournament reports the
+eligible candidates, selected provider, public route, selected-exact route, and native comparison;
+and no required selector, fallback, or runtime-availability branch is absent. Public and
+selected-exact measurements must be materially tied or the discrepancy must be resolved in code.
+- **Fallback.** Recollect only the missing or failing boundary. Add a new row only when a provider
+  decision or host availability boundary is demonstrably distinct from all 15 listed rows.
+
+---
+
+## `OBJ-PROVE-TIMERS.M2` — Release-claim closure
+
+**Description.** Replace the 55-cell Cartesian validator with the exact decision-boundary manifest,
+then generate release output from one immutable snapshot. Evidence-only or documentation commits may
+follow `d0fa731` without recollection only when a deterministic digest proves that the shipping Cargo
+configuration and `src/` closure are byte-identical to the measured implementation.
+
+### Gate `OBJ-PROVE-TIMERS.M2.G1` — release validators and publication surfaces agree
+
+Pass only when the release validator requires exactly the 15 M1 rows; the M0 report and every M1
+artifact are duplicate-free, source-sealed, replay-bound, and bound to the same shipping-code closure;
+the complete Rust, Python, formatting, lint, and target checks pass; checked-in PNG/SVG charts
+regenerate byte-clean from accepted measured environments; and README/BENCHMARKS explicitly separate
+universal target guarantees from named-host measurements. Smoke and fallback records may prove route
+availability but may not be rendered as speed wins.
+- **Fallback.** Preserve the failing evidence, repair the validator, route, chart, or claim, and rerun
+  only the affected runtime boundary plus the complete release gate.
 
 ## Working Log
+
 ### 2026-07-12 · codex · `OBJ-PROVE-TIMERS.M0`
 - Did: bound future primary proof to a retained full release matrix rather than the legacy 89b42f1 campaign.
 - Found: the old six-cell JSON lacks the current source-seal, collector, route-commit, and supplemental provenance required for a release claim.
@@ -104,7 +158,7 @@ enter this gate as speed evidence.
 ### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
 - Did: Recollected and replay-composed all 19 locally runnable artifacts at final producer-layout revision 2ea11ee; every artifact is source-identical and the manifest binds 9 full-speed, 6 tagged-wall-fallback, and 4 runtime-smoke observations.
 - Found: The local tranche now proves 1/6 canonical and 18/49 supplemental identities at 2ea11ee; all 36 remaining artifacts can coexist in the same evidence directory because every retained bundle path is artifact-specific.
-- Next: Collect the canonical Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD AWS cells at 2ea11ee, then merge hosted and rare-native evidence.
+- Next: Collect the canonical Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD cells at 2ea11ee, then merge hosted and rare-native evidence.
 - Board: OBJ-PROVE-TIMERS.M0 remains active at 2ea11ee with 19/55 runtime artifacts replay-bound and all three objective gates still open.
 
 ### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
@@ -119,6 +173,15 @@ enter this gate as speed evidence.
 - Next: Collect Intel GNU no-default, Intel musl default/no-default, Lambda, and FreeBSD cells at d0fa731, then merge hosted Windows/macOS-x86 and rare-native identities before running the unified release validators.
 - Board: OBJ-PROVE-TIMERS.M0 remains active at d0fa731 with 3/6 canonical and 19/49 supplemental identities retained (22/55 total); all three proof gates remain open.
 
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M1`
+- Did: Replaced the 55 target-by-mode runtime campaign with a three-layer proof contract: 24-target static closure, 15 runtime decision boundaries, and one publication closure.
+- Found: The Cartesian campaign duplicated no-default and host identities even though the provider proof already classifies fixed, fallback-only, codegen-proven, and runtime-self-selecting routes; 12 of the 15 decision boundaries are already retained at d0fa731.
+- Next: Update the release validator to enforce this exact manifest and shipping-code closure, then collect only macOS x86_64, Windows x86_64, and FreeBSD x86_64.
+- Board: M0 has complete evidence awaiting formal gate admission; M1 is 12/15; M2 begins with the validator rewrite; there is no owner blocker.
+
 ## /goal
 
-Deliver `OBJ-PROVE-TIMERS`'s slice of the VISION — *Every public timing claim is reproducible from frozen evidence.* — by cleanly exiting every milestone gate. Done = every gate 🟢 with committed evidence at a recorded SHA; no gate weakened, no milestone closed by assertion.
+At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
+runtime decision boundaries empirically, and every public performance claim from the same immutable
+shipping-code closure. Done = M0, M1, and M2 are 🟢 with committed evidence and byte-reproducible
+publication artifacts; publishing remains a separate explicit owner decision.
