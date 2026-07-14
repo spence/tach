@@ -9,6 +9,7 @@ import importlib.util
 import inspect
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -79,6 +80,37 @@ class RemoteEvidencePythonCompatibilityTests(unittest.TestCase):
                 self.assertTrue(
                     all(isinstance(annotation, str) for annotation in annotations)
                 )
+
+
+class SourceSealSnapshotTests(unittest.TestCase):
+    def stat_value(self, *, inode: int, size: int = 10, mtime_ns: int = 20):
+        value = mock.Mock()
+        value.st_mode = stat.S_IFREG | 0o600
+        value.st_dev = 1
+        value.st_ino = inode
+        value.st_nlink = 1
+        value.st_size = size
+        value.st_mtime_ns = mtime_ns
+        value.st_ctime_ns = 30
+        return value
+
+    def test_windows_accepts_path_descriptor_identity_representation_difference(self) -> None:
+        initial = self.stat_value(inode=0)
+        opened = self.stat_value(inode=42)
+        with mock.patch.object(seal_speed_source.os, "name", "nt"):
+            self.assertTrue(seal_speed_source._path_matches_opened_file(initial, opened))
+
+    def test_windows_still_rejects_content_metadata_change(self) -> None:
+        initial = self.stat_value(inode=0)
+        opened = self.stat_value(inode=42, size=11)
+        with mock.patch.object(seal_speed_source.os, "name", "nt"):
+            self.assertFalse(seal_speed_source._path_matches_opened_file(initial, opened))
+
+    def test_posix_requires_full_path_descriptor_identity(self) -> None:
+        initial = self.stat_value(inode=1)
+        opened = self.stat_value(inode=2)
+        with mock.patch.object(seal_speed_source.os, "name", "posix"):
+            self.assertFalse(seal_speed_source._path_matches_opened_file(initial, opened))
 
 
 def write_benchmark(
