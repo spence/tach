@@ -1,0 +1,321 @@
+{
+  "schema": "tach-release-route-observations-v2",
+  "bindings": [
+    {
+      "artifact_id": "speed-0-apple.json",
+      "document_sha256": "ceaf722c8c3c7113438d2efca247d22562cafc1700f6dcc6336390faaf6dd3dc",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-0-apple.json",
+        "identity": {
+          "case_id": "macos_fixed_native",
+          "target": "aarch64-apple-darwin",
+          "build_mode": "default",
+          "runtime_profile": "macos_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "aarch64-apple-darwin",
+          "runtime_profile": "macos_criterion",
+          "closure_digest": "59a5ee055add6f28852bb8178e01be598ca7543625257c27e771835b9937359e"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-1-c7g.json",
+      "document_sha256": "acb0815c38e4940e5c9a4b9ea45147a32ab6b5886d33090ffbc78b3b964a5c4f",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-1-c7g.json",
+        "identity": {
+          "case_id": "linux_aarch64_capability_preferred_default",
+          "target": "aarch64-unknown-linux-gnu",
+          "build_mode": "default",
+          "runtime_profile": "native_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+          "target": "aarch64-unknown-linux-gnu",
+          "runtime_profile": "native_criterion",
+          "closure_digest": "5aeba91891ae5e4adacb72b08dfcaffc5714a8066af6a36a33615bc54d83dc5f"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-2-inteln.json",
+      "document_sha256": "2127c4d85107348adfc8ceaac8ec7f4258dcbc416964b88d906c44e1b56bc465",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-2-inteln.json",
+        "identity": {
+          "case_id": "linux_android_adaptive_default",
+          "target": "x86_64-unknown-linux-gnu",
+          "build_mode": "default",
+          "runtime_profile": "native_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+          "target": "x86_64-unknown-linux-gnu",
+          "runtime_profile": "native_criterion",
+          "closure_digest": "495c95c32c53575468ede28cea0319346f805b4b99ee4ad868209486a8bf846d"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-4-windows.json",
+      "document_sha256": "50d440673d6d7a435d067486e40397ef73eb9cb7728c13cc20b66e6807c35062",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-4-windows.json",
+        "identity": {
+          "case_id": "windows_availability_fallback",
+          "target": "x86_64-pc-windows-msvc",
+          "build_mode": "default",
+          "runtime_profile": "windows_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "x86_64-pc-windows-msvc",
+          "runtime_profile": "windows_criterion",
+          "closure_digest": "a314520ec6d708c1144c8b68d0cb26d7fe0567082c7a26b5a63cfdbf6bf44787"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-browser-negative.json",
+      "document_sha256": "7959367b6a3b84ee1719a4db8d94e88f8ad4590054c8cd1edfbf36ad8f56bf6e",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-browser-negative.json",
+        "identity": {
+          "case_id": "wasm_browser_fallback",
+          "target": "wasm32-unknown-unknown",
+          "build_mode": "default",
+          "runtime_profile": "browser_wasm_bindgen"
+        },
+        "evidence_kind": "tagged_wall_fallback",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-unknown-unknown",
+          "runtime_profile": "browser_wasm_bindgen",
+          "closure_digest": "40e981c25c69fd0e76af7322e3ad7d436e1f647c971e4e8b2bd7b468c2fa46af"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-emscripten-node.json",
+      "document_sha256": "6aa74d08945ea7c3a88f5a63266dd58d1f4dd7f862288dbd10ee03d88d289933",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-emscripten-node.json",
+        "identity": {
+          "case_id": "emscripten_node_availability_fallback",
+          "target": "wasm32-unknown-emscripten",
+          "build_mode": "default",
+          "runtime_profile": "emcc_node"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-unknown-emscripten",
+          "runtime_profile": "emcc_node",
+          "closure_digest": "36835027999a1f2d180ef074ef7fdc226e73c101fb8b4cbd662e77a96f6b3e08"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-emscripten-pthreads.json",
+      "document_sha256": "9ea0541804c2f06d87724baaa753309e44caa3bdf2f4815d9e4636919e2b9773",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-emscripten-pthreads.json",
+        "identity": {
+          "case_id": "emscripten_node_availability_fallback",
+          "target": "wasm32-unknown-emscripten",
+          "build_mode": "emscripten-pthreads",
+          "runtime_profile": "emcc_node"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-unknown-emscripten",
+          "runtime_profile": "emcc_node",
+          "closure_digest": "7acf5752f2c4ae86ff9050d372960f3e3acfc0b3a2286be925098c74c541c88a"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-freebsd-x86_64.json",
+      "document_sha256": "5ae51986d0d419d179d1fde2601a816bb40066d7bce83fa965e18e36e7660644",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-freebsd-x86_64.json",
+        "identity": {
+          "case_id": "freebsd_runtime_tournament",
+          "target": "x86_64-unknown-freebsd",
+          "build_mode": "default",
+          "runtime_profile": "freebsd_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+          "target": "x86_64-unknown-freebsd",
+          "runtime_profile": "freebsd_criterion",
+          "closure_digest": "8476d9dcfa8ce6179aaa51dbbeb6273a6fcdaf65cd765c8add846f92bce68524"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-macos-x86_64.json",
+      "document_sha256": "0fe969a117aad7aa96ed9ad1eb0e5d557be2dc45afadb9167e152a706162ac78",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-macos-x86_64.json",
+        "identity": {
+          "case_id": "macos_fixed_native",
+          "target": "x86_64-apple-darwin",
+          "build_mode": "default",
+          "runtime_profile": "macos_criterion"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "x86_64-apple-darwin",
+          "runtime_profile": "macos_criterion",
+          "closure_digest": "7c9a3551caba870bcb75151c7731fda636f58503a81acd7f54036d05e4034a83"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-wasi-p1-node.json",
+      "document_sha256": "dcf1d5228020a8312bfbe96a61cdaa206c9bd3b322ea8b4da00208700005036f",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-wasi-p1-node.json",
+        "identity": {
+          "case_id": "wasi_p1_node_availability_fallback",
+          "target": "wasm32-wasip1",
+          "build_mode": "default",
+          "runtime_profile": "node_uvwasi"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-wasip1",
+          "runtime_profile": "node_uvwasi",
+          "closure_digest": "377413fc15bc51c6b70758bb5affea2d489a9d6bdd4723f818e3497bec6e50f1"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-wasi-p1-wasmtime.json",
+      "document_sha256": "488e1a7c607872f149694091364d7d6c264febff60521ca1e4b39a22e7d7cda4",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-wasi-p1-wasmtime.json",
+        "identity": {
+          "case_id": "wasi_p1_wasmtime_fallback",
+          "target": "wasm32-wasip1",
+          "build_mode": "default",
+          "runtime_profile": "wasmtime"
+        },
+        "evidence_kind": "tagged_wall_fallback",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-wasip1",
+          "runtime_profile": "wasmtime",
+          "closure_digest": "88b517a4ca2bd6b905f0b3cc7b691da27ab9594dc65849e64bda147d52107ca6"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-wasi-p2-wasmtime.json",
+      "document_sha256": "1e4fa41fdbf937f17e3eda8a0bd68c86d754aa417ec76560a8d332dfdf67d530",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-wasi-p2-wasmtime.json",
+        "identity": {
+          "case_id": "wasi_p2_fallback_only",
+          "target": "wasm32-wasip2",
+          "build_mode": "default",
+          "runtime_profile": "wasmtime_component"
+        },
+        "evidence_kind": "tagged_wall_fallback",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-wasip2",
+          "runtime_profile": "wasmtime_component",
+          "closure_digest": "9ef711eee41c20382922c0474f16a7c3f12e3c407f77216545c1561ae29b2116"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-wasip1-threads-smoke.json",
+      "document_sha256": "35f3949ab81802d19b9e03558bd79ad7dc9c1e8b40f5caff098e18fc063b1708",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-wasip1-threads-smoke.json",
+        "identity": {
+          "case_id": "wasi_p1_threads_smoke",
+          "target": "wasm32-wasip1-threads",
+          "build_mode": "default",
+          "runtime_profile": "wasi_threads_smoke"
+        },
+        "evidence_kind": "runtime_smoke",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-wasip1-threads",
+          "runtime_profile": "wasi_threads_smoke",
+          "closure_digest": "9aaf9fb7ef5eeafe0969984a90a85ff920fef4790c7690708692c9c569853dd5"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-wasm-node.json",
+      "document_sha256": "086448580cbcdcc007c06e763967957377d4817d285003aa5b155a3956eda28a",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-wasm-node.json",
+        "identity": {
+          "case_id": "wasm_node_availability_fallback",
+          "target": "wasm32-unknown-unknown",
+          "build_mode": "default",
+          "runtime_profile": "node_wasm_bindgen"
+        },
+        "evidence_kind": "full_speed",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32-unknown-unknown",
+          "runtime_profile": "node_wasm_bindgen",
+          "closure_digest": "03002872cbb702143cc11973962ee085d4e75d7337449dd2e6d2bc2095a866a6"
+        }
+      }
+    },
+    {
+      "artifact_id": "speed-supplemental-wasm32v1-none-smoke.json",
+      "document_sha256": "ea4b71f8a5220086b94c17055b33f84f6ceb3156c691216847b293c95b8f2527",
+      "route_observation": {
+        "schema": "tach-route-observation-v1",
+        "artifact_id": "speed-supplemental-wasm32v1-none-smoke.json",
+        "identity": {
+          "case_id": "wasm32v1_none_smoke",
+          "target": "wasm32v1-none",
+          "build_mode": "default",
+          "runtime_profile": "wasm32v1_none_smoke"
+        },
+        "evidence_kind": "runtime_smoke",
+        "frozen": {
+          "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+          "target": "wasm32v1-none",
+          "runtime_profile": "wasm32v1_none_smoke",
+          "closure_digest": "8f8cf9bfa0a718e3e03ebcc5da1a1a465d1c197c46a0efa2bb249aab2c8393d2"
+        }
+      }
+    }
+  ],
+  "equivalences": []
+}

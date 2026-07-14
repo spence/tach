@@ -1,0 +1,43 @@
+{
+  "schema": "tach-speed-supplemental-v4",
+  "triple": "wasm32v1-none",
+  "mode": "runtime_smoke",
+  "build_mode": "default",
+  "provenance": {
+    "harness": "wasm32v1-none-smoke",
+    "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+    "runner": "node-wasm-bindgen-none",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "thread-cpu-inline"
+    ]
+  },
+  "evidence_class": "runtime_smoke",
+  "passed": true,
+  "smoke_schema": "tach-runtime-smoke-attestation-v1",
+  "runtime_attestation": {
+    "schema": "tach-benchmark-runtime-v2",
+    "invocation_id": "wasm32v1-none-smoke-68dc2015bbb8-20260714T214515Z-66440",
+    "harness": "wasm32v1-none-smoke",
+    "target": {
+      "arch": "wasm32",
+      "os": "none",
+      "env": ""
+    },
+    "features": [
+      "thread-cpu-inline"
+    ],
+    "build_mode": "default",
+    "build_profile": "optimized",
+    "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+    "runner": "node-wasm-bindgen-none",
+    "output_isolated": true
+  },
+  "assertions": [
+    "Instant advanced monotonically in the executed wasm32v1-none module",
+    "OrderedInstant advanced monotonically in the executed wasm32v1-none module",
+    "ThreadCpuInstant advanced monotonically in the executed wasm32v1-none module",
+    "ThreadCpuInstant selected NodeThreadCpuUsage; measures_thread_cpu_time=true"
+  ]
+}

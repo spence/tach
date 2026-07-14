@@ -359,6 +359,12 @@ availability but may not be rendered as speed wins.
 - Next: Collect the three missing native artifacts at 68dc201, compose route-observations-v1.json, run the complete M1/M2 release gate, then align README and BENCHMARKS before requesting explicit publication approval.
 - Board: M0 is complete. M1 is active at 12/15 with exactly three native recollections remaining and no owner or external blocker. M2 follows with release validation, charts, and public wording.
 
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M1`
+- Did: Collected the final Linux AArch64, Linux x86_64, and native FreeBSD artifacts and composed route-observations-v1; the complete 15-boundary release evidence validator passes with zero failures across source revisions 68dc201 and c64dcb7, whose shipping Cargo/src digest is identical.
+- Found: Runtime proof is complete in the sealed scratch snapshot: all 15 required boundaries admit. M1 remains open only until that snapshot is imported into a tracked evidence package and committed, because NSR gates close against durable evidence rather than /tmp output.
+- Next: Import the validated snapshot without overwriting unrelated dirty benchmark work, commit the evidence package, close M1.G1, then finish M2 charts, public wording, full checks, and independent review.
+- Board: M0 is complete. M1 has 15/15 passing artifacts and no research or external blocker; durable evidence admission is the sole remaining M1 step. M2 is the release-packaging path.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct

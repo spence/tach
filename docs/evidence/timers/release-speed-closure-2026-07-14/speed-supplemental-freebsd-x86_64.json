@@ -1,0 +1,2612 @@
+{
+  "schema": "tach-speed-supplemental-v4",
+  "triple": "x86_64-unknown-freebsd",
+  "mode": "full_speed_cell",
+  "build_mode": "default",
+  "provenance": {
+    "harness": "criterion",
+    "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+    "runner": "aws-freebsd-default",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "bench-internal",
+      "thread-cpu-inline"
+    ]
+  },
+  "evidence_class": "measured_external_runtime",
+  "collector_bundle": {
+    "schema": "tach-speed-collector-v1",
+    "path": "speed-supplemental-freebsd-x86_64.collector.bundle",
+    "manifest_sha256": "342b5a09c0049e5bbc325d3cf44cd11615bb20ed6faa4a64022aa63b8bc902bf"
+  },
+  "clocks": {
+    "tach": {
+      "now": 13.912679147090884,
+      "now_ci95": [
+        13.906531054118332,
+        13.931062496522264
+      ],
+      "elapsed": 28.786790687208253,
+      "elapsed_ci95": [
+        28.756265664160402,
+        28.819311169267554
+      ],
+      "time_domain": "instant wall",
+      "selection": {
+        "architecture": "x86_64-freebsd",
+        "decision_rule": "each contract independently retains an incumbent unless a challenger wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__freebsd_clock_monotonic",
+            "direct_wall__freebsd_clock_monotonic_syscall",
+            "direct_wall__freebsd_at_timekeep",
+            "direct_wall__freebsd_kernel_eligible_tsc"
+          ],
+          "ordered": [
+            "direct_ordered_wall__freebsd_at_timekeep_os_owned",
+            "direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid",
+            "direct_ordered_wall__freebsd_clock_monotonic_os_owned",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_serialize",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_os_owned",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_serialize"
+          ]
+        },
+        "ordering": "the runtime winner among every eligible x86 barrier and the FreeBSD-owned vDSO/syscall ordering boundary precedes the wall read",
+        "probe": {
+          "instant": {
+            "candidate_count": 4,
+            "clock_batches_ns": [
+              131477,
+              134253,
+              124172,
+              124167,
+              124259,
+              125334,
+              125303,
+              126306,
+              124206
+            ],
+            "clock_boottime_allowance_ns": 0,
+            "clock_boottime_available": false,
+            "clock_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_boottime_decisive_wins": 0,
+            "clock_boottime_median_ns": 0,
+            "clock_median_ns": 125303,
+            "clock_raw_allowance_ns": 0,
+            "clock_raw_available": false,
+            "clock_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_raw_decisive_wins": 0,
+            "clock_raw_median_ns": 0,
+            "direct_allowance_ns": 5867,
+            "direct_batches_ns": [
+              56324,
+              61089,
+              54744,
+              54734,
+              54739,
+              54711,
+              54723,
+              54716,
+              54705
+            ],
+            "direct_decisive_wins": 9,
+            "direct_eligible": true,
+            "direct_median_ns": 54734,
+            "fallback_allowance_ns": 6265,
+            "fallback_decisive_wins": 0,
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "freebsd_kernel_eligible_tsc",
+            "syscall_batches_ns": [
+              436129,
+              436255,
+              425774,
+              425737,
+              424575,
+              431075,
+              424173,
+              449332,
+              425200
+            ],
+            "syscall_boottime_allowance_ns": 0,
+            "syscall_boottime_available": false,
+            "syscall_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_boottime_decisive_wins": 0,
+            "syscall_boottime_median_ns": 0,
+            "syscall_median_ns": 425774,
+            "syscall_raw_allowance_ns": 0,
+            "syscall_raw_available": false,
+            "syscall_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_raw_decisive_wins": 0,
+            "syscall_raw_median_ns": 0,
+            "timekeep_allowance_ns": 6265,
+            "timekeep_available": true,
+            "timekeep_batches_ns": [
+              120771,
+              119982,
+              127773,
+              117327,
+              117313,
+              117343,
+              117317,
+              117886,
+              117304
+            ],
+            "timekeep_decisive_wins": 8,
+            "timekeep_median_ns": 117343,
+            "vdso_allowance_ns": 0,
+            "vdso_available": false,
+            "vdso_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_allowance_ns": 0,
+            "vdso_boottime_available": false,
+            "vdso_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_decisive_wins": 0,
+            "vdso_boottime_median_ns": 0,
+            "vdso_decisive_wins": 0,
+            "vdso_median_ns": 0,
+            "vdso_raw_allowance_ns": 0,
+            "vdso_raw_available": false,
+            "vdso_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_raw_decisive_wins": 0,
+            "vdso_raw_median_ns": 0
+          },
+          "ordered": {
+            "candidate_count": 4,
+            "clock_batches_ns": [
+              127610,
+              127627,
+              127587,
+              127629,
+              127590,
+              130451,
+              130382,
+              130403,
+              148467
+            ],
+            "clock_boottime_allowance_ns": 0,
+            "clock_boottime_available": false,
+            "clock_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_boottime_decisive_wins": 0,
+            "clock_boottime_median_ns": 0,
+            "clock_median_ns": 127629,
+            "clock_raw_allowance_ns": 0,
+            "clock_raw_available": false,
+            "clock_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_raw_decisive_wins": 0,
+            "clock_raw_median_ns": 0,
+            "direct_allowance_ns": 5925,
+            "direct_batches_ns": [
+              87940,
+              87741,
+              87723,
+              90484,
+              87724,
+              87734,
+              87732,
+              87724,
+              98711
+            ],
+            "direct_decisive_wins": 9,
+            "direct_eligible": true,
+            "direct_median_ns": 87734,
+            "fallback_allowance_ns": 6381,
+            "fallback_decisive_wins": 0,
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+            "syscall_batches_ns": [
+              430661,
+              430710,
+              451118,
+              431801,
+              430680,
+              431835,
+              430695,
+              431821,
+              481035
+            ],
+            "syscall_boottime_allowance_ns": 0,
+            "syscall_boottime_available": false,
+            "syscall_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_boottime_decisive_wins": 0,
+            "syscall_boottime_median_ns": 0,
+            "syscall_median_ns": 431801,
+            "syscall_raw_allowance_ns": 0,
+            "syscall_raw_available": false,
+            "syscall_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_raw_decisive_wins": 0,
+            "syscall_raw_median_ns": 0,
+            "timekeep_allowance_ns": 6381,
+            "timekeep_available": true,
+            "timekeep_batches_ns": [
+              118460,
+              122777,
+              118449,
+              118577,
+              118440,
+              118506,
+              118447,
+              119381,
+              133370
+            ],
+            "timekeep_decisive_wins": 8,
+            "timekeep_median_ns": 118506,
+            "vdso_allowance_ns": 0,
+            "vdso_available": false,
+            "vdso_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_allowance_ns": 0,
+            "vdso_boottime_available": false,
+            "vdso_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_decisive_wins": 0,
+            "vdso_boottime_median_ns": 0,
+            "vdso_decisive_wins": 0,
+            "vdso_median_ns": 0,
+            "vdso_raw_allowance_ns": 0,
+            "vdso_raw_available": false,
+            "vdso_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_raw_decisive_wins": 0,
+            "vdso_raw_median_ns": 0
+          },
+          "ordered_bare_syscall_os_owned_basis": "eligible_intel_syscall_ordering_contract",
+          "ordered_bare_syscall_os_owned_eligible": true,
+          "ordered_barrier_allowance_ns": 252962,
+          "ordered_barrier_candidate_count": 5,
+          "ordered_barrier_candidate_names": [
+            "x86_cpuid",
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_barrier_decisive_wins": 9,
+          "ordered_baseline_barrier": "x86_cpuid",
+          "ordered_baseline_batches_ns": [
+            5087550,
+            5030209,
+            5115105,
+            5073362,
+            4986805,
+            5035804,
+            5087653,
+            5059258,
+            5049375
+          ],
+          "ordered_clock_barrier_allowance_ns": 252962,
+          "ordered_clock_barrier_allowances_ns": [
+            252962,
+            6266,
+            6266,
+            6266,
+            0
+          ],
+          "ordered_clock_barrier_candidate_batches_ns": [
+            [
+              5087550,
+              5030209,
+              5115105,
+              5073362,
+              4986805,
+              5035804,
+              5087653,
+              5059258,
+              5049375
+            ],
+            [
+              136946,
+              125310,
+              128719,
+              124173,
+              125323,
+              125308,
+              125318,
+              125687,
+              125877
+            ],
+            [
+              177463,
+              157751,
+              157738,
+              160019,
+              170923,
+              157718,
+              157720,
+              184508,
+              163036
+            ],
+            [
+              254901,
+              226558,
+              226544,
+              229968,
+              249871,
+              235444,
+              226534,
+              226537,
+              226538
+            ],
+            [
+              262294,
+              258882,
+              258865,
+              262269,
+              258483,
+              258885,
+              258878,
+              260473,
+              256982
+            ],
+            [
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615
+            ]
+          ],
+          "ordered_clock_barrier_candidate_medians_ns": [
+            5059258,
+            125323,
+            160019,
+            226558,
+            258882,
+            0
+          ],
+          "ordered_clock_barrier_challenger_selected": [
+            true,
+            false,
+            false,
+            false,
+            false
+          ],
+          "ordered_clock_barrier_challengers": [
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_clock_barrier_decision_count": 4,
+          "ordered_clock_barrier_decisive_wins": 9,
+          "ordered_clock_barrier_incumbents": [
+            "x86_cpuid",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_clock_barrier_tournament_decisive_wins": [
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          "ordered_clock_barrier_winners": [
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_clock_baseline_batches_ns": [
+            5087550,
+            5030209,
+            5115105,
+            5073362,
+            4986805,
+            5035804,
+            5087653,
+            5059258,
+            5049375
+          ],
+          "ordered_clock_fast_barrier_candidate": "os_owned",
+          "ordered_clock_fast_batches_ns": [
+            136946,
+            125310,
+            128719,
+            124173,
+            125323,
+            125308,
+            125318,
+            125687,
+            125877
+          ],
+          "ordered_fast_barrier_batches_ns": [
+            136946,
+            125310,
+            128719,
+            124173,
+            125323,
+            125308,
+            125318,
+            125687,
+            125877
+          ],
+          "ordered_fast_barrier_candidate": "os_owned",
+          "ordered_os_barrier": "os_owned",
+          "ordered_syscall_barrier_allowance_ns": 277994,
+          "ordered_syscall_barrier_allowances_ns": [
+            277994,
+            21801,
+            21801,
+            21801,
+            0
+          ],
+          "ordered_syscall_barrier_candidate_batches_ns": [
+            [
+              5508897,
+              5622799,
+              5510199,
+              5575763,
+              5559756,
+              5560832,
+              5543585,
+              5589149,
+              5559886
+            ],
+            [
+              430399,
+              429579,
+              477045,
+              446272,
+              436025,
+              432486,
+              431265,
+              446274,
+              439514
+            ],
+            [
+              477336,
+              468854,
+              466875,
+              490325,
+              471815,
+              466632,
+              491181,
+              477545,
+              468336
+            ],
+            [
+              529016,
+              519022,
+              520976,
+              563240,
+              529321,
+              520612,
+              520328,
+              530934,
+              536566
+            ],
+            [
+              592335,
+              592634,
+              598975,
+              592042,
+              614895,
+              594024,
+              590607,
+              632468,
+              611328
+            ],
+            [
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615
+            ]
+          ],
+          "ordered_syscall_barrier_candidate_count": 5,
+          "ordered_syscall_barrier_candidate_medians_ns": [
+            5559886,
+            436025,
+            471815,
+            529016,
+            594024,
+            0
+          ],
+          "ordered_syscall_barrier_candidate_names": [
+            "x86_cpuid",
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_syscall_barrier_challenger_selected": [
+            true,
+            false,
+            false,
+            false,
+            false
+          ],
+          "ordered_syscall_barrier_challengers": [
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_syscall_barrier_decision_count": 4,
+          "ordered_syscall_barrier_decisive_wins": 9,
+          "ordered_syscall_barrier_incumbents": [
+            "x86_cpuid",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_syscall_barrier_tournament_decisive_wins": [
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          "ordered_syscall_barrier_winners": [
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_syscall_baseline_batches_ns": [
+            5508897,
+            5622799,
+            5510199,
+            5575763,
+            5559756,
+            5560832,
+            5543585,
+            5589149,
+            5559886
+          ],
+          "ordered_syscall_fast_barrier_candidate": "os_owned",
+          "ordered_syscall_fast_batches_ns": [
+            430399,
+            429579,
+            477045,
+            446272,
+            436025,
+            432486,
+            431265,
+            446274,
+            439514
+          ]
+        },
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1803847,
+                1815524,
+                1810331,
+                1807141,
+                1813659,
+                1775231,
+                1827937,
+                1784407,
+                1810400
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1988431,
+                1958851,
+                1962345,
+                1966199,
+                1958768,
+                1930066,
+                1960727,
+                1921544,
+                1948447
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                937673,
+                871020,
+                883855,
+                858029,
+                895358,
+                858041,
+                880445,
+                872379,
+                868155
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1030864,
+                979860,
+                985757,
+                962699,
+                981890,
+                962781,
+                990937,
+                972261,
+                980245
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                2625331,
+                2590410,
+                2649626,
+                2618474,
+                2622870,
+                2678592,
+                2640899,
+                2615526,
+                2602983
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                2982478,
+                2927893,
+                3004535,
+                2974624,
+                2965475,
+                3037673,
+                2983679,
+                2967412,
+                2953617
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1269663,
+                1270428,
+                1251559,
+                1278033,
+                1271662,
+                1258339,
+                1284834,
+                1248208,
+                1243019
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1507753,
+                1512378,
+                1486611,
+                1525938,
+                1504407,
+                1494401,
+                1520331,
+                1495831,
+                1483150
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__freebsd_kernel_eligible_tsc",
+          "ordered": "direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+        },
+        "selected_provider": {
+          "instant": "freebsd_kernel_eligible_tsc",
+          "ordered": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+        }
+      }
+    },
+    "tach_ordered": {
+      "now": 22.433224699851905,
+      "now_ci95": [
+        22.409382777987723,
+        22.467193995230588
+      ],
+      "elapsed": 43.07356744771693,
+      "elapsed_ci95": [
+        43.040980459496666,
+        43.10155763428858
+      ],
+      "time_domain": "ordered wall",
+      "selection": {
+        "decision_rule": "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins",
+        "eligible_direct_candidates": [
+          "direct_ordered__x86_cpuid_rdtsc",
+          "direct_ordered__x86_lfence_rdtsc",
+          "direct_ordered__x86_rdtscp",
+          "direct_ordered__x86_serialize_rdtsc"
+        ],
+        "probe": {
+          "allowance_total_ticks": 9976,
+          "batch_count": 9,
+          "challenger": "x86_lfence_rdtsc",
+          "challenger_batches_ticks": [
+            227400,
+            208024,
+            202268,
+            213492,
+            202134,
+            202132,
+            202240,
+            207928,
+            202156
+          ],
+          "challenger_median_ticks": 202268,
+          "challenger_selected": false,
+          "computed_winner": "x86_rdtscp",
+          "counter_hz": 2399880002,
+          "decisive_wins": 0,
+          "incumbent": "x86_rdtscp",
+          "incumbent_batches_ticks": [
+            221716,
+            205374,
+            199526,
+            199484,
+            199492,
+            199504,
+            199496,
+            205940,
+            205194
+          ],
+          "incumbent_median_ticks": 199526,
+          "reads_per_batch": 4096,
+          "required_decisive_wins": 8,
+          "x86_tournament": {
+            "candidate_batches_ticks": [
+              [
+                11693524,
+                11580776,
+                11653940,
+                11793772,
+                11824782,
+                11593968,
+                11602362,
+                11601388,
+                12366682
+              ],
+              [
+                227400,
+                208024,
+                202268,
+                213492,
+                202134,
+                202132,
+                202240,
+                207928,
+                202156
+              ],
+              [
+                18446744073709551615,
+                18446744073709551615,
+                18446744073709551615,
+                18446744073709551615,
+                18446744073709551615,
+                18446744073709551615,
+                18446744073709551615,
+                18446744073709551615,
+                18446744073709551615
+              ],
+              [
+                221716,
+                205374,
+                199526,
+                199484,
+                199492,
+                199504,
+                199496,
+                205940,
+                205194
+              ],
+              [
+                426370,
+                426376,
+                414512,
+                414748,
+                426384,
+                414476,
+                414468,
+                453202,
+                426316
+              ]
+            ],
+            "candidate_eligible": [
+              true,
+              true,
+              false,
+              true,
+              true
+            ],
+            "candidate_medians_ticks": [
+              11653940,
+              202268,
+              18446744073709551615,
+              199526,
+              426316
+            ],
+            "candidate_names": [
+              "x86_cpuid_rdtsc",
+              "x86_lfence_rdtsc",
+              "x86_mfence_rdtsc",
+              "x86_rdtscp",
+              "x86_serialize_rdtsc"
+            ],
+            "selected_provider": "x86_lfence_rdtsc",
+            "steps": [
+              {
+                "allowance_total_ticks": 582697,
+                "challenger": "x86_lfence_rdtsc",
+                "challenger_selected": true,
+                "decisive_wins": 9,
+                "incumbent": "x86_cpuid_rdtsc",
+                "winner": "x86_lfence_rdtsc"
+              },
+              {
+                "allowance_total_ticks": 0,
+                "challenger": "x86_mfence_rdtsc",
+                "challenger_selected": false,
+                "decisive_wins": 0,
+                "incumbent": "x86_lfence_rdtsc",
+                "winner": "x86_lfence_rdtsc"
+              },
+              {
+                "allowance_total_ticks": 10113,
+                "challenger": "x86_rdtscp",
+                "challenger_selected": false,
+                "decisive_wins": 1,
+                "incumbent": "x86_lfence_rdtsc",
+                "winner": "x86_lfence_rdtsc"
+              },
+              {
+                "allowance_total_ticks": 10113,
+                "challenger": "x86_serialize_rdtsc",
+                "challenger_selected": false,
+                "decisive_wins": 0,
+                "incumbent": "x86_lfence_rdtsc",
+                "winner": "x86_lfence_rdtsc"
+              }
+            ]
+          }
+        },
+        "selected_provider": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+      },
+      "wall_selection": {
+        "architecture": "x86_64-freebsd",
+        "decision_rule": "each contract independently retains an incumbent unless a challenger wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__freebsd_clock_monotonic",
+            "direct_wall__freebsd_clock_monotonic_syscall",
+            "direct_wall__freebsd_at_timekeep",
+            "direct_wall__freebsd_kernel_eligible_tsc"
+          ],
+          "ordered": [
+            "direct_ordered_wall__freebsd_at_timekeep_os_owned",
+            "direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid",
+            "direct_ordered_wall__freebsd_clock_monotonic_os_owned",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_x86_serialize",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_os_owned",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence",
+            "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_serialize"
+          ]
+        },
+        "ordering": "the runtime winner among every eligible x86 barrier and the FreeBSD-owned vDSO/syscall ordering boundary precedes the wall read",
+        "probe": {
+          "instant": {
+            "candidate_count": 4,
+            "clock_batches_ns": [
+              131477,
+              134253,
+              124172,
+              124167,
+              124259,
+              125334,
+              125303,
+              126306,
+              124206
+            ],
+            "clock_boottime_allowance_ns": 0,
+            "clock_boottime_available": false,
+            "clock_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_boottime_decisive_wins": 0,
+            "clock_boottime_median_ns": 0,
+            "clock_median_ns": 125303,
+            "clock_raw_allowance_ns": 0,
+            "clock_raw_available": false,
+            "clock_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_raw_decisive_wins": 0,
+            "clock_raw_median_ns": 0,
+            "direct_allowance_ns": 5867,
+            "direct_batches_ns": [
+              56324,
+              61089,
+              54744,
+              54734,
+              54739,
+              54711,
+              54723,
+              54716,
+              54705
+            ],
+            "direct_decisive_wins": 9,
+            "direct_eligible": true,
+            "direct_median_ns": 54734,
+            "fallback_allowance_ns": 6265,
+            "fallback_decisive_wins": 0,
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "freebsd_kernel_eligible_tsc",
+            "syscall_batches_ns": [
+              436129,
+              436255,
+              425774,
+              425737,
+              424575,
+              431075,
+              424173,
+              449332,
+              425200
+            ],
+            "syscall_boottime_allowance_ns": 0,
+            "syscall_boottime_available": false,
+            "syscall_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_boottime_decisive_wins": 0,
+            "syscall_boottime_median_ns": 0,
+            "syscall_median_ns": 425774,
+            "syscall_raw_allowance_ns": 0,
+            "syscall_raw_available": false,
+            "syscall_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_raw_decisive_wins": 0,
+            "syscall_raw_median_ns": 0,
+            "timekeep_allowance_ns": 6265,
+            "timekeep_available": true,
+            "timekeep_batches_ns": [
+              120771,
+              119982,
+              127773,
+              117327,
+              117313,
+              117343,
+              117317,
+              117886,
+              117304
+            ],
+            "timekeep_decisive_wins": 8,
+            "timekeep_median_ns": 117343,
+            "vdso_allowance_ns": 0,
+            "vdso_available": false,
+            "vdso_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_allowance_ns": 0,
+            "vdso_boottime_available": false,
+            "vdso_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_decisive_wins": 0,
+            "vdso_boottime_median_ns": 0,
+            "vdso_decisive_wins": 0,
+            "vdso_median_ns": 0,
+            "vdso_raw_allowance_ns": 0,
+            "vdso_raw_available": false,
+            "vdso_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_raw_decisive_wins": 0,
+            "vdso_raw_median_ns": 0
+          },
+          "ordered": {
+            "candidate_count": 4,
+            "clock_batches_ns": [
+              127610,
+              127627,
+              127587,
+              127629,
+              127590,
+              130451,
+              130382,
+              130403,
+              148467
+            ],
+            "clock_boottime_allowance_ns": 0,
+            "clock_boottime_available": false,
+            "clock_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_boottime_decisive_wins": 0,
+            "clock_boottime_median_ns": 0,
+            "clock_median_ns": 127629,
+            "clock_raw_allowance_ns": 0,
+            "clock_raw_available": false,
+            "clock_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "clock_raw_decisive_wins": 0,
+            "clock_raw_median_ns": 0,
+            "direct_allowance_ns": 5925,
+            "direct_batches_ns": [
+              87940,
+              87741,
+              87723,
+              90484,
+              87724,
+              87734,
+              87732,
+              87724,
+              98711
+            ],
+            "direct_decisive_wins": 9,
+            "direct_eligible": true,
+            "direct_median_ns": 87734,
+            "fallback_allowance_ns": 6381,
+            "fallback_decisive_wins": 0,
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+            "syscall_batches_ns": [
+              430661,
+              430710,
+              451118,
+              431801,
+              430680,
+              431835,
+              430695,
+              431821,
+              481035
+            ],
+            "syscall_boottime_allowance_ns": 0,
+            "syscall_boottime_available": false,
+            "syscall_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_boottime_decisive_wins": 0,
+            "syscall_boottime_median_ns": 0,
+            "syscall_median_ns": 431801,
+            "syscall_raw_allowance_ns": 0,
+            "syscall_raw_available": false,
+            "syscall_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "syscall_raw_decisive_wins": 0,
+            "syscall_raw_median_ns": 0,
+            "timekeep_allowance_ns": 6381,
+            "timekeep_available": true,
+            "timekeep_batches_ns": [
+              118460,
+              122777,
+              118449,
+              118577,
+              118440,
+              118506,
+              118447,
+              119381,
+              133370
+            ],
+            "timekeep_decisive_wins": 8,
+            "timekeep_median_ns": 118506,
+            "vdso_allowance_ns": 0,
+            "vdso_available": false,
+            "vdso_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_allowance_ns": 0,
+            "vdso_boottime_available": false,
+            "vdso_boottime_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_boottime_decisive_wins": 0,
+            "vdso_boottime_median_ns": 0,
+            "vdso_decisive_wins": 0,
+            "vdso_median_ns": 0,
+            "vdso_raw_allowance_ns": 0,
+            "vdso_raw_available": false,
+            "vdso_raw_batches_ns": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "vdso_raw_decisive_wins": 0,
+            "vdso_raw_median_ns": 0
+          },
+          "ordered_bare_syscall_os_owned_basis": "eligible_intel_syscall_ordering_contract",
+          "ordered_bare_syscall_os_owned_eligible": true,
+          "ordered_barrier_allowance_ns": 252962,
+          "ordered_barrier_candidate_count": 5,
+          "ordered_barrier_candidate_names": [
+            "x86_cpuid",
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_barrier_decisive_wins": 9,
+          "ordered_baseline_barrier": "x86_cpuid",
+          "ordered_baseline_batches_ns": [
+            5087550,
+            5030209,
+            5115105,
+            5073362,
+            4986805,
+            5035804,
+            5087653,
+            5059258,
+            5049375
+          ],
+          "ordered_clock_barrier_allowance_ns": 252962,
+          "ordered_clock_barrier_allowances_ns": [
+            252962,
+            6266,
+            6266,
+            6266,
+            0
+          ],
+          "ordered_clock_barrier_candidate_batches_ns": [
+            [
+              5087550,
+              5030209,
+              5115105,
+              5073362,
+              4986805,
+              5035804,
+              5087653,
+              5059258,
+              5049375
+            ],
+            [
+              136946,
+              125310,
+              128719,
+              124173,
+              125323,
+              125308,
+              125318,
+              125687,
+              125877
+            ],
+            [
+              177463,
+              157751,
+              157738,
+              160019,
+              170923,
+              157718,
+              157720,
+              184508,
+              163036
+            ],
+            [
+              254901,
+              226558,
+              226544,
+              229968,
+              249871,
+              235444,
+              226534,
+              226537,
+              226538
+            ],
+            [
+              262294,
+              258882,
+              258865,
+              262269,
+              258483,
+              258885,
+              258878,
+              260473,
+              256982
+            ],
+            [
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615
+            ]
+          ],
+          "ordered_clock_barrier_candidate_medians_ns": [
+            5059258,
+            125323,
+            160019,
+            226558,
+            258882,
+            0
+          ],
+          "ordered_clock_barrier_challenger_selected": [
+            true,
+            false,
+            false,
+            false,
+            false
+          ],
+          "ordered_clock_barrier_challengers": [
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_clock_barrier_decision_count": 4,
+          "ordered_clock_barrier_decisive_wins": 9,
+          "ordered_clock_barrier_incumbents": [
+            "x86_cpuid",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_clock_barrier_tournament_decisive_wins": [
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          "ordered_clock_barrier_winners": [
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_clock_baseline_batches_ns": [
+            5087550,
+            5030209,
+            5115105,
+            5073362,
+            4986805,
+            5035804,
+            5087653,
+            5059258,
+            5049375
+          ],
+          "ordered_clock_fast_barrier_candidate": "os_owned",
+          "ordered_clock_fast_batches_ns": [
+            136946,
+            125310,
+            128719,
+            124173,
+            125323,
+            125308,
+            125318,
+            125687,
+            125877
+          ],
+          "ordered_fast_barrier_batches_ns": [
+            136946,
+            125310,
+            128719,
+            124173,
+            125323,
+            125308,
+            125318,
+            125687,
+            125877
+          ],
+          "ordered_fast_barrier_candidate": "os_owned",
+          "ordered_os_barrier": "os_owned",
+          "ordered_syscall_barrier_allowance_ns": 277994,
+          "ordered_syscall_barrier_allowances_ns": [
+            277994,
+            21801,
+            21801,
+            21801,
+            0
+          ],
+          "ordered_syscall_barrier_candidate_batches_ns": [
+            [
+              5508897,
+              5622799,
+              5510199,
+              5575763,
+              5559756,
+              5560832,
+              5543585,
+              5589149,
+              5559886
+            ],
+            [
+              430399,
+              429579,
+              477045,
+              446272,
+              436025,
+              432486,
+              431265,
+              446274,
+              439514
+            ],
+            [
+              477336,
+              468854,
+              466875,
+              490325,
+              471815,
+              466632,
+              491181,
+              477545,
+              468336
+            ],
+            [
+              529016,
+              519022,
+              520976,
+              563240,
+              529321,
+              520612,
+              520328,
+              530934,
+              536566
+            ],
+            [
+              592335,
+              592634,
+              598975,
+              592042,
+              614895,
+              594024,
+              590607,
+              632468,
+              611328
+            ],
+            [
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615,
+              18446744073709551615
+            ]
+          ],
+          "ordered_syscall_barrier_candidate_count": 5,
+          "ordered_syscall_barrier_candidate_medians_ns": [
+            5559886,
+            436025,
+            471815,
+            529016,
+            594024,
+            0
+          ],
+          "ordered_syscall_barrier_candidate_names": [
+            "x86_cpuid",
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_syscall_barrier_challenger_selected": [
+            true,
+            false,
+            false,
+            false,
+            false
+          ],
+          "ordered_syscall_barrier_challengers": [
+            "os_owned",
+            "x86_lfence",
+            "x86_rdtscp_lfence",
+            "x86_serialize",
+            "unavailable"
+          ],
+          "ordered_syscall_barrier_decision_count": 4,
+          "ordered_syscall_barrier_decisive_wins": 9,
+          "ordered_syscall_barrier_incumbents": [
+            "x86_cpuid",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_syscall_barrier_tournament_decisive_wins": [
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          "ordered_syscall_barrier_winners": [
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "os_owned",
+            "unavailable"
+          ],
+          "ordered_syscall_baseline_batches_ns": [
+            5508897,
+            5622799,
+            5510199,
+            5575763,
+            5559756,
+            5560832,
+            5543585,
+            5589149,
+            5559886
+          ],
+          "ordered_syscall_fast_barrier_candidate": "os_owned",
+          "ordered_syscall_fast_batches_ns": [
+            430399,
+            429579,
+            477045,
+            446272,
+            436025,
+            432486,
+            431265,
+            446274,
+            439514
+          ]
+        },
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1803847,
+                1815524,
+                1810331,
+                1807141,
+                1813659,
+                1775231,
+                1827937,
+                1784407,
+                1810400
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1988431,
+                1958851,
+                1962345,
+                1966199,
+                1958768,
+                1930066,
+                1960727,
+                1921544,
+                1948447
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                937673,
+                871020,
+                883855,
+                858029,
+                895358,
+                858041,
+                880445,
+                872379,
+                868155
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1030864,
+                979860,
+                985757,
+                962699,
+                981890,
+                962781,
+                990937,
+                972261,
+                980245
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                2625331,
+                2590410,
+                2649626,
+                2618474,
+                2622870,
+                2678592,
+                2640899,
+                2615526,
+                2602983
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                2982478,
+                2927893,
+                3004535,
+                2974624,
+                2965475,
+                3037673,
+                2983679,
+                2967412,
+                2953617
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1269663,
+                1270428,
+                1251559,
+                1278033,
+                1271662,
+                1258339,
+                1284834,
+                1248208,
+                1243019
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1507753,
+                1512378,
+                1486611,
+                1525938,
+                1504407,
+                1494401,
+                1520331,
+                1495831,
+                1483150
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__freebsd_kernel_eligible_tsc",
+          "ordered": "direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+        },
+        "selected_provider": {
+          "instant": "freebsd_kernel_eligible_tsc",
+          "ordered": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+        }
+      }
+    },
+    "quanta": {
+      "now": 15.88769311863787,
+      "now_ci95": [
+        15.877020312448899,
+        15.902979914214685
+      ],
+      "elapsed": 35.48011314884204,
+      "elapsed_ci95": [
+        35.450864991524575,
+        35.50141874278877
+      ]
+    },
+    "fastant": {
+      "now": 39.492305143564394,
+      "now_ci95": [
+        39.459436975908424,
+        39.54131867400535
+      ],
+      "elapsed": 89.5079165658232,
+      "elapsed_ci95": [
+        89.36424070310848,
+        89.70645892723326
+      ]
+    },
+    "minstant": {
+      "now": 39.52151884781425,
+      "now_ci95": [
+        39.476582999777634,
+        39.571875503209036
+      ],
+      "elapsed": 89.41765078451976,
+      "elapsed_ci95": [
+        89.22706270336046,
+        89.57910957604332
+      ]
+    },
+    "std": {
+      "now": 31.311763223935074,
+      "now_ci95": [
+        31.292848218524185,
+        31.335898247365098
+      ],
+      "elapsed": 65.43088551209958,
+      "elapsed_ci95": [
+        65.4083023959185,
+        65.51469825679818
+      ]
+    },
+    "direct_ordered__x86_cpuid_rdtsc": {
+      "provider": "x86_cpuid_rdtsc",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered__x86_cpuid_rdtsc",
+      "now": 1172.0342582363535,
+      "now_ci95": [
+        1171.1819671655644,
+        1173.1995144894554
+      ]
+    },
+    "direct_ordered__x86_lfence_rdtsc": {
+      "provider": "x86_lfence_rdtsc",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered__x86_lfence_rdtsc",
+      "now": 20.727345746968332,
+      "now_ci95": [
+        20.70990704756121,
+        20.745256411313434
+      ]
+    },
+    "direct_ordered__x86_rdtscp": {
+      "provider": "x86_rdtscp",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered__x86_rdtscp",
+      "now": 20.138058522096003,
+      "now_ci95": [
+        20.124688634721966,
+        20.150318006316265
+      ]
+    },
+    "direct_ordered__x86_serialize_rdtsc": {
+      "provider": "x86_serialize_rdtsc",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered__x86_serialize_rdtsc",
+      "now": 42.87063813482675,
+      "now_ci95": [
+        42.82873256900684,
+        42.89663839769037
+      ]
+    },
+    "direct_wall__freebsd_clock_monotonic": {
+      "provider": "freebsd_clock_monotonic",
+      "read_cost": "vDSO or system call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__freebsd_clock_monotonic",
+      "now": 31.055483994996806,
+      "now_ci95": [
+        31.041345824574087,
+        31.086309794089168
+      ],
+      "elapsed": 62.513846074814595,
+      "elapsed_ci95": [
+        62.44115624814164,
+        62.59697016235616
+      ]
+    },
+    "direct_wall__freebsd_clock_monotonic_syscall": {
+      "provider": "freebsd_clock_monotonic_syscall",
+      "read_cost": "system call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__freebsd_clock_monotonic_syscall",
+      "now": 106.68776248140207,
+      "now_ci95": [
+        106.58176669575714,
+        106.73648877778763
+      ],
+      "elapsed": 213.0042169318493,
+      "elapsed_ci95": [
+        212.85078799830504,
+        213.25518239645166
+      ]
+    },
+    "direct_wall__freebsd_at_timekeep": {
+      "provider": "freebsd_at_timekeep",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__freebsd_at_timekeep",
+      "now": 30.112871546920907,
+      "now_ci95": [
+        30.08209452893337,
+        30.157466316289547
+      ],
+      "elapsed": 61.38344107720343,
+      "elapsed_ci95": [
+        61.311215002529934,
+        61.41609139523578
+      ]
+    },
+    "direct_wall__freebsd_kernel_eligible_tsc": {
+      "provider": "freebsd_kernel_eligible_tsc",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__freebsd_kernel_eligible_tsc",
+      "now": 13.339368709626662,
+      "now_ci95": [
+        13.330526224763254,
+        13.350987985163309
+      ],
+      "elapsed": 27.32303479805447,
+      "elapsed_ci95": [
+        27.24013724228778,
+        27.3781503396888
+      ]
+    },
+    "direct_ordered_wall__freebsd_at_timekeep_os_owned": {
+      "provider": "freebsd_at_timekeep_os_owned",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_at_timekeep_os_owned",
+      "now": 30.392133091030413,
+      "now_ci95": [
+        30.362069823505994,
+        30.41941361497545
+      ],
+      "elapsed": 61.77786540272156,
+      "elapsed_ci95": [
+        61.61801443665655,
+        61.82403700146142
+      ]
+    },
+    "direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc": {
+      "provider": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+      "now": 20.728206314389432,
+      "now_ci95": [
+        20.704188522570917,
+        20.750427733386438
+      ],
+      "elapsed": 40.94317579091798,
+      "elapsed_ci95": [
+        40.90445693978561,
+        41.00281792407164
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid": {
+      "provider": "freebsd_clock_monotonic_x86_cpuid",
+      "read_cost": "vDSO or system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid",
+      "now": 1225.1585858585859,
+      "now_ci95": [
+        1223.5133928571427,
+        1225.8734636575546
+      ],
+      "elapsed": 2451.513870523416,
+      "elapsed_ci95": [
+        2449.993652803697,
+        2453.1112210452798
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_os_owned": {
+      "provider": "freebsd_clock_monotonic_os_owned",
+      "read_cost": "vDSO or system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_os_owned",
+      "now": 31.06408941630434,
+      "now_ci95": [
+        31.02750023231824,
+        31.094855216760138
+      ],
+      "elapsed": 62.55149075975777,
+      "elapsed_ci95": [
+        62.46093408991707,
+        62.623053612502545
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_x86_lfence": {
+      "provider": "freebsd_clock_monotonic_x86_lfence",
+      "read_cost": "vDSO or system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_x86_lfence",
+      "now": 39.11403093353974,
+      "now_ci95": [
+        39.079454814369385,
+        39.15072471082924
+      ],
+      "elapsed": 78.70029754130698,
+      "elapsed_ci95": [
+        78.63794297143443,
+        78.78366316272374
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence": {
+      "provider": "freebsd_clock_monotonic_x86_rdtscp_lfence",
+      "read_cost": "vDSO or system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence",
+      "now": 55.7403135295012,
+      "now_ci95": [
+        55.67817987520146,
+        55.79052880487456
+      ],
+      "elapsed": 112.23362547668302,
+      "elapsed_ci95": [
+        112.15209650224917,
+        112.358382651483
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_x86_serialize": {
+      "provider": "freebsd_clock_monotonic_x86_serialize",
+      "read_cost": "vDSO or system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_x86_serialize",
+      "now": 63.95868908923043,
+      "now_ci95": [
+        63.90644586124919,
+        64.02145408282627
+      ],
+      "elapsed": 128.9864775181234,
+      "elapsed_ci95": [
+        128.89945614530157,
+        129.2058513105316
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid": {
+      "provider": "freebsd_clock_monotonic_syscall_x86_cpuid",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid",
+      "now": 1349.6972086899277,
+      "now_ci95": [
+        1349.1095905028678,
+        1350.2703988699304
+      ],
+      "elapsed": 2698.9337337662337,
+      "elapsed_ci95": [
+        2696.604313016529,
+        2702.0351735316553
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_syscall_os_owned": {
+      "provider": "freebsd_clock_monotonic_syscall_os_owned",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_syscall_os_owned",
+      "now": 106.66983003936478,
+      "now_ci95": [
+        106.52867059425543,
+        106.76000524992135
+      ],
+      "elapsed": 215.43491664349062,
+      "elapsed_ci95": [
+        215.23364845213447,
+        215.56217391304347
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence": {
+      "provider": "freebsd_clock_monotonic_syscall_x86_lfence",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence",
+      "now": 118.07805275516998,
+      "now_ci95": [
+        117.97775627922606,
+        118.21320043864463
+      ],
+      "elapsed": 228.8057145185323,
+      "elapsed_ci95": [
+        228.63374811463046,
+        229.0799902971305
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence": {
+      "provider": "freebsd_clock_monotonic_syscall_x86_rdtscp_lfence",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence",
+      "now": 131.04911714519943,
+      "now_ci95": [
+        130.98468883472304,
+        131.1393120744092
+      ],
+      "elapsed": 258.3170246795655,
+      "elapsed_ci95": [
+        258.0218448316072,
+        258.49474229632114
+      ]
+    },
+    "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_serialize": {
+      "provider": "freebsd_clock_monotonic_syscall_x86_serialize",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_serialize",
+      "now": 147.91694114051313,
+      "now_ci95": [
+        147.7855141932271,
+        148.03206617972555
+      ],
+      "elapsed": 297.3937515632816,
+      "elapsed_ci95": [
+        297.23114057028516,
+        297.53005850751464
+      ]
+    },
+    "direct_selected_wall": {
+      "provider": "freebsd_kernel_eligible_tsc",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_selected_wall__freebsd_kernel_eligible_tsc",
+      "now": 13.333184158972102,
+      "now_ci95": [
+        13.323007808792193,
+        13.350424557939144
+      ],
+      "elapsed": 27.242799313781454,
+      "elapsed_ci95": [
+        27.21464217794141,
+        27.267412787997028
+      ]
+    },
+    "direct_selected_ordered_wall": {
+      "provider": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+      "now": 20.711055971083375,
+      "now_ci95": [
+        20.701351718396058,
+        20.73441778799171
+      ],
+      "elapsed": 40.79661525825524,
+      "elapsed_ci95": [
+        40.77705222272038,
+        40.84963307988391
+      ]
+    },
+    "tach_thread_cpu": {
+      "benchmark": "tach_thread_cpu__posix_thread_cpu_clock__system_call",
+      "now": 125.30844586693811,
+      "now_ci95": [
+        125.22887345212926,
+        125.39516432827214
+      ],
+      "elapsed": 250.8118312441341,
+      "elapsed_ci95": [
+        250.4766464817162,
+        251.03977833604011
+      ],
+      "provider": "POSIX thread CPU clock",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "selection": {
+        "eligible_direct_candidates": [
+          "direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime",
+          "direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime"
+        ],
+        "fallback_mechanism": null,
+        "fallback_native_benchmark": null,
+        "fallback_provider": null,
+        "fallback_read_cost": null,
+        "native_entry_probe": {
+          "floor_ns_per_read": 1,
+          "libc_allowance_ns": 4096,
+          "libc_available": true,
+          "libc_batches_ns": [
+            548148,
+            561822,
+            535715,
+            520079,
+            519575,
+            599020,
+            549641,
+            525443,
+            519703
+          ],
+          "libc_decisive_wins": 0,
+          "libc_materially_faster": false,
+          "libc_median_ns": 535715,
+          "libc_provider": "freebsd_x86_64_libc_clock_thread_cputime",
+          "raw_allowance_ns": 4096,
+          "raw_available": true,
+          "raw_batches_ns": [
+            504528,
+            504533,
+            514822,
+            505850,
+            507547,
+            512141,
+            507090,
+            507428,
+            505775
+          ],
+          "raw_decisive_wins": 9,
+          "raw_median_ns": 507090,
+          "raw_provider": "freebsd_x86_64_raw_syscall_clock_thread_cputime",
+          "raw_selected": true,
+          "reads_per_batch": 4096,
+          "relative_denominator": null,
+          "required_decisive_wins": 7,
+          "selected_provider": "freebsd_x86_64_raw_syscall_clock_thread_cputime",
+          "selected_read_cost": "system call",
+          "selection_basis": null,
+          "selection_kind": "tournament"
+        },
+        "perf": {
+          "decision_rule": "no perf provider exists on this target; the measured native CLOCK_THREAD_CPUTIME_ID entry winner is the complete public path",
+          "event_available": false,
+          "measurement_clock": "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the candidate under test",
+          "mmap": {
+            "available": false,
+            "counter_probe": null,
+            "eligible_benchmarks": [],
+            "read_cost": "inline",
+            "selected_candidate_benchmark": null,
+            "selected_mechanism": null,
+            "supported_on_target": false
+          },
+          "path_probe": null,
+          "read": {
+            "available": false,
+            "eligible_benchmarks": [],
+            "entry_probe": null,
+            "read_cost": "system call",
+            "selected_candidate_benchmark": null,
+            "selected_mechanism": null,
+            "supported_on_target": false
+          }
+        },
+        "read_cost_basis": "CLOCK_THREAD_CPUTIME_ID remains a kernel-entry SystemCall tier through either the libc wrapper or raw ABI; relative wrapper speed does not change mechanism class",
+        "selected_mechanism": "freebsd_x86_64_raw_syscall_clock_thread_cputime",
+        "selected_native_benchmark": "direct_selected_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime",
+        "selected_provider": "posix_thread_cpu_clock",
+        "selected_read_cost": "system call",
+        "selection_kind": "tournament_with_measured_runner_up"
+      }
+    },
+    "native_thread_cpu": {
+      "benchmark": "native_thread_cpu__clock_gettime_clock_thread_cputime_id",
+      "now": 131.34361188296455,
+      "now_ci95": [
+        131.17054290609423,
+        131.42448791940618
+      ],
+      "elapsed": 263.46644419748975,
+      "elapsed_ci95": [
+        263.17909086685484,
+        263.82037874961037
+      ],
+      "provider": "clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+      "read_cost": "system call",
+      "time_domain": "thread CPU"
+    },
+    "direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime": {
+      "provider": "freebsd_x86_64_libc_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime",
+      "now": 130.60840530143457,
+      "now_ci95": [
+        130.54382878921137,
+        130.7524601317602
+      ],
+      "elapsed": 263.27388631316614,
+      "elapsed_ci95": [
+        263.0624207890697,
+        263.5286274899858
+      ]
+    },
+    "direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime": {
+      "provider": "freebsd_x86_64_raw_syscall_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime",
+      "now": 127.14523359843398,
+      "now_ci95": [
+        127.04051898037778,
+        127.25186794378065
+      ],
+      "elapsed": 256.7139215646434,
+      "elapsed_ci95": [
+        255.34823839983756,
+        257.1108528784648
+      ]
+    },
+    "direct_selected_thread_cpu": {
+      "provider": "freebsd_x86_64_raw_syscall_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_selected_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime",
+      "now": 127.07316749522633,
+      "now_ci95": [
+        127.00825825825825,
+        127.1851186161531
+      ],
+      "elapsed": 257.2845182253801,
+      "elapsed_ci95": [
+        257.1823449584474,
+        257.4266687661349
+      ]
+    },
+    "collector_attestation": {
+      "schema": "tach-speed-collector-v1",
+      "invocation_id": "criterion-7e04e62e637d1ed3",
+      "runtime_attestation": {
+        "build_mode": "default",
+        "build_profile": "optimized",
+        "features": [
+          "bench-internal",
+          "thread-cpu-inline"
+        ],
+        "harness": "criterion",
+        "invocation_id": "criterion-7e04e62e637d1ed3",
+        "output_isolated": true,
+        "runner": "aws-freebsd-default",
+        "schema": "tach-benchmark-runtime-v2",
+        "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+        "target": {
+          "arch": "x86_64",
+          "env": "",
+          "os": "freebsd"
+        }
+      },
+      "manifest_sha256": "342b5a09c0049e5bbc325d3cf44cd11615bb20ed6faa4a64022aa63b8bc902bf"
+    }
+  },
+  "selection_profiles": {
+    "instant": "runtime_tournament",
+    "ordered": "runtime_tournament",
+    "thread_cpu": "runtime_tournament"
+  },
+  "route_coverage": {
+    "instant": {
+      "public_row": "tach",
+      "selected_row": "direct_selected_wall",
+      "eligible_exact_rows": [
+        "direct_wall__freebsd_clock_monotonic",
+        "direct_wall__freebsd_clock_monotonic_syscall",
+        "direct_wall__freebsd_at_timekeep",
+        "direct_wall__freebsd_kernel_eligible_tsc"
+      ]
+    },
+    "ordered": {
+      "public_row": "tach_ordered",
+      "selected_row": "direct_selected_ordered_wall",
+      "eligible_exact_rows": [
+        "direct_ordered_wall__freebsd_at_timekeep_os_owned",
+        "direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid",
+        "direct_ordered_wall__freebsd_clock_monotonic_os_owned",
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_lfence",
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence",
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_serialize",
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid",
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_os_owned",
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence",
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence",
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_serialize"
+      ]
+    },
+    "thread_cpu": {
+      "public_row": "tach_thread_cpu",
+      "selected_row": "direct_selected_thread_cpu",
+      "eligible_exact_rows": [
+        "direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime",
+        "direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime"
+      ]
+    }
+  },
+  "thread_cpu_behavior": {
+    "busy": {
+      "direct_delta_ns": 20000251,
+      "public_delta_ns": 20000576,
+      "samples": [
+        {
+          "direct_delta_ns": 20000401,
+          "public_delta_ns": 20000740,
+          "wall_delta_ns": 20001042
+        },
+        {
+          "direct_delta_ns": 20000251,
+          "public_delta_ns": 20000576,
+          "wall_delta_ns": 20000839
+        },
+        {
+          "direct_delta_ns": 20000246,
+          "public_delta_ns": 20000557,
+          "wall_delta_ns": 20000819
+        }
+      ],
+      "wall_delta_ns": 20000839
+    },
+    "direct_benchmark": "native_thread_cpu__clock_gettime_clock_thread_cputime_id",
+    "runtime_attestation": {
+      "build_mode": "default",
+      "build_profile": "optimized",
+      "features": [
+        "bench-internal",
+        "thread-cpu-inline"
+      ],
+      "harness": "criterion",
+      "invocation_id": "criterion-7e04e62e637d1ed3",
+      "output_isolated": true,
+      "runner": "aws-freebsd-default",
+      "schema": "tach-benchmark-runtime-v2",
+      "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+      "target": {
+        "arch": "x86_64",
+        "env": "",
+        "os": "freebsd"
+      }
+    },
+    "sample_count": 3,
+    "schema": "tach-thread-cpu-behavior-v2",
+    "sibling_isolation": {
+      "direct_delta_ns": 3814,
+      "public_delta_ns": 4165,
+      "samples": [
+        {
+          "direct_delta_ns": 3853,
+          "public_delta_ns": 4221,
+          "wall_delta_ns": 20092812
+        },
+        {
+          "direct_delta_ns": 3470,
+          "public_delta_ns": 3852,
+          "wall_delta_ns": 20024337
+        },
+        {
+          "direct_delta_ns": 3814,
+          "public_delta_ns": 4165,
+          "wall_delta_ns": 20024055
+        }
+      ],
+      "wall_delta_ns": 20024337
+    },
+    "sleep": {
+      "direct_delta_ns": 2064,
+      "public_delta_ns": 2435,
+      "samples": [
+        {
+          "direct_delta_ns": 11786,
+          "public_delta_ns": 12140,
+          "wall_delta_ns": 20018909
+        },
+        {
+          "direct_delta_ns": 2064,
+          "public_delta_ns": 2435,
+          "wall_delta_ns": 20007568
+        },
+        {
+          "direct_delta_ns": 1641,
+          "public_delta_ns": 1968,
+          "wall_delta_ns": 20005984
+        }
+      ],
+      "wall_delta_ns": 20007568
+    },
+    "time_domain": "thread CPU",
+    "tagged_wall_fallback": false,
+    "wall_time_advanced_during_sleep": false
+  }
+}

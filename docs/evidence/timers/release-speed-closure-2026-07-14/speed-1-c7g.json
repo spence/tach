@@ -1,0 +1,1831 @@
+{
+  "schema": "tach-speed-primary-v1",
+  "artifact_id": "speed-1-c7g.json",
+  "title": "AWS Graviton 3",
+  "instance": "c7g.large",
+  "triple": "aarch64-unknown-linux-gnu",
+  "order": 1,
+  "build_mode": "default",
+  "evidence_kind": "full_speed",
+  "provenance": {
+    "harness": "criterion",
+    "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+    "runner": "aws-c7g",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "bench-internal",
+      "thread-cpu-inline"
+    ]
+  },
+  "collector_bundle": {
+    "schema": "tach-speed-collector-v1",
+    "path": "speed-1-c7g.collector.bundle",
+    "manifest_sha256": "57fe1c72365e11396bc355070cd2df8a98399ef6c002dad56c10f1b0388d605f"
+  },
+  "collector_attestation": {
+    "schema": "tach-speed-collector-v1",
+    "invocation_id": "criterion-cf512fed09186428",
+    "runtime_attestation": {
+      "build_mode": "default",
+      "build_profile": "optimized",
+      "features": [
+        "bench-internal",
+        "thread-cpu-inline"
+      ],
+      "harness": "criterion",
+      "invocation_id": "criterion-cf512fed09186428",
+      "output_isolated": true,
+      "runner": "aws-c7g",
+      "schema": "tach-benchmark-runtime-v2",
+      "source_revision": "c64dcb732723c6cf288c6a453545bfc00f6b2b5d",
+      "target": {
+        "arch": "aarch64",
+        "env": "gnu",
+        "os": "linux"
+      }
+    },
+    "manifest_sha256": "57fe1c72365e11396bc355070cd2df8a98399ef6c002dad56c10f1b0388d605f"
+  },
+  "clocks": {
+    "tach": {
+      "now": 6.673920260318444,
+      "now_ci95": [
+        6.673727542055813,
+        6.674057577174437
+      ],
+      "elapsed": 13.347434556462908,
+      "elapsed_ci95": [
+        13.347315713168786,
+        13.347800579058557
+      ],
+      "time_domain": "instant wall",
+      "selection": {
+        "decision_rule": "each contract independently tournaments every eligible complete MONOTONIC, MONOTONIC_RAW, raw-syscall, and architectural-counter path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__linux_clock_monotonic",
+            "direct_wall__linux_clock_monotonic_raw",
+            "direct_wall__linux_clock_boottime",
+            "direct_wall__linux_clock_monotonic_vdso_direct",
+            "direct_wall__linux_clock_monotonic_raw_vdso_direct",
+            "direct_wall__linux_clock_boottime_vdso_direct",
+            "direct_wall__linux_clock_monotonic_syscall",
+            "direct_wall__linux_clock_monotonic_raw_syscall",
+            "direct_wall__linux_clock_boottime_syscall",
+            "direct_wall__aarch64_cntvct"
+          ],
+          "ordered": [
+            "direct_ordered_wall__linux_clock_monotonic",
+            "direct_ordered_wall__linux_clock_monotonic_raw",
+            "direct_ordered_wall__linux_clock_boottime",
+            "direct_ordered_wall__linux_clock_monotonic_syscall",
+            "direct_ordered_wall__linux_clock_monotonic_raw_syscall",
+            "direct_ordered_wall__linux_clock_boottime_syscall",
+            "direct_ordered_wall__linux_clock_monotonic_vdso_direct",
+            "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct",
+            "direct_ordered_wall__linux_clock_boottime_vdso_direct",
+            "direct_ordered_wall__aarch64_isb_cntvct"
+          ]
+        },
+        "feat_sb": "ineligible: Arm SB constrains side-channel-observable speculation but does not order architectural counter sampling after a prior Acquire observation",
+        "instant_probe": {
+          "candidate_count": 10,
+          "clock_batches_ns": [
+            137138,
+            135962,
+            137277,
+            137361,
+            138050,
+            137639,
+            136224,
+            137676,
+            137270
+          ],
+          "clock_boottime_batches_ns": [
+            134156,
+            136707,
+            135942,
+            136691,
+            137175,
+            136680,
+            138052,
+            136678,
+            136954
+          ],
+          "clock_boottime_median_ns": 136691,
+          "clock_median_ns": 137277,
+          "clock_raw_batches_ns": [
+            136091,
+            135058,
+            135889,
+            138846,
+            137189,
+            136414,
+            135896,
+            136608,
+            137214
+          ],
+          "clock_raw_median_ns": 136414,
+          "cntvct_batches_ns": [
+            27762,
+            27825,
+            31009,
+            27814,
+            27946,
+            27847,
+            27788,
+            27854,
+            27865
+          ],
+          "cntvct_median_ns": 27847,
+          "direct_allowance_ns": 6863,
+          "direct_decisive_wins": 9,
+          "eligibility": "eligible",
+          "fallback_provider": "linux_clock_monotonic",
+          "kernel_version_known": false,
+          "kernel_version_major": 0,
+          "kernel_version_minor": 0,
+          "permission_basis": "pr_get_tsc_enabled",
+          "pr_get_tsc_status": 0,
+          "reads_per_batch": 4096,
+          "required_decisive_wins": 8,
+          "selected_provider": "aarch64_cntvct",
+          "syscall_batches_ns": [
+            795337,
+            789977,
+            792344,
+            789894,
+            794563,
+            789848,
+            790823,
+            1184419,
+            789631
+          ],
+          "syscall_boottime_batches_ns": [
+            795917,
+            797247,
+            796766,
+            795373,
+            806882,
+            797738,
+            799790,
+            796166,
+            795365
+          ],
+          "syscall_boottime_median_ns": 796766,
+          "syscall_median_ns": 790823,
+          "syscall_raw_batches_ns": [
+            787010,
+            864492,
+            784355,
+            783078,
+            783132,
+            788470,
+            786576,
+            786974,
+            793027
+          ],
+          "syscall_raw_median_ns": 786974,
+          "syscall_vs_clock_allowance_ns": 6863,
+          "syscall_vs_clock_decisive_wins": 0,
+          "tournament_step_count": 9,
+          "tournament_steps": [
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_raw",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_boottime",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_raw_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_boottime_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_raw_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_boottime_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "aarch64_cntvct",
+              "challenger_selected": true,
+              "decisive_wins": 9,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "aarch64_cntvct"
+            }
+          ],
+          "vdso_available": true,
+          "vdso_batches_ns": [
+            130529,
+            133369,
+            133349,
+            134927,
+            132613,
+            131305,
+            132695,
+            135316,
+            133468
+          ],
+          "vdso_boottime_available": true,
+          "vdso_boottime_batches_ns": [
+            133057,
+            132664,
+            131881,
+            131449,
+            133256,
+            132490,
+            132550,
+            132752,
+            132488
+          ],
+          "vdso_boottime_median_ns": 132550,
+          "vdso_median_ns": 133349,
+          "vdso_raw_available": true,
+          "vdso_raw_batches_ns": [
+            132363,
+            135295,
+            136913,
+            136875,
+            137051,
+            136733,
+            131775,
+            135291,
+            136253
+          ],
+          "vdso_raw_median_ns": 136253
+        },
+        "kernel_errata": "trapped CNTVCT/CNTVCTSS reads remain eligible because arm64 emulates them with its workaround-aware counter reader; exact-path measurement determines profitability",
+        "ordered_probe": {
+          "candidate_count": 10,
+          "clock_batches_ns": [
+            139442,
+            138460,
+            138498,
+            136754,
+            138767,
+            137271,
+            138480,
+            138448,
+            137677
+          ],
+          "clock_boottime_batches_ns": [
+            136502,
+            133339,
+            137064,
+            133344,
+            136099,
+            140484,
+            137441,
+            135707,
+            132561
+          ],
+          "clock_boottime_median_ns": 136099,
+          "clock_median_ns": 138460,
+          "clock_raw_batches_ns": [
+            133514,
+            132955,
+            133346,
+            135111,
+            135895,
+            136933,
+            133346,
+            133341,
+            134415
+          ],
+          "clock_raw_median_ns": 133514,
+          "cntvctss_batches_ns": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "cntvctss_vs_isb_allowance_ns": 0,
+          "cntvctss_vs_isb_decisive_wins": 0,
+          "direct_allowance_ns": 6923,
+          "direct_decisive_wins": 9,
+          "direct_median_ns": 70196,
+          "direct_provider": "aarch64_isb_cntvct",
+          "eligibility": "eligible",
+          "fallback_provider": "linux_clock_monotonic",
+          "hwcap_ecv": false,
+          "hwcap_sb": false,
+          "isb_batches_ns": [
+            70205,
+            71405,
+            70196,
+            70198,
+            70653,
+            70193,
+            70194,
+            70193,
+            70194
+          ],
+          "kernel_version_known": false,
+          "kernel_version_major": 0,
+          "kernel_version_minor": 0,
+          "permission_basis": "pr_get_tsc_enabled",
+          "pr_get_tsc_status": 0,
+          "reads_per_batch": 4096,
+          "required_decisive_wins": 8,
+          "sb_eligibility": "ineligible: SB does not order architectural counter sampling",
+          "selected_provider": "aarch64_isb_cntvct",
+          "syscall_batches_ns": [
+            792212,
+            811899,
+            794529,
+            798513,
+            794858,
+            794574,
+            794389,
+            798384,
+            794457
+          ],
+          "syscall_boottime_batches_ns": [
+            807619,
+            798793,
+            800769,
+            803242,
+            851436,
+            802280,
+            801440,
+            803675,
+            803244
+          ],
+          "syscall_boottime_median_ns": 803242,
+          "syscall_median_ns": 794574,
+          "syscall_raw_batches_ns": [
+            793258,
+            793214,
+            793443,
+            797858,
+            793501,
+            797088,
+            800575,
+            796801,
+            796088
+          ],
+          "syscall_raw_median_ns": 796088,
+          "syscall_vs_clock_allowance_ns": 6923,
+          "syscall_vs_clock_decisive_wins": 0,
+          "tournament_step_count": 9,
+          "tournament_steps": [
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_raw",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_boottime",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_raw_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_boottime_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_raw_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 5,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_boottime_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 3,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "aarch64_isb_cntvct",
+              "challenger_selected": true,
+              "decisive_wins": 9,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "aarch64_isb_cntvct"
+            },
+            {
+              "allowance_ns": 0,
+              "challenger": "not_run",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "not_run",
+              "winner": "not_run"
+            }
+          ],
+          "vdso_available": true,
+          "vdso_batches_ns": [
+            133374,
+            134073,
+            132549,
+            131483,
+            132649,
+            130779,
+            132552,
+            132620,
+            130777
+          ],
+          "vdso_boottime_available": true,
+          "vdso_boottime_batches_ns": [
+            131187,
+            131294,
+            132785,
+            131290,
+            131292,
+            131368,
+            132991,
+            131838,
+            132003
+          ],
+          "vdso_boottime_median_ns": 131368,
+          "vdso_median_ns": 132552,
+          "vdso_raw_available": true,
+          "vdso_raw_batches_ns": [
+            135067,
+            130672,
+            130373,
+            129956,
+            130382,
+            131371,
+            130373,
+            131952,
+            130569
+          ],
+          "vdso_raw_median_ns": 130569
+        },
+        "permission_rule": "PR_GET_TSC is authoritative when implemented, including Android/vendor backports; only exact -EINVAL plus a parsed upstream-pre-6.12 arm64 uname release infers legacy-safe counter access; newer, unknown, and other failed queries remain syscall-only",
+        "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke counter access after direct-provider selection",
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__aarch64_cntvct",
+          "ordered": "direct_selected_ordered_wall__aarch64_isb_cntvct"
+        },
+        "selected_provider": {
+          "instant": "aarch64_cntvct",
+          "ordered": "aarch64_isb_cntvct"
+        }
+      }
+    },
+    "tach_ordered": {
+      "now": 20.647221804744063,
+      "now_ci95": [
+        20.64632530964733,
+        20.64783782242867
+      ],
+      "elapsed": 40.75849606968673,
+      "elapsed_ci95": [
+        40.750668724279834,
+        40.76383774938031
+      ],
+      "time_domain": "ordered wall",
+      "selection": {
+        "decision_rule": "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins",
+        "eligible_direct_candidates": [
+          "direct_ordered__aarch64_isb_cntvct"
+        ],
+        "probe": null,
+        "selected_provider": "aarch64_isb_cntvct"
+      },
+      "wall_selection": {
+        "decision_rule": "each contract independently tournaments every eligible complete MONOTONIC, MONOTONIC_RAW, raw-syscall, and architectural-counter path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__linux_clock_monotonic",
+            "direct_wall__linux_clock_monotonic_raw",
+            "direct_wall__linux_clock_boottime",
+            "direct_wall__linux_clock_monotonic_vdso_direct",
+            "direct_wall__linux_clock_monotonic_raw_vdso_direct",
+            "direct_wall__linux_clock_boottime_vdso_direct",
+            "direct_wall__linux_clock_monotonic_syscall",
+            "direct_wall__linux_clock_monotonic_raw_syscall",
+            "direct_wall__linux_clock_boottime_syscall",
+            "direct_wall__aarch64_cntvct"
+          ],
+          "ordered": [
+            "direct_ordered_wall__linux_clock_monotonic",
+            "direct_ordered_wall__linux_clock_monotonic_raw",
+            "direct_ordered_wall__linux_clock_boottime",
+            "direct_ordered_wall__linux_clock_monotonic_syscall",
+            "direct_ordered_wall__linux_clock_monotonic_raw_syscall",
+            "direct_ordered_wall__linux_clock_boottime_syscall",
+            "direct_ordered_wall__linux_clock_monotonic_vdso_direct",
+            "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct",
+            "direct_ordered_wall__linux_clock_boottime_vdso_direct",
+            "direct_ordered_wall__aarch64_isb_cntvct"
+          ]
+        },
+        "feat_sb": "ineligible: Arm SB constrains side-channel-observable speculation but does not order architectural counter sampling after a prior Acquire observation",
+        "instant_probe": {
+          "candidate_count": 10,
+          "clock_batches_ns": [
+            137138,
+            135962,
+            137277,
+            137361,
+            138050,
+            137639,
+            136224,
+            137676,
+            137270
+          ],
+          "clock_boottime_batches_ns": [
+            134156,
+            136707,
+            135942,
+            136691,
+            137175,
+            136680,
+            138052,
+            136678,
+            136954
+          ],
+          "clock_boottime_median_ns": 136691,
+          "clock_median_ns": 137277,
+          "clock_raw_batches_ns": [
+            136091,
+            135058,
+            135889,
+            138846,
+            137189,
+            136414,
+            135896,
+            136608,
+            137214
+          ],
+          "clock_raw_median_ns": 136414,
+          "cntvct_batches_ns": [
+            27762,
+            27825,
+            31009,
+            27814,
+            27946,
+            27847,
+            27788,
+            27854,
+            27865
+          ],
+          "cntvct_median_ns": 27847,
+          "direct_allowance_ns": 6863,
+          "direct_decisive_wins": 9,
+          "eligibility": "eligible",
+          "fallback_provider": "linux_clock_monotonic",
+          "kernel_version_known": false,
+          "kernel_version_major": 0,
+          "kernel_version_minor": 0,
+          "permission_basis": "pr_get_tsc_enabled",
+          "pr_get_tsc_status": 0,
+          "reads_per_batch": 4096,
+          "required_decisive_wins": 8,
+          "selected_provider": "aarch64_cntvct",
+          "syscall_batches_ns": [
+            795337,
+            789977,
+            792344,
+            789894,
+            794563,
+            789848,
+            790823,
+            1184419,
+            789631
+          ],
+          "syscall_boottime_batches_ns": [
+            795917,
+            797247,
+            796766,
+            795373,
+            806882,
+            797738,
+            799790,
+            796166,
+            795365
+          ],
+          "syscall_boottime_median_ns": 796766,
+          "syscall_median_ns": 790823,
+          "syscall_raw_batches_ns": [
+            787010,
+            864492,
+            784355,
+            783078,
+            783132,
+            788470,
+            786576,
+            786974,
+            793027
+          ],
+          "syscall_raw_median_ns": 786974,
+          "syscall_vs_clock_allowance_ns": 6863,
+          "syscall_vs_clock_decisive_wins": 0,
+          "tournament_step_count": 9,
+          "tournament_steps": [
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_raw",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_boottime",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_raw_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_boottime_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_monotonic_raw_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "linux_clock_boottime_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6863,
+              "challenger": "aarch64_cntvct",
+              "challenger_selected": true,
+              "decisive_wins": 9,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "aarch64_cntvct"
+            }
+          ],
+          "vdso_available": true,
+          "vdso_batches_ns": [
+            130529,
+            133369,
+            133349,
+            134927,
+            132613,
+            131305,
+            132695,
+            135316,
+            133468
+          ],
+          "vdso_boottime_available": true,
+          "vdso_boottime_batches_ns": [
+            133057,
+            132664,
+            131881,
+            131449,
+            133256,
+            132490,
+            132550,
+            132752,
+            132488
+          ],
+          "vdso_boottime_median_ns": 132550,
+          "vdso_median_ns": 133349,
+          "vdso_raw_available": true,
+          "vdso_raw_batches_ns": [
+            132363,
+            135295,
+            136913,
+            136875,
+            137051,
+            136733,
+            131775,
+            135291,
+            136253
+          ],
+          "vdso_raw_median_ns": 136253
+        },
+        "kernel_errata": "trapped CNTVCT/CNTVCTSS reads remain eligible because arm64 emulates them with its workaround-aware counter reader; exact-path measurement determines profitability",
+        "ordered_probe": {
+          "candidate_count": 10,
+          "clock_batches_ns": [
+            139442,
+            138460,
+            138498,
+            136754,
+            138767,
+            137271,
+            138480,
+            138448,
+            137677
+          ],
+          "clock_boottime_batches_ns": [
+            136502,
+            133339,
+            137064,
+            133344,
+            136099,
+            140484,
+            137441,
+            135707,
+            132561
+          ],
+          "clock_boottime_median_ns": 136099,
+          "clock_median_ns": 138460,
+          "clock_raw_batches_ns": [
+            133514,
+            132955,
+            133346,
+            135111,
+            135895,
+            136933,
+            133346,
+            133341,
+            134415
+          ],
+          "clock_raw_median_ns": 133514,
+          "cntvctss_batches_ns": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "cntvctss_vs_isb_allowance_ns": 0,
+          "cntvctss_vs_isb_decisive_wins": 0,
+          "direct_allowance_ns": 6923,
+          "direct_decisive_wins": 9,
+          "direct_median_ns": 70196,
+          "direct_provider": "aarch64_isb_cntvct",
+          "eligibility": "eligible",
+          "fallback_provider": "linux_clock_monotonic",
+          "hwcap_ecv": false,
+          "hwcap_sb": false,
+          "isb_batches_ns": [
+            70205,
+            71405,
+            70196,
+            70198,
+            70653,
+            70193,
+            70194,
+            70193,
+            70194
+          ],
+          "kernel_version_known": false,
+          "kernel_version_major": 0,
+          "kernel_version_minor": 0,
+          "permission_basis": "pr_get_tsc_enabled",
+          "pr_get_tsc_status": 0,
+          "reads_per_batch": 4096,
+          "required_decisive_wins": 8,
+          "sb_eligibility": "ineligible: SB does not order architectural counter sampling",
+          "selected_provider": "aarch64_isb_cntvct",
+          "syscall_batches_ns": [
+            792212,
+            811899,
+            794529,
+            798513,
+            794858,
+            794574,
+            794389,
+            798384,
+            794457
+          ],
+          "syscall_boottime_batches_ns": [
+            807619,
+            798793,
+            800769,
+            803242,
+            851436,
+            802280,
+            801440,
+            803675,
+            803244
+          ],
+          "syscall_boottime_median_ns": 803242,
+          "syscall_median_ns": 794574,
+          "syscall_raw_batches_ns": [
+            793258,
+            793214,
+            793443,
+            797858,
+            793501,
+            797088,
+            800575,
+            796801,
+            796088
+          ],
+          "syscall_raw_median_ns": 796088,
+          "syscall_vs_clock_allowance_ns": 6923,
+          "syscall_vs_clock_decisive_wins": 0,
+          "tournament_step_count": 9,
+          "tournament_steps": [
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_raw",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_boottime",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_raw_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_boottime_syscall",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_monotonic_raw_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 5,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "linux_clock_boottime_vdso_direct",
+              "challenger_selected": false,
+              "decisive_wins": 3,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "linux_clock_monotonic"
+            },
+            {
+              "allowance_ns": 6923,
+              "challenger": "aarch64_isb_cntvct",
+              "challenger_selected": true,
+              "decisive_wins": 9,
+              "incumbent": "linux_clock_monotonic",
+              "winner": "aarch64_isb_cntvct"
+            },
+            {
+              "allowance_ns": 0,
+              "challenger": "not_run",
+              "challenger_selected": false,
+              "decisive_wins": 0,
+              "incumbent": "not_run",
+              "winner": "not_run"
+            }
+          ],
+          "vdso_available": true,
+          "vdso_batches_ns": [
+            133374,
+            134073,
+            132549,
+            131483,
+            132649,
+            130779,
+            132552,
+            132620,
+            130777
+          ],
+          "vdso_boottime_available": true,
+          "vdso_boottime_batches_ns": [
+            131187,
+            131294,
+            132785,
+            131290,
+            131292,
+            131368,
+            132991,
+            131838,
+            132003
+          ],
+          "vdso_boottime_median_ns": 131368,
+          "vdso_median_ns": 132552,
+          "vdso_raw_available": true,
+          "vdso_raw_batches_ns": [
+            135067,
+            130672,
+            130373,
+            129956,
+            130382,
+            131371,
+            130373,
+            131952,
+            130569
+          ],
+          "vdso_raw_median_ns": 130569
+        },
+        "permission_rule": "PR_GET_TSC is authoritative when implemented, including Android/vendor backports; only exact -EINVAL plus a parsed upstream-pre-6.12 arm64 uname release infers legacy-safe counter access; newer, unknown, and other failed queries remain syscall-only",
+        "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke counter access after direct-provider selection",
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__aarch64_cntvct",
+          "ordered": "direct_selected_ordered_wall__aarch64_isb_cntvct"
+        },
+        "selected_provider": {
+          "instant": "aarch64_cntvct",
+          "ordered": "aarch64_isb_cntvct"
+        }
+      }
+    },
+    "quanta": {
+      "now": 6.810431105205147,
+      "now_ci95": [
+        6.809797303114513,
+        6.812480656587077
+      ],
+      "elapsed": 14.199767317928604,
+      "elapsed_ci95": [
+        14.198400799282062,
+        14.20212003154951
+      ]
+    },
+    "fastant": {
+      "now": 41.94057767603007,
+      "now_ci95": [
+        41.856520539932944,
+        42.01652293772531
+      ],
+      "elapsed": 87.73523582591632,
+      "elapsed_ci95": [
+        87.63449556969309,
+        87.80820134803852
+      ]
+    },
+    "minstant": {
+      "now": 41.559519034590224,
+      "now_ci95": [
+        41.5304416056935,
+        41.572943376178856
+      ],
+      "elapsed": 87.55946436888682,
+      "elapsed_ci95": [
+        87.46683427192276,
+        87.63001334159168
+      ]
+    },
+    "std": {
+      "now": 32.59154985996331,
+      "now_ci95": [
+        32.5802621295353,
+        32.607523950218514
+      ],
+      "elapsed": 70.3353227784607,
+      "elapsed_ci95": [
+        70.25894523588002,
+        70.38814113106594
+      ]
+    },
+    "direct_ordered__aarch64_isb_cntvct": {
+      "provider": "aarch64_isb_cntvct",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered__aarch64_isb_cntvct",
+      "now": 20.270460456173524,
+      "now_ci95": [
+        20.269882647241623,
+        20.27097092002748
+      ]
+    },
+    "direct_wall__linux_clock_monotonic": {
+      "provider": "linux_clock_monotonic",
+      "read_cost": "vDSO or system call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_monotonic",
+      "now": 33.53609655704405,
+      "now_ci95": [
+        33.521757333834415,
+        33.558404880016894
+      ],
+      "elapsed": 67.73605375149951,
+      "elapsed_ci95": [
+        67.69380302617452,
+        67.80777031017575
+      ]
+    },
+    "direct_wall__linux_clock_monotonic_raw": {
+      "provider": "linux_clock_monotonic_raw",
+      "read_cost": "vDSO or system call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_monotonic_raw",
+      "now": 33.389960882028234,
+      "now_ci95": [
+        33.35708667705457,
+        33.41196414344004
+      ],
+      "elapsed": 67.6080358153906,
+      "elapsed_ci95": [
+        67.51967500849281,
+        67.64017132161436
+      ]
+    },
+    "direct_wall__linux_clock_boottime": {
+      "provider": "linux_clock_boottime",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_boottime",
+      "now": 33.5172362103403,
+      "now_ci95": [
+        33.49344537679578,
+        33.53799469316321
+      ],
+      "elapsed": 68.14935391695248,
+      "elapsed_ci95": [
+        68.0931808643838,
+        68.22272713119935
+      ]
+    },
+    "direct_wall__linux_clock_monotonic_vdso_direct": {
+      "provider": "linux_clock_monotonic_vdso_direct",
+      "read_cost": "direct vDSO call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_monotonic_vdso_direct",
+      "now": 33.20189586310536,
+      "now_ci95": [
+        33.16928168637257,
+        33.22529958688829
+      ],
+      "elapsed": 67.44081790593023,
+      "elapsed_ci95": [
+        67.39940666784325,
+        67.4690070663522
+      ]
+    },
+    "direct_wall__linux_clock_monotonic_raw_vdso_direct": {
+      "provider": "linux_clock_monotonic_raw_vdso_direct",
+      "read_cost": "direct vDSO call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_monotonic_raw_vdso_direct",
+      "now": 33.5615853092681,
+      "now_ci95": [
+        33.54755278025572,
+        33.57994350282486
+      ],
+      "elapsed": 66.42382545841039,
+      "elapsed_ci95": [
+        66.38574452114949,
+        66.47326443495844
+      ]
+    },
+    "direct_wall__linux_clock_boottime_vdso_direct": {
+      "provider": "linux_clock_boottime_vdso_direct",
+      "read_cost": "direct vDSO call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_boottime_vdso_direct",
+      "now": 33.28954473652546,
+      "now_ci95": [
+        33.257046384438084,
+        33.32629974291509
+      ],
+      "elapsed": 66.7526396776175,
+      "elapsed_ci95": [
+        66.669510403622,
+        66.78675295322294
+      ]
+    },
+    "direct_wall__linux_clock_monotonic_syscall": {
+      "provider": "linux_clock_monotonic_syscall",
+      "read_cost": "system call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_monotonic_syscall",
+      "now": 196.02593435834012,
+      "now_ci95": [
+        195.99788934117294,
+        196.0641685191066
+      ],
+      "elapsed": 388.85112788655294,
+      "elapsed_ci95": [
+        388.7953766507775,
+        388.9149542422132
+      ]
+    },
+    "direct_wall__linux_clock_monotonic_raw_syscall": {
+      "provider": "linux_clock_monotonic_raw_syscall",
+      "read_cost": "system call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_monotonic_raw_syscall",
+      "now": 192.51121381856882,
+      "now_ci95": [
+        192.47607007185397,
+        192.5662041490031
+      ],
+      "elapsed": 397.5311395566884,
+      "elapsed_ci95": [
+        396.37407986331993,
+        398.5588216152895
+      ]
+    },
+    "direct_wall__linux_clock_boottime_syscall": {
+      "provider": "linux_clock_boottime_syscall",
+      "read_cost": "system call",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__linux_clock_boottime_syscall",
+      "now": 194.4605116155785,
+      "now_ci95": [
+        194.4078961748634,
+        194.49404659188957
+      ],
+      "elapsed": 388.3677524613221,
+      "elapsed_ci95": [
+        388.29919643581627,
+        388.4849683544304
+      ]
+    },
+    "direct_wall__aarch64_cntvct": {
+      "provider": "aarch64_cntvct",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__aarch64_cntvct",
+      "now": 6.673758382096375,
+      "now_ci95": [
+        6.6735917399984555,
+        6.673935280898877
+      ],
+      "elapsed": 13.348078252761676,
+      "elapsed_ci95": [
+        13.347737680789482,
+        13.348559613970766
+      ]
+    },
+    "direct_ordered_wall__linux_clock_monotonic": {
+      "provider": "linux_clock_monotonic",
+      "read_cost": "vDSO or system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_monotonic",
+      "now": 33.57523397341495,
+      "now_ci95": [
+        33.55017449921117,
+        33.591824786516284
+      ],
+      "elapsed": 67.48680259381455,
+      "elapsed_ci95": [
+        67.42515872180715,
+        67.559777764948
+      ]
+    },
+    "direct_ordered_wall__linux_clock_monotonic_raw": {
+      "provider": "linux_clock_monotonic_raw",
+      "read_cost": "vDSO or system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_monotonic_raw",
+      "now": 33.41160637051853,
+      "now_ci95": [
+        33.37449795983826,
+        33.44764646614779
+      ],
+      "elapsed": 67.85927279628761,
+      "elapsed_ci95": [
+        67.74150105745198,
+        67.96742739358865
+      ]
+    },
+    "direct_ordered_wall__linux_clock_boottime": {
+      "provider": "linux_clock_boottime",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_boottime",
+      "now": 33.48634735310137,
+      "now_ci95": [
+        33.46231009038328,
+        33.50695377138932
+      ],
+      "elapsed": 68.19305316229497,
+      "elapsed_ci95": [
+        68.10538146800832,
+        68.26672360806161
+      ]
+    },
+    "direct_ordered_wall__linux_clock_monotonic_syscall": {
+      "provider": "linux_clock_monotonic_syscall",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_monotonic_syscall",
+      "now": 192.8298429551989,
+      "now_ci95": [
+        192.76857684531277,
+        192.86745021221026
+      ],
+      "elapsed": 401.35295932851943,
+      "elapsed_ci95": [
+        400.23540393754246,
+        403.0852487634565
+      ]
+    },
+    "direct_ordered_wall__linux_clock_monotonic_raw_syscall": {
+      "provider": "linux_clock_monotonic_raw_syscall",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_monotonic_raw_syscall",
+      "now": 192.82762818106534,
+      "now_ci95": [
+        192.78587526457022,
+        192.86698109477737
+      ],
+      "elapsed": 385.28203012830863,
+      "elapsed_ci95": [
+        385.20156700812623,
+        385.3671922998157
+      ]
+    },
+    "direct_ordered_wall__linux_clock_boottime_syscall": {
+      "provider": "linux_clock_boottime_syscall",
+      "read_cost": "system call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_boottime_syscall",
+      "now": 203.94157805756996,
+      "now_ci95": [
+        203.89658571555174,
+        203.98317693542413
+      ],
+      "elapsed": 388.57537274802723,
+      "elapsed_ci95": [
+        388.47657186948857,
+        388.7149237472767
+      ]
+    },
+    "direct_ordered_wall__linux_clock_monotonic_vdso_direct": {
+      "provider": "linux_clock_monotonic_vdso_direct",
+      "read_cost": "direct vDSO call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_monotonic_vdso_direct",
+      "now": 33.271416951227366,
+      "now_ci95": [
+        33.2462119077388,
+        33.31017995462721
+      ],
+      "elapsed": 66.45924056642721,
+      "elapsed_ci95": [
+        66.39715054959314,
+        66.50974237179959
+      ]
+    },
+    "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct": {
+      "provider": "linux_clock_monotonic_raw_vdso_direct",
+      "read_cost": "direct vDSO call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct",
+      "now": 33.585091545457225,
+      "now_ci95": [
+        33.56560476432497,
+        33.611924640753415
+      ],
+      "elapsed": 66.01818500958663,
+      "elapsed_ci95": [
+        65.95082482027937,
+        66.04242570296532
+      ]
+    },
+    "direct_ordered_wall__linux_clock_boottime_vdso_direct": {
+      "provider": "linux_clock_boottime_vdso_direct",
+      "read_cost": "direct vDSO call",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__linux_clock_boottime_vdso_direct",
+      "now": 33.26353563624774,
+      "now_ci95": [
+        33.2166547686664,
+        33.295768013371756
+      ],
+      "elapsed": 66.789857427564,
+      "elapsed_ci95": [
+        66.74821897940004,
+        66.83402948934146
+      ]
+    },
+    "direct_ordered_wall__aarch64_isb_cntvct": {
+      "provider": "aarch64_isb_cntvct",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__aarch64_isb_cntvct",
+      "now": 20.271055975937898,
+      "now_ci95": [
+        20.270300023057565,
+        20.27165037013968
+      ],
+      "elapsed": 40.04267468468948,
+      "elapsed_ci95": [
+        40.04126439317339,
+        40.04347060085179
+      ]
+    },
+    "direct_selected_wall": {
+      "provider": "aarch64_cntvct",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_selected_wall__aarch64_cntvct",
+      "now": 6.67374348431624,
+      "now_ci95": [
+        6.6735668119533695,
+        6.673899902104569
+      ],
+      "elapsed": 13.347182100780037,
+      "elapsed_ci95": [
+        13.34695487697648,
+        13.347692034484137
+      ]
+    },
+    "direct_selected_ordered_wall": {
+      "provider": "aarch64_isb_cntvct",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_selected_ordered_wall__aarch64_isb_cntvct",
+      "now": 20.271751420268636,
+      "now_ci95": [
+        20.270922203642403,
+        20.272191271655917
+      ],
+      "elapsed": 40.04233367979793,
+      "elapsed_ci95": [
+        40.0419046930062,
+        40.04420587838749
+      ]
+    },
+    "tach_thread_cpu": {
+      "benchmark": "tach_thread_cpu__linux_perf_mmap__inline",
+      "now": 56.94905395000701,
+      "now_ci95": [
+        56.920044932448285,
+        56.97127649371823
+      ],
+      "elapsed": 114.68132681718839,
+      "elapsed_ci95": [
+        114.65146205285282,
+        114.72647518991927
+      ],
+      "provider": "Linux perf task-clock mmap",
+      "read_cost": "inline",
+      "time_domain": "thread CPU",
+      "selection": {
+        "eligible_direct_candidates": [
+          "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime",
+          "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+          "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+          "direct_thread_cpu__linux_perf_read__raw_read_svc"
+        ],
+        "failure_fallback": {
+          "eligibility_gate": "perf task-clock mmap exposes complete seqlock conversion metadata and a usable architectural counter",
+          "fallback_mechanism": "linux_aarch64_raw_syscall_clock_thread_cputime",
+          "fallback_provider": "posix_thread_cpu_clock",
+          "preferred_provider": "linux_perf_mmap",
+          "trigger": "perf event or mmap capability is unavailable, or an inline mmap read fails"
+        },
+        "fallback_mechanism": "linux_aarch64_raw_syscall_clock_thread_cputime",
+        "fallback_native_benchmark": "direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+        "fallback_provider": "posix_thread_cpu_clock",
+        "fallback_read_cost": "system call",
+        "native_entry_probe": {
+          "floor_ns_per_read": 1,
+          "libc_allowance_ns": 4096,
+          "libc_available": true,
+          "libc_batches_ns": [
+            1121147,
+            1117183,
+            1109251,
+            1112489,
+            1106664,
+            1106391,
+            1105563,
+            1100960,
+            1101104
+          ],
+          "libc_decisive_wins": 0,
+          "libc_materially_faster": false,
+          "libc_median_ns": 1106664,
+          "libc_provider": "linux_aarch64_libc_clock_thread_cputime",
+          "raw_allowance_ns": 4096,
+          "raw_available": true,
+          "raw_batches_ns": [
+            1075893,
+            1074922,
+            1063868,
+            1064661,
+            1067091,
+            1061638,
+            1060329,
+            1061373,
+            1057651
+          ],
+          "raw_decisive_wins": 9,
+          "raw_median_ns": 1063868,
+          "raw_provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+          "raw_selected": true,
+          "reads_per_batch": 4096,
+          "relative_denominator": null,
+          "required_decisive_wins": 7,
+          "selected_provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+          "selected_read_cost": "system call",
+          "selection_basis": "the inlined raw Linux syscall is the native primitive; libc wraps the same kernel clock and remains the failure fallback",
+          "selection_kind": "raw_syscall_preferred_with_performance_audit"
+        },
+        "perf": {
+          "decision_rule": "prefer perf task-clock mmap when its complete inline capability is available; otherwise use the selected native CLOCK_THREAD_CPUTIME_ID entry; paired path samples audit but do not choose this policy",
+          "event_available": true,
+          "measurement_clock": "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the candidate under test",
+          "mmap": {
+            "available": true,
+            "counter_probe": {
+              "candidate_batches_ns": [
+                [
+                  156241,
+                  159786,
+                  158076,
+                  152405,
+                  155852,
+                  152405,
+                  155848,
+                  152405,
+                  155849
+                ],
+                [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              ],
+              "candidate_eligible": [
+                true,
+                false
+              ],
+              "candidate_names": [
+                "aarch64_isb_cntvct_isb",
+                "aarch64_cntvctss_isb"
+              ],
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "reads_per_batch": 4096,
+              "required_decisive_wins": 8,
+              "selected_candidate": "aarch64_isb_cntvct_isb",
+              "selection_kind": "tournament"
+            },
+            "eligible_benchmarks": [
+              "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb"
+            ],
+            "read_cost": "inline",
+            "selected_candidate_benchmark": "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+            "selected_mechanism": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+            "supported_on_target": true
+          },
+          "path_probe": {
+            "candidate_batches_ns": [
+              [
+                1068847,
+                1060345,
+                1066037,
+                1074563,
+                1073458,
+                1068767,
+                1062465,
+                1071143,
+                1072781
+              ],
+              [
+                233686,
+                234480,
+                233704,
+                231910,
+                233696,
+                233684,
+                232652,
+                233584,
+                233668
+              ],
+              [
+                1632572,
+                1633972,
+                1661555,
+                1634100,
+                1637869,
+                1634399,
+                1638912,
+                1624223,
+                1625289
+              ]
+            ],
+            "candidate_eligible": [
+              true,
+              true,
+              true
+            ],
+            "candidate_names": [
+              "posix_thread_cpu",
+              "linux_perf_mmap",
+              "linux_perf_read"
+            ],
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "failure_fallback_candidate": "posix_thread_cpu",
+            "preferred_candidate": "linux_perf_mmap",
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_candidate": "linux_perf_mmap",
+            "selection_basis": "complete perf mmap metadata and architectural-counter capability; audit samples do not select the provider",
+            "selection_kind": "capability_preferred_with_performance_audit"
+          },
+          "read": {
+            "available": true,
+            "eligible_benchmarks": [
+              "direct_thread_cpu__linux_perf_read__raw_read_svc"
+            ],
+            "entry_probe": {
+              "candidate_batches_ns": null,
+              "candidate_eligible": [
+                true
+              ],
+              "candidate_measured": [
+                false
+              ],
+              "candidate_names": [
+                "raw_read_svc"
+              ],
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "reads_per_batch": 4096,
+              "required_decisive_wins": 8,
+              "selected_candidate": "raw_read_svc",
+              "selection_kind": "fixed_candidate"
+            },
+            "read_cost": "system call",
+            "selected_candidate_benchmark": "direct_thread_cpu__linux_perf_read__raw_read_svc",
+            "selected_mechanism": "linux_perf_read__raw_read_svc",
+            "supported_on_target": true
+          }
+        },
+        "read_cost_basis": "perf mmap is Inline because tach issues no OS or host call on the hot path; persistent perf read and every CLOCK_THREAD_CPUTIME_ID entry route are SystemCall",
+        "selected_mechanism": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+        "selected_native_benchmark": "direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+        "selected_provider": "linux_perf_mmap",
+        "selected_read_cost": "inline",
+        "selection_kind": "capability_preferred_with_failure_fallback"
+      }
+    },
+    "native_thread_cpu": {
+      "benchmark": "native_thread_cpu__inline_syscall_clock_thread_cputime_id",
+      "now": 259.34191894369644,
+      "now_ci95": [
+        259.21625163826997,
+        259.44855335795705
+      ],
+      "elapsed": 535.2138694933549,
+      "elapsed_ci95": [
+        534.3670960187353,
+        536.0336341217255
+      ],
+      "provider": "inline syscall(CLOCK_THREAD_CPUTIME_ID)",
+      "read_cost": "system call",
+      "time_domain": "thread CPU"
+    },
+    "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime": {
+      "provider": "linux_aarch64_libc_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime",
+      "now": 270.201354046343,
+      "now_ci95": [
+        270.06729717557744,
+        270.3660860522553
+      ],
+      "elapsed": 557.9391028371815,
+      "elapsed_ci95": [
+        557.553264604811,
+        558.2922819726944
+      ]
+    },
+    "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime": {
+      "provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+      "now": 260.1025535497777,
+      "now_ci95": [
+        259.97915509803084,
+        260.3800350262697
+      ],
+      "elapsed": 523.6755234626746,
+      "elapsed_ci95": [
+        523.3531901041667,
+        524.0922129294756
+      ]
+    },
+    "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb": {
+      "provider": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "read_cost": "inline",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "now": 58.844193379470795,
+      "now_ci95": [
+        58.82558324515152,
+        58.907310421854866
+      ],
+      "elapsed": 118.55473879528502,
+      "elapsed_ci95": [
+        118.5323987307689,
+        118.56946964062713
+      ]
+    },
+    "direct_thread_cpu__linux_perf_read__raw_read_svc": {
+      "provider": "linux_perf_read__raw_read_svc",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_perf_read__raw_read_svc",
+      "now": 396.80830769962864,
+      "now_ci95": [
+        396.70016996553494,
+        396.9707777136193
+      ],
+      "elapsed": 793.8908376509086,
+      "elapsed_ci95": [
+        793.5059473237043,
+        794.0569300734312
+      ]
+    },
+    "direct_selected_thread_cpu": {
+      "provider": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "read_cost": "inline",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "now": 57.811752422582146,
+      "now_ci95": [
+        57.79466017262766,
+        57.82676391812801
+      ],
+      "elapsed": 116.26360139120521,
+      "elapsed_ci95": [
+        116.22069413109992,
+        116.29839498923468
+      ]
+    },
+    "direct_fallback_thread_cpu": {
+      "provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+      "now": 261.41106793341885,
+      "now_ci95": [
+        261.26076875584033,
+        261.63209358641006
+      ],
+      "elapsed": 525.1479533625604,
+      "elapsed_ci95": [
+        524.8370079435128,
+        525.3427923160491
+      ]
+    }
+  }
+}

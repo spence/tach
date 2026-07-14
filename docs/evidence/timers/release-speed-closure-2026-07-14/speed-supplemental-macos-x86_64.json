@@ -1,0 +1,997 @@
+{
+  "schema": "tach-speed-supplemental-v4",
+  "triple": "x86_64-apple-darwin",
+  "mode": "full_speed_cell",
+  "build_mode": "default",
+  "provenance": {
+    "harness": "criterion",
+    "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+    "runner": "github-macos-15-intel",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "bench-internal",
+      "thread-cpu-inline"
+    ]
+  },
+  "evidence_class": "measured_external_runtime",
+  "collector_bundle": {
+    "schema": "tach-speed-collector-v1",
+    "path": "speed-supplemental-macos-x86_64.collector.bundle",
+    "manifest_sha256": "0efeee5e7a50e66ff03b2375970322b180caa10c58e0cf906281de9855910fe0"
+  },
+  "clocks": {
+    "tach": {
+      "now": 25.11823145380886,
+      "now_ci95": [
+        24.82924216068826,
+        25.562558972408347
+      ],
+      "elapsed": 47.680271781898455,
+      "elapsed_ci95": [
+        47.589821646430025,
+        47.77502318929317
+      ],
+      "time_domain": "instant wall",
+      "selection": {
+        "decision_rule": "each contract retains mach_absolute_time unless its eligible direct dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__apple_mach_absolute_time"
+          ],
+          "ordered": [
+            "direct_ordered_wall__apple_mach_absolute_time",
+            "direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime"
+          ]
+        },
+        "probe": {
+          "instant": {
+            "allowance_total_ticks": 0,
+            "decisive_wins": 0,
+            "mach_absolute_time_batches_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mach_absolute_time_median_ticks": 0,
+            "measured_winner": "apple_mach_absolute_time",
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_mach_absolute_time",
+            "translated": false,
+            "tsc_batches_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "tsc_eligibility_basis": "ineligible_cpuid_missing_invariant_tsc_or_rdtscp",
+            "tsc_eligible": false,
+            "tsc_median_ticks": 0,
+            "tsc_selected": false
+          },
+          "ordered": {
+            "allowance_total_ticks": 5537,
+            "commpage_batches_ticks": [
+              83564,
+              83532,
+              83539,
+              83890,
+              83540,
+              83555,
+              83497,
+              83509,
+              83868
+            ],
+            "commpage_eligibility_basis": "eligible_pre_rosetta_intel_identity_timebase_mapped_commpage",
+            "commpage_eligible": true,
+            "commpage_median_ticks": 83540,
+            "commpage_selected": true,
+            "decisive_wins": 9,
+            "mach_absolute_time_batches_ticks": [
+              112867,
+              110783,
+              110912,
+              110598,
+              111091,
+              110575,
+              110705,
+              110743,
+              110710
+            ],
+            "mach_absolute_time_median_ticks": 110743,
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_commpage_lfence_rdtsc_nanotime"
+          }
+        },
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                3577286,
+                3268706,
+                3258214,
+                3289876,
+                3443816,
+                3261606,
+                3259633,
+                3291499,
+                3262216
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                3456908,
+                3232041,
+                3179990,
+                3253214,
+                3355342,
+                3201089,
+                3176130,
+                3177287,
+                3184956
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1760036,
+                1831986,
+                1752416,
+                1672599,
+                1649932,
+                1695527,
+                1623366,
+                1622805,
+                1593791
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1769395,
+                1803032,
+                1721341,
+                1676556,
+                1636359,
+                1631814,
+                1606251,
+                1685353,
+                1571661
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                2367189,
+                2365448,
+                2372883,
+                2364853,
+                2365470,
+                2362575,
+                2378082,
+                2364167,
+                2364219
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                2382608,
+                2365704,
+                2366234,
+                2364685,
+                2372017,
+                2363488,
+                2364327,
+                2364500,
+                2371604
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1193329,
+                1190310,
+                1238597,
+                1190909,
+                1190408,
+                1206224,
+                1207938,
+                1247016,
+                1198412
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1169193,
+                1205337,
+                1167521,
+                1166068,
+                1173348,
+                1177951,
+                1180598,
+                1225149,
+                1188649
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__apple_mach_absolute_time",
+          "ordered": "direct_selected_ordered_wall__apple_commpage_lfence_rdtsc_nanotime"
+        },
+        "selected_provider": {
+          "instant": "apple_mach_absolute_time",
+          "ordered": "apple_commpage_lfence_rdtsc_nanotime"
+        }
+      }
+    },
+    "tach_ordered": {
+      "now": 22.952965194425914,
+      "now_ci95": [
+        22.62322202951919,
+        23.226509299340197
+      ],
+      "elapsed": 39.52878364460848,
+      "elapsed_ci95": [
+        39.49749374594644,
+        39.55968498885812
+      ],
+      "time_domain": "ordered wall",
+      "selection": {
+        "decision_rule": "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins",
+        "eligible_direct_candidates": [
+          "direct_ordered_wall__apple_mach_absolute_time",
+          "direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime"
+        ],
+        "probe": {
+          "allowance_total_ticks": 5537,
+          "batch_count": 9,
+          "challenger": "apple_commpage_lfence_rdtsc_nanotime",
+          "challenger_batches_ticks": [
+            83564,
+            83532,
+            83539,
+            83890,
+            83540,
+            83555,
+            83497,
+            83509,
+            83868
+          ],
+          "challenger_median_ticks": 83540,
+          "challenger_selected": true,
+          "computed_winner": "apple_commpage_lfence_rdtsc_nanotime",
+          "counter_hz": 1000000000,
+          "decisive_wins": 9,
+          "incumbent": "apple_mach_absolute_time",
+          "incumbent_batches_ticks": [
+            112867,
+            110783,
+            110912,
+            110598,
+            111091,
+            110575,
+            110705,
+            110743,
+            110710
+          ],
+          "incumbent_median_ticks": 110743,
+          "reads_per_batch": 4096,
+          "required_decisive_wins": 8,
+          "x86_tournament": null
+        },
+        "selected_provider": "apple_commpage_lfence_rdtsc_nanotime"
+      },
+      "wall_selection": {
+        "decision_rule": "each contract retains mach_absolute_time unless its eligible direct dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__apple_mach_absolute_time"
+          ],
+          "ordered": [
+            "direct_ordered_wall__apple_mach_absolute_time",
+            "direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime"
+          ]
+        },
+        "probe": {
+          "instant": {
+            "allowance_total_ticks": 0,
+            "decisive_wins": 0,
+            "mach_absolute_time_batches_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "mach_absolute_time_median_ticks": 0,
+            "measured_winner": "apple_mach_absolute_time",
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_mach_absolute_time",
+            "translated": false,
+            "tsc_batches_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "tsc_eligibility_basis": "ineligible_cpuid_missing_invariant_tsc_or_rdtscp",
+            "tsc_eligible": false,
+            "tsc_median_ticks": 0,
+            "tsc_selected": false
+          },
+          "ordered": {
+            "allowance_total_ticks": 5537,
+            "commpage_batches_ticks": [
+              83564,
+              83532,
+              83539,
+              83890,
+              83540,
+              83555,
+              83497,
+              83509,
+              83868
+            ],
+            "commpage_eligibility_basis": "eligible_pre_rosetta_intel_identity_timebase_mapped_commpage",
+            "commpage_eligible": true,
+            "commpage_median_ticks": 83540,
+            "commpage_selected": true,
+            "decisive_wins": 9,
+            "mach_absolute_time_batches_ticks": [
+              112867,
+              110783,
+              110912,
+              110598,
+              111091,
+              110575,
+              110705,
+              110743,
+              110710
+            ],
+            "mach_absolute_time_median_ticks": 110743,
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_commpage_lfence_rdtsc_nanotime"
+          }
+        },
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                3577286,
+                3268706,
+                3258214,
+                3289876,
+                3443816,
+                3261606,
+                3259633,
+                3291499,
+                3262216
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                3456908,
+                3232041,
+                3179990,
+                3253214,
+                3355342,
+                3201089,
+                3176130,
+                3177287,
+                3184956
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1760036,
+                1831986,
+                1752416,
+                1672599,
+                1649932,
+                1695527,
+                1623366,
+                1622805,
+                1593791
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1769395,
+                1803032,
+                1721341,
+                1676556,
+                1636359,
+                1631814,
+                1606251,
+                1685353,
+                1571661
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                2367189,
+                2365448,
+                2372883,
+                2364853,
+                2365470,
+                2362575,
+                2378082,
+                2364167,
+                2364219
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                2382608,
+                2365704,
+                2366234,
+                2364685,
+                2372017,
+                2363488,
+                2364327,
+                2364500,
+                2371604
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1193329,
+                1190310,
+                1238597,
+                1190909,
+                1190408,
+                1206224,
+                1207938,
+                1247016,
+                1198412
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1169193,
+                1205337,
+                1167521,
+                1166068,
+                1173348,
+                1177951,
+                1180598,
+                1225149,
+                1188649
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__apple_mach_absolute_time",
+          "ordered": "direct_selected_ordered_wall__apple_commpage_lfence_rdtsc_nanotime"
+        },
+        "selected_provider": {
+          "instant": "apple_mach_absolute_time",
+          "ordered": "apple_commpage_lfence_rdtsc_nanotime"
+        }
+      }
+    },
+    "quanta": {
+      "now": 137.5569732234058,
+      "now_ci95": [
+        132.60759703779365,
+        140.92903722065822
+      ],
+      "elapsed": 203.0574506272461,
+      "elapsed_ci95": [
+        201.3694784386309,
+        206.61474314087465
+      ]
+    },
+    "fastant": {
+      "now": 51.02216762087352,
+      "now_ci95": [
+        50.518705110411,
+        51.518861444064754
+      ],
+      "elapsed": 109.89459175989673,
+      "elapsed_ci95": [
+        109.67737768999993,
+        110.11378012048193
+      ]
+    },
+    "minstant": {
+      "now": 48.25732096752276,
+      "now_ci95": [
+        48.168823105145975,
+        48.344932735426006
+      ],
+      "elapsed": 111.55910134141632,
+      "elapsed_ci95": [
+        109.91153935670064,
+        112.9776257195612
+      ]
+    },
+    "std": {
+      "now": 47.27894965972612,
+      "now_ci95": [
+        47.236245719984396,
+        47.33494765110038
+      ],
+      "elapsed": 105.57590653394163,
+      "elapsed_ci95": [
+        104.59277698797031,
+        107.50036795002384
+      ]
+    },
+    "direct_ordered_wall__apple_mach_absolute_time": {
+      "provider": "apple_mach_absolute_time",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__apple_mach_absolute_time",
+      "now": 29.94536209397499,
+      "now_ci95": [
+        28.78509342716216,
+        30.404737523205252
+      ],
+      "elapsed": 49.03011964027622,
+      "elapsed_ci95": [
+        48.97459986082116,
+        49.11106239851543
+      ]
+    },
+    "direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime": {
+      "provider": "apple_commpage_lfence_rdtsc_nanotime",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime",
+      "now": 23.570042139550974,
+      "now_ci95": [
+        23.403357386126643,
+        23.93348713070597
+      ],
+      "elapsed": 36.820186616849824,
+      "elapsed_ci95": [
+        36.7673276558712,
+        36.84392366507117
+      ]
+    },
+    "direct_wall__apple_mach_absolute_time": {
+      "provider": "apple_mach_absolute_time",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__apple_mach_absolute_time",
+      "now": 28.579452750811253,
+      "now_ci95": [
+        28.117969222152755,
+        29.781219654806076
+      ],
+      "elapsed": 49.09629332445323,
+      "elapsed_ci95": [
+        49.040727952959074,
+        49.16423905176835
+      ]
+    },
+    "direct_selected_wall": {
+      "provider": "apple_mach_absolute_time",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_selected_wall__apple_mach_absolute_time",
+      "now": 29.358467014743667,
+      "now_ci95": [
+        28.807667669049884,
+        29.692733893557424
+      ],
+      "elapsed": 49.211015953816684,
+      "elapsed_ci95": [
+        49.13430139705084,
+        49.23341536512268
+      ]
+    },
+    "direct_selected_ordered_wall": {
+      "provider": "apple_commpage_lfence_rdtsc_nanotime",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_selected_ordered_wall__apple_commpage_lfence_rdtsc_nanotime",
+      "now": 23.814300443050755,
+      "now_ci95": [
+        23.27031144211239,
+        24.137962700806305
+      ],
+      "elapsed": 36.249402209069146,
+      "elapsed_ci95": [
+        36.1806497037942,
+        36.308091900091156
+      ]
+    },
+    "tach_thread_cpu": {
+      "benchmark": "tach_thread_cpu__posix_thread_cpu_clock__system_call",
+      "now": 444.50776536576166,
+      "now_ci95": [
+        443.3427988552423,
+        445.4313346433532
+      ],
+      "elapsed": 918.12493101481,
+      "elapsed_ci95": [
+        915.3673199626866,
+        920.7467507102273
+      ],
+      "provider": "POSIX thread CPU clock",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "selection": {
+        "eligible_direct_candidates": [
+          "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu"
+        ],
+        "fallback_mechanism": null,
+        "fallback_native_benchmark": null,
+        "fallback_provider": null,
+        "fallback_read_cost": null,
+        "fixed_provider": {
+          "candidate": "macos_clock_gettime_nsec_np_thread_cpu",
+          "native_primitive": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+          "selection_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is macOS's direct current-thread CPU-time entry",
+          "supported_architectures": [
+            "x86_64",
+            "aarch64"
+          ],
+          "time_domain": "thread CPU"
+        },
+        "public_exact_probe": {
+          "elapsed": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              65586559,
+              66081955,
+              63634740,
+              63467550,
+              62556064,
+              62970877,
+              62272911,
+              64382614,
+              63440404
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              67171238,
+              66713527,
+              63934194,
+              63426274,
+              62297613,
+              63172801,
+              62610762,
+              64432570,
+              63607346
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          },
+          "now": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              31827427,
+              30915194,
+              31421634,
+              30876176,
+              31122142,
+              31289364,
+              32396425,
+              35270358,
+              31684608
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              31599067,
+              30925860,
+              31801905,
+              31344426,
+              30896101,
+              31088283,
+              32896566,
+              34283814,
+              31171337
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          }
+        },
+        "read_cost_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is a native system-call tier for scheduled CPU time on the current macOS thread",
+        "selected_mechanism": "macos_clock_gettime_nsec_np_thread_cpu",
+        "selected_native_benchmark": "direct_selected_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+        "selected_provider": "posix_thread_cpu_clock",
+        "selected_read_cost": "system call",
+        "selection_kind": "fixed_native"
+      }
+    },
+    "native_thread_cpu": {
+      "benchmark": "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
+      "now": 429.77310727199676,
+      "now_ci95": [
+        427.73901457321307,
+        439.1681435429291
+      ],
+      "elapsed": 888.4600904977376,
+      "elapsed_ci95": [
+        865.170391363023,
+        890.3440694789082
+      ],
+      "provider": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+      "read_cost": "system call",
+      "time_domain": "thread CPU"
+    },
+    "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu": {
+      "provider": "macos_clock_gettime_nsec_np_thread_cpu",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+      "now": 475.3411701681947,
+      "now_ci95": [
+        474.2179264909847,
+        476.2563346113103
+      ],
+      "elapsed": 922.5926389495191,
+      "elapsed_ci95": [
+        914.0642176870748,
+        946.8808713961776
+      ]
+    },
+    "direct_selected_thread_cpu": {
+      "provider": "macos_clock_gettime_nsec_np_thread_cpu",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_selected_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+      "now": 444.50314481123826,
+      "now_ci95": [
+        443.29914794732764,
+        445.71681781415293
+      ],
+      "elapsed": 914.7091586417245,
+      "elapsed_ci95": [
+        913.3225806451613,
+        916.4015444015444
+      ]
+    },
+    "collector_attestation": {
+      "schema": "tach-speed-collector-v1",
+      "invocation_id": "criterion-7816bc1f141f92c3",
+      "runtime_attestation": {
+        "build_mode": "default",
+        "build_profile": "optimized",
+        "features": [
+          "bench-internal",
+          "thread-cpu-inline"
+        ],
+        "harness": "criterion",
+        "invocation_id": "criterion-7816bc1f141f92c3",
+        "output_isolated": true,
+        "runner": "github-macos-15-intel",
+        "schema": "tach-benchmark-runtime-v2",
+        "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+        "target": {
+          "arch": "x86_64",
+          "env": "",
+          "os": "macos"
+        }
+      },
+      "manifest_sha256": "0efeee5e7a50e66ff03b2375970322b180caa10c58e0cf906281de9855910fe0"
+    }
+  },
+  "selection_profiles": {
+    "instant": "runtime_tournament",
+    "ordered": "runtime_tournament",
+    "thread_cpu": "fixed_native"
+  },
+  "route_coverage": {
+    "instant": {
+      "public_row": "tach",
+      "selected_row": "direct_selected_wall",
+      "eligible_exact_rows": [
+        "direct_wall__apple_mach_absolute_time"
+      ]
+    },
+    "ordered": {
+      "public_row": "tach_ordered",
+      "selected_row": "direct_selected_ordered_wall",
+      "eligible_exact_rows": [
+        "direct_ordered_wall__apple_mach_absolute_time",
+        "direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime"
+      ]
+    },
+    "thread_cpu": {
+      "public_row": "tach_thread_cpu",
+      "selected_row": "direct_selected_thread_cpu",
+      "eligible_exact_rows": [
+        "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu"
+      ]
+    }
+  },
+  "thread_cpu_behavior": {
+    "busy": {
+      "direct_delta_ns": 20003966,
+      "public_delta_ns": 20005192,
+      "samples": [
+        {
+          "direct_delta_ns": 20003966,
+          "public_delta_ns": 20005192,
+          "wall_delta_ns": 20006546
+        },
+        {
+          "direct_delta_ns": 20009167,
+          "public_delta_ns": 20010442,
+          "wall_delta_ns": 20025245
+        },
+        {
+          "direct_delta_ns": 20002259,
+          "public_delta_ns": 20003471,
+          "wall_delta_ns": 20004037
+        }
+      ],
+      "wall_delta_ns": 20006546
+    },
+    "direct_benchmark": "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
+    "runtime_attestation": {
+      "build_mode": "default",
+      "build_profile": "optimized",
+      "features": [
+        "bench-internal",
+        "thread-cpu-inline"
+      ],
+      "harness": "criterion",
+      "invocation_id": "criterion-7816bc1f141f92c3",
+      "output_isolated": true,
+      "runner": "github-macos-15-intel",
+      "schema": "tach-benchmark-runtime-v2",
+      "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+      "target": {
+        "arch": "x86_64",
+        "env": "",
+        "os": "macos"
+      }
+    },
+    "sample_count": 3,
+    "schema": "tach-thread-cpu-behavior-v2",
+    "sibling_isolation": {
+      "direct_delta_ns": 77439,
+      "public_delta_ns": 78418,
+      "samples": [
+        {
+          "direct_delta_ns": 76346,
+          "public_delta_ns": 77451,
+          "wall_delta_ns": 135520844
+        },
+        {
+          "direct_delta_ns": 77439,
+          "public_delta_ns": 78418,
+          "wall_delta_ns": 131746542
+        },
+        {
+          "direct_delta_ns": 106924,
+          "public_delta_ns": 107924,
+          "wall_delta_ns": 99955833
+        }
+      ],
+      "wall_delta_ns": 131746542
+    },
+    "sleep": {
+      "direct_delta_ns": 55750,
+      "public_delta_ns": 56945,
+      "samples": [
+        {
+          "direct_delta_ns": 98142,
+          "public_delta_ns": 99349,
+          "wall_delta_ns": 22384487
+        },
+        {
+          "direct_delta_ns": 55750,
+          "public_delta_ns": 56945,
+          "wall_delta_ns": 166821277
+        },
+        {
+          "direct_delta_ns": 44746,
+          "public_delta_ns": 45855,
+          "wall_delta_ns": 134829791
+        }
+      ],
+      "wall_delta_ns": 134829791
+    },
+    "time_domain": "thread CPU",
+    "tagged_wall_fallback": false,
+    "wall_time_advanced_during_sleep": false
+  }
+}

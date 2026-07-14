@@ -1,0 +1,45 @@
+{
+  "schema": "tach-speed-supplemental-v4",
+  "triple": "wasm32-wasip1-threads",
+  "mode": "runtime_smoke",
+  "build_mode": "default",
+  "provenance": {
+    "harness": "wasi-threads-smoke",
+    "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+    "runner": "wasmtime-wasi-threads",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "thread-cpu-inline"
+    ]
+  },
+  "evidence_class": "runtime_smoke",
+  "passed": true,
+  "smoke_schema": "tach-runtime-smoke-attestation-v1",
+  "runtime_attestation": {
+    "build_mode": "default",
+    "build_profile": "optimized",
+    "features": [
+      "thread-cpu-inline"
+    ],
+    "harness": "wasi-threads-smoke",
+    "invocation_id": "wasi-p1-threads-smoke-68dc2015bbb8-20260714T214501Z-65819",
+    "output_isolated": true,
+    "runner": "wasmtime-wasi-threads",
+    "schema": "tach-benchmark-runtime-v2",
+    "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+    "target": {
+      "arch": "wasm32",
+      "env": "p1",
+      "os": "wasi"
+    }
+  },
+  "assertions": [
+    "Instant advanced monotonically in the main thread",
+    "OrderedInstant advanced monotonically in the main thread",
+    "ThreadCpuInstant advanced monotonically and its domain tag matched provider introspection",
+    "all three timers executed successfully in a spawned WASI thread",
+    "main provider: MonotonicWallClock; child provider: MonotonicWallClock",
+    "sleep behavior matched the selected domain: advanced=true"
+  ]
+}

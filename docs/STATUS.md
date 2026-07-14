@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       Collect the three missing native artifacts at 68dc201, compose route-observations-v1.json, run the complete M1/M2 release gate, then align README and BENCHMARKS before requesting explicit publication approval.
+> Next:       Import the validated snapshot without overwriting unrelated dirty benchmark work, commit the evidence package, close M1.G1, then finish M2 charts, public wording, full checks, and independent review.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Admitted the source-sealed Windows x86_64 artifact and repaired supplemental validation so the retained native Intel macOS paired public/exact proof is preserved through full-cell admission; all 12 collected decision-boundary artifacts now validate at shipping revision 68dc201. · By: nsr · 33cd5d0
+> Last verified: 2026-07-14 · Changed: Collected the final Linux AArch64, Linux x86_64, and native FreeBSD artifacts and composed route-observations-v1; the complete 15-boundary release evidence validator passes with zero failures across source revisions 68dc201 and c64dcb7, whose shipping Cargo/src digest is identical. · By: nsr · c64dcb7
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
