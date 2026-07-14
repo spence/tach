@@ -2416,6 +2416,17 @@ def validate_windows_thread_cpu_selector(
   if exclusions != expected_exclusions:
     failures.append(f"{context}: Windows thread-CPU exclusions are incomplete")
 
+  public_exact = selection.get("public_exact_probe")
+  if not isinstance(public_exact, dict):
+    failures.append(f"{context}: Windows thread-CPU selector lacks paired public/exact evidence")
+    public_exact = {}
+  public_exact_reproduction = {
+    metric: validate_wall_public_exact_probe(
+      context, f"thread_cpu.{metric}", public_exact.get(metric), failures
+    )
+    for metric in METRICS
+  }
+
   return {
     "winner": "windows_thread_times",
     "selected_mechanism": mechanism,
@@ -2423,6 +2434,7 @@ def validate_windows_thread_cpu_selector(
     "fallback": failure_fallback,
     "eligible_direct_candidates": [candidate],
     "ineligible_direct_candidates": exclusions if isinstance(exclusions, dict) else {},
+    "public_exact": public_exact_reproduction,
   }
 
 

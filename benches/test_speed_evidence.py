@@ -839,6 +839,20 @@ def freebsd_thread_cpu_selection() -> dict:
 
 def windows_thread_cpu_selection() -> dict:
   mechanism = "get_thread_times_current_thread_pseudohandle"
+  parity = {
+    "selection_kind": "paired_public_exact_parity",
+    "reads_per_batch": 65_536,
+    "required_decisive_losses": 8,
+    "equivalence_band": {
+      "floor_ns_per_read": 1,
+      "relative_denominator": 20,
+    },
+    "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+    "call_boundary": "symmetric dynamic FnMut boundary",
+    "measurement_clock": "std::time::Instant outside the measured read loop",
+    "public_batches_ns": [100_000] * 9,
+    "exact_batches_ns": [90_000] * 9,
+  }
   return {
     "selection_kind": "fixed_windows_thread_times",
     "selected_provider": "windows_thread_times",
@@ -897,6 +911,10 @@ def windows_thread_cpu_selection() -> dict:
         ),
         "authority": speed_evidence.WINDOWS_NT_QUERY_INFORMATION_THREAD_AUTHORITY,
       },
+    },
+    "public_exact_probe": {
+      metric: copy.deepcopy(parity)
+      for metric in speed_evidence.METRICS
     },
   }
 
@@ -3857,11 +3875,24 @@ declare void @generic_implementation()
     parity = report["selected_thread_cpu_provider_parity"]
     self.assertTrue(parity["metrics"]["now"]["passed"])
     self.assertTrue(parity["metrics"]["elapsed"]["passed"])
+    self.assertTrue(parity["metrics"]["now"]["paired_probe"]["passed"])
+    self.assertTrue(parity["metrics"]["elapsed"]["paired_probe"]["passed"])
     measured_fallback = parity["failure_fallback"]
     self.assertEqual(measured_fallback["time_domain"], "monotonic wall fallback")
     self.assertFalse(measured_fallback["eligible_for_thread_cpu_speed_claim"])
     self.assertEqual(measured_fallback["now_ns"], 12.0)
     self.assertEqual(measured_fallback["elapsed_ns"], 12.0)
+
+    slower = windows_thread_cpu_selection()
+    slower["public_exact_probe"]["now"]["public_batches_ns"] = [800_000] * 9
+    values["tach_thread_cpu"]["selection"] = slower
+    failures, report = speed_evidence.validate_cell(
+      "Windows x64 slower public path", values, "x86_64-pc-windows-msvc"
+    )
+    self.assertTrue(any("public read is repeatably slower" in item for item in failures))
+    self.assertFalse(
+      report["selected_thread_cpu_provider_parity"]["metrics"]["now"]["passed"]
+    )
 
     missing = copy.deepcopy(values)
     missing.pop("direct_selected_thread_cpu")

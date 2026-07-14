@@ -108,6 +108,7 @@ macro_rules! register_selected_elapsed {
   feature = "bench-internal",
   any(
     target_os = "macos",
+    target_os = "windows",
     all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
@@ -4959,6 +4960,22 @@ fn write_thread_cpu_selection() {
   let selected_benchmark = format!("direct_selected_thread_cpu__{WINDOWS_THREAD_CPU_MECHANISM}");
   let failure_fallback_benchmark =
     format!("direct_fallback_thread_cpu__{WINDOWS_THREAD_CPU_WALL_FALLBACK_MECHANISM}");
+  let public_exact_probe = serde_json::json!({
+    "now": measure_wall_public_exact(
+      ThreadCpuInstant::now,
+      native_thread_cpu_now,
+    ),
+    "elapsed": measure_wall_public_exact(
+      || {
+        let start = ThreadCpuInstant::now();
+        start.elapsed()
+      },
+      || {
+        let start = native_thread_cpu_now();
+        Duration::from_nanos(native_thread_cpu_now().saturating_sub(start))
+      },
+    ),
+  });
   let payload = serde_json::json!({
     "selection_kind": "fixed_windows_thread_times",
     "selected_provider": "windows_thread_times",
@@ -5007,6 +5024,7 @@ fn write_thread_cpu_selection() {
         "authority": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationthread",
       },
     },
+    "public_exact_probe": public_exact_probe,
   });
   fs::write(
     selection_path,
