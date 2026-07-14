@@ -153,7 +153,18 @@ echo "ip $IP"
 
 SSH="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i $KEY_PATH ec2-user@$IP"
 SCP="scp -o StrictHostKeyChecking=no -i $KEY_PATH"
-for _ in $(seq 1 40); do $SSH true 2>/dev/null && break || sleep 5; done
+ssh_ready=0
+for _ in $(seq 1 40); do
+  if $SSH 'cloud-init status --wait >/dev/null 2>&1'; then
+    ssh_ready=1
+    break
+  fi
+  sleep 5
+done
+if [ "$ssh_ready" != 1 ]; then
+  echo "instance $IID never reached stable SSH readiness" >&2
+  exit 1
+fi
 
 # Ship the frozen Git archive. The remote runner writes only a sealed collector
 # bundle, never a caller-shaped clocks JSON.
@@ -172,9 +183,9 @@ BUILD_MODE="$4"
 cd "$HOME/tach"
 
 # The EC2 cells exercise both sides of tach's Linux provider policy: make the
-# perf task-clock user page available, then let tach's measured selector decide
-# whether it is actually faster than CLOCK_THREAD_CPUTIME_ID. Lambda remains
-# unmodified and covers the fleet-policy-denied fallback separately.
+# perf task-clock user page available, then audit the capability-selected mmap
+# path against CLOCK_THREAD_CPUTIME_ID. Lambda remains unmodified and covers
+# the fleet-policy-denied fallback separately.
 sudo sysctl -w kernel.perf_event_paranoid=-1
 if [ -e /proc/sys/kernel/perf_user_access ]; then
   sudo sysctl -w kernel.perf_user_access=1

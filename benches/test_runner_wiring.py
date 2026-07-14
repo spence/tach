@@ -176,6 +176,18 @@ printf "SEAL_RAN\\n"
         self.assertLess(transfer, extract)
         self.assertNotIn('$SCP -r "ec2-user@$IP:tach/collector.bundle"', source)
 
+    def test_aws_waits_for_stable_cloud_init_before_source_transfer(self) -> None:
+        source = self.source("run-speed-aws.sh")
+
+        readiness = source.index("cloud-init status --wait")
+        readiness_guard = source.index('if [ "$ssh_ready" != 1 ]', readiness)
+        transfer = source.index('$SCP "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"')
+
+        self.assertLess(readiness, readiness_guard)
+        self.assertLess(readiness_guard, transfer)
+        self.assertIn('ssh_ready=1', source[readiness:readiness_guard])
+        self.assertIn('exit 1', source[readiness_guard:transfer])
+
     def test_alpine_collector_is_returned_to_the_host_user_before_archiving(self) -> None:
         source = self.source("run-speed-aws.sh")
         collect = source.index(
