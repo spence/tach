@@ -903,6 +903,20 @@ def windows_thread_cpu_selection() -> dict:
 
 def macos_fixed_native_thread_cpu_selection() -> dict:
   mechanism = "macos_clock_gettime_nsec_np_thread_cpu"
+  parity = {
+    "selection_kind": "paired_public_exact_parity",
+    "reads_per_batch": 65_536,
+    "required_decisive_losses": 8,
+    "equivalence_band": {
+      "floor_ns_per_read": 1,
+      "relative_denominator": 20,
+    },
+    "batch_order": "public-first on even batches; exact-first on odd batches",
+    "call_boundary": "symmetric dynamic FnMut boundary",
+    "measurement_clock": "std::time::Instant outside the measured read loop",
+    "public_batches_ns": [100_000] * 9,
+    "exact_batches_ns": [90_000] * 9,
+  }
   return {
     "selection_kind": "fixed_native",
     "selected_provider": "posix_thread_cpu_clock",
@@ -923,6 +937,10 @@ def macos_fixed_native_thread_cpu_selection() -> dict:
         "current-thread CPU-time entry"
       ),
       "time_domain": "thread CPU",
+    },
+    "public_exact_probe": {
+      metric: copy.deepcopy(parity)
+      for metric in speed_evidence.METRICS
     },
     "read_cost_basis": (
       "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is a native system-call "
@@ -1148,6 +1166,20 @@ def apple_x86_wall_selection() -> dict:
   reads = 4_096
   mach = [70_000] * 9
   tsc = [40_000] * 9
+  parity = {
+    "selection_kind": "paired_public_exact_parity",
+    "reads_per_batch": 65_536,
+    "required_decisive_losses": 8,
+    "equivalence_band": {
+      "floor_ns_per_read": 1,
+      "relative_denominator": 20,
+    },
+    "batch_order": "public-first on even batches; exact-first on odd batches",
+    "call_boundary": "symmetric dynamic FnMut boundary",
+    "measurement_clock": "std::time::Instant outside the measured read loop",
+    "public_batches_ns": [100_000] * 9,
+    "exact_batches_ns": [90_000] * 9,
+  }
   return {
     "selected_provider": {
       "instant": "apple_invariant_rdtsc",
@@ -1163,6 +1195,13 @@ def apple_x86_wall_selection() -> dict:
         "direct_wall__apple_invariant_rdtsc",
       ],
       "ordered": ["direct_ordered_wall__apple_mach_absolute_time"],
+    },
+    "public_exact_probe": {
+      domain: {
+        metric: copy.deepcopy(parity)
+        for metric in speed_evidence.METRICS
+      }
+      for domain in ("instant", "ordered")
     },
     "probe": {
       "instant": {
@@ -3530,6 +3569,15 @@ declare void @generic_implementation()
     parity = report["selected_thread_cpu_provider_parity"]
     self.assertTrue(parity["metrics"]["now"]["passed"])
     self.assertTrue(parity["metrics"]["elapsed"]["passed"])
+
+    legacy = copy.deepcopy(selection)
+    legacy.pop("public_exact_probe")
+    failures = []
+    reproduction = speed_evidence.validate_thread_cpu_selector(
+      "macOS legacy fixed native", legacy, failures, "aarch64-apple-darwin"
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(reproduction["public_exact"], {})
 
     fabricated_tournament = copy.deepcopy(selection)
     fabricated_tournament["perf"] = {}

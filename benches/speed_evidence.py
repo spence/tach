@@ -947,6 +947,10 @@ def validate_apple_wall_selector(
     and "tsc_eligible" in probe["instant"]
     and isinstance(probe.get("ordered"), dict)
   ):
+    public_exact = selection.get("public_exact_probe")
+    if not isinstance(public_exact, dict):
+      failures.append(f"{context}: Apple x86 selector lacks paired public/exact evidence")
+      public_exact = {}
     results = {}
     domain_specs = (
       (
@@ -1031,10 +1035,20 @@ def validate_apple_wall_selector(
         failures.append(f"{context}: Apple x86 {domain} selected providers disagree")
       if selected_benchmarks.get(domain) != f"{selected_prefix}__{selected_provider}":
         failures.append(f"{context}: Apple {domain} selected benchmark is mislabeled")
+      domain_public_exact = public_exact.get(domain)
+      if not isinstance(domain_public_exact, dict):
+        failures.append(f"{context}: Apple x86 {domain} lacks metric parity evidence")
+        domain_public_exact = {}
       results[domain] = {
         "winner": selected_provider,
         "measured_winner": measured_winner,
         "decision": decision,
+        "public_exact": {
+          metric: validate_wall_public_exact_probe(
+            context, f"{domain}.{metric}", domain_public_exact.get(metric), failures
+          )
+          for metric in METRICS
+        },
       }
     return results
 
@@ -1281,6 +1295,17 @@ def wall_public_exact_metric(reproduction: object, metric: str) -> dict | None:
   if metric == "now" and "passed" in parity:
     return parity
   return None
+
+
+def thread_public_exact_metric(reproduction: object, metric: str) -> dict | None:
+  """Return a fixed-native thread clock's paired public/exact result."""
+  if not isinstance(reproduction, dict):
+    return None
+  public_exact = reproduction.get("public_exact")
+  if not isinstance(public_exact, dict):
+    return None
+  metric_result = public_exact.get(metric)
+  return metric_result if isinstance(metric_result, dict) else None
 
 
 def validate_legacy_native_thread_cpu_entry_probe(
@@ -2191,6 +2216,20 @@ def validate_fixed_native_thread_cpu_selector(
   if selection.get("failure_fallback") is not None:
     failures.append(f"{context}: fixed-native thread-CPU selector must not declare a fallback")
 
+  public_exact = selection.get("public_exact_probe")
+  if public_exact is None:
+    public_exact_reproduction = {}
+  elif not isinstance(public_exact, dict):
+    failures.append(f"{context}: malformed fixed-native thread-CPU public/exact evidence")
+    public_exact_reproduction = {}
+  else:
+    public_exact_reproduction = {
+      metric: validate_wall_public_exact_probe(
+        context, f"thread_cpu.{metric}", public_exact.get(metric), failures
+      )
+      for metric in METRICS
+    }
+
   if target_triple is not None:
     architecture = target_triple.split("-", 1)[0]
     if target_triple not in {
@@ -2205,6 +2244,7 @@ def validate_fixed_native_thread_cpu_selector(
     "selected_read_cost": "system call",
     "fallback": None,
     "eligible_direct_candidates": [candidate],
+    "public_exact": public_exact_reproduction,
   }
 
 
@@ -4310,11 +4350,25 @@ def validate_cell(
           failures.append(f"{context}: thread-CPU exact candidate {candidate} changed time domain")
         metrics = {}
         for metric in METRICS:
-          passed, allowance = equivalent_or_faster(tach_thread, candidate_row, metric)
+          paired_public_exact = thread_public_exact_metric(
+            thread_selector_reproduction, metric
+          )
+          comparison_basis = "Criterion estimate"
+          if (
+            isinstance(paired_public_exact, dict)
+            and paired_public_exact.get("passed") is not None
+          ):
+            passed = paired_public_exact.get("passed") is True
+            allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
+            comparison_basis = "alternating paired public/exact probe"
+          else:
+            passed, allowance = equivalent_or_faster(tach_thread, candidate_row, metric)
           metrics[metric] = {
             "tach_ns": tach_thread[metric],
             "candidate_ns": candidate_row[metric],
             "equivalence_allowance_ns": allowance,
+            "comparison_basis": comparison_basis,
+            "paired_probe": paired_public_exact,
             "passed": passed,
           }
           if not passed:
@@ -4352,11 +4406,25 @@ def validate_cell(
           failures.append(f"{context}: selected thread-CPU exact row changed time domain")
         metrics = {}
         for metric in METRICS:
-          passed, allowance = equivalent_or_faster(tach_thread, selected_thread, metric)
+          paired_public_exact = thread_public_exact_metric(
+            thread_selector_reproduction, metric
+          )
+          comparison_basis = "Criterion estimate"
+          if (
+            isinstance(paired_public_exact, dict)
+            and paired_public_exact.get("passed") is not None
+          ):
+            passed = paired_public_exact.get("passed") is True
+            allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
+            comparison_basis = "alternating paired public/exact probe"
+          else:
+            passed, allowance = equivalent_or_faster(tach_thread, selected_thread, metric)
           metrics[metric] = {
             "tach_ns": tach_thread[metric],
             "selected_native_ns": selected_thread[metric],
             "equivalence_allowance_ns": allowance,
+            "comparison_basis": comparison_basis,
+            "paired_probe": paired_public_exact,
             "passed": passed,
           }
           if not passed:
@@ -4447,11 +4515,25 @@ def validate_cell(
 
   current_thread = {}
   for metric in METRICS:
-    passed, allowance = equivalent_or_faster(tach_thread, native, metric)
+    paired_public_exact = thread_public_exact_metric(
+      thread_selector_reproduction, metric
+    )
+    comparison_basis = "Criterion estimate"
+    if (
+      isinstance(paired_public_exact, dict)
+      and paired_public_exact.get("passed") is not None
+    ):
+      passed = paired_public_exact.get("passed") is True
+      allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
+      comparison_basis = "alternating paired public/exact probe"
+    else:
+      passed, allowance = equivalent_or_faster(tach_thread, native, metric)
     current_thread[metric] = {
       "tach_ns": tach_thread[metric],
       "native_ns": native[metric],
       "equivalence_allowance_ns": allowance,
+      "comparison_basis": comparison_basis,
+      "paired_probe": paired_public_exact,
       "passed": passed,
     }
     if not passed:

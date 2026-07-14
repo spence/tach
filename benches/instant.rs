@@ -107,7 +107,7 @@ macro_rules! register_selected_elapsed {
 #[cfg(all(
   feature = "bench-internal",
   any(
-    all(target_arch = "aarch64", target_os = "macos"),
+    target_os = "macos",
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -118,7 +118,7 @@ const WALL_PUBLIC_EXACT_BATCHES: usize = 9;
 #[cfg(all(
   feature = "bench-internal",
   any(
-    all(target_arch = "aarch64", target_os = "macos"),
+    target_os = "macos",
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -130,7 +130,7 @@ const WALL_PUBLIC_EXACT_READS: usize = 65_536;
 #[cfg(all(
   feature = "bench-internal",
   any(
-    all(target_arch = "aarch64", target_os = "macos"),
+    target_os = "macos",
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -151,7 +151,7 @@ fn measure_wall_read_batch<T>(read: &mut dyn FnMut() -> T) -> u64 {
 #[cfg(all(
   feature = "bench-internal",
   any(
-    all(target_arch = "aarch64", target_os = "macos"),
+    target_os = "macos",
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -204,6 +204,48 @@ macro_rules! measure_apple_public_exact {
   (ordered, $read:path) => {
     measure_wall_public_exact(|| OrderedInstant::now(), || $read())
   };
+}
+
+#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "macos"))]
+fn measure_apple_x86_public_exact() -> serde_json::Value {
+  let instant_scale = tach::bench::apple_x86_selected_nanos_per_tick_q32();
+  serde_json::json!({
+    "instant": {
+      "now": measure_wall_public_exact(
+        || Instant::now(),
+        || tach::bench::apple_x86_selected_ticks(),
+      ),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = Instant::now();
+          start.elapsed()
+        },
+        || {
+          let start = tach::bench::apple_x86_selected_ticks();
+          let elapsed = tach::bench::apple_x86_selected_ticks().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, instant_scale)
+        },
+      ),
+    },
+    "ordered": {
+      "now": measure_wall_public_exact(
+        || OrderedInstant::now(),
+        || tach::bench::apple_x86_selected_ordered_ticks(),
+      ),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = OrderedInstant::now();
+          start.elapsed()
+        },
+        || {
+          let start = tach::bench::apple_x86_selected_ordered_ticks();
+          let elapsed =
+            tach::bench::apple_x86_selected_ordered_ticks().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, 1_u64 << 32)
+        },
+      ),
+    },
+  })
 }
 
 #[cfg(all(
@@ -2180,6 +2222,12 @@ fn write_apple_wall_selection() {
       "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
     },
   });
+  #[cfg(target_arch = "x86_64")]
+  let payload = {
+    let mut payload = payload;
+    payload["public_exact_probe"] = measure_apple_x86_public_exact();
+    payload
+  };
   #[cfg(target_arch = "aarch64")]
   let payload = {
     let mut payload = payload;
@@ -4686,6 +4734,22 @@ fn write_thread_cpu_selection() {
 
   let direct_candidate = format!("direct_thread_cpu__{MACOS_THREAD_CPU_MECHANISM}");
   let selected_benchmark = format!("direct_selected_thread_cpu__{MACOS_THREAD_CPU_MECHANISM}");
+  let public_exact_probe = serde_json::json!({
+    "now": measure_wall_public_exact(
+      ThreadCpuInstant::now,
+      native_thread_cpu_now,
+    ),
+    "elapsed": measure_wall_public_exact(
+      || {
+        let start = ThreadCpuInstant::now();
+        start.elapsed()
+      },
+      || {
+        let start = native_thread_cpu_now();
+        Duration::from_nanos(native_thread_cpu_now().saturating_sub(start))
+      },
+    ),
+  });
   let payload = serde_json::json!({
     "selection_kind": "fixed_native",
     "selected_provider": "posix_thread_cpu_clock",
@@ -4704,6 +4768,7 @@ fn write_thread_cpu_selection() {
       "selection_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is macOS's direct current-thread CPU-time entry",
       "time_domain": "thread CPU",
     },
+    "public_exact_probe": public_exact_probe,
     "read_cost_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is a native system-call tier for scheduled CPU time on the current macOS thread",
   });
   let target = std::env::var_os("CARGO_TARGET_DIR")
