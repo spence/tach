@@ -119,6 +119,7 @@ const WALL_PUBLIC_EXACT_BATCHES: usize = 9;
   feature = "bench-internal",
   any(
     target_os = "macos",
+    target_os = "windows",
     all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
@@ -131,6 +132,7 @@ const WALL_PUBLIC_EXACT_READS: usize = 65_536;
   feature = "bench-internal",
   any(
     target_os = "macos",
+    target_os = "windows",
     all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
@@ -144,6 +146,7 @@ const WALL_PUBLIC_EXACT_CHUNKS: usize = 64;
   feature = "bench-internal",
   any(
     target_os = "macos",
+    target_os = "windows",
     all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
@@ -166,6 +169,7 @@ fn measure_wall_read_chunk<T>(read: &mut dyn FnMut() -> T) -> u64 {
   feature = "bench-internal",
   any(
     target_os = "macos",
+    target_os = "windows",
     all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
@@ -200,6 +204,7 @@ where
   feature = "bench-internal",
   any(
     target_os = "macos",
+    target_os = "windows",
     all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
@@ -2056,9 +2061,10 @@ fn bench_now(c: &mut Criterion) {
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
     macro_rules! register_windows_now {
-      ($prefix:literal, $provider:expr, $read:path) => {
-        g.bench_function(format!("{}__{}", $prefix, $provider), |b| b.iter(|| black_box($read())));
-      };
+      ($prefix:literal, $provider:expr, $read:path) => {{
+        let _ = g
+          .bench_function(format!("{}__{}", $prefix, $provider), |b| b.iter(|| black_box($read())));
+      }};
     }
     for provider in tach::bench::windows_wall_candidate_providers() {
       match provider {
@@ -2989,14 +2995,14 @@ fn bench_elapsed(c: &mut Criterion) {
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
     macro_rules! register_windows_elapsed {
-      ($prefix:literal, $provider:expr, $read:path, $convert:path) => {
-        g.bench_function(format!("{}__{}", $prefix, $provider), |b| {
+      ($prefix:literal, $provider:expr, $read:path, $convert:path) => {{
+        let _ = g.bench_function(format!("{}__{}", $prefix, $provider), |b| {
           b.iter(|| {
             let start = $read();
             black_box($convert($read().saturating_sub(start)))
           });
         });
-      };
+      }};
     }
     for provider in tach::bench::windows_wall_candidate_providers() {
       match provider {
