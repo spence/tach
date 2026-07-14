@@ -282,6 +282,20 @@ availability but may not be rendered as speed wins.
 - Blocked/unsure: ESC-HOSTED-EVIDENCE-PUSH
 - Board: M0 is complete; M1 is active at 13/15 and blocked only on approval for the two-job hosted evidence dispatch; M2 can continue with publication-surface audit.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M2`
+- Did: Fixed and committed the no-default benchmark attestation compile failure at f8b3628; default and no-default tests plus warning-denied all-target clippy now pass.
+- Found: The first pulled-forward release check found an empty cfg-gated feature array with no inferable element type under --no-default-features; the defect was confined to benches/instant.rs and did not change shipping provider code.
+- Next: Run the two missing hosted native boundaries from the corrected evidence-harness revision, then bind charts and public claims to their retained artifacts.
+- Blocked/unsure: ESC-HOSTED-EVIDENCE-PUSH
+- Board: M0 shipping-code proof remains closed; M1 stays 13/15; M2 has an early release-check defect resolved at f8b3628.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Advanced the hosted evidence freeze to f8b3628 after verifying that the harness-only fix leaves shipping providers unchanged and passes both feature surfaces.
+- Found: The two missing native runs must bind to f8b3628 so their runtime attestations are produced by the corrected no-default-capable harness; M0 remains closed at the unchanged shipping implementation.
+- Next: After ESC-HOSTED-EVIDENCE-PUSH is approved, push f8b3628 and dispatch boundary=release-missing for native macOS Intel and Windows x86_64.
+- Blocked/unsure: ESC-HOSTED-EVIDENCE-PUSH
+- Board: M1 remains active at 13/15 and has one bounded owner-only dispatch blocker; M2 retains the completed early release-check result.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct

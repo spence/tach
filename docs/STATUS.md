@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       After ESC-HOSTED-EVIDENCE-PUSH is approved, push the frozen branch, dispatch boundary=release-missing, and retain only the native macOS Intel and Windows x86_64 artifacts.
+> Next:       After ESC-HOSTED-EVIDENCE-PUSH is approved, push f8b3628 and dispatch boundary=release-missing for native macOS Intel and Windows x86_64.
 > Blocked on you: ESC-HOSTED-EVIDENCE-PUSH
-> Last verified: 2026-07-14 · Changed: Closed M0.G2 at evidence SHA 9a3c48f and retained the passing FreeBSD boundary, bringing runtime corroboration to 13/15. · By: nsr · 9a3c48f
+> Last verified: 2026-07-14 · Changed: Advanced the hosted evidence freeze to f8b3628 after verifying that the harness-only fix leaves shipping providers unchanged and passes both feature surfaces. · By: nsr · f8b3628
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
