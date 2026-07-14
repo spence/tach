@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       Push the four focused fix commits and redispatch boundary=release-missing for the two remaining native artifacts.
+> Next:       Retain and validate the two artifacts from run 29358355745, then close M1 at 15/15 or fix any concrete boundary failure.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Verified the Windows source-seal repair and macOS Intel fused elapsed path: Rust release tests passed with all/default and no-default features, clippy is warning-clean, 210 Python evidence tests passed, and provider proof passed 24/24 targets with 294/294 public routes and phase closures. · By: nsr · 48a0736
+> Last verified: 2026-07-14 · Changed: Pushed the verified boundary repairs through 91f7ca0 and dispatched release-missing run 29358355745; the macOS Intel and Windows x86_64 jobs are in progress. · By: nsr · 91f7ca0
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

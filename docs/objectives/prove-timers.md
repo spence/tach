@@ -319,6 +319,11 @@ availability but may not be rendered as speed wins.
 - Found: The macOS ThreadCpuInstant public probe compiles to the same single clock_gettime_nsec_np call as the native reference; short-chunk interleaving is required to prevent temporal host drift from masquerading as public API overhead.
 - Next: Push the four focused fix commits and redispatch boundary=release-missing for the two remaining native artifacts.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Pushed the verified boundary repairs through 91f7ca0 and dispatched release-missing run 29358355745; the macOS Intel and Windows x86_64 jobs are in progress.
+- Found: No owner decision is open; M1 remains 13/15 until both source-sealed hosted artifacts pass and are retained.
+- Next: Retain and validate the two artifacts from run 29358355745, then close M1 at 15/15 or fix any concrete boundary failure.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
