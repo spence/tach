@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Freeze at 1182d7a and rerun c7i musl no-default. Admit it only if retained paired proof and the independent Criterion route estimates both validate, then recollect Apple and the remaining matrix at that exact revision.
+> Next:       Collect the Graviton primary producer now, then continue the serial AWS default/no-default glibc/musl and FreeBSD matrix at 1182d7a while preserving each retained bundle at its final path.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed 1182d7a making the paired public-versus-exact probe cross one shared opaque FnMut call boundary, and made that symmetry a validator-required evidence field. · By: nsr · 1182d7a
+> Last verified: 2026-07-13 · Changed: The decisive c7i musl no-default producer passed at 1182d7a after the symmetric probe correction; its retained bundle was recomposed at the final path and independently replay-validated. Apple primary plus eight browser/Wasm/WASI supplemental cells were also recollected and individually validated at the same revision. · By: nsr · 7d2e7b0
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

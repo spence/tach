@@ -261,6 +261,11 @@ decision; never silently omit a failing target.
 - Found: Emitted optimized x86_64-musl assembly now contains one shared measure_wall_read_batch body with the same indirect call for both closures. The 178-test evidence suite, Rust default/no-default tests, warning-strict library/test clippy, and optimized x86_64/i686 musl benchmark builds pass.
 - Next: Freeze at 1182d7a and rerun c7i musl no-default. Admit it only if retained paired proof and the independent Criterion route estimates both validate, then recollect Apple and the remaining matrix at that exact revision.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: The decisive c7i musl no-default producer passed at 1182d7a after the symmetric probe correction; its retained bundle was recomposed at the final path and independently replay-validated. Apple primary plus eight browser/Wasm/WASI supplemental cells were also recollected and individually validated at the same revision.
+- Found: Criterion measured OrderedInstant public elapsed at 45.82 ns versus 44.97 ns selected exact; the symmetric paired probe put the public median about 4.2% above exact, inside the declared 5% band. The prior 6.9% result was entirely the probe's asymmetric closure inlining, not a runtime dispatch defect.
+- Next: Collect the Graviton primary producer now, then continue the serial AWS default/no-default glibc/musl and FreeBSD matrix at 1182d7a while preserving each retained bundle at its final path.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
