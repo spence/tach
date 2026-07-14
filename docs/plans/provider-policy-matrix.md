@@ -1,6 +1,7 @@
 # Provider policy matrix
 
-Status: PLAN v0.1, 2026-07-14. Read [`../STATUS.md`](../STATUS.md),
+Status: AUDIT COMPLETE v0.2, 2026-07-14 — passing evidence is ready for
+`OBJ-PROVE-TIMERS.M0.G2` admission. Read [`../STATUS.md`](../STATUS.md),
 [`../README.md`](../README.md), and
 [`../objectives/prove-timers.md`](../objectives/prove-timers.md) first.
 
@@ -63,10 +64,10 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 | `O-LINUX-LOONG` | ordered StableCounter; synchronous-syscall-plus-counter and ordered clock forms | measured independently from `Instant` | source/codegen closed; native performance corroboration absent |
 | `W-LINUX-POWER` | Time Base; libc/direct-vDSO/SC/SCV forms of the three Linux clocks | measured | source/codegen closed; native performance corroboration absent |
 | `O-LINUX-POWER` | SYNC+Time Base; SYNC or OS-owned SC/SCV clock forms | measured independently from `Instant` | source/codegen closed; native performance corroboration absent |
-| `W-FREEBSD-X86` | kernel-eligible TSC; direct `AT_TIMEKEEP`; libc or raw `CLOCK_MONOTONIC` | measured | **fails public/exact parity:** selected TSC public bracket 29.86 ns vs 28.24 ns exact |
-| `O-FREEBSD-X86` | every FreeBSD wall candidate with eligible x86 or OS-owned ordering | measured independently from `Instant` | **fails public/exact parity:** selected LFENCE+TSC public now/bracket 23.95/49.36 ns vs 21.59/42.13 ns exact |
-| `W-MAC-X86` | XNU Mach absolute-time path; invariant TSC only after XNU-compatible eligibility and scale checks | measured | retained Rosetta run selected TSC at about 10.5 ns |
-| `O-MAC-X86` | Mach system path; XNU commpage LFENCE+RDTSC nanotime | measured independently from `Instant` | retained run keeps the reliable Mach timeline |
+| `W-FREEBSD-X86` | kernel-eligible TSC; direct `AT_TIMEKEEP`; libc or raw `CLOCK_MONOTONIC` | measured | native selector chose TSC; public 13.83/28.74 ns beats every usable public reference; static 13.30/27.13 ns route retained as a diagnostic lower bound |
+| `O-FREEBSD-X86` | every FreeBSD wall candidate with eligible x86 or OS-owned ordering | measured independently from `Instant` | native selector chose LFENCE+TSC; public 22.37/42.92 ns beats `std` at 31.41/65.36 ns; static 20.65/39.89 ns route is a diagnostic lower bound |
+| `W-MAC-X86` | XNU Mach absolute-time path; invariant TSC only after XNU-compatible eligibility and scale checks | measured | policy/codegen closed; Rosetta selected TSC but is compatibility evidence only; native Intel corroboration remains M1 work |
+| `O-MAC-X86` | Mach system path; XNU commpage LFENCE+RDTSC nanotime | measured independently from `Instant` | policy/codegen closed; Rosetta diagnostic keeps the reliable Mach timeline; native Intel corroboration remains M1 work |
 | `W-MAC-A64` | XNU-approved architectural counter | fixed | retained native run passes; bare quanta path is ineligible because it omits XNU wake correction |
 | `O-MAC-A64` | eligible ordered architectural counter forms | measured | retained native run passes |
 | `W-WINDOWS` | QPC and documented precise interrupt-time APIs whose backing contracts validate | measured | x86_64 native evidence retained at an older shipping closure; current closure needs corroboration |
@@ -84,39 +85,42 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 | Family | Eligible candidates | Production policy | Current verdict |
 |---|---|---|---|
 | `T-LINUX-X86` | perf task-clock mmap, persistent perf read, selected libc/raw `CLOCK_THREAD_CPUTIME_ID` | measured per OS thread | implemented; c7i demonstrates capability does not determine profitability |
-| `T-LINUX-A64` | perf task-clock mmap when the complete handshake succeeds; raw thread-clock syscall fallback | availability, with benchmark-only profitability audit | four Graviton families showed perf 3–4.5× faster and no flip; logical non-AWS latency risk remains open |
+| `T-LINUX-A64` | perf task-clock mmap when the complete handshake succeeds; raw thread-clock syscall fallback | availability-preferred, with benchmark-only profitability audit | one frozen binary showed perf 3–4.5× faster on c6g/c7g/c8g/t4g with no flip; any future audit loss reopens runtime selection |
 | `T-LINUX-A64-ANDROID` | perf task-clock mmap/read and native thread clock | measured per OS thread | source/codegen closed; native performance corroboration absent |
 | `T-LINUX-ARM32` / `T-LINUX-RISCV` | perf task-clock mmap/read and native thread clock | measured per OS thread | source/codegen closed; native performance corroboration absent |
 | `T-LINUX-READ` | persistent perf task-clock read and native thread clock | measured per OS thread | source/codegen closed; native performance corroboration absent |
-| `T-FREEBSD-X86` | libc and exact raw `CLOCK_THREAD_CPUTIME_ID` entries | measured | fresh native run selected raw syscall at about 131 ns vs libc 137 ns and passed public/exact parity |
-| `T-MAC` | `clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)` | fixed native API | retained AArch64 and x86_64 evidence passes |
+| `T-FREEBSD-X86` | libc and exact raw `CLOCK_THREAD_CPUTIME_ID` entries | measured | native run selected raw syscall; public 125.20/249.71 ns matches raw 124.87/249.65 ns and beats libc 129.56/262.51 ns |
+| `T-MAC` | `clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)` | fixed native API | native AArch64 retained; x86_64 Rosetta is diagnostic only and native Intel corroboration remains M1 work |
 | `T-WINDOWS` | `GetThreadTimes`; QPC wall fallback on failure | availability fallback | x86_64 native evidence retained at an older shipping closure; current closure needs corroboration |
 | `T-JS` | Node `process.threadCpuUsage()`; otherwise selected JS wall clock or frozen unavailable | availability fallback | Node and browser-negative boundaries retained |
 | `T-EMSCRIPTEN` | Node `process.threadCpuUsage()` import; otherwise selected guarded wall clock | availability fallback | Node boundary retained |
 | `T-WASI-P1` | host clock ID 3; monotonic wall fallback when rejected | availability fallback | positive Node and negative Wasmtime boundaries retained |
 | `T-WASI-P2` | component-model monotonic wall clock | explicit fallback-only contract | Wasmtime boundary retained |
 
-## Ordered work
+## Closure
 
-1. Correct the target verifier so `T-LINUX-A64` is reported as availability-selected rather than
-   runtime-measured.
-2. Resolve the two fresh FreeBSD public/exact failures without weakening the material-tie rule.
-3. Decide `T-LINUX-A64` from the evidence already collected: either retain the deterministic policy
-   with an explicit scope/continuous audit, or reuse a bounded production profitability probe. Do
-   not launch another broad Arm survey without a concrete discriminating environment.
-4. Audit candidate completeness against primary OS/architecture sources, recording only a missing
-   candidate or a changed eligibility rule as implementation work.
-5. Regenerate the optimized 24-target report and admit M0.G2 only when no route family has an open
-   selection-policy or public/exact defect.
+1. The target verifier classifies `T-LINUX-A64` as availability-preferred with an audit rather than
+   falsely claiming a production profitability tournament.
+2. FreeBSD installs the selected scale and complete ordered barrier identity. Public admission uses
+   caller-usable reference clocks; private statically bound functions remain reported as optimization
+   lower bounds.
+3. `T-LINUX-A64` is retained under its four-family same-binary survey and benchmark-only audit. An
+   observed audit loss or concrete discriminating environment reopens runtime selection.
+4. The optimized report accounts for every target/timer policy and eligible candidate family with
+   zero unknown policies.
+5. `OBJ-PROVE-TIMERS.M0.G2` is ready for admission by
+   [`EVID-PROVIDER-POLICY-2026-07-14`](../evidence/timers/provider-policy-closure-2026-07-14/README.md).
 
 ## Verification
 
 - `python3 benches/verify-target-providers.py` passes and emits a policy classification for all
   72 target/timer cells.
-- The generated report contains zero `unknown`, zero unsupported capability-only profitability
-  claims, and zero unaccounted eligible candidates.
+- The generated report contains zero `unknown`, zero unaccounted eligible candidates, and no
+  availability-preferred policy without a retained material no-reversal survey and audit path.
 - Every measured family has a selector test proving that its probe measures the same complete path
   installed for public `now()` and `elapsed()`.
 - Every fixed or availability family cites the platform contract that makes alternative candidates
   ineligible or explains the fallback boundary.
-- Fresh native public/exact evidence passes for every changed route family before M0.G2 closes.
+- Fresh native evidence for a changed runtime-dispatch family must reproduce its selector and beat
+  all caller-usable public references. Statically bound exact functions remain measured and visible,
+  but are not misrepresented as alternative public APIs.

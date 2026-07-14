@@ -1,0 +1,893 @@
+{
+  "artifact": "speed-supplemental-freebsd-x86_64.json",
+  "mode": "full_speed_cell",
+  "build_mode": "default",
+  "source_revision": "8968b16def919910290cc52edf6de4c03283abfd",
+  "three_clock_speed": {
+    "same_thread_elapsed": {
+      "now": {
+        "tach_ns": 13.83451542628545,
+        "comparisons": {
+          "quanta": {
+            "reference_ns": 15.77599069227107,
+            "equivalence_allowance_ns": 1.0,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          },
+          "fastant": {
+            "reference_ns": 39.951372618540816,
+            "equivalence_allowance_ns": 1.9975686309270408,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          },
+          "minstant": {
+            "reference_ns": 39.98861826028636,
+            "equivalence_allowance_ns": 1.999430913014318,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          },
+          "std": {
+            "reference_ns": 31.406731576552062,
+            "equivalence_allowance_ns": 1.5703365788276031,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          }
+        },
+        "passed": true
+      },
+      "elapsed": {
+        "tach_ns": 28.73623315766985,
+        "comparisons": {
+          "quanta": {
+            "reference_ns": 35.37133964567971,
+            "equivalence_allowance_ns": 1.7685669822839856,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          },
+          "fastant": {
+            "reference_ns": 90.48722408549358,
+            "equivalence_allowance_ns": 4.524361204274679,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          },
+          "minstant": {
+            "reference_ns": 89.96645493404644,
+            "equivalence_allowance_ns": 4.498322746702322,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          },
+          "std": {
+            "reference_ns": 65.36451660696699,
+            "equivalence_allowance_ns": 3.2682258303483493,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "implementation": null,
+            "measured": true,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    "same_thread_reference_eligibility": {
+      "quanta": {
+        "eligible": true,
+        "reason": null,
+        "implementation": null
+      },
+      "fastant": {
+        "eligible": true,
+        "reason": null,
+        "implementation": null
+      },
+      "minstant": {
+        "eligible": true,
+        "reason": null,
+        "implementation": null
+      },
+      "std": {
+        "eligible": true,
+        "reason": null,
+        "implementation": null
+      }
+    },
+    "cross_thread_elapsed": {
+      "now": {
+        "tach_ns": 22.370902472014127,
+        "std_ns": 31.406731576552062,
+        "equivalence_allowance_ns": 1.5703365788276031,
+        "eligible_for_reliable_contract": true,
+        "eligibility_reason": null,
+        "measured": true,
+        "passed": true
+      },
+      "elapsed": {
+        "tach_ns": 42.91603757265995,
+        "std_ns": 65.36451660696699,
+        "equivalence_allowance_ns": 3.2682258303483493,
+        "eligible_for_reliable_contract": true,
+        "eligibility_reason": null,
+        "measured": true,
+        "passed": true
+      }
+    },
+    "wall_selector_reproduction": {},
+    "selected_wall_provider_parity": {},
+    "thread_cpu_selector_reproduction": {},
+    "selected_thread_cpu_provider_parity": {},
+    "current_thread_cpu": {
+      "now": {
+        "tach_ns": 125.19668716255748,
+        "native_ns": 130.5447661399134,
+        "equivalence_allowance_ns": 6.52723830699567,
+        "comparison_basis": "Criterion estimate",
+        "paired_probe": null,
+        "passed": true
+      },
+      "elapsed": {
+        "tach_ns": 249.70649885583526,
+        "native_ns": 263.4905631403552,
+        "equivalence_allowance_ns": 13.174528157017761,
+        "comparison_basis": "Criterion estimate",
+        "paired_probe": null,
+        "passed": true
+      }
+    },
+    "provider": "POSIX thread CPU clock",
+    "read_cost": "system call"
+  },
+  "route_coverage": {
+    "instant": {
+      "selection_profile": "runtime_tournament",
+      "selected_row": "direct_selected_wall",
+      "eligible_exact_routes": {
+        "direct_wall__freebsd_clock_monotonic": {
+          "metrics": {
+            "now": {
+              "public_ns": 13.83451542628545,
+              "comparison_ns": 13.307794177845105,
+              "exact_ns": 30.933337423836996,
+              "equivalence_allowance_ns": 1.5466668711918499,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 28.73623315766985,
+              "comparison_ns": 27.27098347793015,
+              "exact_ns": 62.24378773442261,
+              "equivalence_allowance_ns": 3.1121893867211305,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_wall__freebsd_clock_monotonic_syscall": {
+          "metrics": {
+            "now": {
+              "public_ns": 13.83451542628545,
+              "comparison_ns": 13.307794177845105,
+              "exact_ns": 106.92597030363697,
+              "equivalence_allowance_ns": 5.346298515181849,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 28.73623315766985,
+              "comparison_ns": 27.27098347793015,
+              "exact_ns": 214.5980002201817,
+              "equivalence_allowance_ns": 10.729900011009086,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_wall__freebsd_at_timekeep": {
+          "metrics": {
+            "now": {
+              "public_ns": 13.83451542628545,
+              "comparison_ns": 13.307794177845105,
+              "exact_ns": 29.954147431014036,
+              "equivalence_allowance_ns": 1.4977073715507019,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 28.73623315766985,
+              "comparison_ns": 27.27098347793015,
+              "exact_ns": 61.20204215710085,
+              "equivalence_allowance_ns": 3.0601021078550428,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_wall__freebsd_kernel_eligible_tsc": {
+          "metrics": {
+            "now": {
+              "public_ns": 13.83451542628545,
+              "comparison_ns": 13.83451542628545,
+              "exact_ns": 13.298511246546479,
+              "equivalence_allowance_ns": null,
+              "comparison_basis": "runtime selector plus usable public-reference winner gate; exact route retained as a diagnostic lower bound",
+              "public_reference_gate": {
+                "quanta": {
+                  "measured": true,
+                  "reference_ns": 15.77599069227107,
+                  "equivalence_allowance_ns": 1.0,
+                  "passed": true
+                },
+                "fastant": {
+                  "measured": true,
+                  "reference_ns": 39.951372618540816,
+                  "equivalence_allowance_ns": 1.9975686309270408,
+                  "passed": true
+                },
+                "minstant": {
+                  "measured": true,
+                  "reference_ns": 39.98861826028636,
+                  "equivalence_allowance_ns": 1.999430913014318,
+                  "passed": true
+                },
+                "std": {
+                  "measured": true,
+                  "reference_ns": 31.406731576552062,
+                  "equivalence_allowance_ns": 1.5703365788276031,
+                  "passed": true
+                }
+              },
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 966786,
+                "exact_median_batch_ns": 895682,
+                "public_ns_per_read": 14.751983642578125,
+                "exact_ns_per_read": 13.667022705078125,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 5,
+                "admission_role": "diagnostic_dispatch_lower_bound",
+                "passed": true
+              },
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 28.73623315766985,
+              "comparison_ns": 28.73623315766985,
+              "exact_ns": 27.126644495462486,
+              "equivalence_allowance_ns": null,
+              "comparison_basis": "runtime selector plus usable public-reference winner gate; exact route retained as a diagnostic lower bound",
+              "public_reference_gate": {
+                "quanta": {
+                  "measured": true,
+                  "reference_ns": 35.37133964567971,
+                  "equivalence_allowance_ns": 1.7685669822839856,
+                  "passed": true
+                },
+                "fastant": {
+                  "measured": true,
+                  "reference_ns": 90.48722408549358,
+                  "equivalence_allowance_ns": 4.524361204274679,
+                  "passed": true
+                },
+                "minstant": {
+                  "measured": true,
+                  "reference_ns": 89.96645493404644,
+                  "equivalence_allowance_ns": 4.498322746702322,
+                  "passed": true
+                },
+                "std": {
+                  "measured": true,
+                  "reference_ns": 65.36451660696699,
+                  "equivalence_allowance_ns": 3.2682258303483493,
+                  "passed": true
+                }
+              },
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 1966391,
+                "exact_median_batch_ns": 1801574,
+                "public_ns_per_read": 30.004745483398438,
+                "exact_ns_per_read": 27.489837646484375,
+                "equivalence_allowance_ns_per_read": 1.374481201171875,
+                "decisive_losses": 7,
+                "admission_role": "diagnostic_dispatch_lower_bound",
+                "passed": true
+              },
+              "passed": true
+            }
+          },
+          "passed": true
+        }
+      },
+      "selector_reproduction": {
+        "winner": "freebsd_kernel_eligible_tsc",
+        "decisions": [
+          {
+            "challenger_median_ns": 424241,
+            "incumbent_median_ns": 123314,
+            "allowance_ns": 6165,
+            "decisive_wins": 0,
+            "selected": false,
+            "challenger": "freebsd_clock_monotonic_syscall",
+            "incumbent": "freebsd_clock_monotonic",
+            "winner": "freebsd_clock_monotonic"
+          },
+          {
+            "challenger_median_ns": 117318,
+            "incumbent_median_ns": 123314,
+            "allowance_ns": 6165,
+            "decisive_wins": 5,
+            "selected": false,
+            "challenger": "freebsd_at_timekeep",
+            "incumbent": "freebsd_clock_monotonic",
+            "winner": "freebsd_clock_monotonic"
+          },
+          {
+            "challenger_median_ns": 54732,
+            "incumbent_median_ns": 123314,
+            "allowance_ns": 6165,
+            "decisive_wins": 9,
+            "selected": true,
+            "challenger": "freebsd_kernel_eligible_tsc",
+            "incumbent": "freebsd_clock_monotonic",
+            "winner": "freebsd_kernel_eligible_tsc"
+          }
+        ],
+        "public_exact_contract": "dispatch_lower_bound_with_public_winner_gate",
+        "public_exact": {
+          "now": {
+            "reads_per_batch": 65536,
+            "public_median_batch_ns": 966786,
+            "exact_median_batch_ns": 895682,
+            "public_ns_per_read": 14.751983642578125,
+            "exact_ns_per_read": 13.667022705078125,
+            "equivalence_allowance_ns_per_read": 1.0,
+            "decisive_losses": 5,
+            "admission_role": "diagnostic_dispatch_lower_bound",
+            "passed": true
+          },
+          "elapsed": {
+            "reads_per_batch": 65536,
+            "public_median_batch_ns": 1966391,
+            "exact_median_batch_ns": 1801574,
+            "public_ns_per_read": 30.004745483398438,
+            "exact_ns_per_read": 27.489837646484375,
+            "equivalence_allowance_ns_per_read": 1.374481201171875,
+            "decisive_losses": 7,
+            "admission_role": "diagnostic_dispatch_lower_bound",
+            "passed": true
+          }
+        }
+      },
+      "passed": true
+    },
+    "ordered": {
+      "selection_profile": "runtime_tournament",
+      "selected_row": "direct_selected_ordered_wall",
+      "eligible_exact_routes": {
+        "direct_ordered_wall__freebsd_at_timekeep_os_owned": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 30.242278367860784,
+              "equivalence_allowance_ns": 1.5121139183930392,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 61.41305752514606,
+              "equivalence_allowance_ns": 3.070652876257303,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 22.370902472014127,
+              "exact_ns": 20.65503202567197,
+              "equivalence_allowance_ns": null,
+              "comparison_basis": "runtime selector plus usable public-reference winner gate; exact route retained as a diagnostic lower bound",
+              "public_reference_gate": {
+                "std": {
+                  "measured": true,
+                  "reference_ns": 31.406731576552062,
+                  "equivalence_allowance_ns": 1.5703365788276031,
+                  "passed": true
+                }
+              },
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 1496653,
+                "exact_median_batch_ns": 1257821,
+                "public_ns_per_read": 22.837112426757812,
+                "exact_ns_per_read": 19.192825317382812,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 9,
+                "admission_role": "diagnostic_dispatch_lower_bound",
+                "passed": false
+              },
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 42.91603757265995,
+              "exact_ns": 39.888945564099274,
+              "equivalence_allowance_ns": null,
+              "comparison_basis": "runtime selector plus usable public-reference winner gate; exact route retained as a diagnostic lower bound",
+              "public_reference_gate": {
+                "std": {
+                  "measured": true,
+                  "reference_ns": 65.36451660696699,
+                  "equivalence_allowance_ns": 3.2682258303483493,
+                  "passed": true
+                }
+              },
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 2965583,
+                "exact_median_batch_ns": 2588593,
+                "public_ns_per_read": 45.25120544433594,
+                "exact_ns_per_read": 39.49879455566406,
+                "equivalence_allowance_ns_per_read": 1.9749298095703125,
+                "decisive_losses": 9,
+                "admission_role": "diagnostic_dispatch_lower_bound",
+                "passed": false
+              },
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 1220.13018250535,
+              "equivalence_allowance_ns": 61.0065091252675,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 2443.2245832794006,
+              "equivalence_allowance_ns": 122.16122916397003,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_os_owned": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 30.967209239076936,
+              "equivalence_allowance_ns": 1.548360461953847,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 62.16412041836045,
+              "equivalence_allowance_ns": 3.1082060209180224,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_lfence": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 38.979059557524266,
+              "equivalence_allowance_ns": 1.9489529778762134,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 78.43946972644866,
+              "equivalence_allowance_ns": 3.9219734863224334,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 55.59415439342014,
+              "equivalence_allowance_ns": 2.7797077196710074,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 112.10064505681358,
+              "equivalence_allowance_ns": 5.6050322528406795,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_x86_serialize": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 63.851353452709894,
+              "equivalence_allowance_ns": 3.192567672635495,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 127.99535831285831,
+              "equivalence_allowance_ns": 6.399767915642916,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 1338.7632263184664,
+              "equivalence_allowance_ns": 66.93816131592332,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 2681.4015010308112,
+              "equivalence_allowance_ns": 134.07007505154056,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_os_owned": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 106.73741951097479,
+              "equivalence_allowance_ns": 5.33687097554874,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 214.36678878532024,
+              "equivalence_allowance_ns": 10.718339439266012,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 112.21626334400182,
+              "equivalence_allowance_ns": 5.610813167200091,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 221.5329432189668,
+              "equivalence_allowance_ns": 11.07664716094834,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 128.1982303385216,
+              "equivalence_allowance_ns": 6.40991151692608,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 255.39925457322363,
+              "equivalence_allowance_ns": 12.769962728661183,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_serialize": {
+          "metrics": {
+            "now": {
+              "public_ns": 22.370902472014127,
+              "comparison_ns": 20.649755430984733,
+              "exact_ns": 143.8042738143222,
+              "equivalence_allowance_ns": 7.19021369071611,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 42.91603757265995,
+              "comparison_ns": 40.039122097352916,
+              "exact_ns": 287.47566453816455,
+              "equivalence_allowance_ns": 14.373783226908229,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        }
+      },
+      "selector_reproduction": {
+        "winner": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+        "decisions": [
+          {
+            "challenger_median_ns": 444592,
+            "incumbent_median_ns": 126494,
+            "allowance_ns": 6324,
+            "decisive_wins": 0,
+            "selected": false,
+            "challenger": "freebsd_clock_monotonic_syscall_os_owned",
+            "incumbent": "freebsd_clock_monotonic_os_owned",
+            "winner": "freebsd_clock_monotonic_os_owned"
+          },
+          {
+            "challenger_median_ns": 121842,
+            "incumbent_median_ns": 126494,
+            "allowance_ns": 6324,
+            "decisive_wins": 4,
+            "selected": false,
+            "challenger": "freebsd_at_timekeep_os_owned",
+            "incumbent": "freebsd_clock_monotonic_os_owned",
+            "winner": "freebsd_clock_monotonic_os_owned"
+          },
+          {
+            "challenger_median_ns": 90212,
+            "incumbent_median_ns": 126494,
+            "allowance_ns": 6324,
+            "decisive_wins": 9,
+            "selected": true,
+            "challenger": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+            "incumbent": "freebsd_clock_monotonic_os_owned",
+            "winner": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+          }
+        ],
+        "public_exact_contract": "dispatch_lower_bound_with_public_winner_gate",
+        "public_exact": {
+          "now": {
+            "reads_per_batch": 65536,
+            "public_median_batch_ns": 1496653,
+            "exact_median_batch_ns": 1257821,
+            "public_ns_per_read": 22.837112426757812,
+            "exact_ns_per_read": 19.192825317382812,
+            "equivalence_allowance_ns_per_read": 1.0,
+            "decisive_losses": 9,
+            "admission_role": "diagnostic_dispatch_lower_bound",
+            "passed": false
+          },
+          "elapsed": {
+            "reads_per_batch": 65536,
+            "public_median_batch_ns": 2965583,
+            "exact_median_batch_ns": 2588593,
+            "public_ns_per_read": 45.25120544433594,
+            "exact_ns_per_read": 39.49879455566406,
+            "equivalence_allowance_ns_per_read": 1.9749298095703125,
+            "decisive_losses": 9,
+            "admission_role": "diagnostic_dispatch_lower_bound",
+            "passed": false
+          }
+        }
+      },
+      "passed": true
+    },
+    "thread_cpu": {
+      "selection_profile": "runtime_tournament",
+      "selected_row": "direct_selected_thread_cpu",
+      "eligible_exact_routes": {
+        "direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime": {
+          "metrics": {
+            "now": {
+              "public_ns": 125.19668716255748,
+              "comparison_ns": 124.30949806312134,
+              "exact_ns": 129.55807363588497,
+              "equivalence_allowance_ns": 6.477903681794249,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 249.70649885583526,
+              "comparison_ns": 249.5413446518719,
+              "exact_ns": 262.50754493850525,
+              "equivalence_allowance_ns": 13.125377246925263,
+              "comparison_basis": "selected exact route versus another eligible route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime": {
+          "metrics": {
+            "now": {
+              "public_ns": 125.19668716255748,
+              "comparison_ns": 125.19668716255748,
+              "exact_ns": 124.86831092484209,
+              "equivalence_allowance_ns": 6.243415546242105,
+              "comparison_basis": "public versus its selected exact route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "public_ns": 249.70649885583526,
+              "comparison_ns": 249.70649885583526,
+              "exact_ns": 249.65030775716696,
+              "equivalence_allowance_ns": 12.48251538785835,
+              "comparison_basis": "public versus its selected exact route",
+              "public_reference_gate": null,
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "passed": true
+        }
+      },
+      "selector_reproduction": null,
+      "passed": true
+    }
+  },
+  "semantics": {
+    "busy": {
+      "summary": {
+        "wall_delta_ns": 20001157,
+        "public_delta_ns": 20000846,
+        "direct_delta_ns": 20000283
+      },
+      "tolerance_ns": 1000014.15,
+      "passed": true
+    },
+    "sleep": {
+      "summary": {
+        "wall_delta_ns": 20012664,
+        "public_delta_ns": 3100,
+        "direct_delta_ns": 2745
+      },
+      "tolerance_ns": 200126.64,
+      "passed": true
+    },
+    "sibling_isolation": {
+      "summary": {
+        "wall_delta_ns": 20028343,
+        "public_delta_ns": 4642,
+        "direct_delta_ns": 4208
+      },
+      "tolerance_ns": 200283.43,
+      "passed": true
+    }
+  },
+  "passed": true,
+  "failures": [],
+  "bundle_binding": {
+    "path": "/Users/spencer/src/tach/.tach-bench-out/8968b16/speed-supplemental-freebsd-x86_64.collector.bundle",
+    "passed": true
+  }
+}

@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M0 🚧 Provider matrix and selection policy)
-> Next:       Complete the provider-policy matrix, then either prove the AArch64 capability rule determines profitability or make production select from measured complete paths.
+> Next:       Commit the tracked provider-policy evidence package, then admit M0.G2 against that evidence commit.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Separated completed route closure from the still-open fastest-selection policy and added an explicit profitability gate. · By: nsr · 3e0d4b4
+> Last verified: 2026-07-14 · Changed: Completed native FreeBSD closure at source-sealed revision 8968b16: the selector reproduces, all usable public-reference gates pass, ThreadCpuInstant matches the selected raw syscall, and thread-CPU semantics pass. · By: nsr · 5bad0dd
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

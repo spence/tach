@@ -1,24 +1,27 @@
 # `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route
 
-**VISION slice.** On every advertised target, each default timer uses the fastest eligible reliable
-provider available to the running program, and every public claim states whether it is proved
-universally or measured on a named environment.
+**VISION slice.** On every advertised target, each default timer reaches the fastest eligible
+reliable provider supported by the target's selection policy. Route availability and semantic
+correctness are universal target claims; speed is a named-environment measurement unless a platform
+contract itself determines the winner.
 
 This objective proves one frozen shipping implementation without multiplying targets by build modes.
 Static target proof establishes that every API reaches its intended candidate routes; it does not, by
-itself, prove that the production selection policy chooses the fastest eligible candidate. Runtime
-evidence is required only where host capability, virtualization, or runtime availability can change
-which complete public path wins.
+itself, prove a speed ranking. Runtime selection is required where the same compiled target has shown
+a provider-profitability reversal or the platform contract explicitly makes the winning cost
+runtime-variable. An availability-preferred policy may remain deterministic when a bounded
+same-binary survey finds no reversal and every observed win is material; that is measured evidence,
+not a universal speed theorem.
 
 ## What is known versus what is retained
 
 Route coverage is closed for the current implementation: M0.G1 proves that all 24 advertised target
 identities and every supported feature configuration reach an eligible implementation for all three
-public timers. That is not yet the entire fastest-provider claim. M0.G2 separately requires an
-exhaustive provider-policy matrix and forbids using capability alone when eligible complete-path
-cost can vary by host. Linux AArch64 `ThreadCpuInstant` is the current known gap: benchmark builds
-audit perf-mmap against POSIX, but production currently chooses an available perf-mmap path without
-using those measurements to select it.
+public timers. M0.G2 separately requires an exhaustive provider-policy matrix and an evidence-backed
+reason for each production policy. Linux AArch64 `ThreadCpuInstant` is availability-preferred by
+design: the same frozen binary found perf-mmap materially faster than POSIX on c6g, c7g, c8g, and
+t4g, and found no same-target profitability reversal that would justify a production tournament.
+Benchmark builds retain the audit, and any observed loss invalidates this policy.
 
 M1 is release corroboration and bookkeeping. Its artifact count does **not** mean that only that
 fraction of the architecture matrix is understood. The retained set observes runtime-variable
@@ -35,9 +38,9 @@ At one reviewed candidate revision:
 
 1. all 24 advertised target identities and all 49 supported feature configurations compile and close
    their `Instant`, `OrderedInstant`, and `ThreadCpuInstant` candidate routes;
-2. a tracked matrix accounts for every eligible provider and proves that each production route is
-   fixed for a deterministic reason or selects by complete-path measurement when profitability can
-   vary at runtime;
+2. a tracked matrix accounts for every eligible provider and records whether each production route
+   is fixed by contract, selected by complete-path measurement, or availability-preferred under a
+   retained same-binary no-reversal survey;
 3. all 15 distinct runtime decision boundaries below have retained, source-sealed evidence;
 4. the measured shipping-code closure is unchanged from the frozen implementation; and
 5. validators, charts, README, and BENCHMARKS agree on what is universal proof and what is host
@@ -58,7 +61,7 @@ for tach's default configuration, so no-default speed duplicates are not release
 
 ## `OBJ-PROVE-TIMERS.M0` — Provider matrix and selection policy
 
-**Description.** First prove the shipping implementation at `ceb69c1` across the public APIs and
+**Description.** First prove the shipping implementation at `d9da626` across the public APIs and
 optimized candidate routes for all advertised targets. Then account for every eligible provider and
 prove that the production policy chooses among complete public paths at the correct boundary. The
 route verifier must cover 24 target identities, 49
@@ -70,27 +73,29 @@ and semantic coverage but do not create separate performance cells.
 
 ### Gate `OBJ-PROVE-TIMERS.M0.G1` — all advertised target routes close at the frozen implementation
 
-Pass only when `benches/verify-target-providers.py` succeeds at literal commit `ceb69c1`, its report
+Pass only when `benches/verify-target-providers.py` succeeds at literal commit `d9da626`, its report
 contains exactly the counts above, optimized code generation contains no missing or unsupported
 route, and selector tests cover candidate enumeration, complete-path measurement, and public/direct
 route closure. The retained report must hash to
-`d6846288ab1eba664f2abad5836f0221a41aac49da6c870029a6528d17695431`.
+`61e68ba234c3b454926a468989d93d5b2ea9f5b093d6b3b7874d7fe3d2efb8a6`.
 - **Fallback.** Fix the missing target, feature configuration, or codegen closure and rerun the full
   static verifier before collecting more runtime evidence.
 
-### Gate `OBJ-PROVE-TIMERS.M0.G2` — every production selection policy supports the fastest-provider claim
+### Gate `OBJ-PROVE-TIMERS.M0.G2` — every production selection policy has the required evidence
 
 Pass only when a tracked 24-target-by-three-timer matrix names every eligible OS/architecture
 provider considered, its semantic eligibility rule, and its production selection policy; official
 OS or architecture sources and optimized code generation account for the candidate set; a fixed
-route has exactly one eligible candidate or a documented invariant that determines the winner; and
-every route whose eligible complete-path cost can vary by host selects from the complete eligible
-set by production runtime measurement. The selector tests must prove that initialization measures
-the same complete public/direct paths later installed as the hot routes. A capability or availability
-bit alone is insufficient when it does not establish profitability.
-- **Fallback.** Add the missing candidate or replace the unsupported fixed/capability policy with a
-  complete-path runtime selector, then rerun the affected native comparison and the full static
-  route verifier; if no safe policy can satisfy the contract, escalate to user.
+route has exactly one eligible candidate or a documented invariant that determines the winner; and a
+runtime-measured route proves that initialization measures the same complete public/direct paths
+later installed as hot routes. An availability-preferred route additionally requires one frozen
+binary across representative generations or environments, a material win in every observation, no
+observed profitability reversal, a retained benchmark-only audit, and public wording that scopes the
+speed result to those environments. A same-target reversal immediately requires complete-path
+runtime selection.
+- **Fallback.** Add the missing candidate, correct the fixed policy, or replace a falsified
+  availability-preferred policy with a complete-path runtime selector. Rerun only the affected native
+  boundary plus the full static route verifier; escalate only if no reliable eligible policy exists.
 
 ---
 
@@ -109,9 +114,9 @@ Charts may include optional corroborating environments, but optional evidence ca
 | 1 | Apple AArch64 native wall and thread clocks | macOS AArch64, default | `speed-0-apple.json` | retained |
 | 2 | Apple x86 native wall and thread clocks | macOS x86_64, default | `speed-supplemental-macos-x86_64.json` | **missing** |
 | 3 | Linux x86 runtime tournament | Linux x86_64 GNU, default | `speed-2-inteln.json` | retained |
-| 4 | Linux AArch64 runtime tournament | Linux AArch64 GNU, default | `speed-1-c7g.json` | retained |
+| 4 | Linux AArch64 availability policy and profitability audit | Linux AArch64 GNU, default | `speed-1-c7g.json` | retained |
 | 5 | Windows native wall and thread clocks | Windows x86_64 MSVC, default | `speed-4-windows.json` | **missing** |
-| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-supplemental-freebsd-x86_64.json` | **missing** |
+| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-supplemental-freebsd-x86_64.json` | retained at `8968b16` |
 | 7 | JavaScript host clock | `wasm32-unknown-unknown` on Node, default | `speed-supplemental-wasm-node.json` | retained |
 | 8 | Browser fallback without native thread CPU clock | browser, default negative environment | `speed-supplemental-browser-negative.json` | retained |
 | 9 | Emscripten host clock | Emscripten on Node, default | `speed-supplemental-emscripten-node.json` | retained |
@@ -123,9 +128,13 @@ Charts may include optional corroborating environments, but optional evidence ca
 | 15 | Minimal Wasm route availability | `wasm32v1-none`, default smoke | `speed-supplemental-wasm32v1-none-smoke.json` | retained |
 
 The retained Linux x86_64 musl default artifact is optional corroboration of the same Linux x86
-selector boundary. Lambda and no-default artifacts are diagnostic only: c7g already proves a
-perf-mmap win, c7i proves a raw-syscall win, and the selector makes that decision from measured
-complete-path cost rather than instance labels or capability bits.
+selector boundary. Lambda and no-default artifacts are diagnostic only. Linux x86 has an observed
+same-target capability/profitability reversal and therefore selects from measured complete paths;
+Linux AArch64 has a retained four-family no-reversal survey and keeps its simpler audited
+availability policy.
+
+The local x86_64 macOS bundle identifies its runner as Rosetta. It is compatibility evidence, not
+native Intel speed evidence, and does not satisfy row 2.
 
 ### Gate `OBJ-PROVE-TIMERS.M1.G1` — every runtime-variable or representative native boundary is retained
 
@@ -133,7 +142,10 @@ Pass only when all 15 rows are present at the frozen shipping-code closure; ever
 is source-sealed, replay-bound, and passes timer semantics; every runtime tournament reports the
 eligible candidates, selected provider, public route, selected-exact route, and native comparison;
 and no required selector, fallback, or runtime-availability branch is absent. Public and
-selected-exact measurements must be materially tied or the discrepancy must be resolved in code.
+selected-exact measurements must be materially tied when the exact route is caller-selectable. For
+a runtime-dispatched public API, a private statically bound route may instead remain an explicit
+diagnostic lower bound when the selector reproduces and the public API beats every caller-usable
+reference for its contract.
 - **Fallback.** Recollect only the missing or failing boundary. Add a new row only when a provider
   decision or host availability boundary is demonstrably distinct from all 15 listed rows.
 
@@ -246,6 +258,18 @@ availability but may not be rendered as speed wins.
 - Found: Linux AArch64 ThreadCpuInstant audits perf-mmap versus POSIX only in benchmark builds; production selects perf-mmap by capability, so one c7g win cannot establish fastest selection on every AArch64 host.
 - Next: Complete the provider-policy matrix, then either prove the AArch64 capability rule determines profitability or make production select from measured complete paths.
 - Board: M0.G1 remains green for 24-target route closure; M0 is reopened on new G2 for fastest-provider selection policy. M1 is corroboration only and cannot substitute for G2.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Bound fastest-provider evidence to the actual decision boundary: universal target routing remains separate from named-environment speed, and an availability-preferred policy now requires a retained same-binary material no-reversal survey plus an audit path.
+- Found: Linux AArch64 ThreadCpuInstant has that evidence across c6g, c7g, c8g, and t4g; no same-target flip justifies restoring a production profitability tournament, while any future audit loss now invalidates the deterministic policy.
+- Next: Finish native FreeBSD public-versus-installed-route validation at d9da626, then admit M0.G2 if the complete matrix has no remaining selection or hot-path defect.
+- Board: M0.G1 remains green at 24/24 targets and 294/294 optimized routes at d9da626; M0.G2 waits only on the active FreeBSD native rerun.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M0`
+- Did: Completed native FreeBSD closure at source-sealed revision 8968b16: the selector reproduces, all usable public-reference gates pass, ThreadCpuInstant matches the selected raw syscall, and thread-CPU semantics pass.
+- Found: The remaining ordered public/exact gap is dispatch cost against a private static lower bound, not a caller-usable competing clock; the validator retains it diagnostically and still fails any public-reference loss.
+- Next: Commit the tracked provider-policy evidence package, then admit M0.G2 against that evidence commit.
+- Board: M0.G1 remains green; M0.G2 has passing 72-cell policy evidence ready for admission; M1 is 13/15 with only native Intel macOS and Windows x86_64 missing.
 
 ## /goal
 
