@@ -141,7 +141,7 @@ IID=$(aws_ ec2 run-instances \
   --key-name "$KEY_NAME" \
   --security-group-ids "$SG_ID" \
   --instance-initiated-shutdown-behavior terminate \
-  --user-data $'#!/bin/bash\nshutdown -h +30\n' \
+  --user-data $'#!/bin/bash\nshutdown -h +60\n' \
   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=tach-bench-speed-${CELL}}]" \
   --query 'Instances[0].InstanceId' --output text)
 echo "instance $IID"
@@ -151,8 +151,8 @@ IP=$(aws_ ec2 describe-instances --instance-ids "$IID" \
   --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
 echo "ip $IP"
 
-SSH="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i $KEY_PATH ec2-user@$IP"
-SCP="scp -o StrictHostKeyChecking=no -i $KEY_PATH"
+SSH="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i $KEY_PATH ec2-user@$IP"
+SCP="scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i $KEY_PATH"
 
 retry_scp() {
   source_path="$1"
@@ -270,8 +270,10 @@ if [ "$MODE" = musl ]; then
   '
   sudo chown -R "$(id -u):$(id -g)" "$HOME/tach/collector.bundle"
 else
-  curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal >/dev/null 2>&1
-  sudo dnf install -y gcc python3 >/dev/null 2>&1
+  echo "=== setup system packages ==="
+  sudo dnf install -y gcc python3
+  echo "=== setup Rust toolchain ==="
+  curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
   . "$HOME/.cargo/env"
   target_dir="$HOME/tach/.tach-speed-target"
   if [ -e "$target_dir" ]; then
