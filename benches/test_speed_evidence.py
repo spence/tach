@@ -1740,6 +1740,33 @@ class SpeedEvidenceTests(unittest.TestCase):
       "i686-unknown-linux-gnu", module.RELEASE_REQUIRED_HOSTED_SPEED_TARGETS
     )
 
+  def test_wasip1_thread_cpu_route_matches_the_emitted_import_call(self) -> None:
+    path = Path(__file__).with_name("verify-target-providers.py")
+    spec = importlib.util.spec_from_file_location("verify_target_providers", path)
+    self.assertIsNotNone(spec)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    route = module.thread_cpu_route("wasm32-wasip1", "default")
+    thread_call = (
+      "%status = call noundef zeroext i16 "
+      "@_RNvNtNtCsABC_4tach4arch10thread_cpu14clock_time_get"
+      "(i32 noundef 3, i64 noundef 1, ptr noundef nonnull %value)"
+    )
+    wall_fallback = (
+      "%fallback = call noundef zeroext i16 "
+      "@_RNvNtNtNtCsABC_4tach4arch8fallback6wasip114clock_time_get"
+      "(i32 noundef 1, i64 noundef 0, ptr noundef nonnull %value)"
+    )
+    self.assertRegex(thread_call, route["required_patterns"][0])
+    self.assertRegex(wall_fallback, route["required_patterns"][1])
+    self.assertNotRegex(thread_call, route["forbidden_patterns"][0])
+    self.assertRegex(
+      thread_call.replace("i64 noundef 1", "i64 noundef 0"),
+      route["forbidden_patterns"][0],
+    )
+
   def test_target_proof_requires_distinct_now_and_elapsed_phase_roots(self) -> None:
     path = Path(__file__).with_name("verify-target-providers.py")
     spec = importlib.util.spec_from_file_location("verify_target_providers", path)

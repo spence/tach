@@ -1383,14 +1383,14 @@ def thread_cpu_route(target: str, mode: str) -> dict:
       "failure_fallback": "wasi_snapshot_preview1.clock_time_get(MONOTONIC=1)",
       "required_patterns": [
         (
-          r"thread_cpu9now_nanos14clock_time_get[^\n]*"
+          r"thread_cpu14clock_time_get[^\n]*"
           r"\(i32 noundef 3, i64 noundef 1,"
         ),
         r"fallback6wasip114clock_time_get[^\n]*\(i32 noundef 1,",
       ],
       "forbidden_patterns": [
         (
-          r"thread_cpu9now_nanos14clock_time_get[^\n]*"
+          r"thread_cpu14clock_time_get[^\n]*"
           r"\(i32 noundef 3, i64 noundef 0,"
         ),
       ],
