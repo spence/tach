@@ -1273,7 +1273,7 @@ def add_selected_wall_evidence(criterion_dir: Path, out: dict) -> None:
             read_cost = "direct vDSO call"
         elif "syscall" in provider:
             read_cost = "system call"
-        elif "clock_monotonic" in provider or provider == "windows_qpc":
+        elif "clock_monotonic" in provider or provider.startswith("windows_"):
             read_cost = "platform call"
         else:
             read_cost = "inline"

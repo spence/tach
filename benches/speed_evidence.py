@@ -714,6 +714,8 @@ def exact_wall_candidate_identity(domain: str, benchmark: str) -> dict | None:
     read_cost = "system call"
   elif "clock_monotonic" in benchmark:
     read_cost = "vDSO or system call"
+  elif benchmark.removeprefix(prefix).startswith("windows_"):
+    read_cost = "platform call"
   else:
     read_cost = "inline"
   return {
@@ -833,27 +835,25 @@ def validate_windows_wall_selector(
 ) -> dict:
   selected = selection.get("selected_provider")
   candidates = selection.get("eligible_direct_candidates")
-  probe = selection.get("ordered_probe")
+  probe = selection.get("probe")
   if not isinstance(selected, dict) or not isinstance(candidates, dict):
     failures.append(f"{context}: malformed Windows wall selector metadata")
     return {}
-  if selected.get("instant") != "windows_qpc":
-    failures.append(f"{context}: Windows Instant did not select QPC")
-  if candidates.get("instant") != ["direct_wall__windows_qpc"]:
-    failures.append(f"{context}: Windows Instant eligible-candidate set is incomplete")
-  if not isinstance(probe, dict):
-    failures.append(f"{context}: malformed Windows Ordered probe")
+  if selection.get("selection_kind") != "runtime_tournament" or not isinstance(probe, dict):
+    failures.append(f"{context}: malformed Windows wall tournament")
     return {}
 
-  expected_exclusion = (
-    "windows_raw_tsc" if "cpuid_batches_ns" in probe else "windows_raw_cntvct_el0"
-  )
   exclusions = selection.get("ineligible_direct_candidates")
   validated_exclusions = {}
-  if not isinstance(exclusions, dict) or set(exclusions) != {expected_exclusion}:
+  expected_exclusions = {"windows_raw_tsc", "windows_raw_cntvct_el0"}
+  if (
+    not isinstance(exclusions, dict)
+    or len(exclusions) != 1
+    or not set(exclusions).issubset(expected_exclusions)
+  ):
     failures.append(f"{context}: Windows wall selector lacks exact raw-counter exclusions")
   else:
-    exclusion = exclusions[expected_exclusion]
+    expected_exclusion, exclusion = next(iter(exclusions.items()))
     if not isinstance(exclusion, dict):
       failures.append(f"{context}: malformed Windows {expected_exclusion} exclusion")
     else:
@@ -875,56 +875,119 @@ def validate_windows_wall_selector(
         )
       validated_exclusions[expected_exclusion] = exclusion
 
-  if "cpuid_batches_ns" not in probe:
-    expected = "windows_qpc_arm64_dmb_ishld_isb"
-    if selected.get("ordered") != expected:
-      failures.append(f"{context}: Windows Arm64 Ordered provider is not {expected}")
-    if candidates.get("ordered") != [f"direct_ordered_wall__{expected}"]:
-      failures.append(f"{context}: Windows Arm64 Ordered candidate set is incomplete")
-    return {
-      "winner": expected,
-      "decisions": [],
-      "ineligible_direct_candidates": validated_exclusions,
-    }
-
   reads = probe.get("reads_per_batch")
   required = probe.get("required_decisive_wins")
-  if type(required) is not int or required != 8:
-    failures.append(f"{context}: Windows Ordered required-win rule changed")
-    return {}
-  incumbent_name = "windows_qpc_x86_cpuid"
-  incumbent = probe.get("cpuid_batches_ns")
-  expected_candidates = ["direct_ordered_wall__windows_qpc_x86_cpuid"]
-  decisions = []
-  for key, eligible_key, provider in (
-    ("lfence_batches_ns", "lfence_eligible", "windows_qpc_x86_lfence"),
-    ("rdtscp_batches_ns", "rdtscp_eligible", "windows_qpc_x86_rdtscp_lfence"),
-    ("mfence_batches_ns", "mfence_eligible", "windows_qpc_x86_mfence"),
-    ("serialize_batches_ns", "serialize_eligible", "windows_qpc_x86_serialize"),
-  ):
-    if probe.get(eligible_key) is True:
-      expected_candidates.append(f"direct_ordered_wall__{provider}")
+  if reads != 4_096 or required != 8:
+    failures.append(f"{context}: Windows wall decision rule changed")
+
+  domain_results = {}
+  instant_expected_names = ["windows_qpc"]
+  ordered_expected_names = ["windows_qpc_call_boundary"]
+  if probe.get("interrupt_time_precise_available") is True:
+    instant_expected_names.append("windows_query_interrupt_time_precise")
+    ordered_expected_names.append(
+      "windows_query_interrupt_time_precise_call_boundary"
+    )
+  if probe.get("unbiased_interrupt_time_precise_available") is True:
+    instant_expected_names.append("windows_query_unbiased_interrupt_time_precise")
+    ordered_expected_names.append(
+      "windows_query_unbiased_interrupt_time_precise_call_boundary"
+    )
+  expected_names = {
+    "instant": instant_expected_names,
+    "ordered": ordered_expected_names,
+  }
+  for domain, prefix in (("instant", "direct_wall"), ("ordered", "direct_ordered_wall")):
+    count = probe.get(f"{domain}_candidate_count")
+    names = probe.get(f"{domain}_candidate_names")
+    batches = probe.get(f"{domain}_candidate_batches_ns")
+    medians = probe.get(f"{domain}_candidate_medians_ns")
+    selected_name = probe.get(f"{domain}_selected_provider")
+    if (
+      type(count) is not int
+      or count < 1
+      or count > 3
+      or not isinstance(names, list)
+      or not isinstance(batches, list)
+      or not isinstance(medians, list)
+      or len(names) != count
+      or len(batches) != count
+      or len(medians) != count
+      or names != expected_names[domain]
+    ):
+      failures.append(f"{context}: malformed Windows {domain} candidate evidence")
+      continue
+
+    expected_benchmarks = [f"{prefix}__{name}" for name in names]
+    if candidates.get(domain) != expected_benchmarks:
+      failures.append(f"{context}: Windows {domain} eligible-candidate set is incomplete")
+
+    winner_index = 0
+    decisions = []
+    valid_samples = True
+    for index, sample in enumerate(batches):
       try:
-        decision = reproduce_material_decision(probe.get(key), incumbent, reads, required)
+        median = int(statistics.median(sample))
       except (TypeError, ValueError):
-        failures.append(f"{context}: malformed Windows Ordered {provider} samples")
+        valid_samples = False
+        break
+      if medians[index] != median:
+        valid_samples = False
+        break
+      if index == 0:
         continue
-      decision["challenger"] = provider
-      decision["incumbent"] = incumbent_name
+      try:
+        decision = reproduce_material_decision(
+          sample, batches[winner_index], reads, required
+        )
+      except (TypeError, ValueError):
+        valid_samples = False
+        break
+      decision["challenger"] = names[index]
+      decision["incumbent"] = names[winner_index]
       decisions.append(decision)
       if decision["selected"]:
-        incumbent_name = provider
-        incumbent = probe.get(key)
-    elif probe.get(eligible_key) is not False:
-      failures.append(f"{context}: malformed Windows Ordered {eligible_key}")
+        winner_index = index
+    winner = names[winner_index]
+    if not valid_samples:
+      failures.append(f"{context}: malformed Windows {domain} selector samples")
+    if selected_name != winner or selected.get(domain) != winner:
+      failures.append(f"{context}: Windows {domain} selected provider does not reproduce")
+    domain_results[domain] = {"winner": winner, "decisions": decisions}
 
-  if candidates.get("ordered") != expected_candidates:
-    failures.append(f"{context}: Windows Ordered eligible-candidate set is incomplete")
-  if selected.get("ordered") != incumbent_name or probe.get("selected_provider") != incumbent_name:
-    failures.append(f"{context}: Windows Ordered selected provider does not reproduce")
+  expected_availability = {
+    "interrupt_time_precise_available": (
+      "windows_query_interrupt_time_precise"
+      in probe.get("instant_candidate_names", [])
+    ),
+    "unbiased_interrupt_time_precise_available": (
+      "windows_query_unbiased_interrupt_time_precise"
+      in probe.get("instant_candidate_names", [])
+    ),
+  }
+  if any(probe.get(key) is not value for key, value in expected_availability.items()):
+    failures.append(f"{context}: Windows wall availability flags do not match candidates")
+  for eligibility_key, exclusion_key in (
+    ("raw_architectural_counter_eligible", "raw_architectural_counter_exclusion"),
+    ("coarse_clock_eligible", "coarse_clock_exclusion"),
+    ("utc_clock_eligible", "utc_clock_exclusion"),
+    ("auxiliary_counter_eligible", "auxiliary_counter_exclusion"),
+  ):
+    if probe.get(eligibility_key) is not False or not isinstance(
+      probe.get(exclusion_key), str
+    ) or not probe[exclusion_key].strip():
+      failures.append(f"{context}: Windows {eligibility_key} exclusion is incomplete")
+
+  ordering_contract = selection.get("ordering_contract")
+  if (
+    not isinstance(ordering_contract, dict)
+    or ordering_contract.get("authority") != WINDOWS_QPC_AUTHORITY
+    or not isinstance(ordering_contract.get("basis"), str)
+    or not ordering_contract["basis"].strip()
+  ):
+    failures.append(f"{context}: Windows Ordered call-boundary contract is incomplete")
   return {
-    "winner": incumbent_name,
-    "decisions": decisions,
+    **domain_results,
     "ineligible_direct_candidates": validated_exclusions,
   }
 
@@ -4168,13 +4231,16 @@ def validate_wall_selector_reproduction(
     return validate_residual_wall_selector(context, selection, clocks, failures)
   if (
     isinstance(selection.get("probe"), dict)
+    and "raw_architectural_counter_eligible" in selection["probe"]
+  ):
+    return validate_windows_wall_selector(context, selection, failures)
+  if (
+    isinstance(selection.get("probe"), dict)
     and "instant_candidate_names" in selection["probe"]
   ):
     return validate_linux_x86_wall_selector(context, selection, failures)
   if isinstance(selection.get("instant_probe"), dict):
     return validate_linux_aarch64_wall_selector(context, selection, failures)
-  if isinstance(selected, dict) and selected.get("instant") == "windows_qpc":
-    return validate_windows_wall_selector(context, selection, failures)
   if (
     isinstance(selected, dict)
     and isinstance(selected.get("instant"), str)

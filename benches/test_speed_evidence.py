@@ -2085,8 +2085,11 @@ declare void @generic_implementation()
     windows_ordered_pattern = module.ordered_instant_route(
       "x86_64-pc-windows-msvc", "default"
     )["required_patterns"][0]
-    self.assertRegex("qpc_ticks_ordered_after_selection", windows_ordered_pattern)
-    self.assertRegex("windows_ticks_ordered_after_selection", windows_ordered_pattern)
+    self.assertEqual(windows_ordered_pattern, "windows_ticks_ordered_after_selection")
+    windows_ordered_forbidden = module.ordered_instant_route(
+      "x86_64-pc-windows-msvc", "default"
+    )["forbidden_patterns"]
+    self.assertTrue(any("lfence" in pattern for pattern in windows_ordered_forbidden))
 
   def test_emscripten_target_proof_uses_guarded_host_imports(self) -> None:
     path = Path(__file__).with_name("verify-target-providers.py")
@@ -4494,17 +4497,21 @@ declare void @generic_implementation()
     self.assertEqual(out["direct_selected_thread_cpu"]["provider"], "time32_entry")
     self.assertEqual(out["direct_selected_thread_cpu"]["read_cost"], "system call")
 
-  def test_windows_serialize_candidate_reproduces(self) -> None:
+  def test_windows_clock_tournaments_reproduce(self) -> None:
     selection = {
+      "selection_kind": "runtime_tournament",
       "selected_provider": {
-        "instant": "windows_qpc",
-        "ordered": "windows_qpc_x86_serialize",
+        "instant": "windows_query_interrupt_time_precise",
+        "ordered": "windows_qpc_call_boundary",
       },
       "eligible_direct_candidates": {
-        "instant": ["direct_wall__windows_qpc"],
+        "instant": [
+          "direct_wall__windows_qpc",
+          "direct_wall__windows_query_interrupt_time_precise",
+        ],
         "ordered": [
-          "direct_ordered_wall__windows_qpc_x86_cpuid",
-          "direct_ordered_wall__windows_qpc_x86_serialize",
+          "direct_ordered_wall__windows_qpc_call_boundary",
+          "direct_ordered_wall__windows_query_interrupt_time_precise_call_boundary",
         ],
       },
       "ineligible_direct_candidates": {
@@ -4515,16 +4522,39 @@ declare void @generic_implementation()
           "authority": speed_evidence.WINDOWS_QPC_AUTHORITY,
         },
       },
-      "ordered_probe": {
+      "probe": {
         "reads_per_batch": 4_096,
         "required_decisive_wins": 8,
-        "cpuid_batches_ns": [100_000] * 9,
-        "lfence_eligible": False,
-        "rdtscp_eligible": False,
-        "mfence_eligible": False,
-        "serialize_eligible": True,
-        "serialize_batches_ns": [90_000] * 9,
-        "selected_provider": "windows_qpc_x86_serialize",
+        "instant_candidate_count": 2,
+        "instant_candidate_names": [
+          "windows_qpc",
+          "windows_query_interrupt_time_precise",
+        ],
+        "instant_candidate_batches_ns": [[100_000] * 9, [90_000] * 9],
+        "instant_candidate_medians_ns": [100_000, 90_000],
+        "ordered_candidate_count": 2,
+        "ordered_candidate_names": [
+          "windows_qpc_call_boundary",
+          "windows_query_interrupt_time_precise_call_boundary",
+        ],
+        "ordered_candidate_batches_ns": [[100_000] * 9, [95_000] * 9],
+        "ordered_candidate_medians_ns": [100_000, 95_000],
+        "instant_selected_provider": "windows_query_interrupt_time_precise",
+        "ordered_selected_provider": "windows_qpc_call_boundary",
+        "interrupt_time_precise_available": True,
+        "unbiased_interrupt_time_precise_available": False,
+        "raw_architectural_counter_eligible": False,
+        "raw_architectural_counter_exclusion": "not a Windows-owned timeline",
+        "coarse_clock_eligible": False,
+        "coarse_clock_exclusion": "not high resolution",
+        "utc_clock_eligible": False,
+        "utc_clock_exclusion": "adjustable UTC",
+        "auxiliary_counter_eligible": False,
+        "auxiliary_counter_exclusion": "no read API",
+      },
+      "ordering_contract": {
+        "basis": "opaque OS call boundary on a Windows-owned timeline",
+        "authority": speed_evidence.WINDOWS_QPC_AUTHORITY,
       },
     }
     failures: list[str] = []
@@ -4532,7 +4562,10 @@ declare void @generic_implementation()
       "synthetic", selection, failures
     )
     self.assertEqual(failures, [])
-    self.assertEqual(result["winner"], "windows_qpc_x86_serialize")
+    self.assertEqual(
+      result["instant"]["winner"], "windows_query_interrupt_time_precise"
+    )
+    self.assertEqual(result["ordered"]["winner"], "windows_qpc_call_boundary")
     self.assertIn("windows_raw_tsc", result["ineligible_direct_candidates"])
 
     tampered = copy.deepcopy(selection)

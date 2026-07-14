@@ -185,15 +185,17 @@ impl Sub<Instant> for Instant {
 ///
 /// A direct counter read is not a memory operation, so an out-of-order CPU can
 /// sample [`Instant::now()`] before a prior `Acquire` load completes.
-/// `OrderedInstant` emits the architecture's ordering primitive before reading
-/// its selected wall-time domain. That provider can differ from [`Instant`]'s
-/// provider when the fastest ordered and unordered reads differ on a host.
+/// `OrderedInstant` uses the target's ordering boundary before or as part of
+/// reading its selected wall-time domain. That provider can differ from
+/// [`Instant`]'s provider when the fastest ordered and unordered reads differ
+/// on a host.
 ///
 /// # Per-architecture barrier
 ///
-/// - **Windows x86, x86_64, and aarch64**: a sequentially consistent hardware
-///   fence before `QueryPerformanceCounter`; tach never executes a separate
-///   TSC or CNTVCT read on this path.
+/// - **Windows x86, x86_64, and aarch64**: an opaque call to the independently
+///   selected Windows-owned high-resolution monotonic source. The call boundary
+///   prevents compiler motion across the read, while Windows owns cross-core
+///   timeline ordering; tach never substitutes a raw TSC or CNTVCT read.
 /// - **Intel macOS**: XNU's `lfence; rdtsc; lfence` Mach absolute-time protocol,
 ///   either inlined from the commpage data or reached through the system
 ///   function according to an Ordered-specific runtime cost probe.
@@ -224,8 +226,8 @@ impl Sub<Instant> for Instant {
 pub struct OrderedInstant(u64);
 
 impl OrderedInstant {
-  /// Reads the counter with the target's ordering barrier so the timestamp is
-  /// sampled *after* any prior `Acquire`-or-stronger observation.
+  /// Reads the counter through the target's ordering boundary so the timestamp
+  /// is sampled *after* any prior `Acquire`-or-stronger observation.
   #[inline(always)]
   #[allow(clippy::inline_always)]
   pub fn now() -> Self {

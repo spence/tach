@@ -725,10 +725,17 @@ def vdso_resolver_spec(target: str) -> dict:
 def instant_route(target: str) -> dict:
   if target.endswith("pc-windows-msvc"):
     return {
-      "provider": "Windows performance counter",
-      "native_primitive": "QueryPerformanceCounter",
+      "provider": "measured Windows-owned high-resolution monotonic source",
+      "native_primitive": (
+        "QueryPerformanceCounter, QueryInterruptTimePrecise, or "
+        "QueryUnbiasedInterruptTimePrecise"
+      ),
       "ordering": "unordered local platform-clock read",
-      "required_patterns": ["@QueryPerformanceCounter"],
+      "required_patterns": [
+        "windows_ticks_after_selection",
+        "@QueryPerformanceCounter",
+        "@GetProcAddress",
+      ],
       "forbidden_patterns": ["llvm.x86.rdtsc", r"\brdtscp\b", "cntvct_el0"],
     }
 
@@ -995,35 +1002,26 @@ def instant_route(target: str) -> dict:
 
 
 def ordered_instant_route(target: str, mode: str) -> dict:
-  if target == "aarch64-pc-windows-msvc":
+  if target.endswith("pc-windows-msvc"):
     return {
-      "provider": "ordered Windows performance counter",
-      "native_primitive": "DMB ISHLD + ISB + QueryPerformanceCounter",
-      "ordering": "load-completion and instruction barriers before the QPC read",
-      "required_patterns": [r"\bdmb ishld\\0Aisb\b", "@QueryPerformanceCounter"],
-      "forbidden_patterns": ["llvm.x86.rdtsc", r"\brdtscp\b", "cntvct_el0"],
-    }
-
-  if target in ("x86_64-pc-windows-msvc", "i686-pc-windows-msvc"):
-    return {
-      "provider": "measured exact x86 barrier + Windows performance counter",
+      "provider": "measured Windows-owned ordered call-boundary clock",
       "native_primitive": (
-        "CPUID, Intel LFENCE, RDTSCP, AMD MFENCE, or SERIALIZE followed by "
-        "QueryPerformanceCounter"
+        "QueryPerformanceCounter, QueryInterruptTimePrecise, or "
+        "QueryUnbiasedInterruptTimePrecise"
       ),
-      "ordering": "runtime-selected complete barrier + QPC compound provider",
+      "ordering": "opaque OS call boundary on a Windows-owned cross-processor timeline",
       "required_patterns": [
-        # LLVM can preserve the cold helper or inline it into this exact
-        # bench-internal wrapper when composing the optimized implementation IR.
-        r"(?:qpc_ticks_ordered_after_selection|windows_ticks_ordered_after_selection)",
-        r'asm sideeffect inteldialect "lfence"',
-        r'asm sideeffect inteldialect "mfence"',
-        r'asm sideeffect inteldialect "rdtscp\\0Alfence"',
-        r'asm sideeffect inteldialect "serialize"',
-        r"\\0Acpuid\\0A",
+        "windows_ticks_ordered_after_selection",
         "@QueryPerformanceCounter",
+        "@GetProcAddress",
       ],
-      "forbidden_patterns": ["cntvct_el0", r"fence[^\n]*seq_cst"],
+      "forbidden_patterns": [
+        "llvm.x86.rdtsc",
+        r"\brdtscp\b",
+        "cntvct_el0",
+        r'asm sideeffect(?: alignstack)? inteldialect "[^"]*(?:lfence|mfence|serialize|cpuid)',
+        r'asm sideeffect "[^"]*dmb ishld',
+      ],
     }
 
   if target == "x86_64-apple-darwin":
@@ -1654,13 +1652,6 @@ def selection_policy(target: str, timer: str, mode: str) -> dict[str, str]:
     return {
       "selection_policy": "fixed_contract",
       "selection_basis": "XNU's approved architectural counter is the eligible local wall route",
-    }
-  if target == "aarch64-pc-windows-msvc" and timer == "ordered":
-    return {
-      "selection_policy": "runtime_measured",
-      "selection_basis": (
-        "the Windows reliable-clock provider is measured; the AArch64 ordering fence is fixed"
-      ),
     }
   return {
     "selection_policy": "runtime_measured",

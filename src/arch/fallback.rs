@@ -165,29 +165,10 @@ mod qpc {
     INSTANT_PROVIDER_BASE + SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE;
 
   const ORDERED_PROVIDER_BASE: u8 = 2;
-  const ORDERED_BARRIER_COUNT: u8 = 5;
-  const MAX_ORDERED_CANDIDATES: usize = SOURCE_COUNT * ORDERED_BARRIER_COUNT as usize;
+  const MAX_ORDERED_CANDIDATES: usize = SOURCE_COUNT;
   const PRECISE_INTERRUPT_TIME_FREQUENCY: u64 = 10_000_000;
   const PROC_UNAVAILABLE: usize = 1;
 
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  const ORDERED_UNKNOWN: u8 = 0;
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  const ORDERED_SELECTING: u8 = 1;
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  const ORDERED_CPUID: u8 = 2;
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  const ORDERED_LFENCE: u8 = 3;
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  const ORDERED_RDTSCP: u8 = 4;
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  const ORDERED_MFENCE: u8 = 5;
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  const ORDERED_SERIALIZE: u8 = 6;
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  const ORDERED_BASELINE_BARRIER: u8 = ORDERED_CPUID;
-  #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-  const ORDERED_BASELINE_BARRIER: u8 = 0;
   const PROBE_BATCHES: usize = 9;
   const PROBE_READS: u64 = 4096;
   const PROBE_WARMUP_READS: u64 = 1024;
@@ -204,12 +185,13 @@ mod qpc {
     ) -> *mut core::ffi::c_void;
   }
 
-  // QPC is the Windows-owned reliable interval timeline. Its implementation
-  // may use a synchronized TSC, an Arm system counter, a proprietary platform
-  // counter, or a kernel path, and may apply hypervisor scaling and bias. Raw
+  // Windows owns the reliable interval timelines used here. QPC may use a
+  // synchronized TSC, an Arm system counter, a proprietary platform counter,
+  // or a kernel path, and may apply hypervisor scaling and bias. The precise
+  // interrupt-time APIs expose a separate documented 100 ns domain. Raw
   // architectural reads are therefore not equivalent even when a local probe
-  // finds them cheaper. QueryPerformanceFrequency is constant after boot, so
-  // both wall-clock APIs reuse it while keeping independent scale caches.
+  // finds them cheaper. Instant and OrderedInstant independently tournament
+  // the complete available OS-call paths and retain separate scale caches.
   static QPC_FREQ: AtomicI64 = AtomicI64::new(0);
   static INTERRUPT_TIME_PRECISE: AtomicUsize = AtomicUsize::new(0);
   static UNBIASED_INTERRUPT_TIME_PRECISE: AtomicUsize = AtomicUsize::new(0);
@@ -219,10 +201,6 @@ mod qpc {
   static ORDERED_PROVIDER_OWNER: AtomicU32 = AtomicU32::new(0);
   static INSTANT_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(INSTANT_QPC);
   static ORDERED_PROBE_PROVIDER: AtomicU8 = AtomicU8::new(ORDERED_PROVIDER_BASE);
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  static ORDERED_QPC_BARRIER: AtomicU8 = AtomicU8::new(ORDERED_UNKNOWN);
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  static PROBE_ORDERED_QPC_BARRIER: AtomicU8 = AtomicU8::new(ORDERED_CPUID);
 
   #[derive(Clone, Copy)]
   #[allow(dead_code)] // Decision detail is retained for bench evidence.
@@ -313,34 +291,6 @@ mod qpc {
     pub(crate) name: &'static str,
     pub(crate) read: fn() -> u64,
   }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[derive(Clone, Copy, Debug)]
-  pub(crate) struct QpcOrderedEvidence {
-    pub(crate) reads_per_batch: u64,
-    pub(crate) cpuid_batches_ns: [u64; PROBE_BATCHES],
-    pub(crate) lfence_batches_ns: [u64; PROBE_BATCHES],
-    pub(crate) rdtscp_batches_ns: [u64; PROBE_BATCHES],
-    pub(crate) mfence_batches_ns: [u64; PROBE_BATCHES],
-    pub(crate) serialize_batches_ns: [u64; PROBE_BATCHES],
-    pub(crate) lfence_eligible: bool,
-    pub(crate) rdtscp_eligible: bool,
-    pub(crate) mfence_eligible: bool,
-    pub(crate) serialize_eligible: bool,
-    pub(crate) selected_provider: &'static str,
-    pub(crate) required_decisive_wins: usize,
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  struct EvidenceCell(UnsafeCell<MaybeUninit<QpcOrderedEvidence>>);
-
-  // SAFETY: the selection owner writes once before publishing the selected
-  // barrier with Release; evidence readers acquire that state first.
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  unsafe impl Sync for EvidenceCell {}
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  static ORDERED_EVIDENCE: EvidenceCell = EvidenceCell(UnsafeCell::new(MaybeUninit::uninit()));
 
   #[inline]
   pub fn qpc_frequency() -> u64 {
@@ -440,7 +390,6 @@ mod qpc {
 
   #[inline(always)]
   fn read_ordered_provider(provider: u8) -> u64 {
-    execute_ordered_barrier(provider);
     read_source(ordered_source(provider))
   }
 
@@ -511,67 +460,18 @@ mod qpc {
   }
 
   #[inline]
-  const fn ordered_provider(source: u8, barrier: u8) -> u8 {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      return ORDERED_PROVIDER_BASE + source * ORDERED_BARRIER_COUNT + barrier - ORDERED_CPUID;
-    }
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    {
-      let _ = barrier;
-      ORDERED_PROVIDER_BASE + source
-    }
+  const fn ordered_provider(source: u8) -> u8 {
+    ORDERED_PROVIDER_BASE + source
   }
 
   #[inline]
   const fn is_ordered_provider(provider: u8) -> bool {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      return provider >= ORDERED_PROVIDER_BASE
-        && provider < ORDERED_PROVIDER_BASE + SOURCE_COUNT as u8 * ORDERED_BARRIER_COUNT;
-    }
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    {
-      provider >= ORDERED_PROVIDER_BASE && provider < ORDERED_PROVIDER_BASE + SOURCE_COUNT as u8
-    }
+    provider >= ORDERED_PROVIDER_BASE && provider < ORDERED_PROVIDER_BASE + SOURCE_COUNT as u8
   }
 
   #[inline]
   const fn ordered_source(provider: u8) -> u8 {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      return provider.saturating_sub(ORDERED_PROVIDER_BASE) / ORDERED_BARRIER_COUNT;
-    }
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    {
-      provider.saturating_sub(ORDERED_PROVIDER_BASE)
-    }
-  }
-
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  #[inline]
-  const fn ordered_barrier(provider: u8) -> u8 {
-    ORDERED_CPUID + provider.saturating_sub(ORDERED_PROVIDER_BASE) % ORDERED_BARRIER_COUNT
-  }
-
-  #[inline(always)]
-  fn execute_ordered_barrier(provider: u8) {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    execute_ordered_qpc_barrier(ordered_barrier(provider));
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    let _ = provider;
-
-    #[cfg(target_arch = "aarch64")]
-    // DMB ISHLD completes the preceding Acquire-observed load and ISB prevents
-    // the selected Windows clock sequence from executing before completion.
-    // Omitting `nomem` also supplies the compiler side of the contract.
-    unsafe {
-      core::arch::asm!("dmb ishld", "isb", options(nostack, preserves_flags));
-    }
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
-    let _ = provider;
+    provider.saturating_sub(ORDERED_PROVIDER_BASE)
   }
 
   fn selected_instant_provider() -> u8 {
@@ -587,7 +487,7 @@ mod qpc {
     select_process_provider(
       &ORDERED_PROVIDER,
       &ORDERED_PROVIDER_OWNER,
-      ordered_provider(SOURCE_QPC, ORDERED_BASELINE_BARRIER),
+      ordered_provider(SOURCE_QPC),
       detect_ordered_provider,
     )
   }
@@ -737,32 +637,9 @@ mod qpc {
   fn ordered_candidates() -> CandidateList<MAX_ORDERED_CANDIDATES> {
     let sources = instant_candidates();
     let mut candidates = CandidateList::new();
-
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      let (lfence, rdtscp, mfence, serialize) = ordered_qpc_eligibility();
-      let barriers = [
-        (ORDERED_CPUID, true),
-        (ORDERED_LFENCE, lfence),
-        (ORDERED_RDTSCP, rdtscp),
-        (ORDERED_MFENCE, mfence),
-        (ORDERED_SERIALIZE, serialize),
-      ];
-      for &instant_provider in &sources.providers[..sources.count] {
-        let source = instant_source(instant_provider);
-        for &(barrier, eligible) in &barriers {
-          if eligible {
-            candidates.push(ordered_provider(source, barrier));
-          }
-        }
-      }
-    }
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     for &instant_provider in &sources.providers[..sources.count] {
-      candidates.push(ordered_provider(instant_source(instant_provider), ORDERED_BASELINE_BARRIER));
+      candidates.push(ordered_provider(instant_source(instant_provider)));
     }
-
     candidates
   }
 
@@ -821,15 +698,9 @@ mod qpc {
   fn probe_ordered_ticks() -> u64 {
     let provider = ORDERED_PROBE_PROVIDER.load(Ordering::Relaxed);
     if !is_ordered_provider(provider) {
-      return qpc_ticks_ordered_baseline();
+      return qpc_ticks();
     }
     read_ordered_provider(provider)
-  }
-
-  #[inline(always)]
-  fn qpc_ticks_ordered_baseline() -> u64 {
-    execute_ordered_barrier(ordered_provider(SOURCE_QPC, ORDERED_BASELINE_BARRIER));
-    qpc_ticks()
   }
 
   #[inline(never)]
@@ -995,57 +866,12 @@ mod qpc {
 
   #[cfg(feature = "bench-internal")]
   const fn ordered_provider_name(provider: u8) -> &'static str {
-    #[cfg(target_arch = "aarch64")]
-    {
-      return match ordered_source(provider) {
-        SOURCE_INTERRUPT_TIME_PRECISE => "windows_query_interrupt_time_precise_arm64_dmb_ishld_isb",
-        SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE => {
-          "windows_query_unbiased_interrupt_time_precise_arm64_dmb_ishld_isb"
-        }
-        _ => "windows_qpc_arm64_dmb_ishld_isb",
-      };
-    }
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      return match (ordered_source(provider), ordered_barrier(provider)) {
-        (SOURCE_QPC, ORDERED_LFENCE) => "windows_qpc_x86_lfence",
-        (SOURCE_QPC, ORDERED_RDTSCP) => "windows_qpc_x86_rdtscp_lfence",
-        (SOURCE_QPC, ORDERED_MFENCE) => "windows_qpc_x86_mfence",
-        (SOURCE_QPC, ORDERED_SERIALIZE) => "windows_qpc_x86_serialize",
-        (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_LFENCE) => {
-          "windows_query_interrupt_time_precise_x86_lfence"
-        }
-        (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_RDTSCP) => {
-          "windows_query_interrupt_time_precise_x86_rdtscp_lfence"
-        }
-        (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_MFENCE) => {
-          "windows_query_interrupt_time_precise_x86_mfence"
-        }
-        (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_SERIALIZE) => {
-          "windows_query_interrupt_time_precise_x86_serialize"
-        }
-        (SOURCE_INTERRUPT_TIME_PRECISE, _) => "windows_query_interrupt_time_precise_x86_cpuid",
-        (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_LFENCE) => {
-          "windows_query_unbiased_interrupt_time_precise_x86_lfence"
-        }
-        (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_RDTSCP) => {
-          "windows_query_unbiased_interrupt_time_precise_x86_rdtscp_lfence"
-        }
-        (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_MFENCE) => {
-          "windows_query_unbiased_interrupt_time_precise_x86_mfence"
-        }
-        (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_SERIALIZE) => {
-          "windows_query_unbiased_interrupt_time_precise_x86_serialize"
-        }
-        (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, _) => {
-          "windows_query_unbiased_interrupt_time_precise_x86_cpuid"
-        }
-        _ => "windows_qpc_x86_cpuid",
-      };
-    }
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
-    {
-      source_name(ordered_source(provider))
+    match ordered_source(provider) {
+      SOURCE_INTERRUPT_TIME_PRECISE => "windows_query_interrupt_time_precise_call_boundary",
+      SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE => {
+        "windows_query_unbiased_interrupt_time_precise_call_boundary"
+      }
+      _ => "windows_qpc_call_boundary",
     }
   }
 
@@ -1077,19 +903,19 @@ mod qpc {
 
   #[cfg(feature = "bench-internal")]
   #[inline(always)]
-  fn bench_instant_qpc() -> u64 {
+  pub(crate) fn bench_instant_qpc() -> u64 {
     qpc_ticks()
   }
 
   #[cfg(feature = "bench-internal")]
   #[inline(always)]
-  fn bench_instant_interrupt_time_precise() -> u64 {
+  pub(crate) fn bench_instant_interrupt_time_precise() -> u64 {
     read_source(SOURCE_INTERRUPT_TIME_PRECISE)
   }
 
   #[cfg(feature = "bench-internal")]
   #[inline(always)]
-  fn bench_instant_unbiased_interrupt_time_precise() -> u64 {
+  pub(crate) fn bench_instant_unbiased_interrupt_time_precise() -> u64 {
     read_source(SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE)
   }
 
@@ -1106,108 +932,13 @@ mod qpc {
   }
 
   #[cfg(feature = "bench-internal")]
-  macro_rules! ordered_bench_reader {
-    ($name:ident, $source:expr, $barrier:expr) => {
-      #[inline(always)]
-      fn $name() -> u64 {
-        execute_ordered_barrier(ordered_provider($source, $barrier));
-        read_source($source)
-      }
-    };
-  }
-
-  #[cfg(feature = "bench-internal")]
-  ordered_bench_reader!(bench_ordered_qpc, SOURCE_QPC, ORDERED_BASELINE_BARRIER);
-  #[cfg(feature = "bench-internal")]
-  ordered_bench_reader!(
-    bench_ordered_interrupt_time_precise,
-    SOURCE_INTERRUPT_TIME_PRECISE,
-    ORDERED_BASELINE_BARRIER
-  );
-  #[cfg(feature = "bench-internal")]
-  ordered_bench_reader!(
-    bench_ordered_unbiased_interrupt_time_precise,
-    SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE,
-    ORDERED_BASELINE_BARRIER
-  );
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(bench_interrupt_lfence, SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_LFENCE);
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(bench_interrupt_rdtscp, SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_RDTSCP);
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(bench_interrupt_mfence, SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_MFENCE);
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(
-    bench_interrupt_serialize,
-    SOURCE_INTERRUPT_TIME_PRECISE,
-    ORDERED_SERIALIZE
-  );
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(
-    bench_unbiased_lfence,
-    SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE,
-    ORDERED_LFENCE
-  );
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(
-    bench_unbiased_rdtscp,
-    SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE,
-    ORDERED_RDTSCP
-  );
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(
-    bench_unbiased_mfence,
-    SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE,
-    ORDERED_MFENCE
-  );
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  ordered_bench_reader!(
-    bench_unbiased_serialize,
-    SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE,
-    ORDERED_SERIALIZE
-  );
-
-  #[cfg(feature = "bench-internal")]
   fn ordered_bench_primitive(provider: u8) -> BenchPrimitive {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    let read = match (ordered_source(provider), ordered_barrier(provider)) {
-      (SOURCE_QPC, ORDERED_LFENCE) => bench_qpc_ordered_lfence as fn() -> u64,
-      (SOURCE_QPC, ORDERED_RDTSCP) => bench_qpc_ordered_rdtscp as fn() -> u64,
-      (SOURCE_QPC, ORDERED_MFENCE) => bench_qpc_ordered_mfence as fn() -> u64,
-      (SOURCE_QPC, ORDERED_SERIALIZE) => bench_qpc_ordered_serialize as fn() -> u64,
-      (SOURCE_QPC, _) => bench_qpc_ordered_cpuid as fn() -> u64,
-      (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_LFENCE) => bench_interrupt_lfence as fn() -> u64,
-      (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_RDTSCP) => bench_interrupt_rdtscp as fn() -> u64,
-      (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_MFENCE) => bench_interrupt_mfence as fn() -> u64,
-      (SOURCE_INTERRUPT_TIME_PRECISE, ORDERED_SERIALIZE) => {
-        bench_interrupt_serialize as fn() -> u64
-      }
-      (SOURCE_INTERRUPT_TIME_PRECISE, _) => bench_ordered_interrupt_time_precise as fn() -> u64,
-      (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_LFENCE) => {
-        bench_unbiased_lfence as fn() -> u64
-      }
-      (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_RDTSCP) => {
-        bench_unbiased_rdtscp as fn() -> u64
-      }
-      (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_MFENCE) => {
-        bench_unbiased_mfence as fn() -> u64
-      }
-      (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, ORDERED_SERIALIZE) => {
-        bench_unbiased_serialize as fn() -> u64
-      }
-      (SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE, _) => {
-        bench_ordered_unbiased_interrupt_time_precise as fn() -> u64
-      }
-      _ => bench_ordered_qpc as fn() -> u64,
-    };
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     let read = match ordered_source(provider) {
-      SOURCE_INTERRUPT_TIME_PRECISE => bench_ordered_interrupt_time_precise as fn() -> u64,
+      SOURCE_INTERRUPT_TIME_PRECISE => bench_instant_interrupt_time_precise as fn() -> u64,
       SOURCE_UNBIASED_INTERRUPT_TIME_PRECISE => {
-        bench_ordered_unbiased_interrupt_time_precise as fn() -> u64
+        bench_instant_unbiased_interrupt_time_precise as fn() -> u64
       }
-      _ => bench_ordered_qpc as fn() -> u64,
+      _ => bench_instant_qpc as fn() -> u64,
     };
     BenchPrimitive { name: ordered_provider_name(provider), read }
   }
@@ -1262,373 +993,6 @@ mod qpc {
     c as u64
   }
 
-  #[cfg(feature = "bench-internal")]
-  #[inline(always)]
-  pub fn qpc_ticks_ordered() -> u64 {
-    #[cfg(target_arch = "aarch64")]
-    // DMB ISHLD completes the preceding Acquire-observed load and ISB prevents
-    // the following QPC system-counter sequence from executing before that
-    // completion. Omitting `nomem` supplies the compiler side of the same
-    // ordering contract without unnecessarily ordering prior stores.
-    unsafe {
-      core::arch::asm!("dmb ishld", "isb", options(nostack, preserves_flags));
-    }
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      let provider = ORDERED_QPC_BARRIER.load(Ordering::Relaxed);
-      if provider == ORDERED_UNKNOWN || provider == ORDERED_SELECTING {
-        return qpc_ticks_ordered_after_selection();
-      }
-      execute_ordered_qpc_barrier(provider);
-    }
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[cold]
-  #[inline(never)]
-  fn qpc_ticks_ordered_after_selection() -> u64 {
-    let provider = selected_ordered_qpc_barrier();
-    execute_ordered_qpc_barrier(provider);
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  fn selected_ordered_qpc_barrier() -> u8 {
-    loop {
-      match ORDERED_QPC_BARRIER.load(Ordering::Acquire) {
-        ORDERED_UNKNOWN => {
-          if ORDERED_QPC_BARRIER
-            .compare_exchange(
-              ORDERED_UNKNOWN,
-              ORDERED_SELECTING,
-              Ordering::AcqRel,
-              Ordering::Acquire,
-            )
-            .is_ok()
-          {
-            let selected = select_ordered_qpc_barrier();
-            ORDERED_QPC_BARRIER.store(selected, Ordering::Release);
-            return selected;
-          }
-        }
-        // Every candidate orders the same QPC domain. Reentrant and concurrent
-        // first reads can use CPUID without waiting for the selector.
-        ORDERED_SELECTING => return ORDERED_CPUID,
-        selected => return selected,
-      }
-    }
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  fn select_ordered_qpc_barrier() -> u8 {
-    let (lfence_eligible, rdtscp_eligible, mfence_eligible, serialize_eligible) =
-      ordered_qpc_eligibility();
-    let candidates = [
-      ORDERED_CPUID,
-      if lfence_eligible { ORDERED_LFENCE } else { ORDERED_UNKNOWN },
-      if rdtscp_eligible { ORDERED_RDTSCP } else { ORDERED_UNKNOWN },
-      if mfence_eligible { ORDERED_MFENCE } else { ORDERED_UNKNOWN },
-      if serialize_eligible { ORDERED_SERIALIZE } else { ORDERED_UNKNOWN },
-    ];
-    for &provider in candidates.iter().filter(|provider| **provider != ORDERED_UNKNOWN) {
-      PROBE_ORDERED_QPC_BARRIER.store(provider, Ordering::Relaxed);
-      for _ in 0..PROBE_WARMUP_READS {
-        black_box(probe_ordered_qpc());
-      }
-    }
-
-    let mut cpuid = [0; PROBE_BATCHES];
-    let mut lfence = [0; PROBE_BATCHES];
-    let mut rdtscp = [0; PROBE_BATCHES];
-    let mut mfence = [0; PROBE_BATCHES];
-    let mut serialize = [0; PROBE_BATCHES];
-    let eligible: [u8; 5] = candidates;
-    let eligible_count = eligible.iter().filter(|provider| **provider != ORDERED_UNKNOWN).count();
-    for sample in 0..PROBE_BATCHES {
-      for offset in 0..eligible_count {
-        let provider = eligible
-          .iter()
-          .copied()
-          .filter(|provider| *provider != ORDERED_UNKNOWN)
-          .nth((sample + offset) % eligible_count)
-          .unwrap_or(ORDERED_CPUID);
-        let elapsed = measure_ordered_qpc_batch(provider);
-        match provider {
-          ORDERED_LFENCE => lfence[sample] = elapsed,
-          ORDERED_RDTSCP => rdtscp[sample] = elapsed,
-          ORDERED_MFENCE => mfence[sample] = elapsed,
-          ORDERED_SERIALIZE => serialize[sample] = elapsed,
-          _ => cpuid[sample] = elapsed,
-        }
-      }
-    }
-
-    let mut selected = ORDERED_CPUID;
-    let mut selected_samples = cpuid;
-    for (eligible, provider, samples) in [
-      (lfence_eligible, ORDERED_LFENCE, lfence),
-      (rdtscp_eligible, ORDERED_RDTSCP, rdtscp),
-      (mfence_eligible, ORDERED_MFENCE, mfence),
-      (serialize_eligible, ORDERED_SERIALIZE, serialize),
-    ] {
-      if eligible {
-        let decision = evaluate_ordered_qpc_candidate(samples, selected_samples);
-        if decision.challenger_selected {
-          selected = provider;
-          selected_samples = samples;
-        }
-      }
-    }
-
-    #[cfg(feature = "bench-internal")]
-    // SAFETY: this thread owns ORDERED_SELECTING and publishes only after the
-    // complete Copy evidence value is initialized.
-    unsafe {
-      (*ORDERED_EVIDENCE.0.get()).write(QpcOrderedEvidence {
-        reads_per_batch: PROBE_READS,
-        cpuid_batches_ns: cpuid,
-        lfence_batches_ns: lfence,
-        rdtscp_batches_ns: rdtscp,
-        mfence_batches_ns: mfence,
-        serialize_batches_ns: serialize,
-        lfence_eligible,
-        rdtscp_eligible,
-        mfence_eligible,
-        serialize_eligible,
-        selected_provider: ordered_qpc_barrier_name(selected),
-        required_decisive_wins: REQUIRED_DECISIVE_WINS,
-      });
-    }
-    selected
-  }
-
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  #[allow(unused_unsafe)]
-  fn ordered_qpc_eligibility() -> (bool, bool, bool, bool) {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::{__cpuid, __cpuid_count};
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::{__cpuid, __cpuid_count};
-
-    const INTEL: (u32, u32, u32) = (0x756e_6547, 0x4965_6e69, 0x6c65_746e);
-    const AMD: (u32, u32, u32) = (0x6874_7541, 0x6974_6e65, 0x444d_4163);
-    let basic = unsafe { __cpuid(0) };
-    let vendor = (basic.ebx, basic.edx, basic.ecx);
-    let sse2 = basic.eax >= 1 && unsafe { __cpuid(1) }.edx & (1 << 26) != 0;
-    let extended = unsafe { __cpuid(0x8000_0000) };
-    let rdtscp =
-      extended.eax >= 0x8000_0001 && unsafe { __cpuid(0x8000_0001) }.edx & (1 << 27) != 0;
-    let amd_serializing_lfence =
-      extended.eax >= 0x8000_0021 && unsafe { __cpuid(0x8000_0021) }.eax & (1 << 2) != 0;
-    let serialize = basic.eax >= 7 && unsafe { __cpuid_count(7, 0) }.edx & (1 << 14) != 0;
-    ordered_qpc_eligibility_from_capabilities(
-      vendor == INTEL,
-      vendor == AMD,
-      sse2,
-      rdtscp,
-      amd_serializing_lfence,
-      serialize,
-    )
-  }
-
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  const fn ordered_qpc_eligibility_from_capabilities(
-    intel: bool,
-    amd: bool,
-    sse2: bool,
-    rdtscp: bool,
-    amd_serializing_lfence: bool,
-    serialize: bool,
-  ) -> (bool, bool, bool, bool) {
-    (sse2 && (intel || (amd && amd_serializing_lfence)), rdtscp, amd && sse2, serialize)
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[inline(always)]
-  fn probe_ordered_qpc() -> u64 {
-    let provider = PROBE_ORDERED_QPC_BARRIER.load(Ordering::Relaxed);
-    if provider == ORDERED_UNKNOWN || provider == ORDERED_SELECTING {
-      return invalid_probe_ordered_qpc();
-    }
-    execute_ordered_qpc_barrier(provider);
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[cold]
-  #[inline(never)]
-  fn invalid_probe_ordered_qpc() -> u64 {
-    execute_ordered_qpc_barrier(ORDERED_CPUID);
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[inline(never)]
-  fn measure_ordered_qpc_batch(provider: u8) -> u64 {
-    PROBE_ORDERED_QPC_BARRIER.store(provider, Ordering::Relaxed);
-    let start = qpc_ticks();
-    let mut sink = 0;
-    for _ in 0..PROBE_READS {
-      sink ^= probe_ordered_qpc();
-    }
-    let elapsed = qpc_ticks().saturating_sub(start);
-    black_box(sink);
-    let frequency = u128::from(qpc_frequency().max(1));
-    u64::try_from(u128::from(elapsed).saturating_mul(1_000_000_000) / frequency).unwrap_or(u64::MAX)
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  fn evaluate_ordered_qpc_candidate(
-    challenger: [u64; PROBE_BATCHES],
-    incumbent: [u64; PROBE_BATCHES],
-  ) -> SelectionDecision {
-    let challenger_median = median_ordered_qpc(challenger);
-    let incumbent_median = median_ordered_qpc(incumbent);
-    let allowance = (incumbent_median / 20).max(PROBE_READS);
-    let decisive_wins = challenger
-      .iter()
-      .zip(incumbent)
-      .filter(|(challenger, incumbent)| (**challenger).saturating_add(allowance) < *incumbent)
-      .count();
-    SelectionDecision {
-      allowance,
-      decisive_wins,
-      challenger_selected: challenger_median.saturating_add(allowance) < incumbent_median
-        && decisive_wins >= REQUIRED_DECISIVE_WINS,
-    }
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  fn median_ordered_qpc(mut values: [u64; PROBE_BATCHES]) -> u64 {
-    values.sort_unstable();
-    values[values.len() / 2]
-  }
-
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  #[inline(always)]
-  fn execute_ordered_qpc_barrier(provider: u8) {
-    match provider {
-      ORDERED_LFENCE => unsafe {
-        core::arch::asm!("lfence", options(nostack, preserves_flags));
-      },
-      ORDERED_RDTSCP => unsafe {
-        core::arch::asm!(
-          "rdtscp",
-          "lfence",
-          lateout("eax") _,
-          lateout("edx") _,
-          lateout("ecx") _,
-          options(nostack, preserves_flags),
-        );
-      },
-      ORDERED_MFENCE => unsafe {
-        core::arch::asm!("mfence", options(nostack, preserves_flags));
-      },
-      ORDERED_SERIALIZE => unsafe {
-        core::arch::asm!("serialize", options(nostack, preserves_flags));
-      },
-      _ => {
-        #[cfg(target_arch = "x86_64")]
-        unsafe {
-          core::arch::asm!(
-            "mov rsi, rbx",
-            "xor eax, eax",
-            "cpuid",
-            "mov rbx, rsi",
-            lateout("eax") _,
-            lateout("ecx") _,
-            lateout("edx") _,
-            lateout("rsi") _,
-            options(nostack),
-          );
-        }
-        #[cfg(target_arch = "x86")]
-        unsafe {
-          core::arch::asm!(
-            "push ebx",
-            "xor eax, eax",
-            "cpuid",
-            "pop ebx",
-            lateout("eax") _,
-            lateout("ecx") _,
-            lateout("edx") _,
-          );
-        }
-      }
-    }
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  const fn ordered_qpc_barrier_name(provider: u8) -> &'static str {
-    match provider {
-      ORDERED_LFENCE => "windows_qpc_x86_lfence",
-      ORDERED_RDTSCP => "windows_qpc_x86_rdtscp_lfence",
-      ORDERED_MFENCE => "windows_qpc_x86_mfence",
-      ORDERED_SERIALIZE => "windows_qpc_x86_serialize",
-      _ => "windows_qpc_x86_cpuid",
-    }
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  pub(crate) fn bench_ordered_qpc_evidence() -> QpcOrderedEvidence {
-    let _ = selected_ordered_qpc_barrier();
-    // SAFETY: the Acquire selection read observes the initialized Copy value.
-    unsafe { (*ORDERED_EVIDENCE.0.get()).assume_init_read() }
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[inline(always)]
-  pub(crate) fn bench_qpc_ordered_cpuid() -> u64 {
-    execute_ordered_qpc_barrier(ORDERED_CPUID);
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[inline(always)]
-  pub(crate) fn bench_qpc_ordered_lfence() -> u64 {
-    execute_ordered_qpc_barrier(ORDERED_LFENCE);
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[inline(always)]
-  pub(crate) fn bench_qpc_ordered_rdtscp() -> u64 {
-    execute_ordered_qpc_barrier(ORDERED_RDTSCP);
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[inline(always)]
-  pub(crate) fn bench_qpc_ordered_mfence() -> u64 {
-    execute_ordered_qpc_barrier(ORDERED_MFENCE);
-    qpc_ticks()
-  }
-
-  #[cfg(all(feature = "bench-internal", any(target_arch = "x86", target_arch = "x86_64")))]
-  #[inline(always)]
-  pub(crate) fn bench_qpc_ordered_serialize() -> u64 {
-    execute_ordered_qpc_barrier(ORDERED_SERIALIZE);
-    qpc_ticks()
-  }
-
-  #[cfg(all(test, any(target_arch = "x86", target_arch = "x86_64")))]
-  mod x86_tests {
-    use super::*;
-
-    #[test]
-    fn amd_lfence_and_serialize_are_architecturally_gated() {
-      assert_eq!(
-        ordered_qpc_eligibility_from_capabilities(false, true, true, true, true, true),
-        (true, true, true, true),
-      );
-      assert_eq!(
-        ordered_qpc_eligibility_from_capabilities(false, true, true, true, false, false),
-        (false, true, true, false),
-      );
-    }
-  }
-
   #[cfg(test)]
   mod wall_tests {
     use super::*;
@@ -1645,7 +1009,7 @@ mod qpc {
         let instant = INSTANT_PROVIDER_BASE + source;
         assert!(is_instant_provider(instant));
         assert_eq!(instant_source(instant), source);
-        let ordered = ordered_provider(source, ORDERED_BASELINE_BARRIER);
+        let ordered = ordered_provider(source);
         assert!(is_ordered_provider(ordered));
         assert_eq!(ordered_source(ordered), source);
         let expected =

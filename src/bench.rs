@@ -4551,143 +4551,142 @@ pub fn apple_x86_selected_ordered_ticks() -> u64 {
 
 #[cfg(target_os = "windows")]
 #[doc(hidden)]
-pub struct WindowsQpcDirect;
-
-#[cfg(target_os = "windows")]
-impl WindowsQpcDirect {
-  #[doc(hidden)]
-  pub fn for_current_machine() -> Self {
-    Self
-  }
-
-  #[doc(hidden)]
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now_ticks(&self) -> u64 {
-    crate::arch::fallback::qpc_ticks()
-  }
-
-  #[doc(hidden)]
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now_ordered_ticks(&self) -> u64 {
-    crate::arch::fallback::qpc_ticks_ordered()
-  }
-
-  #[doc(hidden)]
-  #[inline]
-  pub fn elapsed_since(&self, earlier: u64) -> Duration {
-    crate::instant::ticks_to_duration(self.now_ticks().saturating_sub(earlier))
-  }
-
-  #[doc(hidden)]
-  #[inline]
-  pub fn ordered_elapsed_since(&self, earlier: u64) -> Duration {
-    crate::instant::ordered_ticks_to_duration(self.now_ordered_ticks().saturating_sub(earlier))
-  }
-}
-
-#[cfg(target_os = "windows")]
-#[doc(hidden)]
 pub fn windows_wall_selected_provider() -> &'static str {
-  "windows_qpc"
+  crate::arch::fallback::bench_instant_provider()
 }
 
-#[cfg(all(target_os = "windows", target_arch = "aarch64"))]
+#[cfg(target_os = "windows")]
 #[doc(hidden)]
 pub fn windows_ordered_wall_selected_provider() -> &'static str {
-  "windows_qpc_arm64_dmb_ishld_isb"
+  crate::arch::fallback::bench_ordered_provider()
 }
 
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
-#[doc(hidden)]
-pub fn windows_ordered_wall_selected_provider() -> &'static str {
-  crate::arch::fallback::bench_ordered_qpc_evidence().selected_provider
-}
-
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
+#[cfg(target_os = "windows")]
 #[doc(hidden)]
 #[derive(Serialize, Clone, Debug)]
-pub struct WindowsQpcOrderedSelectionMeasurements {
+pub struct WindowsWallSelectionMeasurements {
   pub reads_per_batch: u64,
-  pub cpuid_batches_ns: [u64; 9],
-  pub lfence_batches_ns: [u64; 9],
-  pub rdtscp_batches_ns: [u64; 9],
-  pub mfence_batches_ns: [u64; 9],
-  pub serialize_batches_ns: [u64; 9],
-  pub lfence_eligible: bool,
-  pub rdtscp_eligible: bool,
-  pub mfence_eligible: bool,
-  pub serialize_eligible: bool,
-  pub selected_provider: &'static str,
   pub required_decisive_wins: usize,
-}
-
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
-#[doc(hidden)]
-pub fn windows_qpc_ordered_selection_measurements() -> WindowsQpcOrderedSelectionMeasurements {
-  let evidence = crate::arch::fallback::bench_ordered_qpc_evidence();
-  WindowsQpcOrderedSelectionMeasurements {
-    reads_per_batch: evidence.reads_per_batch,
-    cpuid_batches_ns: evidence.cpuid_batches_ns,
-    lfence_batches_ns: evidence.lfence_batches_ns,
-    rdtscp_batches_ns: evidence.rdtscp_batches_ns,
-    mfence_batches_ns: evidence.mfence_batches_ns,
-    serialize_batches_ns: evidence.serialize_batches_ns,
-    lfence_eligible: evidence.lfence_eligible,
-    rdtscp_eligible: evidence.rdtscp_eligible,
-    mfence_eligible: evidence.mfence_eligible,
-    serialize_eligible: evidence.serialize_eligible,
-    selected_provider: evidence.selected_provider,
-    required_decisive_wins: evidence.required_decisive_wins,
-  }
-}
-
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
-#[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn windows_qpc_ordered_cpuid_ticks() -> u64 {
-  crate::arch::fallback::bench_qpc_ordered_cpuid()
-}
-
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
-#[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn windows_qpc_ordered_lfence_ticks() -> u64 {
-  crate::arch::fallback::bench_qpc_ordered_lfence()
-}
-
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
-#[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn windows_qpc_ordered_rdtscp_ticks() -> u64 {
-  crate::arch::fallback::bench_qpc_ordered_rdtscp()
-}
-
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
-#[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn windows_qpc_ordered_mfence_ticks() -> u64 {
-  crate::arch::fallback::bench_qpc_ordered_mfence()
-}
-
-#[cfg(all(target_os = "windows", any(target_arch = "x86", target_arch = "x86_64")))]
-#[doc(hidden)]
-#[inline(always)]
-#[allow(clippy::inline_always)]
-pub fn windows_qpc_ordered_serialize_ticks() -> u64 {
-  crate::arch::fallback::bench_qpc_ordered_serialize()
+  pub instant_candidate_count: usize,
+  pub instant_candidate_names: Vec<&'static str>,
+  pub instant_candidate_batches_ns: Vec<[u64; 9]>,
+  pub instant_candidate_medians_ns: Vec<u64>,
+  pub ordered_candidate_count: usize,
+  pub ordered_candidate_names: Vec<&'static str>,
+  pub ordered_candidate_batches_ns: Vec<[u64; 9]>,
+  pub ordered_candidate_medians_ns: Vec<u64>,
+  pub instant_selected_provider: &'static str,
+  pub ordered_selected_provider: &'static str,
+  pub interrupt_time_precise_available: bool,
+  pub unbiased_interrupt_time_precise_available: bool,
+  pub raw_architectural_counter_eligible: bool,
+  pub raw_architectural_counter_exclusion: &'static str,
+  pub coarse_clock_eligible: bool,
+  pub coarse_clock_exclusion: &'static str,
+  pub utc_clock_eligible: bool,
+  pub utc_clock_exclusion: &'static str,
+  pub auxiliary_counter_eligible: bool,
+  pub auxiliary_counter_exclusion: &'static str,
 }
 
 #[cfg(target_os = "windows")]
 #[doc(hidden)]
-#[inline]
-pub fn windows_ordered_ticks_to_duration(ticks: u64) -> Duration {
-  crate::instant::ordered_ticks_to_duration(ticks)
+pub fn windows_wall_selection_measurements() -> WindowsWallSelectionMeasurements {
+  let evidence = crate::arch::fallback::bench_windows_wall_probe_evidence();
+  let instant_count = evidence.instant_candidate_count;
+  let ordered_count = evidence.ordered_candidate_count;
+  WindowsWallSelectionMeasurements {
+    reads_per_batch: evidence.reads_per_batch,
+    required_decisive_wins: evidence.required_decisive_wins,
+    instant_candidate_count: instant_count,
+    instant_candidate_names: evidence.instant_candidate_names[..instant_count].to_vec(),
+    instant_candidate_batches_ns: evidence.instant_candidate_batches_ns[..instant_count].to_vec(),
+    instant_candidate_medians_ns: evidence.instant_candidate_medians_ns[..instant_count].to_vec(),
+    ordered_candidate_count: ordered_count,
+    ordered_candidate_names: evidence.ordered_candidate_names[..ordered_count].to_vec(),
+    ordered_candidate_batches_ns: evidence.ordered_candidate_batches_ns[..ordered_count].to_vec(),
+    ordered_candidate_medians_ns: evidence.ordered_candidate_medians_ns[..ordered_count].to_vec(),
+    instant_selected_provider: evidence.instant_selected_provider,
+    ordered_selected_provider: evidence.ordered_selected_provider,
+    interrupt_time_precise_available: evidence.interrupt_time_precise_available,
+    unbiased_interrupt_time_precise_available: evidence.unbiased_interrupt_time_precise_available,
+    raw_architectural_counter_eligible: evidence.raw_architectural_counter_eligible,
+    raw_architectural_counter_exclusion: evidence.raw_architectural_counter_exclusion,
+    coarse_clock_eligible: evidence.coarse_clock_eligible,
+    coarse_clock_exclusion: evidence.coarse_clock_exclusion,
+    utc_clock_eligible: evidence.utc_clock_eligible,
+    utc_clock_exclusion: evidence.utc_clock_exclusion,
+    auxiliary_counter_eligible: evidence.auxiliary_counter_eligible,
+    auxiliary_counter_exclusion: evidence.auxiliary_counter_exclusion,
+  }
+}
+
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+pub fn windows_wall_candidate_providers() -> Vec<&'static str> {
+  let (primitives, count) = crate::arch::fallback::bench_instant_candidate_primitives();
+  primitives
+    .into_iter()
+    .take(count)
+    .map(|primitive| {
+      primitive
+        .expect("eligible Windows wall candidate must have an exact reader")
+        .name
+    })
+    .collect()
+}
+
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+pub fn windows_ordered_wall_candidate_providers() -> Vec<&'static str> {
+  let (primitives, count) = crate::arch::fallback::bench_ordered_candidate_primitives();
+  primitives
+    .into_iter()
+    .take(count)
+    .map(|primitive| {
+      primitive
+        .expect("eligible Windows ordered wall candidate must have an exact reader")
+        .name
+    })
+    .collect()
+}
+
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn windows_qpc_ticks() -> u64 {
+  crate::arch::fallback::bench_instant_qpc()
+}
+
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn windows_interrupt_time_precise_ticks() -> u64 {
+  crate::arch::fallback::bench_instant_interrupt_time_precise()
+}
+
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn windows_unbiased_interrupt_time_precise_ticks() -> u64 {
+  crate::arch::fallback::bench_instant_unbiased_interrupt_time_precise()
+}
+
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+pub fn windows_qpc_delta_to_duration(ticks: u64) -> Duration {
+  let nanos = u128::from(ticks).saturating_mul(1_000_000_000)
+    / u128::from(crate::arch::fallback::qpc_frequency().max(1));
+  Duration::from_nanos(u64::try_from(nanos).unwrap_or(u64::MAX))
+}
+
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+pub fn windows_precise_delta_to_duration(ticks: u64) -> Duration {
+  Duration::from_nanos(ticks.saturating_mul(100))
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]

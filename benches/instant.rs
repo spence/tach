@@ -37,8 +37,6 @@ use tach::bench::MachAbsoluteTimeDirect;
   ),
 ))]
 use tach::bench::ThreadCpuPerfHandle;
-#[cfg(all(feature = "bench-internal", target_os = "windows"))]
-use tach::bench::WindowsQpcDirect;
 #[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "macos"))]
 use tach::bench::{AppleX86CommpageDirect, AppleX86TscDirect};
 #[cfg(all(
@@ -2057,71 +2055,76 @@ fn bench_now(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    let direct = WindowsQpcDirect::for_current_machine();
-    g.bench_function("direct_wall__windows_qpc", |b| {
-      b.iter(|| black_box(direct.now_ticks()));
-    });
-    g.bench_function("direct_selected_wall__windows_qpc", |b| {
-      b.iter(|| black_box(direct.now_ticks()));
-    });
-    let provider = tach::bench::windows_ordered_wall_selected_provider();
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      let evidence = tach::bench::windows_qpc_ordered_selection_measurements();
-      g.bench_function("direct_ordered_wall__windows_qpc_x86_cpuid", |b| {
-        b.iter(|| black_box(tach::bench::windows_qpc_ordered_cpuid_ticks()));
-      });
-      if evidence.lfence_eligible {
-        g.bench_function("direct_ordered_wall__windows_qpc_x86_lfence", |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_lfence_ticks()));
-        });
-      }
-      if evidence.rdtscp_eligible {
-        g.bench_function("direct_ordered_wall__windows_qpc_x86_rdtscp_lfence", |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_rdtscp_ticks()));
-        });
-      }
-      if evidence.mfence_eligible {
-        g.bench_function("direct_ordered_wall__windows_qpc_x86_mfence", |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_mfence_ticks()));
-        });
-      }
-      if evidence.serialize_eligible {
-        g.bench_function("direct_ordered_wall__windows_qpc_x86_serialize", |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_serialize_ticks()));
-        });
+    macro_rules! register_windows_now {
+      ($prefix:literal, $provider:expr, $read:path) => {
+        g.bench_function(format!("{}__{}", $prefix, $provider), |b| b.iter(|| black_box($read())));
+      };
+    }
+    for provider in tach::bench::windows_wall_candidate_providers() {
+      match provider {
+        "windows_query_interrupt_time_precise" => register_windows_now!(
+          "direct_wall",
+          provider,
+          tach::bench::windows_interrupt_time_precise_ticks
+        ),
+        "windows_query_unbiased_interrupt_time_precise" => register_windows_now!(
+          "direct_wall",
+          provider,
+          tach::bench::windows_unbiased_interrupt_time_precise_ticks
+        ),
+        _ => register_windows_now!("direct_wall", provider, tach::bench::windows_qpc_ticks),
       }
     }
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    match provider {
-      "windows_qpc_x86_lfence" => g
-        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_lfence_ticks()))
-        }),
-      "windows_qpc_x86_rdtscp_lfence" => g
-        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_rdtscp_ticks()))
-        }),
-      "windows_qpc_x86_mfence" => g
-        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_mfence_ticks()))
-        }),
-      "windows_qpc_x86_serialize" => g
-        .bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-          b.iter(|| black_box(tach::bench::windows_qpc_ordered_serialize_ticks()))
-        }),
-      _ => g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-        b.iter(|| black_box(tach::bench::windows_qpc_ordered_cpuid_ticks()))
-      }),
-    };
-    #[cfg(target_arch = "aarch64")]
-    {
-      g.bench_function(format!("direct_ordered_wall__{provider}"), |b| {
-        b.iter(|| black_box(direct.now_ordered_ticks()));
-      });
-      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-        b.iter(|| black_box(direct.now_ordered_ticks()));
-      });
+    let instant_provider = tach::bench::windows_wall_selected_provider();
+    match instant_provider {
+      "windows_query_interrupt_time_precise" => register_windows_now!(
+        "direct_selected_wall",
+        instant_provider,
+        tach::bench::windows_interrupt_time_precise_ticks
+      ),
+      "windows_query_unbiased_interrupt_time_precise" => register_windows_now!(
+        "direct_selected_wall",
+        instant_provider,
+        tach::bench::windows_unbiased_interrupt_time_precise_ticks
+      ),
+      _ => register_windows_now!(
+        "direct_selected_wall",
+        instant_provider,
+        tach::bench::windows_qpc_ticks
+      ),
+    }
+    for provider in tach::bench::windows_ordered_wall_candidate_providers() {
+      match provider {
+        "windows_query_interrupt_time_precise_call_boundary" => register_windows_now!(
+          "direct_ordered_wall",
+          provider,
+          tach::bench::windows_interrupt_time_precise_ticks
+        ),
+        "windows_query_unbiased_interrupt_time_precise_call_boundary" => register_windows_now!(
+          "direct_ordered_wall",
+          provider,
+          tach::bench::windows_unbiased_interrupt_time_precise_ticks
+        ),
+        _ => register_windows_now!("direct_ordered_wall", provider, tach::bench::windows_qpc_ticks),
+      }
+    }
+    let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
+    match ordered_provider {
+      "windows_query_interrupt_time_precise_call_boundary" => register_windows_now!(
+        "direct_selected_ordered_wall",
+        ordered_provider,
+        tach::bench::windows_interrupt_time_precise_ticks
+      ),
+      "windows_query_unbiased_interrupt_time_precise_call_boundary" => register_windows_now!(
+        "direct_selected_ordered_wall",
+        ordered_provider,
+        tach::bench::windows_unbiased_interrupt_time_precise_ticks
+      ),
+      _ => register_windows_now!(
+        "direct_selected_ordered_wall",
+        ordered_provider,
+        tach::bench::windows_qpc_ticks
+      ),
     }
   }
   g.bench_function("quanta", |b| b.iter(|| black_box(quanta::Instant::now())));
@@ -2370,31 +2373,15 @@ fn write_windows_wall_selection() {
 
   let instant_provider = tach::bench::windows_wall_selected_provider();
   let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  let (ordered_probe, ordered_candidates) = {
-    let evidence = tach::bench::windows_qpc_ordered_selection_measurements();
-    let mut candidates = vec!["direct_ordered_wall__windows_qpc_x86_cpuid"];
-    if evidence.lfence_eligible {
-      candidates.push("direct_ordered_wall__windows_qpc_x86_lfence");
-    }
-    if evidence.rdtscp_eligible {
-      candidates.push("direct_ordered_wall__windows_qpc_x86_rdtscp_lfence");
-    }
-    if evidence.mfence_eligible {
-      candidates.push("direct_ordered_wall__windows_qpc_x86_mfence");
-    }
-    if evidence.serialize_eligible {
-      candidates.push("direct_ordered_wall__windows_qpc_x86_serialize");
-    }
-    (serde_json::to_value(evidence).expect("serialize Windows QPC Ordered selector"), candidates)
-  };
-  #[cfg(target_arch = "aarch64")]
-  let ordered_probe = serde_json::json!({
-    "selected_provider": ordered_provider,
-    "eligibility": "Arm load-Acquire ordering requires dmb ishld; isb before QPC",
-  });
-  #[cfg(target_arch = "aarch64")]
-  let ordered_candidates = vec![format!("direct_ordered_wall__{ordered_provider}")];
+  let probe = tach::bench::windows_wall_selection_measurements();
+  let instant_candidates: Vec<_> = tach::bench::windows_wall_candidate_providers()
+    .into_iter()
+    .map(|provider| format!("direct_wall__{provider}"))
+    .collect();
+  let ordered_candidates: Vec<_> = tach::bench::windows_ordered_wall_candidate_providers()
+    .into_iter()
+    .map(|provider| format!("direct_ordered_wall__{provider}"))
+    .collect();
   #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
   let ineligible_direct_candidates = serde_json::json!({
     "windows_raw_tsc": {
@@ -2416,6 +2403,7 @@ fn write_windows_wall_selection() {
   #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
   let ineligible_direct_candidates = serde_json::json!({});
   let payload = serde_json::json!({
+    "selection_kind": "runtime_tournament",
     "selected_provider": {
       "instant": instant_provider,
       "ordered": ordered_provider,
@@ -2425,26 +2413,25 @@ fn write_windows_wall_selection() {
       "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
     },
     "eligible_direct_candidates": {
-      "instant": ["direct_wall__windows_qpc"],
+      "instant": instant_candidates,
       "ordered": ordered_candidates,
     },
-    "fixed_provider": {
-      "instant": {
-        "candidate": instant_provider,
-        "native_primitive": "QueryPerformanceCounter",
-        "selection_basis": "QPC is Windows' documented high-resolution reliable process-wide interval timeline",
-        "time_domain": "instant wall",
-      },
-      "ordered": {
-        "candidate": ordered_provider,
-        "native_primitive": "QueryPerformanceCounter with the selected ordering boundary",
-        "selection_basis": "the selected barrier plus QPC path is the fixed Windows cross-thread wall-clock route for this architecture",
-        "time_domain": "ordered wall",
+    "ineligible_direct_candidates": ineligible_direct_candidates,
+    "decision_rule": "Instant and OrderedInstant independently measure the complete call path of every available Windows-owned high-resolution monotonic source and retain the incumbent unless a challenger wins materially in at least eight of nine batches",
+    "probe": probe,
+    "ordering_contract": {
+      "basis": "the opaque Windows API call boundary prevents compiler motion across the read, and the Windows-owned timeline orders events across processors without a separate raw-counter fence",
+      "authority": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
+      "focused_proof": {
+        "workflow_run": 29366939799_u64,
+        "tach_violations": 0_u64,
+        "tach_reads": 945_307_669_u64,
+        "ordered_violations": 0_u64,
+        "ordered_reads": 1_060_680_201_u64,
+        "std_violations": 0_u64,
+        "std_reads": 1_185_012_196_u64,
       },
     },
-    "ineligible_direct_candidates": ineligible_direct_candidates,
-    "decision_rule": "QPC is Windows' supported high-resolution reliable process-wide interval timeline; x86 barriers are measured as complete barrier+QPC paths, while Arm64 uses the minimal architecturally sufficient dmb ishld; isb sequence",
-    "ordered_probe": ordered_probe,
   });
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
@@ -3001,106 +2988,105 @@ fn bench_elapsed(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    let direct = WindowsQpcDirect::for_current_machine();
-    g.bench_function("direct_wall__windows_qpc", |b| {
-      b.iter(|| {
-        let start = direct.now_ticks();
-        black_box(direct.elapsed_since(start))
-      });
-    });
-    g.bench_function("direct_selected_wall__windows_qpc", |b| {
-      b.iter(|| {
-        let start = direct.now_ticks();
-        black_box(direct.elapsed_since(start))
-      });
-    });
-    let provider = tach::bench::windows_ordered_wall_selected_provider();
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    macro_rules! bench_windows_ordered_candidate_elapsed {
-      ($candidate:expr, $read:path) => {{
-        g.bench_function($candidate, |b| {
+    macro_rules! register_windows_elapsed {
+      ($prefix:literal, $provider:expr, $read:path, $convert:path) => {
+        g.bench_function(format!("{}__{}", $prefix, $provider), |b| {
           b.iter(|| {
             let start = $read();
-            let elapsed = $read().saturating_sub(start);
-            black_box(tach::bench::windows_ordered_ticks_to_duration(elapsed))
+            black_box($convert($read().saturating_sub(start)))
           });
         });
-      }};
+      };
     }
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-      let evidence = tach::bench::windows_qpc_ordered_selection_measurements();
-      bench_windows_ordered_candidate_elapsed!(
-        "direct_ordered_wall__windows_qpc_x86_cpuid",
-        tach::bench::windows_qpc_ordered_cpuid_ticks
-      );
-      if evidence.lfence_eligible {
-        bench_windows_ordered_candidate_elapsed!(
-          "direct_ordered_wall__windows_qpc_x86_lfence",
-          tach::bench::windows_qpc_ordered_lfence_ticks
-        );
-      }
-      if evidence.rdtscp_eligible {
-        bench_windows_ordered_candidate_elapsed!(
-          "direct_ordered_wall__windows_qpc_x86_rdtscp_lfence",
-          tach::bench::windows_qpc_ordered_rdtscp_ticks
-        );
-      }
-      if evidence.mfence_eligible {
-        bench_windows_ordered_candidate_elapsed!(
-          "direct_ordered_wall__windows_qpc_x86_mfence",
-          tach::bench::windows_qpc_ordered_mfence_ticks
-        );
-      }
-      if evidence.serialize_eligible {
-        bench_windows_ordered_candidate_elapsed!(
-          "direct_ordered_wall__windows_qpc_x86_serialize",
-          tach::bench::windows_qpc_ordered_serialize_ticks
-        );
+    for provider in tach::bench::windows_wall_candidate_providers() {
+      match provider {
+        "windows_query_interrupt_time_precise" => register_windows_elapsed!(
+          "direct_wall",
+          provider,
+          tach::bench::windows_interrupt_time_precise_ticks,
+          tach::bench::windows_precise_delta_to_duration
+        ),
+        "windows_query_unbiased_interrupt_time_precise" => register_windows_elapsed!(
+          "direct_wall",
+          provider,
+          tach::bench::windows_unbiased_interrupt_time_precise_ticks,
+          tach::bench::windows_precise_delta_to_duration
+        ),
+        _ => register_windows_elapsed!(
+          "direct_wall",
+          provider,
+          tach::bench::windows_qpc_ticks,
+          tach::bench::windows_qpc_delta_to_duration
+        ),
       }
     }
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    macro_rules! bench_windows_ordered_elapsed {
-      ($read:path) => {{
-        g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-          b.iter(|| {
-            let start = $read();
-            let elapsed = $read().saturating_sub(start);
-            black_box(tach::bench::windows_ordered_ticks_to_duration(elapsed))
-          });
-        });
-      }};
+    let instant_provider = tach::bench::windows_wall_selected_provider();
+    match instant_provider {
+      "windows_query_interrupt_time_precise" => register_windows_elapsed!(
+        "direct_selected_wall",
+        instant_provider,
+        tach::bench::windows_interrupt_time_precise_ticks,
+        tach::bench::windows_precise_delta_to_duration
+      ),
+      "windows_query_unbiased_interrupt_time_precise" => register_windows_elapsed!(
+        "direct_selected_wall",
+        instant_provider,
+        tach::bench::windows_unbiased_interrupt_time_precise_ticks,
+        tach::bench::windows_precise_delta_to_duration
+      ),
+      _ => register_windows_elapsed!(
+        "direct_selected_wall",
+        instant_provider,
+        tach::bench::windows_qpc_ticks,
+        tach::bench::windows_qpc_delta_to_duration
+      ),
     }
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    match provider {
-      "windows_qpc_x86_lfence" => {
-        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_lfence_ticks)
+    for provider in tach::bench::windows_ordered_wall_candidate_providers() {
+      match provider {
+        "windows_query_interrupt_time_precise_call_boundary" => register_windows_elapsed!(
+          "direct_ordered_wall",
+          provider,
+          tach::bench::windows_interrupt_time_precise_ticks,
+          tach::bench::windows_precise_delta_to_duration
+        ),
+        "windows_query_unbiased_interrupt_time_precise_call_boundary" => {
+          register_windows_elapsed!(
+            "direct_ordered_wall",
+            provider,
+            tach::bench::windows_unbiased_interrupt_time_precise_ticks,
+            tach::bench::windows_precise_delta_to_duration
+          )
+        }
+        _ => register_windows_elapsed!(
+          "direct_ordered_wall",
+          provider,
+          tach::bench::windows_qpc_ticks,
+          tach::bench::windows_qpc_delta_to_duration
+        ),
       }
-      "windows_qpc_x86_rdtscp_lfence" => {
-        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_rdtscp_ticks)
-      }
-      "windows_qpc_x86_mfence" => {
-        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_mfence_ticks)
-      }
-      "windows_qpc_x86_serialize" => {
-        bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_serialize_ticks)
-      }
-      _ => bench_windows_ordered_elapsed!(tach::bench::windows_qpc_ordered_cpuid_ticks),
     }
-    #[cfg(target_arch = "aarch64")]
-    {
-      g.bench_function(format!("direct_ordered_wall__{provider}"), |b| {
-        b.iter(|| {
-          let start = direct.now_ordered_ticks();
-          black_box(direct.ordered_elapsed_since(start))
-        });
-      });
-      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-        b.iter(|| {
-          let start = direct.now_ordered_ticks();
-          black_box(direct.ordered_elapsed_since(start))
-        });
-      });
+    let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
+    match ordered_provider {
+      "windows_query_interrupt_time_precise_call_boundary" => register_windows_elapsed!(
+        "direct_selected_ordered_wall",
+        ordered_provider,
+        tach::bench::windows_interrupt_time_precise_ticks,
+        tach::bench::windows_precise_delta_to_duration
+      ),
+      "windows_query_unbiased_interrupt_time_precise_call_boundary" => {
+        register_windows_elapsed!(
+          "direct_selected_ordered_wall",
+          ordered_provider,
+          tach::bench::windows_unbiased_interrupt_time_precise_ticks,
+          tach::bench::windows_precise_delta_to_duration
+        )
+      }
+      _ => register_windows_elapsed!(
+        "direct_selected_ordered_wall",
+        ordered_provider,
+        tach::bench::windows_qpc_ticks,
+        tach::bench::windows_qpc_delta_to_duration
+      ),
     }
   }
   g.bench_function("quanta", |b| {
