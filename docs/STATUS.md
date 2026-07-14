@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Freeze ed1d017 plus this evidence update and rerun the canonical Graviton producer; admit the resulting cell only if capability policy, raw native fallback, public/exact parity, and all release tests pass together.
+> Next:       Diagnose and correct the retained Linux x86 OrderedInstant public/exact elapsed parity failure before spending on another Intel producer; then rerun the affected canonical cells at one frozen revision.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Preserved the passing e1f38c6 canonical Graviton bundle, used its exact native rows to identify a libc fallback mismatch, then committed ed1d017 so Linux AArch64 deterministically prefers the inlined raw thread-clock syscall with libc only as failure fallback. · By: nsr · ed1d017
+> Last verified: 2026-07-13 · Changed: Sealed and independently validated the canonical c7g producer at 5dfd158: all 79 remote release/integration tests passed, the retained bundle had zero validation failures, public ThreadCpuInstant measured 57.74 ns now and 116.27 ns elapsed versus 260.46 ns and 522.87 ns for native, and the raw syscall fallback beat libc. · By: nsr · 5dfd158
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

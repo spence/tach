@@ -288,6 +288,12 @@ decision; never silently omit a failing target.
 - Next: Freeze ed1d017 plus this evidence update and rerun the canonical Graviton producer; admit the resulting cell only if capability policy, raw native fallback, public/exact parity, and all release tests pass together.
 - Board: M1 remains active; the final revised Graviton source seal is the next admission gate.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Sealed and independently validated the canonical c7g producer at 5dfd158: all 79 remote release/integration tests passed, the retained bundle had zero validation failures, public ThreadCpuInstant measured 57.74 ns now and 116.27 ns elapsed versus 260.46 ns and 522.87 ns for native, and the raw syscall fallback beat libc.
+- Found: Linux AArch64 no longer needs provider-profitability selection: capability chooses perf mmap, denial/failure chooses raw CLOCK_THREAD_CPUTIME_ID, and the public path matches its exact mechanism. This cell is proof of the implementation but will need rerunning after any later source change for the one-revision release campaign.
+- Next: Diagnose and correct the retained Linux x86 OrderedInstant public/exact elapsed parity failure before spending on another Intel producer; then rerun the affected canonical cells at one frozen revision.
+- Board: Canonical Graviton provider/fallback proof is green at 5dfd158; M1 remains open on the Intel OrderedInstant mismatch and remaining one-revision campaign.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

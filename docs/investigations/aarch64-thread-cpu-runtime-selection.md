@@ -119,6 +119,29 @@ raw at 256.50 ns/read versus libc at 269.32 ns/read; the perf-denied process mea
 `PosixThreadCpuClock`/`SystemCall`. The instance, key pair `tach-native-raw-20260713-1`, and local key
 were deleted after the run.
 
+The final source-sealed `c7g.large` producer reran from exact revision
+`5dfd1583908f08575b5b36d9179c8ed3cd64d252` with collector invocation
+`criterion-239828decf3120ca` and manifest SHA-256
+`9f5f2c301d6b4b0cf8f4f1a881dbab4134d7fc1175cff1a06f38ffcf5ec8dc05`. All 79 remote release
+and integration tests passed, and independent retained-bundle validation reported zero failures.
+The optimized public and exact Criterion medians were:
+
+| Path | `now()` | `now() + elapsed()` |
+|---|---:|---:|
+| public `ThreadCpuInstant` / perf mmap | 57.74 ns | 116.27 ns |
+| exact selected perf mmap | 58.32 ns | 117.04 ns |
+| native inline thread-clock syscall | 260.46 ns | 522.87 ns |
+| exact raw AArch64 thread-clock syscall | 260.13 ns | 540.72 ns |
+| exact libc thread clock | 288.45 ns | 563.43 ns |
+
+The selected public path is therefore fully inlined and materially faster than the native thread
+clock, while remaining equivalent to the exact selected mechanism for both measured operations.
+The serialized selector reports `capability_preferred_with_failure_fallback`, names
+`linux_perf_mmap__aarch64_isb_cntvct_isb` as the selected mechanism, and names
+`linux_aarch64_raw_syscall_clock_thread_cputime` as the failure fallback. The AWS instance and its
+ephemeral key pair were deleted; a post-run orphan query found no live `tach-bench-*` instance or
+remaining `tach-speed-*` key.
+
 ## Limits
 
 The survey covers AWS Graviton 2–4 and a burstable Graviton 2 host, not every non-AWS hypervisor.
