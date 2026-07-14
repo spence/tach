@@ -82,9 +82,9 @@ def chart_document(index: int, marker: float = 1.23) -> dict:
 
 def write_primary_documents(root: Path, marker: float = 1.23) -> tuple[dict[str, dict], Path]:
   documents: dict[str, dict] = {}
-  first_path = root / "speed-0-test.json"
-  for index in range(6):
-    artifact_id = f"speed-{index}-test.json"
+  artifact_ids = tuple(RELEASE_VALIDATOR.speed_evidence.PRIMARY_SPEED_CELLS)
+  first_path = root / artifact_ids[0]
+  for index, artifact_id in enumerate(artifact_ids):
     document = chart_document(index, marker)
     documents[artifact_id] = document
     (root / artifact_id).write_text(json.dumps(document), encoding="utf-8")
@@ -120,12 +120,44 @@ def route_report() -> dict:
   return {"passed": True, "failures": []}
 
 
+def boundary_matrix():
+  boundaries = []
+  for index, artifact_id in enumerate(RELEASE_VALIDATOR.speed_evidence.PRIMARY_SPEED_CELLS):
+    identity = RELEASE_VALIDATOR.release_matrix.RouteIdentity(
+      f"case-{index}",
+      f"target-{index}",
+      "default",
+      f"runtime-{index}",
+    )
+    requirement = RELEASE_VALIDATOR.release_matrix.CoverageRequirement(
+      identity,
+      RELEASE_VALIDATOR.release_matrix.EvidenceKind.FULL_SPEED,
+      f"producer-{index}",
+      "three_timer_direct",
+    )
+    boundaries.append(RELEASE_VALIDATOR.release_matrix.DecisionBoundary(
+      f"boundary-{index}", artifact_id, requirement
+    ))
+  matrix = RELEASE_VALIDATOR.release_matrix.DecisionBoundaryMatrix(
+    tuple(boundaries), RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS
+  )
+  binding = {
+    "passed": True,
+    "failures": [],
+  }
+  return matrix, binding
+
+
 class ReleaseClaimSurfaceTests(unittest.TestCase):
   def test_ci_validator_rejects_primary_only_release_report(self) -> None:
     with tempfile.TemporaryDirectory() as temporary:
       data_dir = Path(temporary)
       write_primary_documents(data_dir)
       with mock.patch.object(
+        RELEASE_VALIDATOR,
+        "load_release_boundary_matrix",
+        return_value=boundary_matrix(),
+      ), mock.patch.object(
         RELEASE_VALIDATOR,
         "validate_primary_snapshots",
         return_value=primary_report(),
@@ -166,6 +198,10 @@ class ReleaseClaimSurfaceTests(unittest.TestCase):
         write_primary_documents(root)
         output_dir = root / "output"
         with mock.patch.object(
+          RELEASE_VALIDATOR,
+          "load_release_boundary_matrix",
+          return_value=boundary_matrix(),
+        ), mock.patch.object(
           RELEASE_VALIDATOR,
           "validate_primary_snapshots",
           return_value=primary_report(),
@@ -215,6 +251,10 @@ class ReleaseClaimSurfaceTests(unittest.TestCase):
 
         output_dir = root / "output"
         with mock.patch.object(
+          RELEASE_VALIDATOR,
+          "load_release_boundary_matrix",
+          return_value=boundary_matrix(),
+        ), mock.patch.object(
           RELEASE_VALIDATOR,
           "validate_primary_snapshots",
           side_effect=validate_primary,

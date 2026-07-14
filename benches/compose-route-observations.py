@@ -133,8 +133,10 @@ def _validated_contexts(data_dir: Path, checkout_root: Path):
   if failures:
     raise ValueError(_failures_text(failures))
   source_revision = next(iter(revisions))
-  checkout_failures, _ = speed_evidence.validate_checkout_binding(
-    checkout_root, source_revision
+  checkout_failures, _ = validator.validate_shipping_code_binding(
+    checkout_root,
+    source_revision,
+    validator.REQUIRED_SHIPPING_PATHS,
   )
   if checkout_failures:
     raise ValueError(_failures_text(checkout_failures))

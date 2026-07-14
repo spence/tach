@@ -5935,6 +5935,7 @@ def validate_supplemental_speed_campaign(
   documents: dict[str, dict],
   cell_paths: dict[str, Path] | None = None,
   require_bound_observations: bool = True,
+  expected_artifact_ids: set[str] | None = None,
 ) -> dict:
   """Validate supplemental evidence, requiring retained observations by default.
 
@@ -5945,7 +5946,16 @@ def validate_supplemental_speed_campaign(
   """
   failures = []
   results = []
-  expected_names = set(SUPPLEMENTAL_SPEED_CELLS)
+  expected_names = (
+    set(SUPPLEMENTAL_SPEED_CELLS)
+    if expected_artifact_ids is None
+    else set(expected_artifact_ids)
+  )
+  unknown_names = expected_names - set(SUPPLEMENTAL_SPEED_CELLS)
+  if unknown_names:
+    failures.append(
+      f"supplemental campaign requires unknown artifacts: {sorted(unknown_names)!r}"
+    )
   actual_names = set(documents)
   if actual_names != expected_names:
     failures.append(
@@ -5994,8 +6004,8 @@ def validate_supplemental_speed_campaign(
   return {
     "schema": "tach-speed-supplemental-report-v2",
     "claim_scope": (
-      "external runtime coverage for all three public timing contracts on the declared "
-      "target/build-mode/host-runtime identities absent from the six-cell campaign"
+      "runtime decision-boundary coverage for all three public timing contracts on the "
+      "declared target/build-mode/host-runtime identities"
     ),
     "evidence_class_invariant": (
       "measured runtime, tagged wall fallback, and runtime smoke evidence remain distinct; "

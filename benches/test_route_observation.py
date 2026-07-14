@@ -383,6 +383,8 @@ class RouteObservationTests(unittest.TestCase):
         load_campaign_route_matrix=mock.Mock(
           return_value=(release_matrix.RouteMatrix((item,)), {})
         ),
+        validate_shipping_code_binding=mock.Mock(return_value=([], {})),
+        REQUIRED_SHIPPING_PATHS=("Cargo.lock", "Cargo.toml", "src"),
       )
       passed = {
         "artifact_id": artifact,
@@ -398,11 +400,6 @@ class RouteObservationTests(unittest.TestCase):
           "validate_primary_speed_cell_from_bundle",
           return_value=passed,
         ) as validate_primary,
-        mock.patch.object(
-          COMPOSER.speed_evidence,
-          "validate_checkout_binding",
-          return_value=([], {}),
-        ),
       ):
         revision, matrix, snapshots, contexts = COMPOSER._validated_contexts(root, root)
       self.assertEqual(revision, REVISION)
@@ -471,6 +468,8 @@ class RouteObservationTests(unittest.TestCase):
         load_campaign_route_matrix=mock.Mock(
           return_value=(release_matrix.RouteMatrix((item,)), {})
         ),
+        validate_shipping_code_binding=mock.Mock(return_value=([], {})),
+        REQUIRED_SHIPPING_PATHS=("Cargo.lock", "Cargo.toml", "src"),
       )
       passed = {
         "artifact_id": artifact,
@@ -490,11 +489,6 @@ class RouteObservationTests(unittest.TestCase):
           COMPOSER.speed_evidence,
           "validate_supplemental_speed_cell",
         ) as validate_unbound,
-        mock.patch.object(
-          COMPOSER.speed_evidence,
-          "validate_checkout_binding",
-          return_value=([], {}),
-        ),
       ):
         revision, matrix, snapshots, contexts = COMPOSER._validated_contexts(root, root)
 

@@ -110,7 +110,10 @@ class RouteMatrixTests(unittest.TestCase):
     self.assertEqual(actual, expected)
     self.assertTrue(any(item[2] == "no-default" for item in actual))
     self.assertTrue(any(item[2] == "emscripten-pthreads" for item in actual))
-    artifact_keys = {(target, build_mode, runtime_profile) for _, target, build_mode, runtime_profile in actual}
+    artifact_keys = {
+      (target, build_mode, runtime_profile)
+      for _, target, build_mode, runtime_profile in actual
+    }
     self.assertEqual(len(artifact_keys), len(actual))
     kinds_by_case = {
       case_id: {requirement.required_kind for requirement in route_matrix.requirements
@@ -126,6 +129,58 @@ class RouteMatrixTests(unittest.TestCase):
         kinds_by_case[case_id],
         {release_matrix.EvidenceKind.TAGGED_WALL_FALLBACK},
       )
+
+  def test_checked_in_release_boundaries_are_exact_static_route_subset(self) -> None:
+    boundaries = release_matrix.load_release_boundaries()
+    static_matrix = release_matrix.load_route_matrix()
+
+    self.assertEqual(len(boundaries.boundaries), 15)
+    self.assertEqual(
+      boundaries.shipping_paths,
+      ("Cargo.lock", "Cargo.toml", "src"),
+    )
+    self.assertEqual(len(set(boundaries.artifact_ids)), 15)
+    self.assertNotIn("speed-3-intelm.json", boundaries.artifact_ids)
+    self.assertNotIn("speed-5-lambda.json", boundaries.artifact_ids)
+    self.assertFalse(any("no-default" in artifact for artifact in boundaries.artifact_ids))
+    self.assertEqual(
+      {
+        boundary.requirement.identity.build_mode
+        for boundary in boundaries.boundaries
+      },
+      {"default", "emscripten-pthreads"},
+    )
+    for boundary in boundaries.boundaries:
+      static_requirement = static_matrix.by_identity.get(boundary.requirement.identity)
+      self.assertEqual(static_requirement, boundary.requirement)
+
+  def test_release_boundaries_reject_duplicate_artifact_ids(self) -> None:
+    boundary = {
+      "id": "first",
+      "artifact_id": "speed-first.json",
+      "case_id": "native",
+      "target": "x86_64-unknown-linux-gnu",
+      "build_mode": "default",
+      "runtime_profile": "native_criterion",
+      "evidence_kind": "full_speed",
+      "producer": "test-producer",
+      "route_contract": "three_timer_direct",
+    }
+    duplicate = {
+      **boundary,
+      "id": "second",
+      "case_id": "other",
+    }
+
+    with self.assertRaisesRegex(
+      release_matrix.RouteMatrixError,
+      "duplicate artifact ids",
+    ):
+      release_matrix.parse_release_boundaries({
+        "schema": release_matrix.RELEASE_BOUNDARIES_SCHEMA,
+        "shipping_paths": ["Cargo.toml", "src"],
+        "boundary": [boundary, duplicate],
+      })
 
   def test_manifest_rejects_cases_that_share_one_artifact_binding_key(self) -> None:
     manifest = {

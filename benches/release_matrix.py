@@ -1,15 +1,13 @@
-"""Admission rules for release-grade route coverage.
+"""Admission rules for static routes and runtime decision boundaries.
 
-The static route manifest describes every timer route that *must* eventually be
-proven.  This module turns that declaration into exact evidence requirements
-without letting one convenient artifact silently stand in for a different
-build mode or host runtime.
+The static route manifest describes every timer route tach supports. The
+release-boundary manifest names the smaller set of distinct runtime decisions
+that require empirical evidence. Both use exact route identities, so a
+convenient artifact cannot silently stand in for a different decision.
 
-An artifact observes exactly one ``RouteIdentity``.  Mode equivalence is
-deliberately unavailable until the project has a canonical producer-bound
-closure digest; a direct observation is therefore the only current admission
-path.  Smoke and tagged-fallback records are typed non-latency evidence, so
-they can never satisfy a full-speed requirement.
+An artifact observes exactly one ``RouteIdentity``. Smoke and tagged-fallback
+records are typed non-latency evidence, so they can never satisfy a full-speed
+requirement.
 """
 
 from __future__ import annotations
@@ -24,9 +22,11 @@ import tomllib
 
 
 ROUTE_COVERAGE_SCHEMA = "tach-route-coverage-v1"
+RELEASE_BOUNDARIES_SCHEMA = "tach-runtime-decision-boundaries-v1"
 OBSERVED_COVERAGE_SCHEMA = "tach-route-observation-v1"
 MODE_EQUIVALENCE_SCHEMA = "tach-route-mode-equivalence-v1"
 DEFAULT_ROUTE_COVERAGE_PATH = Path(__file__).with_name("route-coverage.toml")
+DEFAULT_RELEASE_BOUNDARIES_PATH = Path(__file__).with_name("release-boundaries.toml")
 
 _SOURCE_REVISION_RE = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
@@ -239,6 +239,67 @@ class RouteMatrix:
   @property
   def identities(self) -> tuple[RouteIdentity, ...]:
     return tuple(requirement.identity for requirement in self.requirements)
+
+
+@dataclass(frozen=True)
+class DecisionBoundary:
+  """One named runtime decision and the artifact that observes it."""
+
+  boundary_id: str
+  artifact_id: str
+  requirement: CoverageRequirement
+
+  def __post_init__(self) -> None:
+    _require_string(self.boundary_id, "decision boundary id")
+    _require_string(self.artifact_id, "decision boundary artifact_id")
+    if Path(self.artifact_id).name != self.artifact_id or not self.artifact_id.endswith(".json"):
+      raise RouteMatrixError("decision boundary artifact_id must be a JSON filename")
+    if not isinstance(self.requirement, CoverageRequirement):
+      raise RouteMatrixError("decision boundary requirement must be a CoverageRequirement")
+
+
+@dataclass(frozen=True)
+class DecisionBoundaryMatrix:
+  """The exact runtime observations required for a release claim."""
+
+  boundaries: tuple[DecisionBoundary, ...]
+  shipping_paths: tuple[str, ...]
+
+  def __post_init__(self) -> None:
+    if not self.boundaries:
+      raise RouteMatrixError("decision-boundary matrix must not be empty")
+    if not all(isinstance(boundary, DecisionBoundary) for boundary in self.boundaries):
+      raise RouteMatrixError("decision-boundary matrix contains a malformed boundary")
+    boundary_ids = [boundary.boundary_id for boundary in self.boundaries]
+    artifact_ids = [boundary.artifact_id for boundary in self.boundaries]
+    identities = [boundary.requirement.identity for boundary in self.boundaries]
+    if len(boundary_ids) != len(set(boundary_ids)):
+      raise RouteMatrixError("decision-boundary matrix contains duplicate boundary ids")
+    if len(artifact_ids) != len(set(artifact_ids)):
+      raise RouteMatrixError("decision-boundary matrix contains duplicate artifact ids")
+    if len(identities) != len(set(identities)):
+      raise RouteMatrixError("decision-boundary matrix contains duplicate route identities")
+    if not self.shipping_paths or len(self.shipping_paths) != len(set(self.shipping_paths)):
+      raise RouteMatrixError("decision-boundary shipping paths must be non-empty and unique")
+    for path in self.shipping_paths:
+      _require_string(path, "decision-boundary shipping path")
+      if Path(path).is_absolute() or ".." in Path(path).parts:
+        raise RouteMatrixError("decision-boundary shipping paths must be repository-relative")
+
+  @property
+  def route_matrix(self) -> RouteMatrix:
+    return RouteMatrix(tuple(boundary.requirement for boundary in self.boundaries))
+
+  @property
+  def artifact_ids(self) -> tuple[str, ...]:
+    return tuple(boundary.artifact_id for boundary in self.boundaries)
+
+  @property
+  def artifact_by_identity(self) -> dict[RouteIdentity, str]:
+    return {
+      boundary.requirement.identity: boundary.artifact_id
+      for boundary in self.boundaries
+    }
 
 
 @dataclass(frozen=True)
@@ -514,6 +575,92 @@ def load_route_matrix(path: Path = DEFAULT_ROUTE_COVERAGE_PATH) -> RouteMatrix:
   except OSError as error:
     raise RouteMatrixError(f"could not load route coverage manifest {path}: {error}") from error
   return parse_route_coverage_bytes(raw, str(path))
+
+
+def parse_release_boundaries(document: object) -> DecisionBoundaryMatrix:
+  """Parse the exact runtime decision boundaries required for release."""
+  manifest = _as_mapping(document, "release-boundary manifest")
+  _require_exact_keys(
+    manifest,
+    {"schema", "shipping_paths", "boundary"},
+    "release-boundary manifest",
+  )
+  if manifest.get("schema") != RELEASE_BOUNDARIES_SCHEMA:
+    raise RouteMatrixError(
+      "release-boundary manifest schema is not tach-runtime-decision-boundaries-v1"
+    )
+  shipping_paths = _string_list(
+    manifest.get("shipping_paths"), "release-boundary shipping_paths"
+  )
+  raw_boundaries = manifest.get("boundary")
+  if not isinstance(raw_boundaries, list) or not raw_boundaries:
+    raise RouteMatrixError("release-boundary manifest has no boundaries")
+
+  expected_keys = {
+    "id",
+    "artifact_id",
+    "case_id",
+    "target",
+    "build_mode",
+    "runtime_profile",
+    "evidence_kind",
+    "producer",
+    "route_contract",
+  }
+  boundaries = []
+  for index, raw_boundary in enumerate(raw_boundaries):
+    label = f"release boundary {index}"
+    boundary = _as_mapping(raw_boundary, label)
+    _require_exact_keys(boundary, expected_keys, label)
+    try:
+      evidence_kind = EvidenceKind(boundary["evidence_kind"])
+    except (TypeError, ValueError) as error:
+      raise RouteMatrixError(f"{label} has an unknown evidence_kind") from error
+    identity = RouteIdentity(
+      _require_string(boundary["case_id"], f"{label} case_id"),
+      _require_string(boundary["target"], f"{label} target"),
+      _require_string(boundary["build_mode"], f"{label} build_mode"),
+      _require_string(boundary["runtime_profile"], f"{label} runtime_profile"),
+    )
+    requirement = CoverageRequirement(
+      identity,
+      evidence_kind,
+      _require_string(boundary["producer"], f"{label} producer"),
+      _require_string(boundary["route_contract"], f"{label} route_contract"),
+    )
+    boundaries.append(DecisionBoundary(
+      _require_string(boundary["id"], f"{label} id"),
+      _require_string(boundary["artifact_id"], f"{label} artifact_id"),
+      requirement,
+    ))
+  return DecisionBoundaryMatrix(tuple(boundaries), shipping_paths)
+
+
+def parse_release_boundaries_bytes(
+  raw: bytes,
+  source: str = "release-boundary manifest",
+) -> DecisionBoundaryMatrix:
+  """Parse an exact retained release-boundary byte stream."""
+  if not isinstance(raw, bytes):
+    raise RouteMatrixError(f"{source} bytes must be bytes")
+  try:
+    document = tomllib.loads(raw.decode("utf-8"))
+  except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+    raise RouteMatrixError(
+      f"could not parse release-boundary manifest {source}: {error}"
+    ) from error
+  return parse_release_boundaries(document)
+
+
+def load_release_boundaries(
+  path: Path = DEFAULT_RELEASE_BOUNDARIES_PATH,
+) -> DecisionBoundaryMatrix:
+  """Load the live decision-boundary manifest for tooling outside release admission."""
+  try:
+    raw = Path(path).read_bytes()
+  except OSError as error:
+    raise RouteMatrixError(f"could not load release-boundary manifest {path}: {error}") from error
+  return parse_release_boundaries_bytes(raw, str(path))
 
 
 def _frozen_matches_identity(frozen: FrozenExecution, identity: RouteIdentity) -> bool:

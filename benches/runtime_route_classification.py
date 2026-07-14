@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify every declared runtime identity before release collection."""
+"""Classify every static target-route identity and its available producer."""
 
 from __future__ import annotations
 

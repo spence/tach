@@ -174,6 +174,19 @@ def bound_manifest_report(source_revision: str) -> dict:
   }
 
 
+def bound_boundary_report() -> dict:
+  return {
+    "schema": "tach-release-boundary-manifest-binding-v1",
+    "path": RELEASE_VALIDATOR.RELEASE_BOUNDARIES_GIT_PATH,
+    "candidate_revision": SOURCE_REVISION,
+    "sha256": "e" * 64,
+    "boundary_count": 1,
+    "artifact_ids": [PRIMARY_ARTIFACT],
+    "passed": True,
+    "failures": [],
+  }
+
+
 def write_route_coverage(path: Path, modes: list[str]) -> None:
   mode_rows = ", ".join(f'"{mode}"' for mode in modes)
   path.parent.mkdir(parents=True, exist_ok=True)
@@ -214,23 +227,38 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
     directory: Path,
     route_matrix: release_matrix.RouteMatrix | None,
     *,
+    campaign_route_matrix: release_matrix.RouteMatrix | None | object = ...,
     primary_report: dict | None = None,
     primary_side_effect=None,
   ) -> dict:
     report = passed_primary_report() if primary_report is None else primary_report
+
+    requirements = route_matrix.requirements if route_matrix is not None else ()
+    boundaries = release_matrix.DecisionBoundaryMatrix(
+      tuple(
+        release_matrix.DecisionBoundary(
+          f"boundary-{index}",
+          PRIMARY_ARTIFACT if index == 0 else f"missing-{index}.json",
+          required,
+        )
+        for index, required in enumerate(requirements)
+      ),
+      RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS,
+    )
 
     def validate_primary(*_args, **_kwargs):
       if primary_side_effect is not None:
         primary_side_effect()
       return report
 
+    static_matrix = route_matrix if campaign_route_matrix is ... else campaign_route_matrix
     campaign_loader = (
       mock.patch.object(
         RELEASE_VALIDATOR,
         "load_campaign_route_matrix",
-        return_value=(route_matrix, bound_manifest_report(report["source_revision"])),
+        return_value=(static_matrix, bound_manifest_report(report["source_revision"])),
       )
-      if route_matrix is not None
+      if static_matrix is not None
       else nullcontext()
     )
 
@@ -242,6 +270,10 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
       RELEASE_VALIDATOR,
       "validate_supplemental_snapshots",
       return_value=passed_supplemental_report(report["source_revision"]),
+    ), mock.patch.object(
+      RELEASE_VALIDATOR,
+      "load_release_boundary_matrix",
+      return_value=(boundaries, bound_boundary_report()),
     ), campaign_loader:
       return RELEASE_VALIDATOR.validate_release_evidence(directory, directory)
 
@@ -353,6 +385,30 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
     self.assertEqual(route_matrix["admission"]["schema"], "tach-release-route-matrix-report-v1")
     self.assertEqual(len(route_matrix["admission"]["decisions"]), 1)
 
+  def test_non_required_observations_do_not_expand_or_block_release(self) -> None:
+    optional_artifact = "speed-3-intelm.json"
+    with tempfile.TemporaryDirectory() as temporary:
+      directory = Path(temporary)
+      write_json(directory / PRIMARY_ARTIFACT, primary_document())
+      write_json(directory / optional_artifact, {"diagnostic": True})
+      write_manifest(directory, [
+        route_observation(PRIMARY_ARTIFACT),
+        route_observation(
+          optional_artifact,
+          target="x86_64-unknown-linux-musl",
+        ),
+      ])
+
+      report = self.validate(
+        directory,
+        release_matrix.RouteMatrix((requirement("default"),)),
+      )
+
+    self.assertTrue(report["passed"], report["failures"])
+    bindings = report["route_matrix"]["bindings"]
+    self.assertEqual(bindings["artifacts"], [PRIMARY_ARTIFACT])
+    self.assertEqual(bindings["ignored_artifacts"], [optional_artifact])
+
   def test_document_swap_after_validation_cannot_rebind_route_observation(self) -> None:
     """A route manifest must bind the bytes validated before an attacker swap."""
     with tempfile.TemporaryDirectory() as temporary:
@@ -426,7 +482,8 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
       ):
         report = self.validate(
           root,
-          None,
+          release_matrix.RouteMatrix((requirement("default"), requirement("no-default"))),
+          campaign_route_matrix=None,
           primary_report=passed_primary_report(source_revision),
           primary_side_effect=shrink_live_manifest,
         )
@@ -459,6 +516,112 @@ class ReleaseMatrixWiringTests(unittest.TestCase):
       "mode equivalences are prohibited" in failure
       for failure in report["route_matrix"]["bindings"]["failures"]
     ))
+
+
+class ShippingCodeBindingTests(unittest.TestCase):
+  def make_repository(self, root: Path) -> str:
+    (root / "src").mkdir()
+    (root / "Cargo.toml").write_text("[package]\nname = \"tach-test\"\n", encoding="utf-8")
+    (root / "Cargo.lock").write_text("version = 4\n", encoding="utf-8")
+    (root / "src/lib.rs").write_text("pub fn timer() {}\n", encoding="utf-8")
+    git(root, "init", "-q")
+    git(root, "add", "Cargo.toml", "Cargo.lock", "src/lib.rs")
+    git(
+      root,
+      "-c", "user.email=tach-test@example.invalid",
+      "-c", "user.name=tach test",
+      "commit", "-qm", "measured source",
+    )
+    return git(root, "rev-parse", "HEAD")
+
+  def commit(self, root: Path, message: str) -> None:
+    git(root, "add", "-A")
+    git(
+      root,
+      "-c", "user.email=tach-test@example.invalid",
+      "-c", "user.name=tach test",
+      "commit", "-qm", message,
+    )
+
+  def write_release_boundaries(self, root: Path) -> None:
+    path = root / RELEASE_VALIDATOR.RELEASE_BOUNDARIES_GIT_PATH
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(
+      "\n".join((
+        'schema = "tach-runtime-decision-boundaries-v1"',
+        'shipping_paths = ["Cargo.lock", "Cargo.toml", "src"]',
+        "",
+        "[[boundary]]",
+        'id = "linux-x86"',
+        f'artifact_id = "{PRIMARY_ARTIFACT}"',
+        'case_id = "native"',
+        f'target = "{PRIMARY_TARGET}"',
+        'build_mode = "default"',
+        f'runtime_profile = "{PRIMARY_PROFILE}"',
+        'evidence_kind = "full_speed"',
+        'producer = "test-producer"',
+        'route_contract = "three_timer_direct"',
+        "",
+      )),
+      encoding="utf-8",
+    )
+
+  def test_evidence_only_commit_preserves_shipping_closure(self) -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+      root = Path(temporary)
+      campaign = self.make_repository(root)
+      (root / "evidence.json").write_text("{}\n", encoding="utf-8")
+      self.commit(root, "evidence only")
+
+      failures, binding = RELEASE_VALIDATOR.validate_shipping_code_binding(
+        root,
+        campaign,
+        RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS,
+      )
+
+    self.assertEqual(failures, [])
+    self.assertTrue(binding["passed"])
+    self.assertEqual(binding["campaign_sha256"], binding["candidate_sha256"])
+
+  def test_committed_or_local_shipping_change_is_rejected(self) -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+      root = Path(temporary)
+      campaign = self.make_repository(root)
+      (root / "src/lib.rs").write_text("pub fn changed() {}\n", encoding="utf-8")
+      self.commit(root, "change shipping code")
+
+      failures, binding = RELEASE_VALIDATOR.validate_shipping_code_binding(
+        root,
+        campaign,
+        RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS,
+      )
+      self.assertTrue(any("shipping code changed" in failure for failure in failures))
+      self.assertFalse(binding["passed"])
+
+      (root / "src/lib.rs").write_text("pub fn dirty() {}\n", encoding="utf-8")
+      failures, binding = RELEASE_VALIDATOR.validate_shipping_code_binding(
+        root,
+        git(root, "rev-parse", "HEAD"),
+        RELEASE_VALIDATOR.REQUIRED_SHIPPING_PATHS,
+      )
+
+    self.assertTrue(any("local shipping code differs" in failure for failure in failures))
+    self.assertFalse(binding["passed"])
+
+  def test_boundary_loader_uses_committed_bytes_and_reports_live_drift(self) -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+      root = Path(temporary)
+      self.make_repository(root)
+      self.write_release_boundaries(root)
+      self.commit(root, "release boundary")
+      boundary_path = root / RELEASE_VALIDATOR.RELEASE_BOUNDARIES_GIT_PATH
+      boundary_path.write_text("invalid live replacement\n", encoding="utf-8")
+
+      boundaries, binding = RELEASE_VALIDATOR.load_release_boundary_matrix(root)
+
+    self.assertEqual(boundaries.artifact_ids, (PRIMARY_ARTIFACT,))
+    self.assertFalse(binding["passed"])
+    self.assertTrue(any("differs from committed" in failure for failure in binding["failures"]))
 
 
 if __name__ == "__main__":

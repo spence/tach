@@ -1993,6 +1993,19 @@ declare void @generic_implementation()
       any("malformed measured three-clock" in failure for failure in report["failures"])
     )
 
+  def test_supplemental_campaign_can_validate_an_exact_required_subset(self) -> None:
+    artifact = "speed-supplemental-wasm-node.json"
+    document = supplemental_speed_documents()[artifact]
+
+    report = speed_evidence.validate_supplemental_speed_campaign(
+      {artifact: document},
+      require_bound_observations=False,
+      expected_artifact_ids={artifact},
+    )
+
+    self.assertTrue(report["passed"], report["failures"])
+    self.assertEqual(len(report["cells"]), 1)
+
   def test_supplemental_release_validation_requires_retained_observations(self) -> None:
     report = speed_evidence.validate_supplemental_speed_campaign(
       supplemental_speed_documents()

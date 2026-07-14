@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Release gate for bound timer evidence and exhaustive route admission.
+"""Release gate for bound timer evidence and decision-boundary admission.
 
 The speed validators prove the contents of individual campaign documents.  This
-module adds the release-only proof that each document is the retained
-observation it claims to be, and that those observations cover every expanded
-route identity.  A document cannot turn one measured build into another by
-supplying a caller-shaped route record: its filename, bytes, target, build
-mode, source revision, evidence class, and host profile are all checked before
-the record reaches the route matrix.
+module adds the release-only proof that each required document is the retained
+observation it claims to be, that the 15 runtime decisions are complete, and
+that every decision is an exact member of the frozen static route contract. A
+document cannot turn one measured build into another by supplying a
+caller-shaped route record: its filename, bytes, target, build mode, source
+revision, evidence class, and host profile are all checked before admission.
 """
 
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterable
 import ctypes
 from dataclasses import dataclass
 import hashlib
@@ -32,9 +33,12 @@ ROOT = Path(__file__).resolve().parent
 ROUTE_OBSERVATIONS_FILENAME = "route-observations-v1.json"
 ROUTE_OBSERVATIONS_SCHEMA = "tach-release-route-observations-v1"
 ROUTE_COVERAGE_GIT_PATH = "benches/route-coverage.toml"
+RELEASE_BOUNDARIES_GIT_PATH = "benches/release-boundaries.toml"
 ROUTE_MANIFEST_BINDING_SCHEMA = "tach-release-route-manifest-binding-v1"
+SHIPPING_CODE_BINDING_SCHEMA = "tach-shipping-code-binding-v1"
 SOURCE_REVISION_RE = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
+REQUIRED_SHIPPING_PATHS = ("Cargo.lock", "Cargo.toml", "src")
 
 
 def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -310,13 +314,24 @@ def retained_collector_bundle_path(
   return bundle_path, None
 
 
-def load_primary_campaign(data_dir: Path) -> tuple[dict[str, EvidenceSnapshot], list[str]]:
+def load_primary_campaign(
+  data_dir: Path,
+  artifact_ids: Iterable[str] | None = None,
+) -> tuple[dict[str, EvidenceSnapshot], list[str]]:
   """Snapshot primary cells keyed by retained artifact filename."""
   directory = evidence_directory(data_dir)
   documents: dict[str, EvidenceSnapshot] = {}
   failures: list[str] = []
-  for cell_path in sorted(directory.glob("speed-[0-9]-*.json")):
+  cell_paths = (
+    sorted(directory.glob("speed-[0-9]-*.json"))
+    if artifact_ids is None
+    else [directory / artifact_id for artifact_id in sorted(artifact_ids)]
+  )
+  for cell_path in cell_paths:
     artifact_id = cell_path.name
+    if not cell_path.exists():
+      failures.append(f"required primary artifact is missing: {artifact_id}")
+      continue
     try:
       snapshot = snapshot_evidence_document(
         cell_path, directory, artifact_id, f"primary {artifact_id}"
@@ -330,14 +345,23 @@ def load_primary_campaign(data_dir: Path) -> tuple[dict[str, EvidenceSnapshot], 
 
 def load_supplemental_campaign(
   data_dir: Path,
+  artifact_ids: Iterable[str] | None = None,
 ) -> tuple[dict[str, EvidenceSnapshot], dict[str, Path], list[str]]:
   """Snapshot supplemental cells and check their bundle-relative paths."""
   directory = evidence_directory(data_dir)
   documents: dict[str, EvidenceSnapshot] = {}
   cell_paths: dict[str, Path] = {}
   failures: list[str] = []
-  for cell_path in sorted(directory.glob("speed-supplemental-*.json")):
+  cell_paths_to_load = (
+    sorted(directory.glob("speed-supplemental-*.json"))
+    if artifact_ids is None
+    else [directory / artifact_id for artifact_id in sorted(artifact_ids)]
+  )
+  for cell_path in cell_paths_to_load:
     name = cell_path.name
+    if not cell_path.exists():
+      failures.append(f"required supplemental artifact is missing: {name}")
+      continue
     try:
       snapshot = snapshot_evidence_document(
         cell_path, directory, name, f"supplemental {name}"
@@ -362,11 +386,17 @@ def validate_supplemental_snapshots(
   snapshots: dict[str, EvidenceSnapshot],
   cell_paths: dict[str, Path],
   binding_failures: list[str] = (),
+  expected_artifact_ids: set[str] | None = None,
 ) -> dict:
   """Validate supplemental claims from their initial document snapshots."""
   documents = {name: snapshot.document for name, snapshot in snapshots.items()}
+  validation_options = {"require_bound_observations": True}
+  if expected_artifact_ids is not None:
+    validation_options["expected_artifact_ids"] = expected_artifact_ids
   report = speed_evidence.validate_supplemental_speed_campaign(
-    documents, cell_paths, require_bound_observations=True
+    documents,
+    cell_paths,
+    **validation_options,
   )
   report = dict(report)
   report["failures"] = [*report.get("failures", []), *binding_failures]
@@ -384,12 +414,21 @@ def validate_primary_snapshots(
   snapshots: dict[str, EvidenceSnapshot],
   checkout_root: Path,
   load_failures: list[str] = (),
+  expected_artifact_ids: set[str] | None = None,
+  shipping_paths: tuple[str, ...] = ("Cargo.lock", "Cargo.toml", "src"),
 ) -> dict:
   """Validate and bind primary cells without reopening their document paths."""
   documents = {name: snapshot.document for name, snapshot in snapshots.items()}
   failures = [*load_failures]
   results = []
-  expected_names = set(speed_evidence.PRIMARY_SPEED_CELLS)
+  expected_names = (
+    set(speed_evidence.PRIMARY_SPEED_CELLS)
+    if expected_artifact_ids is None
+    else set(expected_artifact_ids)
+  )
+  unknown_names = expected_names - set(speed_evidence.PRIMARY_SPEED_CELLS)
+  if unknown_names:
+    failures.append(f"primary campaign requires unknown artifacts: {sorted(unknown_names)!r}")
   actual_names = set(documents)
   if actual_names != expected_names:
     failures.append(
@@ -401,6 +440,8 @@ def validate_primary_snapshots(
   identities = []
   revisions = set()
   for artifact_id in speed_evidence.PRIMARY_SPEED_CELLS:
+    if artifact_id not in expected_names:
+      continue
     snapshot = snapshots.get(artifact_id)
     if snapshot is None:
       continue
@@ -438,18 +479,24 @@ def validate_primary_snapshots(
       revisions.add(revision)
     results.append(result)
 
-  if tuple(identities) != speed_evidence.EXPECTED_PRIMARY_IDENTITIES:
+  expected_identities = tuple(
+    values[:5]
+    for artifact_id, values in speed_evidence.PRIMARY_SPEED_CELLS.items()
+    if artifact_id in expected_names
+  )
+  if tuple(identities) != expected_identities:
     failures.append(
-      "primary campaign environments differ from the exact six-platform contract: "
+      "primary campaign environments differ from the decision-boundary contract: "
       f"{identities!r}"
     )
   if len(revisions) != 1:
     failures.append(f"primary campaign must use one source revision: {sorted(revisions)}")
   source_revision = next(iter(revisions)) if len(revisions) == 1 else None
   if source_revision is not None:
-    checkout_failures, checkout_binding = speed_evidence.validate_checkout_binding(
+    checkout_failures, checkout_binding = validate_shipping_code_binding(
       checkout_root,
       source_revision,
+      shipping_paths,
     )
   else:
     checkout_failures = ["campaign has no single source revision to bind"]
@@ -466,7 +513,7 @@ def validate_primary_snapshots(
       "estimate and conservative 95% CI comparison fit within max(1 ns, 5%)"
     ),
     "source_revision": source_revision,
-    "checkout_binding": {"passed": not checkout_failures, **checkout_binding},
+    "shipping_code_binding": {"passed": not checkout_failures, **checkout_binding},
     "passed": not failures,
     "failures": failures,
     "cells": results,
@@ -479,6 +526,192 @@ def _source_revision(value: object) -> str | None:
 
 def _sha256(value: object) -> str | None:
   return value if isinstance(value, str) and SHA256_RE.fullmatch(value) else None
+
+
+def _git_bytes(checkout_root: Path, *arguments: str) -> subprocess.CompletedProcess[bytes]:
+  return subprocess.run(
+    ["git", "--no-replace-objects", *arguments],
+    cwd=checkout_root,
+    capture_output=True,
+    check=False,
+  )
+
+
+def _git_revision(checkout_root: Path, revision: str) -> str:
+  result = _git_bytes(checkout_root, "rev-parse", f"{revision}^{{commit}}")
+  if result.returncode:
+    raise ValueError(f"Git revision is unavailable: {revision}")
+  resolved = result.stdout.decode("ascii", errors="strict").strip()
+  if _source_revision(resolved) is None:
+    raise ValueError(f"Git revision did not resolve to a full commit: {revision}")
+  return resolved
+
+
+def _git_tree_snapshot(
+  checkout_root: Path,
+  revision: str,
+  paths: tuple[str, ...],
+) -> tuple[str, tuple[str, ...]]:
+  result = _git_bytes(
+    checkout_root,
+    "ls-tree",
+    "-r",
+    "-z",
+    "--full-tree",
+    revision,
+    "--",
+    *paths,
+  )
+  if result.returncode:
+    detail = result.stderr.decode("utf-8", errors="replace").strip()
+    raise ValueError(
+      f"could not list shipping code at {revision}" + (f": {detail}" if detail else "")
+    )
+
+  blobs: dict[str, bytes] = {}
+  for raw_entry in result.stdout.split(b"\0"):
+    if not raw_entry:
+      continue
+    try:
+      raw_header, raw_path = raw_entry.split(b"\t", 1)
+      mode, object_type, object_id = raw_header.decode("ascii").split(" ")
+      path = raw_path.decode("utf-8")
+    except (UnicodeDecodeError, ValueError) as error:
+      raise ValueError(f"malformed Git tree entry at {revision}") from error
+    if object_type != "blob" or mode not in {"100644", "100755"}:
+      raise ValueError(f"shipping code contains unsupported Git entry {path!r}")
+    blob = _git_bytes(checkout_root, "cat-file", "blob", object_id)
+    if blob.returncode:
+      raise ValueError(f"could not read shipping blob {object_id} for {path!r}")
+    blobs[path] = blob.stdout
+
+  for declared in paths:
+    if not any(path == declared or path.startswith(f"{declared}/") for path in blobs):
+      raise ValueError(f"shipping path {declared!r} is absent at {revision}")
+
+  digest = hashlib.sha256()
+  digest.update(b"tach-shipping-code-closure-v1\0")
+  for path, raw in sorted(blobs.items()):
+    encoded_path = path.encode("utf-8")
+    digest.update(len(encoded_path).to_bytes(8, "big"))
+    digest.update(encoded_path)
+    digest.update(len(raw).to_bytes(8, "big"))
+    digest.update(raw)
+  return digest.hexdigest(), tuple(sorted(blobs))
+
+
+def validate_shipping_code_binding(
+  checkout_root: Path,
+  campaign_revision: str,
+  shipping_paths: tuple[str, ...],
+) -> tuple[list[str], dict[str, object]]:
+  """Prove that the candidate ships the exact code measured by the campaign."""
+  failures: list[str] = []
+  root = checkout_root.resolve()
+  if shipping_paths != REQUIRED_SHIPPING_PATHS:
+    failures.append(
+      "release-boundary shipping paths differ from the required Cargo/src closure"
+    )
+  try:
+    campaign = _git_revision(root, campaign_revision)
+    candidate = _git_revision(root, "HEAD")
+    campaign_digest, campaign_files = _git_tree_snapshot(root, campaign, shipping_paths)
+    candidate_digest, candidate_files = _git_tree_snapshot(root, candidate, shipping_paths)
+  except (OSError, UnicodeError, ValueError) as error:
+    return [*failures, str(error)], {
+      "schema": SHIPPING_CODE_BINDING_SCHEMA,
+      "campaign_revision": campaign_revision,
+      "candidate_revision": None,
+      "shipping_paths": list(shipping_paths),
+      "passed": False,
+    }
+
+  ancestor = _git_bytes(root, "merge-base", "--is-ancestor", campaign, candidate)
+  if ancestor.returncode:
+    failures.append("campaign source revision is not an ancestor of the release candidate")
+  if campaign_files != candidate_files:
+    failures.append("shipping file set changed since the measured campaign")
+  if campaign_digest != candidate_digest:
+    failures.append("shipping code changed since the measured campaign")
+
+  status = _git_bytes(
+    root,
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=all",
+    "--",
+    *shipping_paths,
+  )
+  if status.returncode:
+    working_changes: list[str] = []
+    failures.append("could not inspect local shipping-code inputs")
+  else:
+    working_changes = [
+      line for line in status.stdout.decode("utf-8", errors="replace").splitlines() if line
+    ]
+    if working_changes:
+      failures.append("local shipping code differs from HEAD: " + ", ".join(working_changes))
+
+  return failures, {
+    "schema": SHIPPING_CODE_BINDING_SCHEMA,
+    "campaign_revision": campaign,
+    "candidate_revision": candidate,
+    "shipping_paths": list(shipping_paths),
+    "campaign_sha256": campaign_digest,
+    "candidate_sha256": candidate_digest,
+    "file_count": len(candidate_files),
+    "files_match": campaign_files == candidate_files,
+    "working_tree_changes": working_changes,
+    "passed": not failures,
+  }
+
+
+def load_release_boundary_matrix(
+  checkout_root: Path,
+) -> tuple[release_matrix.DecisionBoundaryMatrix, dict[str, object]]:
+  """Load the decision-boundary manifest from committed candidate bytes."""
+  root = checkout_root.resolve()
+  candidate = _git_revision(root, "HEAD")
+  object_name = f"{candidate}:{RELEASE_BOUNDARIES_GIT_PATH}"
+  result = _git_bytes(root, "show", object_name)
+  if result.returncode:
+    detail = result.stderr.decode("utf-8", errors="replace").strip()
+    raise release_matrix.RouteMatrixError(
+      f"release-boundary manifest is unavailable at {object_name}"
+      + (f": {detail}" if detail else "")
+    )
+  boundaries = release_matrix.parse_release_boundaries_bytes(
+    result.stdout,
+    f"release candidate {object_name}",
+  )
+  status = _git_bytes(
+    root,
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=all",
+    "--",
+    RELEASE_BOUNDARIES_GIT_PATH,
+  )
+  changes = (
+    [line for line in status.stdout.decode("utf-8", errors="replace").splitlines() if line]
+    if status.returncode == 0
+    else ["could not inspect release-boundary manifest worktree state"]
+  )
+  failures = (
+    ["local release-boundary manifest differs from committed candidate: " + ", ".join(changes)]
+    if changes
+    else []
+  )
+  return boundaries, {
+    "schema": "tach-release-boundary-manifest-binding-v1",
+    "path": RELEASE_BOUNDARIES_GIT_PATH,
+    "candidate_revision": candidate,
+    "sha256": hashlib.sha256(result.stdout).hexdigest(),
+    "boundary_count": len(boundaries.boundaries),
+    "artifact_ids": list(boundaries.artifact_ids),
+    "passed": not failures,
+    "failures": failures,
+  }
 
 
 def _primary_build_mode(document: dict) -> tuple[str | None, list[str]]:
@@ -701,6 +934,7 @@ def load_route_observations(
   documents: dict[str, EvidenceSnapshot],
   contexts: dict[str, dict[str, object]],
   matrix: release_matrix.RouteMatrix,
+  artifact_by_identity: dict[release_matrix.RouteIdentity, str] | None = None,
 ) -> tuple[list[release_matrix.ObservedCoverage], list[release_matrix.ModeEquivalence], dict]:
   """Load the retained, hash-bound observations used for route admission.
 
@@ -716,6 +950,7 @@ def load_route_observations(
     "passed": False,
     "failures": [],
     "artifacts": [],
+    "ignored_artifacts": [],
   }
   try:
     manifest, _ = load_strict_json_document(manifest_path, "retained route-observation manifest")
@@ -725,7 +960,8 @@ def load_route_observations(
       if context.get("scope") == "primary":
         _binding_failure(
           report,
-          f"primary {artifact_id}: legacy primary evidence lacks a retained route-observation binding",
+          f"primary {artifact_id}: legacy primary evidence lacks a retained "
+          "route-observation binding",
         )
     return [], [], report
 
@@ -746,7 +982,10 @@ def load_route_observations(
   raw_bindings = manifest.get("bindings")
   raw_equivalences = manifest.get("equivalences")
   if not isinstance(raw_bindings, list) or not isinstance(raw_equivalences, list):
-    _binding_failure(report, "retained route-observation manifest has malformed bindings or equivalences")
+    _binding_failure(
+      report,
+      "retained route-observation manifest has malformed bindings or equivalences",
+    )
     return [], [], report
 
   observations: list[release_matrix.ObservedCoverage] = []
@@ -764,6 +1003,9 @@ def load_route_observations(
     if artifact_id is None:
       _binding_failure(report, f"{label}: artifact_id is not a safe filename")
       continue
+    if artifact_id not in expected_artifacts:
+      report["ignored_artifacts"].append(artifact_id)
+      continue
     if artifact_id in seen_artifacts:
       _binding_failure(report, f"{label}: duplicate artifact_id {artifact_id!r}")
       continue
@@ -771,7 +1013,10 @@ def load_route_observations(
     snapshot = documents.get(artifact_id)
     context = contexts.get(artifact_id)
     if snapshot is None or context is None:
-      _binding_failure(report, f"{label}: artifact {artifact_id!r} is not a loaded evidence document")
+      _binding_failure(
+        report,
+        f"{label}: artifact {artifact_id!r} is not a loaded evidence document",
+      )
       continue
     digest = _sha256(raw_binding.get("document_sha256"))
     if digest is None:
@@ -808,11 +1053,22 @@ def load_route_observations(
     if observation.frozen.target != context.get("target"):
       binding_errors.append("route_observation frozen target does not match validated document")
     if observation.frozen.runtime_profile != context.get("runtime_profile"):
-      binding_errors.append("route_observation frozen runtime profile does not match validated document")
+      binding_errors.append(
+        "route_observation frozen runtime profile does not match validated document"
+      )
     requirement = matrix.by_identity.get(observation.identity)
     if requirement is None:
       binding_errors.append("route_observation identity is absent from the committed route matrix")
     else:
+      expected_artifact = (
+        artifact_by_identity.get(observation.identity)
+        if artifact_by_identity is not None
+        else None
+      )
+      if expected_artifact is not None and artifact_id != expected_artifact:
+        binding_errors.append(
+          "route_observation artifact does not match its release decision boundary"
+        )
       expected_closure = route_observation.closure_digest(
         artifact_id,
         snapshot.sha256,
@@ -832,18 +1088,18 @@ def load_route_observations(
     report["artifacts"].append(artifact_id)
 
   missing_artifacts = expected_artifacts - seen_artifacts
-  unexpected_artifacts = seen_artifacts - expected_artifacts
-  if missing_artifacts or unexpected_artifacts:
+  if missing_artifacts:
     _binding_failure(
       report,
       "retained route-observation manifest artifacts differ: "
-      f"missing={sorted(missing_artifacts)!r}, unexpected={sorted(unexpected_artifacts)!r}",
+      f"missing={sorted(missing_artifacts)!r}",
     )
   for artifact_id in sorted(expected_artifacts - accepted_artifacts):
     if contexts[artifact_id].get("scope") == "primary":
       _binding_failure(
         report,
-        f"primary {artifact_id}: legacy primary evidence lacks a valid retained route-observation binding",
+        f"primary {artifact_id}: legacy primary evidence lacks a valid retained "
+        "route-observation binding",
       )
 
   equivalences: list[release_matrix.ModeEquivalence] = []
@@ -854,6 +1110,7 @@ def load_route_observations(
     )
 
   report["artifacts"].sort()
+  report["ignored_artifacts"].sort()
   report["passed"] = not report["failures"]
   return observations, equivalences, report
 
@@ -904,8 +1161,10 @@ def validate_route_matrix_admission(
   primary_documents: dict[str, EvidenceSnapshot],
   primary_report: dict,
   supplemental_documents: dict[str, EvidenceSnapshot],
+  boundaries: release_matrix.DecisionBoundaryMatrix,
+  boundary_manifest_binding: dict[str, object],
 ) -> dict:
-  """Bind validated evidence documents to every required route-matrix identity."""
+  """Bind validated evidence to each runtime decision and its static route."""
   bound_primary_cells, primary_binding_failures = primary_bound_cells(primary_report)
   contexts, context_failures = document_contexts(
     primary_documents,
@@ -914,16 +1173,29 @@ def validate_route_matrix_admission(
   )
   documents = {**primary_documents, **supplemental_documents}
   try:
-    matrix, manifest_binding = load_campaign_route_matrix(
+    static_matrix, manifest_binding = load_campaign_route_matrix(
       checkout_root,
       primary_report.get("source_revision"),
     )
+    contract_failures = []
+    for boundary in boundaries.boundaries:
+      static_requirement = static_matrix.by_identity.get(boundary.requirement.identity)
+      if static_requirement != boundary.requirement:
+        contract_failures.append(
+          f"decision boundary {boundary.boundary_id!r} does not match the frozen static route"
+        )
+    matrix = boundaries.route_matrix
     observations, equivalences, binding = load_route_observations(
-      data_dir, documents, contexts, matrix
+      data_dir,
+      documents,
+      contexts,
+      matrix,
+      boundaries.artifact_by_identity,
     )
     binding["failures"] = [
       *primary_binding_failures,
       *context_failures,
+      *contract_failures,
       *binding["failures"],
     ]
     binding["passed"] = not binding["failures"]
@@ -937,6 +1209,7 @@ def validate_route_matrix_admission(
       "passed": False,
       "failures": [*primary_binding_failures, *context_failures, str(error)],
       "artifacts": [],
+      "ignored_artifacts": [],
     }
     manifest_binding = {
       "schema": ROUTE_MANIFEST_BINDING_SCHEMA,
@@ -958,14 +1231,17 @@ def validate_route_matrix_admission(
     "passed": (
       binding["passed"]
       and manifest_binding["passed"]
+      and boundary_manifest_binding["passed"]
       and admission_payload["passed"]
     ),
     "bindings": binding,
     "manifest_binding": manifest_binding,
+    "boundary_manifest_binding": boundary_manifest_binding,
     "admission": admission_payload,
     "failures": [
       *binding["failures"],
       *manifest_binding["failures"],
+      *boundary_manifest_binding["failures"],
       *admission_failures,
     ],
   }
@@ -983,19 +1259,48 @@ def validate_release_snapshot(
   checkout_root: Path = ROOT.parent,
 ) -> ReleaseEvidenceSnapshot:
   """Run the full release gate and retain the exact admitted evidence bytes."""
-  primary_documents, primary_load_failures = load_primary_campaign(data_dir)
+  try:
+    boundaries, boundary_manifest_binding = load_release_boundary_matrix(checkout_root)
+  except (OSError, UnicodeError, ValueError, release_matrix.RouteMatrixError) as error:
+    report = {
+      "schema": "tach-release-speed-evidence-v4",
+      "passed": False,
+      "failures": [f"release boundary manifest: {error}"],
+      "primary": None,
+      "supplemental_speed": None,
+      "route_matrix": None,
+    }
+    return ReleaseEvidenceSnapshot(report, (), ())
+
+  required_artifacts = set(boundaries.artifact_ids)
+  primary_artifacts = required_artifacts & set(speed_evidence.PRIMARY_SPEED_CELLS)
+  supplemental_artifacts = required_artifacts & set(speed_evidence.SUPPLEMENTAL_SPEED_CELLS)
+  catalog_failures = []
+  unknown_artifacts = required_artifacts - primary_artifacts - supplemental_artifacts
+  if unknown_artifacts:
+    catalog_failures.append(
+      f"release boundaries reference unknown artifacts: {sorted(unknown_artifacts)!r}"
+    )
+
+  primary_documents, primary_load_failures = load_primary_campaign(
+    data_dir,
+    primary_artifacts,
+  )
   primary = validate_primary_snapshots(
     primary_documents,
     checkout_root,
     primary_load_failures,
+    primary_artifacts,
+    boundaries.shipping_paths,
   )
   supplemental_documents, supplemental_cell_paths, supplemental_load_failures = (
-    load_supplemental_campaign(data_dir)
+    load_supplemental_campaign(data_dir, supplemental_artifacts)
   )
   supplemental = validate_supplemental_snapshots(
     supplemental_documents,
     supplemental_cell_paths,
     supplemental_load_failures,
+    supplemental_artifacts,
   )
   route_matrix = validate_route_matrix_admission(
     data_dir,
@@ -1003,8 +1308,11 @@ def validate_release_snapshot(
     primary_documents,
     primary,
     supplemental_documents,
+    boundaries,
+    boundary_manifest_binding,
   )
   failures = [
+    *catalog_failures,
     *(f"primary: {failure}" for failure in primary["failures"]),
     *(f"supplemental: {failure}" for failure in supplemental["failures"]),
     *(f"route matrix: {failure}" for failure in route_matrix["failures"]),
@@ -1016,7 +1324,7 @@ def validate_release_snapshot(
   ):
     failures.append("primary and supplemental campaigns use different source revisions")
   report = {
-    "schema": "tach-release-speed-evidence-v3",
+    "schema": "tach-release-speed-evidence-v4",
     "passed": not failures,
     "failures": failures,
     "primary": primary,
