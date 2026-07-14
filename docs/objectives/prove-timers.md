@@ -314,6 +314,11 @@ availability but may not be rendered as speed wins.
 - Found: M1 remains 13/15 and is not owner-blocked. Windows needs a no-reparse descriptor snapshot with Windows-compatible metadata comparison; macOS x86 elapsed paid redundant scale loads, while the 65,536-read all-at-once paired probe was too coarse to distinguish code overhead from time-varying host cost.
 - Next: Verify the Windows seal repair and macOS x86 provider-owned elapsed path locally, push the focused fixes, then redispatch boundary=release-missing.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Verified the Windows source-seal repair and macOS Intel fused elapsed path: Rust release tests passed with all/default and no-default features, clippy is warning-clean, 210 Python evidence tests passed, and provider proof passed 24/24 targets with 294/294 public routes and phase closures.
+- Found: The macOS ThreadCpuInstant public probe compiles to the same single clock_gettime_nsec_np call as the native reference; short-chunk interleaving is required to prevent temporal host drift from masquerading as public API overhead.
+- Next: Push the four focused fix commits and redispatch boundary=release-missing for the two remaining native artifacts.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
