@@ -107,6 +107,12 @@ enter this gate as speed evidence.
 - Next: Collect the canonical Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD AWS cells at 2ea11ee, then merge hosted and rare-native evidence.
 - Board: OBJ-PROVE-TIMERS.M0 remains active at 2ea11ee with 19/55 runtime artifacts replay-bound and all three objective gates still open.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Committed d0fa731 to unify Linux x86 OrderedInstant now and elapsed on one packed hot-state selector, proved x86_64/i686 optimized route closures, and source-sealed plus byte-for-byte replay-validated the canonical c7i GNU cell.
+- Found: At d0fa731 all 92 remote correctness and thread-semantics tests passed; the retained alternating paired probe measured ordered elapsed at about 40.4 ns public versus 39.9 ns selected-exact without a repeatable material loss, and the canonical composer accepted the cell. The previous 21 cells at 2ea11ee remain diagnostic only because the source revision advanced.
+- Next: Treat d0fa731 as the new campaign freeze; recollect the other 5 canonical and all 49 supplemental identities at this exact revision, then run unified validators and regenerate the performance charts.
+- Board: The c7i OrderedInstant release regression is resolved at d0fa731; M0 remains active on the final one-revision 55-cell campaign (1/55 currently retained at the new freeze).
+
 ## /goal
 
 Deliver `OBJ-PROVE-TIMERS`'s slice of the VISION — *Every public timing claim is reproducible from frozen evidence.* — by cleanly exiting every milestone gate. Done = every gate 🟢 with committed evidence at a recorded SHA; no gate weakened, no milestone closed by assertion.

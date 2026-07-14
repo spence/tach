@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove fastest eligible routes  (M0 🚧 Canonical runtime cells)
-> Next:       Collect the canonical Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD AWS cells at 2ea11ee, then merge hosted and rare-native evidence.
+> Next:       Treat d0fa731 as the new campaign freeze; recollect the other 5 canonical and all 49 supplemental identities at this exact revision, then run unified validators and regenerate the performance charts.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Recollected and replay-composed all 19 locally runnable artifacts at final producer-layout revision 2ea11ee; every artifact is source-identical and the manifest binds 9 full-speed, 6 tagged-wall-fallback, and 4 runtime-smoke observations. · By: nsr · 2ea11ee
+> Last verified: 2026-07-14 · Changed: Committed d0fa731 to unify Linux x86 OrderedInstant now and elapsed on one packed hot-state selector, proved x86_64/i686 optimized route closures, and source-sealed plus byte-for-byte replay-validated the canonical c7i GNU cell. · By: nsr · d0fa731
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
