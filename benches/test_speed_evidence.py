@@ -2754,7 +2754,7 @@ declare void @generic_implementation()
     candidate = selection["eligible_direct_candidates"][0]
     values["tach_thread_cpu"].update({
       **estimate(100.0),
-      "provider": "posix_thread_cpu_clock",
+      "provider": "POSIX thread CPU clock",
       "read_cost": "system call",
       "time_domain": "thread CPU",
       "selection": copy.deepcopy(selection),
@@ -2787,6 +2787,15 @@ declare void @generic_implementation()
     result = report["thread_cpu"]["eligible_exact_routes"][candidate]["metrics"]["now"]
     self.assertTrue(result["passed"])
     self.assertEqual(result["comparison_basis"], "alternating paired public/exact probe")
+
+    full_report = speed_evidence.validate_supplemental_speed_cell(artifact, document)
+    self.assertEqual(full_report["failures"], [])
+    for metric in speed_evidence.METRICS:
+      parity = full_report["three_clock_speed"]["current_thread_cpu"][metric]
+      self.assertTrue(parity["passed"])
+      self.assertEqual(
+        parity["comparison_basis"], "alternating paired public/exact probe"
+      )
 
   def test_supplemental_validator_rejects_cross_target_or_cross_run_inputs(self) -> None:
     macos = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]

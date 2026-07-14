@@ -5996,15 +5996,23 @@ def supplemental_route_coverage_from_clocks(
 
 
 def _selector_free_clocks(clocks: dict) -> dict:
-  """Keep speed comparison independent from profile-specific selector schemas."""
+  """Remove wall profiles while retaining thread public/exact parity evidence."""
   result = {}
   for name, entry in clocks.items():
     if not isinstance(entry, dict):
       result[name] = entry
       continue
     copied = dict(entry)
-    copied.pop("selection", None)
-    copied.pop("wall_selection", None)
+    if name == "tach":
+      copied.pop("selection", None)
+    elif name == "tach_ordered":
+      copied.pop("wall_selection", None)
+    elif name == "tach_thread_cpu":
+      selection = copied.get("selection")
+      if not isinstance(selection, dict) or not isinstance(
+        selection.get("public_exact_probe"), dict
+      ):
+        copied.pop("selection", None)
     result[name] = copied
   return result
 
