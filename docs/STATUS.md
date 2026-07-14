@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       Import the validated snapshot without overwriting unrelated dirty benchmark work, commit the evidence package, close M1.G1, then finish M2 charts, public wording, full checks, and independent review.
+> Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M2 🚧 Release-claim closure)
+> Next:       Generate charts directly from the tracked accepted snapshot, reconcile the two public documents to those results, and run the complete release gate.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Collected the final Linux AArch64, Linux x86_64, and native FreeBSD artifacts and composed route-observations-v1; the complete 15-boundary release evidence validator passes with zero failures across source revisions 68dc201 and c64dcb7, whose shipping Cargo/src digest is identical. · By: nsr · c64dcb7
+> Last verified: 2026-07-14 · Changed: Promoted the objective to release-claim closure after M1 admitted all 15 runtime decision boundaries at evidence SHA a6e73e8. · By: nsr · a6e73e8
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -25,10 +25,10 @@ Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
 | `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | ✅ | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2🟢 |
-| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | 🚧 | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1⚪ |
-| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | ✅ | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1🟢 |
+| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | 🚧 | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-PROVE-TIMERS.M1`): G1⚪
+Gate checklist (current milestone `OBJ-PROVE-TIMERS.M2`): G1⚪
 <!-- /render:board -->
 
 ---

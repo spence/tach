@@ -54,8 +54,8 @@ for tach's default configuration, so no-default speed duplicates are not release
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
 | `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | ✅ | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2🟢 |
-| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | 🚧 | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1⚪ |
-| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | ✅ | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1🟢 |
+| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | 🚧 | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
 ---
 
@@ -113,10 +113,10 @@ Charts may include optional corroborating environments, but optional evidence ca
 |---:|---|---|---|---|
 | 1 | Apple AArch64 native wall and thread clocks | macOS AArch64, default | `speed-0-apple.json` | retained at current closure |
 | 2 | Apple x86 native wall and thread clocks | macOS x86_64, default | `speed-supplemental-macos-x86_64.json` | retained at current closure; run `29359437933` |
-| 3 | Linux x86 runtime tournament | Linux x86_64 GNU, default | `speed-2-inteln.json` | older result retained; recollect after Windows route freeze |
-| 4 | Linux AArch64 availability policy and profitability audit | Linux AArch64 GNU, default | `speed-1-c7g.json` | older result retained; recollect after Windows route freeze |
-| 5 | Windows native wall and thread clocks | Windows x86_64 MSVC, default | `speed-4-windows.json` | **failing performance admission in run `29359437933`** |
-| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-supplemental-freebsd-x86_64.json` | older result retained; recollect after Windows route freeze |
+| 3 | Linux x86 runtime tournament | Linux x86_64 GNU, default | `speed-2-inteln.json` | retained at current closure |
+| 4 | Linux AArch64 availability policy and profitability audit | Linux AArch64 GNU, default | `speed-1-c7g.json` | retained at current closure |
+| 5 | Windows native wall and thread clocks | Windows x86_64 MSVC, default | `speed-4-windows.json` | retained at current closure; run `29366939799` |
+| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-supplemental-freebsd-x86_64.json` | retained at current closure |
 | 7 | JavaScript host clock | `wasm32-unknown-unknown` on Node, default | `speed-supplemental-wasm-node.json` | retained at current closure |
 | 8 | Browser fallback without native thread CPU clock | browser, default negative environment | `speed-supplemental-browser-negative.json` | retained at current closure |
 | 9 | Emscripten host clock | Emscripten on Node, default | `speed-supplemental-emscripten-node.json` | retained at current closure |
@@ -133,10 +133,9 @@ same-target capability/profitability reversal and therefore selects from measure
 Linux AArch64 has a retained four-family no-reversal survey and keeps its simpler audited
 availability policy.
 
-The current shipping-code closure has 11/15 rows: rows 1-2 and 7-15. The older Linux and FreeBSD
-results remain useful corroboration but are not admissible for M1.G1 until recollected after the
-Windows route is frozen. Any shipping-code change made to close the Windows performance failure
-creates a new closure and requires the affected evidence set to be regenerated.
+The current shipping-code closure has all 15 rows. The complete release validator admits four
+primary cells and eleven supplemental cells with zero failures, and binds both campaign revisions
+to an identical digest of `Cargo.lock`, `Cargo.toml`, and `src/`.
 
 The local x86_64 macOS bundle identifies its runner as Rosetta. It is compatibility evidence, not
 native Intel speed evidence, and does not satisfy row 2.
@@ -364,6 +363,16 @@ availability but may not be rendered as speed wins.
 - Found: Runtime proof is complete in the sealed scratch snapshot: all 15 required boundaries admit. M1 remains open only until that snapshot is imported into a tracked evidence package and committed, because NSR gates close against durable evidence rather than /tmp output.
 - Next: Import the validated snapshot without overwriting unrelated dirty benchmark work, commit the evidence package, close M1.G1, then finish M2 charts, public wording, full checks, and independent review.
 - Board: M0 is complete. M1 has 15/15 passing artifacts and no research or external blocker; durable evidence admission is the sole remaining M1 step. M2 is the release-packaging path.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M1`
+- Did: Closed retained runtime corroboration with 15/15 source-sealed decision boundaries, passing primary and supplemental admission, zero release-validator failures, and identical shipping-code closure across the two campaign revisions.; OBJ-PROVE-TIMERS.M1.G1 🟢 at evidence SHA `a6e73e8`.
+- Board: OBJ-PROVE-TIMERS.M1 G1 🟢 — evidence docs/evidence/timers/release-speed-closure-2026-07-14/README.md.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M2`
+- Did: Promoted the objective to release-claim closure after M1 admitted all 15 runtime decision boundaries at evidence SHA a6e73e8.
+- Found: No platform research remains. M2 is a deterministic publication pass over the accepted snapshot: canonical charts, README/BENCHMARKS claims, complete checks, and independent review.
+- Next: Generate charts directly from the tracked accepted snapshot, reconcile the two public documents to those results, and run the complete release gate.
+- Board: M0 and M1 are complete. M2 is active with G1 open; there is no owner blocker until explicit publication approval.
 
 ## /goal
 
