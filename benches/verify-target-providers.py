@@ -1361,10 +1361,15 @@ def thread_cpu_route(target: str, mode: str) -> dict:
       "native_primitive": "GetThreadTimes((HANDLE)-2)",
       "failure_fallback": "Windows performance counter",
       "required_patterns": [
-        "windows_thread_cpu_nanos",
+        "@GetThreadTimes",
         "@QueryPerformanceCounter",
       ],
-      "forbidden_patterns": ["llvm.x86.rdtsc", r"\brdtscp\b", "cntvct_el0"],
+      "forbidden_patterns": [
+        "windows_thread_cpu_nanos",
+        "llvm.x86.rdtsc",
+        r"\brdtscp\b",
+        "cntvct_el0",
+      ],
     }
 
   if target == "wasm32-wasip2":

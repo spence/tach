@@ -3656,6 +3656,8 @@ pub(crate) fn now_nanos() -> u64 {
 }
 
 #[cfg(target_os = "windows")]
+#[inline(always)]
+#[allow(clippy::inline_always)]
 fn windows_thread_cpu_nanos() -> Option<u64> {
   use core::ffi::c_void;
   use core::mem::MaybeUninit;
