@@ -738,7 +738,7 @@ def instant_route(target: str) -> dict:
       "native_primitive": "RDTSC or mach_absolute_time",
       "ordering": "unordered same-thread wall read",
       "required_patterns": [
-        "apple_x86_64.*ticks_after_selection",
+        r"apple_x86_64.*ticks(?:_with_scale)?_after_selection",
         "@mach_absolute_time",
         "llvm.x86.rdtsc",
       ],
