@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Freeze 3954caa and recollect the remaining one-revision native and hosted matrix, beginning with the canonical Graviton primary cell and the Intel musl/no-default identities.
+> Next:       Reconcile the stale README and benchmark claim surfaces with the deterministic Linux AArch64/x86_64 policies, then freeze the final campaign revision and recollect the remaining admitted native and hosted matrix.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed the 8-byte Linux x86 LFENCE hot-path specialization at 1edcd01, corrected the signal-regression TLS teardown race at 3954caa, and source-sealed plus independently replay-validated the canonical c7i default bundle. · By: nsr · 3954caa
+> Last verified: 2026-07-14 · Changed: Source-sealed and independently replay-validated the corrected c7i default producer at 1a0b3c279b59e61f4b59b24f97ff056dff82c70d; all 92 remote correctness and thread semantics tests passed and the retained bundle reported zero failures. · By: nsr · 1a0b3c2
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

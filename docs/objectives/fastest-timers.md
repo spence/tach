@@ -306,6 +306,18 @@ decision; never silently omit a failing target.
 - Next: Freeze 3954caa and recollect the remaining one-revision native and hosted matrix, beginning with the canonical Graviton primary cell and the Intel musl/no-default identities.
 - Board: The Intel ordered-dispatch investigation is frozen as resolved and the c7i default cell is green at 3954caa; M1 remains open until every admitted producer is recollected and unified validation passes.
 
+### 2026-07-14 · codex · `OBJ-FASTEST-TIMERS.M1`
+- Did: Collected and independently replay-validated c7i default evidence at 2ce80da, then committed 4b466ad to make Linux x86_64 prefer the raw thread-clock syscall with libc only as failure fallback and 1a0b3c2 to restore warning-strict cross-target lint.
+- Found: Five retained c7i campaigns plus GNU and musl variants measured the raw syscall about 3-4% faster than libc, while the 2ce80da startup probe nondeterministically selected libc; capability and availability were unchanged, so the tournament could misclassify a target-deterministic wrapper relationship.
+- Next: Finish the source-sealed c7i verification at 1a0b3c2 and admit it only if raw selection, public-exact parity, semantic tests, and bundle replay all pass; then reconcile stale public docs before the final one-revision campaign.
+- Board: M1 remains active; the c7i correction is under retained verification and no release gate is closed.
+
+### 2026-07-14 · codex · `OBJ-FASTEST-TIMERS.M1`
+- Did: Source-sealed and independently replay-validated the corrected c7i default producer at 1a0b3c279b59e61f4b59b24f97ff056dff82c70d; all 92 remote correctness and thread semantics tests passed and the retained bundle reported zero failures.
+- Found: ThreadCpuInstant selected linux_x86_64_raw_syscall_clock_thread_cputime and measured 143.64 ns now versus 143.27 ns native, plus 288.48 ns elapsed versus 291.01 ns native; the prior libc misclassification and 3-4% public gap are gone.
+- Next: Reconcile the stale README and benchmark claim surfaces with the deterministic Linux AArch64/x86_64 policies, then freeze the final campaign revision and recollect the remaining admitted native and hosted matrix.
+- Board: The corrected c7i provider and public/native parity proof are green at 1a0b3c2; M1 remains active on public-doc reconciliation and full one-revision recollection.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
