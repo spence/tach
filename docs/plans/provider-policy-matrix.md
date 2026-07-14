@@ -1,7 +1,7 @@
 # Provider policy matrix
 
-Status: AUDIT COMPLETE v0.2, 2026-07-14 — passing evidence is ready for
-`OBJ-PROVE-TIMERS.M0.G2` admission. Read [`../STATUS.md`](../STATUS.md),
+Status: COMPLETE v0.2, 2026-07-14 — `OBJ-PROVE-TIMERS.M0.G2` 🟢 at evidence SHA
+`9a3c48f`. Read [`../STATUS.md`](../STATUS.md),
 [`../README.md`](../README.md), and
 [`../objectives/prove-timers.md`](../objectives/prove-timers.md) first.
 
@@ -108,7 +108,7 @@ runtime capability decides whether the preferred mechanism exists, but does not 
    observed audit loss or concrete discriminating environment reopens runtime selection.
 4. The optimized report accounts for every target/timer policy and eligible candidate family with
    zero unknown policies.
-5. `OBJ-PROVE-TIMERS.M0.G2` is ready for admission by
+5. `OBJ-PROVE-TIMERS.M0.G2` is admitted by
    [`EVID-PROVIDER-POLICY-2026-07-14`](../evidence/timers/provider-policy-closure-2026-07-14/README.md).
 
 ## Verification

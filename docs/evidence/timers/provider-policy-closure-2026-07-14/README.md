@@ -1,6 +1,6 @@
 # `EVID-PROVIDER-POLICY-2026-07-14` — Provider policy closure (2026-07-14)
 
-**Status: PASSING EVIDENCE 🟢 for `OBJ-PROVE-TIMERS.M0.G2` admission**
+**Status: GATE CLOSED 🟢 for `OBJ-PROVE-TIMERS.M0.G2` at evidence SHA `9a3c48f`**
 
 ## Provenance
 

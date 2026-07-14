@@ -53,8 +53,8 @@ for tach's default configuration, so no-default speed duplicates are not release
 
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | 🚧 | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2⚪ |
-| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | ⚪ | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | ✅ | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2🟢 |
+| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | 🚧 | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1⚪ |
 | `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
 ---
@@ -270,6 +270,17 @@ availability but may not be rendered as speed wins.
 - Found: The remaining ordered public/exact gap is dispatch cost against a private static lower bound, not a caller-usable competing clock; the validator retains it diagnostically and still fails any public-reference loss.
 - Next: Commit the tracked provider-policy evidence package, then admit M0.G2 against that evidence commit.
 - Board: M0.G1 remains green; M0.G2 has passing 72-cell policy evidence ready for admission; M1 is 13/15 with only native Intel macOS and Windows x86_64 missing.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M0`
+- Did: Admitted all 72 target/timer production policies: 53 runtime-measured, 9 fixed-contract, 8 availability-fallback, 1 fallback-only, and 1 availability-preferred with retained audit; native FreeBSD selector, public-reference, thread-CPU, and semantics evidence passes at 8968b16.; OBJ-PROVE-TIMERS.M0.G2 🟢 at evidence SHA `9a3c48f`.
+- Board: OBJ-PROVE-TIMERS.M0 G2 🟢 — evidence docs/evidence/timers/provider-policy-closure-2026-07-14/README.md.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M1`
+- Did: Closed M0.G2 at evidence SHA 9a3c48f and retained the passing FreeBSD boundary, bringing runtime corroboration to 13/15.
+- Found: The local macOS x86_64 bundle is Rosetta rather than native Intel, and the older Windows JSON has no retained collector bundle; neither can satisfy the release gate.
+- Next: After ESC-HOSTED-EVIDENCE-PUSH is approved, push the frozen branch, dispatch boundary=release-missing, and retain only the native macOS Intel and Windows x86_64 artifacts.
+- Blocked/unsure: ESC-HOSTED-EVIDENCE-PUSH
+- Board: M0 is complete; M1 is active at 13/15 and blocked only on approval for the two-job hosted evidence dispatch; M2 can continue with publication-surface audit.
 
 ## /goal
 

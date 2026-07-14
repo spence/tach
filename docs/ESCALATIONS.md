@@ -1,0 +1,20 @@
+# ESCALATIONS — tach
+
+Owner-only blockers, filed by unattended agents so they can move on. When an agent hits a decision only the owner can make, it files a row here and continues with other work — it does not block and wait. The owner reviews this queue on their next interaction.
+
+- **Lifecycle:** 🟠 OPEN → 👁 ACKED → ✅ ACCEPTED / ⛔️ REJECTED / ☑️ RESOLVED. ACCEPTED and REJECTED are **owner-only**; an agent may self-☑️ RESOLVE only when the blocker genuinely disappears.
+
+## Open queue
+
+| ID | Status | Description | Blocks | Context |
+|---|---|---|---|---|
+| `ESC-HOSTED-EVIDENCE-PUSH` | 🟠 OPEN | Approve pushing bench/six-clock-speed and dispatching .github/workflows/bench-speed-windows.yml with boundary=release-missing to collect only native Windows x86_64 and macOS Intel evidence. | `OBJ-PROVE-TIMERS.M1.G1` | [entry](#esc-hosted-evidence-push) |
+
+## `ESC-HOSTED-EVIDENCE-PUSH`
+
+- **Status:** 🟠 OPEN
+- **Filed:** 2026-07-14 by unattended agent
+- **Blocks gate:** `OBJ-PROVE-TIMERS.M1.G1`
+- **Owner decision needed:** Approve pushing bench/six-clock-speed and dispatching .github/workflows/bench-speed-windows.yml with boundary=release-missing to collect only native Windows x86_64 and macOS Intel evidence.
+
+- 2026-07-14 🟠 OPEN — filed; agent moved on to other work.
