@@ -77,6 +77,12 @@ enter this gate as speed evidence.
 - Next: Collect the six canonical primary cells at 463faa0, beginning with local Apple and serial AWS Graviton/Intel cells while the hosted Windows producer runs from the same revision.
 - Board: OBJ-PROVE-TIMERS.M0 is active on one-revision canonical collection at 463faa0.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Froze the complete runtime artifact contract at cd598b9: all 55 runtime identities now have exact source-sealed producer and artifact bindings, with the 192-test evidence suite green in a detached worktree.
+- Found: Artifact readiness is complete but runtime proof is not: the cd598b9 campaign still has 0/6 canonical and 0/49 supplemental artifacts, so no OBJ-PROVE-TIMERS gate closes.
+- Next: Collect the locally runnable cd598b9 host-runtime, runtime-smoke, and Apple cells, then run serial AWS and hosted producers without mixing source revisions.
+- Board: OBJ-PROVE-TIMERS.M0 remains active at frozen revision cd598b9; 55/55 artifact contracts are ready and runtime collection is next.
+
 ## /goal
 
 Deliver `OBJ-PROVE-TIMERS`'s slice of the VISION — *Every public timing claim is reproducible from frozen evidence.* — by cleanly exiting every milestone gate. Done = every gate 🟢 with committed evidence at a recorded SHA; no gate weakened, no milestone closed by assertion.

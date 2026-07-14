@@ -1,5 +1,10 @@
 # `EVID-TARGET-ROUTE-CLASSIFICATION-463FAA0` — complete target-route classification (2026-07-14)
 
+> **SUPERSEDED 2026-07-14 by
+> [`EVID-RUNTIME-ARTIFACT-BINDINGS-CD598B9`](../runtime-artifact-bindings-2026-07-14/README.md).**
+> Retained as the gate-closing target-route proof; the newer package resolves the 32 artifact
+> binding gaps recorded below without promoting runtime measurements.
+
 **Status: `OBJ-FASTEST-TIMERS.M2.G1` CLOSED 🟢; 32 runtime artifacts remain open for collection**
 
 ## Provenance

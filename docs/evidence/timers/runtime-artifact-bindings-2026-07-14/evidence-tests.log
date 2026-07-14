@@ -1,0 +1,10 @@
+# Provenance: `python3 -m unittest discover -s benches -p 'test_*.py'` in a clean detached
+# worktree at cd598b9515c251e59f88f7d6aded3fc9be662a77 on Apple Silicon macOS, 2026-07-14.
+
+Ran 192 tests in 22.579s
+
+OK (skipped=1)
+
+# The one skip is the intentionally Windows-only native no-reparse snapshot check.
+# `bash benches/require-clean-benchmark-source.sh` returned:
+cd598b9515c251e59f88f7d6aded3fc9be662a77
