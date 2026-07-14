@@ -1,4 +1,6 @@
-# Frozen target-provider proof at `d0fa731`
+# `EVID-TARGET-PROVIDER-D0FA731` — frozen target-provider proof
+
+**Status: `OBJ-PROVE-TIMERS.M0.G1` CLOSED 🟢.**
 
 This package records the completed universal target gate for `OBJ-PROVE-TIMERS.M0`.
 The full generated JSON remains a reproducible build artifact; the committed summary fixes its
