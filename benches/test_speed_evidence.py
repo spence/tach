@@ -729,6 +729,13 @@ def aarch64_capability_thread_cpu_selection() -> dict:
       ),
     },
   })
+  selection["native_entry_probe"].update({
+    "selection_kind": "raw_syscall_preferred_with_performance_audit",
+    "selection_basis": (
+      "the inlined raw Linux AArch64 syscall is the native primitive; libc wraps "
+      "the same kernel clock and remains the failure fallback"
+    ),
+  })
   path = selection["perf"]["path_probe"]
   path.pop("fallback_candidate")
   path.pop("capability_was_not_profitable")
@@ -3427,6 +3434,30 @@ declare void @generic_implementation()
       "aarch64-unknown-linux-gnu",
     )
     self.assertTrue(any("capability policy does not reproduce" in item for item in failures))
+
+  def test_aarch64_native_raw_policy_is_not_decided_by_the_short_audit(self) -> None:
+    selection = aarch64_capability_thread_cpu_selection()
+    native = selection["native_entry_probe"]
+    native.update({
+      "raw_batches_ns": [99_000] * 9,
+      "raw_median_ns": 99_000,
+      "raw_decisive_wins": 0,
+      "raw_selected": False,
+      "libc_decisive_wins": 0,
+      "libc_materially_faster": False,
+    })
+    failures: list[str] = []
+    result = speed_evidence.validate_thread_cpu_selector(
+      "AArch64 raw native policy",
+      selection,
+      failures,
+      "aarch64-unknown-linux-gnu",
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(
+      result["native_entry"]["winner"],
+      "raw_entry",
+    )
 
   def test_windows_thread_cpu_claim_requires_public_direct_parity_for_both_metrics(self) -> None:
     selection = windows_thread_cpu_selection()

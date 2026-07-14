@@ -511,6 +511,11 @@ pub(crate) fn bench_perf_path_handle() -> Option<BenchPerfPathHandle> {
 }
 
 #[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
+#[cfg(any(
   all(any(target_arch = "x86", target_arch = "arm", target_arch = "riscv64"), target_os = "linux",),
   all(
     target_arch = "x86_64",
@@ -897,6 +902,11 @@ const NATIVE64_RAW: u8 = 3;
 ))]
 const NATIVE64_WALL: u8 = 4;
 #[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
+#[cfg(any(
   all(
     target_arch = "x86_64",
     any(target_os = "linux", target_os = "android", target_os = "freebsd"),
@@ -904,6 +914,11 @@ const NATIVE64_WALL: u8 = 4;
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
 const NATIVE64_WARMUP_READS: usize = 128;
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 #[cfg(any(
   all(
     target_arch = "x86_64",
@@ -913,6 +928,11 @@ const NATIVE64_WARMUP_READS: usize = 128;
 ))]
 const NATIVE64_MEASURE_READS: usize = 4_096;
 #[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
+#[cfg(any(
   all(
     target_arch = "x86_64",
     any(target_os = "linux", target_os = "android", target_os = "freebsd"),
@@ -920,6 +940,11 @@ const NATIVE64_MEASURE_READS: usize = 4_096;
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
 const NATIVE64_SAMPLES: usize = 9;
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 #[cfg(any(
   all(
     target_arch = "x86_64",
@@ -952,6 +977,11 @@ static NATIVE64_OWNER_PID: AtomicI32 = AtomicI32::new(0);
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
 static NATIVE64_OWNER_TID: AtomicI32 = AtomicI32::new(0);
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 #[cfg(any(
   all(
     target_arch = "x86_64",
@@ -1009,6 +1039,11 @@ static NATIVE64_RAW_SAMPLES: [core::sync::atomic::AtomicU64; NATIVE64_SAMPLES] =
   [const { core::sync::atomic::AtomicU64::new(0) }; NATIVE64_SAMPLES];
 
 #[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
+#[cfg(any(
   all(
     target_arch = "x86_64",
     any(target_os = "linux", target_os = "android", target_os = "freebsd"),
@@ -1020,6 +1055,11 @@ struct Native64Measurements {
   raw: [u64; NATIVE64_SAMPLES],
 }
 
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 #[cfg(any(
   all(
     target_arch = "x86_64",
@@ -1113,26 +1153,54 @@ fn select_native_64() -> u8 {
   let libc_available = native_64_libc_nanos().is_some();
   let raw_available = native_64_raw_nanos().is_some();
   record_native_64_availability(libc_available, raw_available);
-  let available_choice = native_64_available_choice(libc_available, raw_available);
-  if available_choice != NATIVE64_UNKNOWN {
-    return available_choice;
-  }
 
-  for provider in [NATIVE64_LIBC, NATIVE64_RAW] {
-    NATIVE64_PROBE_CHOICE.store(provider, Ordering::Relaxed);
-    for _ in 0..NATIVE64_WARMUP_READS {
-      let _ = black_box(native_64_probe_nanos());
+  #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+  {
+    if libc_available && raw_available {
+      #[cfg(feature = "bench-internal")]
+      {
+        for provider in [NATIVE64_LIBC, NATIVE64_RAW] {
+          NATIVE64_PROBE_CHOICE.store(provider, Ordering::Relaxed);
+          for _ in 0..NATIVE64_WARMUP_READS {
+            let _ = black_box(native_64_probe_nanos());
+          }
+        }
+        if let Some(measurements) = measure_native_64_candidates() {
+          record_native_64_measurements(&measurements);
+        }
+      }
+      return NATIVE64_RAW;
     }
+    return match (libc_available, raw_available) {
+      (_, true) => NATIVE64_RAW,
+      (true, false) => NATIVE64_LIBC,
+      (false, false) => NATIVE64_WALL,
+    };
   }
 
-  let Some(measurements) = measure_native_64_candidates() else {
-    return NATIVE64_LIBC;
-  };
-  record_native_64_measurements(&measurements);
-  if prefer_native_64_candidate(measurements.raw, measurements.libc) {
-    NATIVE64_RAW
-  } else {
-    NATIVE64_LIBC
+  #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+  {
+    let available_choice = native_64_available_choice(libc_available, raw_available);
+    if available_choice != NATIVE64_UNKNOWN {
+      return available_choice;
+    }
+
+    for provider in [NATIVE64_LIBC, NATIVE64_RAW] {
+      NATIVE64_PROBE_CHOICE.store(provider, Ordering::Relaxed);
+      for _ in 0..NATIVE64_WARMUP_READS {
+        let _ = black_box(native_64_probe_nanos());
+      }
+    }
+
+    let Some(measurements) = measure_native_64_candidates() else {
+      return NATIVE64_LIBC;
+    };
+    record_native_64_measurements(&measurements);
+    if prefer_native_64_candidate(measurements.raw, measurements.libc) {
+      NATIVE64_RAW
+    } else {
+      NATIVE64_LIBC
+    }
   }
 }
 
@@ -1143,6 +1211,7 @@ fn select_native_64() -> u8 {
   ),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
+#[cfg(any(test, not(all(target_os = "linux", target_arch = "aarch64"))))]
 const fn native_64_available_choice(libc: bool, raw: bool) -> u8 {
   match (libc, raw) {
     (true, false) => NATIVE64_LIBC,
@@ -1190,6 +1259,11 @@ const fn native_64_mechanism_read_cost() -> ThreadCpuReadCost {
   ),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 fn measure_native_64_candidates() -> Option<Native64Measurements> {
   let mut libc = [0; NATIVE64_SAMPLES];
   let mut raw = [0; NATIVE64_SAMPLES];
@@ -1214,6 +1288,11 @@ fn measure_native_64_candidates() -> Option<Native64Measurements> {
   ),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 fn measure_native_64_candidate(provider: u8) -> Option<u64> {
   NATIVE64_PROBE_CHOICE.store(provider, Ordering::Relaxed);
   let start = native_64_measurement_nanos()?;
@@ -1232,6 +1311,11 @@ fn measure_native_64_candidate(provider: u8) -> Option<u64> {
 ))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 fn native_64_probe_nanos() -> Option<u64> {
   match NATIVE64_PROBE_CHOICE.load(Ordering::Relaxed) {
     NATIVE64_RAW => native_64_raw_nanos(),
@@ -1281,6 +1365,11 @@ fn native_64_raw_nanos() -> Option<u64> {
   all(target_arch = "x86_64", any(target_os = "linux", target_os = "android"),),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 fn native_64_measurement_nanos() -> Option<u64> {
   let mut value = MaybeUninit::<libc::timespec>::uninit();
   // SAFETY: CLOCK_MONOTONIC_RAW is valid on Linux-kernel targets and value is
@@ -1311,6 +1400,7 @@ fn native_64_measurement_nanos() -> Option<u64> {
   ),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
 ))]
+#[cfg(any(test, not(all(target_os = "linux", target_arch = "aarch64")),))]
 fn prefer_native_64_candidate(
   challenger_samples: [u64; NATIVE64_SAMPLES],
   incumbent_samples: [u64; NATIVE64_SAMPLES],
@@ -1324,6 +1414,11 @@ fn prefer_native_64_candidate(
     any(target_os = "linux", target_os = "android", target_os = "freebsd"),
   ),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+))]
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
 ))]
 fn evaluate_native_64_candidate(
   challenger_samples: [u64; NATIVE64_SAMPLES],
@@ -1351,6 +1446,11 @@ fn evaluate_native_64_candidate(
     any(target_os = "linux", target_os = "android", target_os = "freebsd"),
   ),
   all(target_arch = "aarch64", any(target_os = "linux", target_os = "android")),
+))]
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
 ))]
 fn median_native_64(mut samples: [u64; NATIVE64_SAMPLES]) -> u64 {
   samples.sort_unstable();
@@ -1405,6 +1505,7 @@ fn record_native_64_measurements(measurements: &Native64Measurements) {
 
 #[cfg(all(
   not(feature = "bench-internal"),
+  not(all(target_os = "linux", target_arch = "aarch64")),
   any(
     all(
       target_arch = "x86_64",
@@ -2875,6 +2976,8 @@ mod linux_rare {
 ))]
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Native64SelectionEvidence {
+  pub(crate) selection_kind: &'static str,
+  pub(crate) selection_basis: Option<&'static str>,
   pub(crate) selected_provider: &'static str,
   pub(crate) selected_read_cost: &'static str,
   pub(crate) libc_provider: &'static str,
@@ -2932,6 +3035,14 @@ pub(crate) fn bench_native_64_selection_evidence() -> Native64SelectionEvidence 
     (evaluate_native_64_candidate(raw, libc), evaluate_native_64_candidate(libc, raw))
   };
   Native64SelectionEvidence {
+    selection_kind: if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+      "raw_syscall_preferred_with_performance_audit"
+    } else {
+      "tournament"
+    },
+    selection_basis: cfg!(all(target_os = "linux", target_arch = "aarch64")).then_some(
+      "the inlined raw Linux AArch64 syscall is the native primitive; libc wraps the same kernel clock and remains the failure fallback",
+    ),
     selected_provider: bench_native_64_selected_provider(),
     selected_read_cost: match native_64_read_cost() {
       ThreadCpuReadCost::Inline => "inline",

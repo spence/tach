@@ -1020,6 +1020,12 @@ def validate_legacy_native_thread_cpu_entry_probe(
   probe: dict,
   failures: list[str],
 ) -> dict:
+  raw_preferred = probe.get("selection_kind") == "raw_syscall_preferred_with_performance_audit"
+  if raw_preferred and probe.get("selection_basis") != (
+    "the inlined raw Linux AArch64 syscall is the native primitive; libc wraps the "
+    "same kernel clock and remains the failure fallback"
+  ):
+    failures.append(f"{context}: native raw-syscall preference lacks its selection basis")
   libc_provider = probe.get("libc_provider")
   raw_provider = probe.get("raw_provider")
   libc_available = probe.get("libc_available")
@@ -1075,7 +1081,11 @@ def validate_legacy_native_thread_cpu_entry_probe(
     except (TypeError, ValueError):
       failures.append(f"{context}: malformed native thread-CPU selector samples")
       return {}
-    expected = raw_provider if raw_decision["selected"] else libc_provider
+    expected = (
+      raw_provider
+      if raw_preferred or raw_decision["selected"]
+      else libc_provider
+    )
     for prefix, decision in (("raw", raw_decision), ("libc", libc_decision)):
       expected_fields = {
         f"{prefix}_allowance_ns": decision["allowance_ns"],
@@ -1091,6 +1101,8 @@ def validate_legacy_native_thread_cpu_entry_probe(
       failures.append(f"{context}: native thread-CPU libc median does not reproduce")
     if probe.get("raw_median_ns") != raw_decision["challenger_median_ns"]:
       failures.append(f"{context}: native thread-CPU raw median does not reproduce")
+  elif raw_available and raw_preferred:
+    expected = raw_provider
   elif libc_available:
     expected = libc_provider
   else:

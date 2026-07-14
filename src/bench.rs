@@ -2235,6 +2235,8 @@ expose_freebsd_exact_read!(
 #[doc(hidden)]
 #[derive(Serialize, Clone, Debug)]
 pub struct ThreadCpuNative64SelectionMeasurements {
+  pub selection_kind: &'static str,
+  pub selection_basis: Option<&'static str>,
   pub selected_provider: &'static str,
   pub selected_read_cost: &'static str,
   pub libc_provider: &'static str,
@@ -2268,6 +2270,8 @@ pub struct ThreadCpuNative64SelectionMeasurements {
 pub fn thread_cpu_native64_selection_measurements() -> ThreadCpuNative64SelectionMeasurements {
   let evidence = crate::arch::thread_cpu::bench_native_64_selection_evidence();
   ThreadCpuNative64SelectionMeasurements {
+    selection_kind: evidence.selection_kind,
+    selection_basis: evidence.selection_basis,
     selected_provider: evidence.selected_provider,
     selected_read_cost: evidence.selected_read_cost,
     libc_provider: evidence.libc_provider,
