@@ -251,6 +251,11 @@ decision; never silently omit a failing target.
 - Found: The c7i musl no-default selector chose LFENCE-RDTSC correctly, but the independent Criterion CI-edge gate false-failed even though the public roundtrip median remained within the declared 5% band; the retained bundle made the drift visible.
 - Next: Freeze at 8105273 and rerun the c7i musl no-default cell first; if its retained paired proof passes, recollect every admitted producer at that revision.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Reran c7i musl no-default at 8105273 with retained paired public-versus-selected-exact now and elapsed proof; the selector chose LFENCE+RDTSC correctly, but public OrderedInstant elapsed was repeatably slower than the exact route and composition failed. Independently recollected and bundle-validated Apple Silicon primary evidence at the same revision.
+- Found: The paired gate exposed a real hot-path gap rather than Criterion interval drift: nine public OrderedInstant elapsed batches were about 2.97-3.01 ms per 65,536 brackets versus 2.78-2.86 ms exact, so the runtime provider/state reads compound beyond the 5% equivalence band. 8105273 cannot be the release freeze.
+- Next: Inspect the emitted Linux x86 public ordered hot path and the preserved self-patching implementation, close the dispatch gap without weakening the evidence contract, then refreeze and rerun the decisive c7i musl no-default producer before recollecting the matrix.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
