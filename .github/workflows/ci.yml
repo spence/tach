@@ -70,6 +70,66 @@ jobs:
       - name: Check benchmarks
         run: cargo check --benches
 
+  provider-proof:
+    name: 24-target provider proof
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Verify all clock routes
+        run: python3 benches/verify-target-providers.py --install-targets
+
+  msrv:
+    name: MSRV 1.95
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust 1.95
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup target add \
+            powerpc64-unknown-linux-gnu \
+            powerpc64le-unknown-linux-gnu \
+            --toolchain 1.95.0
+
+      - name: Test default features
+        run: |
+          cargo +1.95.0 test --lib --tests --locked
+          cargo +1.95.0 test --doc --locked
+
+      - name: Test no-default features
+        run: |
+          cargo +1.95.0 test --lib --tests --no-default-features --locked
+          cargo +1.95.0 test --doc --no-default-features --locked
+
+      - name: Check PowerPC64 provider at the MSRV
+        env:
+          RUSTFLAGS: -D warnings
+        run: |
+          cargo +1.95.0 check --locked --lib --target powerpc64-unknown-linux-gnu
+          cargo +1.95.0 check --locked --lib --target powerpc64-unknown-linux-gnu --no-default-features
+          cargo +1.95.0 check --locked --lib --target powerpc64le-unknown-linux-gnu
+          cargo +1.95.0 check --locked --lib --target powerpc64le-unknown-linux-gnu --no-default-features
+
+  package-check:
+    name: crate package
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Build the published archive
+        run: cargo +stable package --locked
+
   cross-check:
     name: cross-check / ${{ matrix.target }}
     runs-on: ubuntu-24.04
@@ -85,6 +145,7 @@ jobs:
           - loongarch64-unknown-linux-gnu
           - riscv64gc-unknown-linux-gnu
           - powerpc64-unknown-linux-gnu
+          - powerpc64le-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
           - wasm32-unknown-unknown
           - wasm32-wasip1
