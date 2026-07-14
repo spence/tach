@@ -153,6 +153,31 @@ echo "ip $IP"
 
 SSH="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i $KEY_PATH ec2-user@$IP"
 SCP="scp -o StrictHostKeyChecking=no -i $KEY_PATH"
+
+retry_scp() {
+  source_path="$1"
+  destination_path="$2"
+  for _ in $(seq 1 12); do
+    if $SCP "$source_path" "$destination_path"; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "secure copy to or from instance $IID never succeeded" >&2
+  return 1
+}
+
+retry_ssh() {
+  for _ in $(seq 1 12); do
+    if $SSH "$@"; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "remote setup command on instance $IID never succeeded" >&2
+  return 1
+}
+
 ssh_ready=0
 for _ in $(seq 1 40); do
   if $SSH 'cloud-init status --wait >/dev/null 2>&1'; then
@@ -168,8 +193,8 @@ fi
 
 # Ship the frozen Git archive. The remote runner writes only a sealed collector
 # bundle, never a caller-shaped clocks JSON.
-$SCP "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"
-$SSH 'rm -rf tach && mkdir -p tach && tar -xzf /tmp/src.tgz -C tach'
+retry_scp "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"
+retry_ssh 'rm -rf tach && mkdir -p tach && tar -xzf /tmp/src.tgz -C tach'
 
 # Keep nested quoting in one remote script. The source seal runs the benchmark
 # command and only writes after that command succeeds.
@@ -292,14 +317,14 @@ else
 fi
 tar -czf "$HOME/tach/collector.bundle.tgz" -C "$HOME/tach" collector.bundle
 REMOTE_EOF
-$SCP "$REMOTE" "ec2-user@$IP:/tmp/remote-speed.sh"
+retry_scp "$REMOTE" "ec2-user@$IP:/tmp/remote-speed.sh"
 
 MODE=gnu
 [ "$USE_ALPINE" = 1 ] && MODE=musl
 echo "=== running sealed speed bench on instance (mode=$MODE) ==="
 $SSH "sh /tmp/remote-speed.sh '$MODE' '$SOURCE_REVISION' '$runner' '$BUILD_MODE'"
 
-$SCP "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"
+retry_scp "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"
 tar -xzf "$BUNDLE_ARCHIVE" -C "$RESULT_DIR"
 rm -f "$BUNDLE_ARCHIVE"
 if [ "$BUILD_MODE" = no-default ]; then

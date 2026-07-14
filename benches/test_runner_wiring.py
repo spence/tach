@@ -167,7 +167,7 @@ printf "SEAL_RAN\\n"
             collector,
         )
         transfer = source.index(
-            '$SCP "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"'
+            'retry_scp "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"'
         )
         extract = source.index('tar -xzf "$BUNDLE_ARCHIVE" -C "$RESULT_DIR"')
 
@@ -181,12 +181,24 @@ printf "SEAL_RAN\\n"
 
         readiness = source.index("cloud-init status --wait")
         readiness_guard = source.index('if [ "$ssh_ready" != 1 ]', readiness)
-        transfer = source.index('$SCP "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"')
+        transfer = source.index(
+            'retry_scp "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"'
+        )
 
         self.assertLess(readiness, readiness_guard)
         self.assertLess(readiness_guard, transfer)
         self.assertIn('ssh_ready=1', source[readiness:readiness_guard])
         self.assertIn('exit 1', source[readiness_guard:transfer])
+
+    def test_aws_retries_transports_without_restarting_the_benchmark(self) -> None:
+        source = self.source("run-speed-aws.sh")
+        retry_functions = source[source.index("retry_scp() {"):source.index("ssh_ready=0")]
+        remote_run = source.index('$SSH "sh /tmp/remote-speed.sh')
+
+        self.assertEqual(source.count("retry_scp "), 3)
+        self.assertEqual(source.count("retry_ssh "), 1)
+        self.assertEqual(retry_functions.count("for _ in $(seq 1 12)"), 2)
+        self.assertNotIn("retry_ssh", source[remote_run:])
 
     def test_alpine_collector_is_returned_to_the_host_user_before_archiving(self) -> None:
         source = self.source("run-speed-aws.sh")
@@ -212,7 +224,7 @@ printf "SEAL_RAN\\n"
             "run-speed-aws.sh": (
                 'git -C "$REPO_ROOT" --no-replace-objects archive --format=tar "$SOURCE_REVISION"',
                 'tar -xzf "$TARBALL" -C "$SOURCE_DIR"',
-                '$SCP "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"',
+                'retry_scp "$TARBALL" "ec2-user@$IP:/tmp/src.tgz"',
                 'tar -xzf /tmp/src.tgz -C tach',
                 'python3 "$SOURCE_DIR/benches/compose-speed.py"',
             ),
