@@ -4912,6 +4912,34 @@ declare void @generic_implementation()
       "direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct",
     )
 
+  def test_windows_extractor_labels_os_call_candidates_as_platform_calls(self) -> None:
+    selection = {
+      "selected_provider": {
+        "instant": "windows_qpc",
+        "ordered": "windows_qpc_call_boundary",
+      },
+      "eligible_direct_candidates": {
+        "instant": ["direct_wall__windows_qpc"],
+        "ordered": ["direct_ordered_wall__windows_qpc_call_boundary"],
+      },
+    }
+    with tempfile.TemporaryDirectory() as directory:
+      criterion = Path(directory)
+      (criterion / "windows-wall-selection.json").write_text(json.dumps(selection))
+      for group in extract_speed.WALL_GROUPS.values():
+        for benchmark in (
+          "direct_wall__windows_qpc",
+          "direct_ordered_wall__windows_qpc_call_boundary",
+        ):
+          write_criterion_estimate(criterion, group, benchmark)
+      out = {"tach": {}, "tach_ordered": {}}
+      extract_speed.add_wall_selector_evidence(criterion, out)
+    for benchmark in (
+      "direct_wall__windows_qpc",
+      "direct_ordered_wall__windows_qpc_call_boundary",
+    ):
+      self.assertEqual(out[benchmark]["read_cost"], "platform call")
+
   def test_checkout_binding_checks_commit_tree_and_worktree(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)

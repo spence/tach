@@ -1166,6 +1166,10 @@ def wall_candidate_read_cost(benchmark: str) -> str:
         return "system call"
     if "clock_monotonic" in benchmark:
         return "vDSO or system call"
+    if benchmark.removeprefix("direct_wall__").removeprefix(
+        "direct_ordered_wall__"
+    ).startswith("windows_"):
+        return "platform call"
     return "inline"
 
 
