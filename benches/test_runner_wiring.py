@@ -125,6 +125,9 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertIn("--no-default-features --features bench-internal", source)
         self.assertIn("--collector-bundle", source)
         self.assertIn("--thread-cpu-profile runtime_tournament", source)
+        self.assertIn("/tmp/tach-speed.status", source)
+        self.assertIn("tar -czf /tmp/tach-speed-collector.tgz", source)
+        self.assertNotIn("scp -r", source)
 
         source = self.source("run-speed-native-supplemental.sh")
         self.assertIn("SUPPLEMENTAL_SPEED_CELLS", source)
@@ -145,6 +148,15 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertEqual(source.count("TACH_BENCH_RUNNER:"), 10)
         self.assertEqual(source.count("compose-supplemental-speed.py"), 7)
         self.assertIn("python benches/compose-speed.py", source)
+        for boundary in (
+            "release-missing",
+            "windows-x86_64",
+            "macos-x86_64",
+            "all",
+        ):
+            self.assertIn(f"- {boundary}", source)
+        self.assertEqual(source.count("inputs.boundary == 'release-missing'"), 2)
+        self.assertEqual(source.count("inputs.boundary == 'all'"), 7)
         for artifact in (
             "speed-4-windows.json",
             "speed-supplemental-windows-i686.json",

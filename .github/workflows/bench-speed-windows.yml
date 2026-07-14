@@ -2,6 +2,17 @@ name: hosted speed evidence
 
 on:
   workflow_dispatch:
+    inputs:
+      boundary:
+        description: Native boundary to collect
+        required: true
+        default: release-missing
+        type: choice
+        options:
+          - release-missing
+          - windows-x86_64
+          - macos-x86_64
+          - all
 
 permissions:
   contents: read
@@ -12,6 +23,7 @@ env:
 jobs:
   windows-campaign-cell:
     name: Windows 2025 canonical cell
+    if: ${{ inputs.boundary == 'release-missing' || inputs.boundary == 'windows-x86_64' || inputs.boundary == 'all' }}
     runs-on: windows-2025
     env:
       CARGO_TARGET_DIR: target/windows-x86_64
@@ -52,6 +64,7 @@ jobs:
 
   windows-i686-supplemental:
     name: Windows 2025 i686 supplemental
+    if: ${{ inputs.boundary == 'all' }}
     runs-on: windows-2025
     env:
       CARGO_TARGET_DIR: target/windows-i686
@@ -101,6 +114,7 @@ jobs:
 
   windows-arm64-supplemental:
     name: Windows 11 Arm64 supplemental
+    if: ${{ inputs.boundary == 'all' }}
     runs-on: windows-11-arm
     env:
       CARGO_TARGET_DIR: target/windows-arm64
@@ -150,6 +164,7 @@ jobs:
 
   linux-i686-supplemental:
     name: Ubuntu 24.04 i686 supplemental
+    if: ${{ inputs.boundary == 'all' }}
     runs-on: ubuntu-24.04
     env:
       CARGO_TARGET_DIR: target/linux-i686
@@ -243,6 +258,7 @@ jobs:
 
   macos-intel-supplemental:
     name: macOS 15 Intel supplemental
+    if: ${{ inputs.boundary == 'release-missing' || inputs.boundary == 'macos-x86_64' || inputs.boundary == 'all' }}
     runs-on: macos-15-intel
     env:
       CARGO_TARGET_DIR: target/macos-x86_64
@@ -289,6 +305,7 @@ jobs:
 
   hosted-no-default-supplemental:
     name: ${{ matrix.label }} no-default supplemental
+    if: ${{ inputs.boundary == 'all' }}
     strategy:
       fail-fast: false
       matrix:
@@ -383,6 +400,7 @@ jobs:
 
   linux-riscv64-supplemental:
     name: Native RISC-V ${{ matrix.mode }} supplemental
+    if: ${{ inputs.boundary == 'all' }}
     strategy:
       fail-fast: false
       matrix:
