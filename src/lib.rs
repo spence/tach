@@ -72,7 +72,9 @@
 //! Direct-counter providers assume a coherent, monotonic architectural
 //! counter. Windows uses QPC because raw TSC/CNTVCT cost and frequency probes
 //! cannot establish Windows' cross-core, sleep, and VM-migration guarantees.
-//! Intel macOS also uses the platform-owned reliable timeline;
+//! Intel macOS admits a bare invariant TSC only for same-thread `Instant`
+//! after runtime eligibility and complete-path cost checks; its ordered timer
+//! stays on the platform-owned reliable timeline.
 //! on other hosts whose OS marks a TSC clocksource unstable because cores are
 //! genuinely desynchronized, use the platform clock instead.
 //!

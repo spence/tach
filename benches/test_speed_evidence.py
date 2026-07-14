@@ -1144,6 +1144,61 @@ def apple_aarch64_wall_selection() -> dict:
   }
 
 
+def apple_x86_wall_selection() -> dict:
+  reads = 4_096
+  mach = [70_000] * 9
+  tsc = [40_000] * 9
+  return {
+    "selected_provider": {
+      "instant": "apple_invariant_rdtsc",
+      "ordered": "apple_mach_absolute_time",
+    },
+    "selected_native_benchmark": {
+      "instant": "direct_selected_wall__apple_invariant_rdtsc",
+      "ordered": "direct_selected_ordered_wall__apple_mach_absolute_time",
+    },
+    "eligible_direct_candidates": {
+      "instant": [
+        "direct_wall__apple_mach_absolute_time",
+        "direct_wall__apple_invariant_rdtsc",
+      ],
+      "ordered": ["direct_ordered_wall__apple_mach_absolute_time"],
+    },
+    "probe": {
+      "instant": {
+        "reads_per_batch": reads,
+        "required_decisive_wins": 8,
+        "tsc_eligible": True,
+        "tsc_eligibility_basis": "eligible_rosetta_invariant_tsc_mach_timeline",
+        "translated": True,
+        "mach_absolute_time_batches_ticks": mach,
+        "tsc_batches_ticks": tsc,
+        "mach_absolute_time_median_ticks": 70_000,
+        "tsc_median_ticks": 40_000,
+        "allowance_total_ticks": reads,
+        "decisive_wins": 9,
+        "tsc_selected": True,
+        "measured_winner": "apple_invariant_rdtsc",
+        "selected_provider": "apple_invariant_rdtsc",
+      },
+      "ordered": {
+        "reads_per_batch": reads,
+        "required_decisive_wins": 8,
+        "commpage_eligible": False,
+        "commpage_eligibility_basis": "ineligible_rosetta_x86_translation",
+        "mach_absolute_time_batches_ticks": [0] * 9,
+        "commpage_batches_ticks": [0] * 9,
+        "mach_absolute_time_median_ticks": 0,
+        "commpage_median_ticks": 0,
+        "allowance_total_ticks": 0,
+        "decisive_wins": 0,
+        "commpage_selected": False,
+        "selected_provider": "apple_mach_absolute_time",
+      },
+    },
+  }
+
+
 def linux_x86_wall_selection() -> dict:
   parity = {
     "selection_kind": "paired_public_exact_parity",
@@ -2910,6 +2965,23 @@ declare void @generic_implementation()
     self.assertTrue(
       any("ordered public read is repeatably slower" in failure for failure in failures)
     )
+
+  def test_apple_x86_selector_reproduces_independent_contract_winners(self) -> None:
+    selection = apple_x86_wall_selection()
+    failures = []
+    report = speed_evidence.validate_apple_wall_selector(
+      "Apple x86", selection, failures
+    )
+
+    self.assertEqual(failures, [])
+    self.assertEqual(report["instant"]["winner"], "apple_invariant_rdtsc")
+    self.assertEqual(report["ordered"]["winner"], "apple_mach_absolute_time")
+
+    tampered = copy.deepcopy(selection)
+    tampered["probe"]["instant"]["decisive_wins"] = 0
+    failures = []
+    speed_evidence.validate_apple_wall_selector("tampered", tampered, failures)
+    self.assertTrue(any("does not reproduce" in failure for failure in failures))
 
   def test_apple_aarch64_extractor_completes_duplicate_ordered_elapsed_rows(self) -> None:
     selection = apple_aarch64_wall_selection()

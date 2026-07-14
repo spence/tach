@@ -941,6 +941,103 @@ def validate_apple_wall_selector(
     failures.append(f"{context}: malformed Apple wall selector metadata")
     return {}
   probe = selection.get("probe")
+  if (
+    isinstance(probe, dict)
+    and isinstance(probe.get("instant"), dict)
+    and "tsc_eligible" in probe["instant"]
+    and isinstance(probe.get("ordered"), dict)
+  ):
+    results = {}
+    domain_specs = (
+      (
+        "instant",
+        "tsc_eligible",
+        "tsc_batches_ticks",
+        "tsc_median_ticks",
+        "tsc_selected",
+        "apple_invariant_rdtsc",
+        "direct_wall",
+        "direct_selected_wall",
+      ),
+      (
+        "ordered",
+        "commpage_eligible",
+        "commpage_batches_ticks",
+        "commpage_median_ticks",
+        "commpage_selected",
+        "apple_commpage_lfence_rdtsc_nanotime",
+        "direct_ordered_wall",
+        "direct_selected_ordered_wall",
+      ),
+    )
+    for (
+      domain,
+      eligible_key,
+      batches_key,
+      median_key,
+      selected_key,
+      challenger_provider,
+      direct_prefix,
+      selected_prefix,
+    ) in domain_specs:
+      domain_probe = probe[domain]
+      eligible = domain_probe.get(eligible_key)
+      baseline = domain_probe.get("mach_absolute_time_batches_ticks")
+      challenger = domain_probe.get(batches_key)
+      reads = domain_probe.get("reads_per_batch")
+      required = domain_probe.get("required_decisive_wins")
+      expected_candidates = [f"{direct_prefix}__apple_mach_absolute_time"]
+      decision = None
+      measured_winner = "apple_mach_absolute_time"
+      if eligible is True:
+        expected_candidates.append(f"{direct_prefix}__{challenger_provider}")
+        try:
+          decision = reproduce_material_decision(challenger, baseline, reads, required)
+        except (TypeError, ValueError):
+          failures.append(f"{context}: malformed Apple x86 {domain} selector samples")
+          decision = {}
+        if decision.get("selected") is True:
+          measured_winner = challenger_provider
+        if (
+          not isinstance(baseline, list)
+          or not isinstance(challenger, list)
+          or domain_probe.get("mach_absolute_time_median_ticks")
+          != int(statistics.median(baseline))
+          or domain_probe.get(median_key) != int(statistics.median(challenger))
+          or domain_probe.get("allowance_total_ticks") != decision.get("allowance_ns")
+          or domain_probe.get("decisive_wins") != decision.get("decisive_wins")
+          or domain_probe.get(selected_key) != decision.get("selected")
+        ):
+          failures.append(f"{context}: Apple x86 {domain} selector does not reproduce")
+      elif eligible is False:
+        if baseline != [0] * 9 or challenger != [0] * 9:
+          failures.append(f"{context}: ineligible Apple x86 {domain} candidate was measured")
+      else:
+        failures.append(f"{context}: malformed Apple x86 {domain} eligibility")
+
+      if reads != 4_096 or required != 8:
+        failures.append(f"{context}: malformed Apple x86 {domain} decision rule")
+      if candidates.get(domain) != expected_candidates:
+        failures.append(f"{context}: Apple x86 {domain} candidate set is incomplete")
+      selected_provider = domain_probe.get("selected_provider")
+      if domain == "instant":
+        if domain_probe.get("measured_winner") != measured_winner:
+          failures.append(f"{context}: Apple x86 Instant measured winner changed")
+        if selected_provider not in (measured_winner, "apple_mach_absolute_time"):
+          failures.append(f"{context}: Apple x86 Instant selected an invalid provider")
+      elif selected_provider != measured_winner:
+        failures.append(f"{context}: Apple x86 Ordered selected provider does not reproduce")
+      if selected.get(domain) != selected_provider:
+        failures.append(f"{context}: Apple x86 {domain} selected providers disagree")
+      if selected_benchmarks.get(domain) != f"{selected_prefix}__{selected_provider}":
+        failures.append(f"{context}: Apple {domain} selected benchmark is mislabeled")
+      results[domain] = {
+        "winner": selected_provider,
+        "measured_winner": measured_winner,
+        "decision": decision,
+      }
+    return results
+
   if isinstance(probe, dict) and all(
     isinstance(probe.get(domain), dict) for domain in ("instant", "ordered")
   ):

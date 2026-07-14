@@ -17,8 +17,6 @@ use std::mem::MaybeUninit;
 use std::time::{Duration, Instant as StdInstant};
 
 use criterion::{Criterion, criterion_group, criterion_main};
-#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "macos"))]
-use tach::bench::AppleX86CommpageDirect;
 #[cfg(all(feature = "bench-internal", target_os = "macos"))]
 use tach::bench::MachAbsoluteTimeDirect;
 #[cfg(all(
@@ -41,6 +39,8 @@ use tach::bench::MachAbsoluteTimeDirect;
 use tach::bench::ThreadCpuPerfHandle;
 #[cfg(all(feature = "bench-internal", target_os = "windows"))]
 use tach::bench::WindowsQpcDirect;
+#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "macos"))]
+use tach::bench::{AppleX86CommpageDirect, AppleX86TscDirect};
 #[cfg(all(
   feature = "bench-internal",
   target_arch = "aarch64",
@@ -1874,20 +1874,23 @@ fn bench_now(c: &mut Criterion) {
     });
     #[cfg(target_arch = "x86_64")]
     {
-      let provider = tach::bench::apple_wall_selected_provider();
-      if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
-        g.bench_function(format!("direct_wall__{}", commpage.provider()), |b| {
-          b.iter(|| black_box(commpage.now_ticks()));
+      let instant_provider = tach::bench::apple_wall_selected_provider();
+      let ordered_provider = tach::bench::apple_ordered_wall_selected_provider();
+      if let Some(tsc) = AppleX86TscDirect::try_for_current_machine() {
+        g.bench_function(format!("direct_wall__{}", tsc.provider()), |b| {
+          b.iter(|| black_box(tsc.now_ticks()));
         });
+      }
+      if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
         g.bench_function(format!("direct_ordered_wall__{}", commpage.provider()), |b| {
           b.iter(|| black_box(commpage.now_ticks()));
         });
       }
-      g.bench_function(format!("direct_selected_wall__{provider}"), |b| {
+      g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
         b.iter(|| black_box(tach::bench::apple_x86_selected_ticks()));
       });
-      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
-        b.iter(|| black_box(tach::bench::apple_x86_selected_ticks()));
+      g.bench_function(format!("direct_selected_ordered_wall__{ordered_provider}"), |b| {
+        b.iter(|| black_box(tach::bench::apple_x86_selected_ordered_ticks()));
       });
     }
   }
@@ -2139,15 +2142,20 @@ fn write_apple_wall_selection() {
   #[cfg(target_arch = "x86_64")]
   let mut ordered_candidates = vec!["direct_ordered_wall__apple_mach_absolute_time"];
   #[cfg(target_arch = "x86_64")]
+  if AppleX86TscDirect::try_for_current_machine().is_some() {
+    instant_candidates.push("direct_wall__apple_invariant_rdtsc");
+  }
+  #[cfg(target_arch = "x86_64")]
   if AppleX86CommpageDirect::try_for_current_machine().is_some() {
-    instant_candidates.push("direct_wall__apple_commpage_lfence_rdtsc_nanotime");
     ordered_candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
   }
   #[cfg(target_arch = "x86_64")]
-  let decision_rule = "retain mach_absolute_time unless the inline commpage dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins";
+  let decision_rule = "each contract retains mach_absolute_time unless its eligible direct dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins";
   #[cfg(target_arch = "x86_64")]
-  let probe = serde_json::to_value(tach::bench::apple_x86_wall_selection_measurements())
-    .expect("serialize Intel Apple wall selector probe");
+  let probe = serde_json::json!({
+    "instant": tach::bench::apple_x86_instant_selection_measurements(),
+    "ordered": tach::bench::apple_x86_wall_selection_measurements(),
+  });
   #[cfg(target_arch = "aarch64")]
   let decision_rule = "Instant and OrderedInstant independently tournament every eligible Mach absolute, Mach continuous, and direct commpage path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches";
   #[cfg(target_arch = "aarch64")]
@@ -2747,15 +2755,23 @@ fn bench_elapsed(c: &mut Criterion) {
     });
     #[cfg(target_arch = "x86_64")]
     {
-      let provider = tach::bench::apple_wall_selected_provider();
+      let instant_provider = tach::bench::apple_wall_selected_provider();
+      let ordered_provider = tach::bench::apple_ordered_wall_selected_provider();
       let nanos_per_tick_q32 = tach::bench::apple_x86_selected_nanos_per_tick_q32();
-      if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
-        g.bench_function(format!("direct_wall__{}", commpage.provider()), |b| {
+      if let Some(tsc) = AppleX86TscDirect::try_for_current_machine() {
+        let tsc_nanos_per_tick_q32 = tsc.nanos_per_tick_q32();
+        g.bench_function(format!("direct_wall__{}", tsc.provider()), |b| {
           b.iter(|| {
-            let start = commpage.now_ticks();
-            black_box(commpage.elapsed_since(start))
+            let start = tsc.now_ticks();
+            let elapsed = tsc.now_ticks().saturating_sub(start);
+            black_box(tach::bench::exact_ticks_to_duration_with_scale(
+              elapsed,
+              tsc_nanos_per_tick_q32,
+            ))
           });
         });
+      }
+      if let Some(commpage) = AppleX86CommpageDirect::try_for_current_machine() {
         g.bench_function(format!("direct_ordered_wall__{}", commpage.provider()), |b| {
           b.iter(|| {
             let start = commpage.now_ticks();
@@ -2763,18 +2779,18 @@ fn bench_elapsed(c: &mut Criterion) {
           });
         });
       }
-      g.bench_function(format!("direct_selected_wall__{provider}"), |b| {
+      g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
         b.iter(|| {
           let start = tach::bench::apple_x86_selected_ticks();
           let elapsed = tach::bench::apple_x86_selected_ticks().saturating_sub(start);
           black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, nanos_per_tick_q32))
         });
       });
-      g.bench_function(format!("direct_selected_ordered_wall__{provider}"), |b| {
+      g.bench_function(format!("direct_selected_ordered_wall__{ordered_provider}"), |b| {
         b.iter(|| {
-          let start = tach::bench::apple_x86_selected_ticks();
-          let elapsed = tach::bench::apple_x86_selected_ticks().saturating_sub(start);
-          black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, nanos_per_tick_q32))
+          let start = tach::bench::apple_x86_selected_ordered_ticks();
+          let elapsed = tach::bench::apple_x86_selected_ordered_ticks().saturating_sub(start);
+          black_box(tach::bench::exact_ticks_to_duration_with_scale(elapsed, 1_u64 << 32))
         });
       });
     }

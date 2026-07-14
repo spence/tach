@@ -4500,6 +4500,35 @@ impl AppleX86CommpageDirect {
 
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
 #[doc(hidden)]
+pub struct AppleX86TscDirect;
+
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+impl AppleX86TscDirect {
+  #[doc(hidden)]
+  pub fn try_for_current_machine() -> Option<Self> {
+    crate::arch::apple_x86_64::bench_tsc_eligible().then_some(Self)
+  }
+
+  #[doc(hidden)]
+  #[inline(always)]
+  #[allow(clippy::inline_always)]
+  pub fn now_ticks(&self) -> u64 {
+    crate::arch::apple_x86_64::bench_tsc()
+  }
+
+  #[doc(hidden)]
+  pub fn nanos_per_tick_q32(&self) -> u64 {
+    crate::arch::apple_x86_64::bench_tsc_nanos_per_tick_q32()
+  }
+
+  #[doc(hidden)]
+  pub fn provider(&self) -> &'static str {
+    "apple_invariant_rdtsc"
+  }
+}
+
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+#[doc(hidden)]
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn apple_x86_selected_ticks() -> u64 {
@@ -4509,10 +4538,15 @@ pub fn apple_x86_selected_ticks() -> u64 {
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
 #[doc(hidden)]
 pub fn apple_x86_selected_nanos_per_tick_q32() -> u64 {
-  match crate::arch::apple_x86_64::bench_provider() {
-    "apple_commpage_lfence_rdtsc_nanotime" => 1_u64 << 32,
-    _ => apple_mach_nanos_per_tick_q32(),
-  }
+  crate::arch::apple_x86_64::instant_nanos_per_tick_q32()
+}
+
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn apple_x86_selected_ordered_ticks() -> u64 {
+  crate::arch::apple_x86_64::bench_selected_ordered_ticks()
 }
 
 #[cfg(target_os = "windows")]
@@ -4738,13 +4772,55 @@ pub fn apple_aarch64_ordered_selection_measurements() -> AppleAarch64WallSelecti
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
 #[doc(hidden)]
 pub fn apple_wall_selected_provider() -> &'static str {
-  crate::arch::apple_x86_64::bench_provider()
+  crate::arch::apple_x86_64::bench_instant_provider()
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
 #[doc(hidden)]
 pub fn apple_ordered_wall_selected_provider() -> &'static str {
-  crate::arch::apple_x86_64::bench_provider()
+  crate::arch::apple_x86_64::bench_ordered_provider()
+}
+
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+#[doc(hidden)]
+#[derive(Serialize, Clone, Debug)]
+pub struct AppleX86InstantSelectionMeasurements {
+  pub reads_per_batch: u64,
+  pub tsc_eligible: bool,
+  pub tsc_eligibility_basis: &'static str,
+  pub translated: bool,
+  pub mach_absolute_time_batches_ticks: [u64; 9],
+  pub tsc_batches_ticks: [u64; 9],
+  pub mach_absolute_time_median_ticks: u64,
+  pub tsc_median_ticks: u64,
+  pub allowance_total_ticks: u64,
+  pub decisive_wins: usize,
+  pub required_decisive_wins: usize,
+  pub tsc_selected: bool,
+  pub measured_winner: &'static str,
+  pub selected_provider: &'static str,
+}
+
+#[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+#[doc(hidden)]
+pub fn apple_x86_instant_selection_measurements() -> AppleX86InstantSelectionMeasurements {
+  let evidence = crate::arch::apple_x86_64::bench_instant_selection_evidence();
+  AppleX86InstantSelectionMeasurements {
+    reads_per_batch: evidence.reads_per_batch,
+    tsc_eligible: evidence.tsc_eligible,
+    tsc_eligibility_basis: evidence.tsc_eligibility_basis,
+    translated: evidence.translated,
+    mach_absolute_time_batches_ticks: evidence.mach_absolute_time_batches_ticks,
+    tsc_batches_ticks: evidence.tsc_batches_ticks,
+    mach_absolute_time_median_ticks: evidence.mach_absolute_time_median_ticks,
+    tsc_median_ticks: evidence.tsc_median_ticks,
+    allowance_total_ticks: evidence.allowance_total_ticks,
+    decisive_wins: evidence.decisive_wins,
+    required_decisive_wins: evidence.required_decisive_wins,
+    tsc_selected: evidence.tsc_selected,
+    measured_winner: evidence.measured_winner,
+    selected_provider: evidence.selected_provider,
+  }
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
@@ -4768,7 +4844,7 @@ pub struct AppleX86WallSelectionMeasurements {
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
 #[doc(hidden)]
 pub fn apple_x86_wall_selection_measurements() -> AppleX86WallSelectionMeasurements {
-  let evidence = crate::arch::apple_x86_64::bench_selection_evidence();
+  let evidence = crate::arch::apple_x86_64::bench_ordered_selection_evidence();
   AppleX86WallSelectionMeasurements {
     reads_per_batch: evidence.reads_per_batch,
     commpage_eligible: evidence.commpage_eligible,
@@ -5041,7 +5117,7 @@ pub fn ordered_selection_measurements() -> Option<OrderedSelectionMeasurements> 
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
 #[doc(hidden)]
 pub fn ordered_selection_measurements() -> Option<OrderedSelectionMeasurements> {
-  let evidence = crate::arch::apple_x86_64::bench_selection_evidence();
+  let evidence = crate::arch::apple_x86_64::bench_ordered_selection_evidence();
   let (numer, denom) = crate::arch::fallback::mach_timebase();
   let counter_hz = ((1_000_000_000_u128 * u128::from(denom)) / u128::from(numer)) as u64;
   let challenger = "apple_commpage_lfence_rdtsc_nanotime";

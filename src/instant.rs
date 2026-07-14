@@ -9,8 +9,8 @@ use crate::arch;
 /// parked or descheduled. Whether it advances during whole-system suspend
 /// follows the target's selected monotonic clock. Tach uses a direct
 /// architectural counter where that is the fastest reliable timeline, the
-/// OS-vetted QPC timeline on Windows, the measured fastest XNU Mach absolute-time implementation on
-/// Intel macOS, a kernel-eligible and measured TSC on FreeBSD/amd64, and the
+/// OS-vetted QPC timeline on Windows, a measured invariant TSC or XNU Mach
+/// absolute-time implementation on Intel macOS, a kernel-eligible and measured TSC on FreeBSD/amd64, and the
 /// platform monotonic clock on fallback targets.
 ///
 /// Eligible providers expose a high-resolution timeline. Deliberately
@@ -195,7 +195,7 @@ impl Sub<Instant> for Instant {
 ///   TSC or CNTVCT read on this path.
 /// - **Intel macOS**: XNU's `lfence; rdtsc; lfence` Mach absolute-time protocol,
 ///   either inlined from the commpage data or reached through the system
-///   function according to a runtime cost probe.
+///   function according to an Ordered-specific runtime cost probe.
 /// - **Linux and Android x86 / x86_64**: an independently measured ordered TSC
 ///   path or the platform monotonic clock. Other x86 targets use `lfence;
 ///   rdtsc` on Intel, gated `rdtscp` elsewhere, and `cpuid; rdtsc` when

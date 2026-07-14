@@ -10,9 +10,9 @@
 //! CPUID metadata and a local cost probe cannot prove those properties. A raw
 //! Arm system-counter read is likewise ineligible without a Windows guarantee
 //! that EL0 access and that counter are the active reliable timeline.
-//! Intel macOS measures XNU's inline commpage nanotime protocol against
-//! `mach_absolute_time`; both remain in the same kernel-owned, cross-core
-//! reliable timeline. FreeBSD/amd64 selects a direct TSC only when the kernel's
+//! Intel macOS independently measures an eligible invariant TSC for local
+//! elapsed brackets and XNU's inline commpage nanotime protocol for ordered
+//! brackets. FreeBSD/amd64 selects a direct TSC only when the kernel's
 //! active timecounter says it is reliable and tach's initialization probe
 //! confirms the branched read materially beats the vDSO.
 
@@ -418,6 +418,13 @@ pub fn ticks_ordered_unordered() -> u64 {
   super::apple_aarch64::ticks_ordered_unordered()
 }
 
+#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn ticks_ordered_unordered() -> u64 {
+  super::apple_x86_64::ticks_ordered_unordered()
+}
+
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
@@ -466,6 +473,7 @@ pub fn ticks_ordered_unordered() -> u64 {
   ),
   all(any(target_os = "android", target_os = "linux"), target_arch = "aarch64",),
   all(target_os = "macos", target_arch = "aarch64"),
+  all(target_os = "macos", target_arch = "x86_64"),
   all(target_arch = "x86_64", target_os = "freebsd"),
   target_arch = "riscv64",
   target_arch = "loongarch64",

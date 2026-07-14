@@ -477,11 +477,17 @@ pub(crate) fn scale_from_ratio(nanos_numerator: u64, ticks_denominator: u64) -> 
   u64::try_from(scale).unwrap_or(u64::MAX).max(1)
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[inline]
 fn read_local_nanos_per_tick_q32() -> u64 {
   let (numer, denom) = fallback::mach_timebase();
   scale_from_ratio(u64::from(numer), u64::from(denom))
+}
+
+#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+#[inline]
+fn read_local_nanos_per_tick_q32() -> u64 {
+  apple_x86_64::instant_nanos_per_tick_q32()
 }
 
 #[cfg(not(target_os = "macos"))]

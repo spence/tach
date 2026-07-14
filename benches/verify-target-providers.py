@@ -734,13 +734,13 @@ def instant_route(target: str) -> dict:
 
   if target == "x86_64-apple-darwin":
     return {
-      "provider": "measured XNU Mach system or commpage absolute-time provider",
-      "native_primitive": "mach_absolute_time or commpage seqlock + LFENCE/RDTSC/LFENCE",
-      "ordering": "unordered API over XNU's ordered absolute-time protocol",
+      "provider": "measured invariant TSC or XNU Mach absolute-time provider",
+      "native_primitive": "RDTSC or mach_absolute_time",
+      "ordering": "unordered same-thread wall read",
       "required_patterns": [
         "apple_x86_64.*ticks_after_selection",
         "@mach_absolute_time",
-        r"\\0Alfence\\0Ardtsc\\0Alfence\\0A",
+        "llvm.x86.rdtsc",
       ],
       "forbidden_patterns": [r"\brdtscp\b"],
     }
@@ -1032,7 +1032,7 @@ def ordered_instant_route(target: str, mode: str) -> dict:
       "native_primitive": "mach_absolute_time or commpage seqlock + LFENCE/RDTSC/LFENCE",
       "ordering": "XNU's LFENCE + RDTSC + LFENCE absolute-time protocol",
       "required_patterns": [
-        "apple_x86_64.*ticks_after_selection",
+        "apple_x86_64.*ticks_ordered_after_selection",
         "@mach_absolute_time",
         r"\\0Alfence\\0Ardtsc\\0Alfence\\0A",
       ],
