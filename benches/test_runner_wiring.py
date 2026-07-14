@@ -321,6 +321,15 @@ printf "SEAL_RAN\\n"
         self.assertIn("trap cleanup EXIT", source)
         self.assertNotIn("benches/speed-5-lambda.json", source)
 
+    def test_browser_runner_waits_for_the_navigation_execution_context(self) -> None:
+        source = self.source("run-browser-host-runtime.mjs")
+
+        self.assertIn("evaluateAfterNavigation", source)
+        self.assertIn("Cannot find default execution context", source)
+        self.assertIn("const deadline = Date.now() + 30_000", source)
+        self.assertIn("Date.now() >= deadline", source)
+        self.assertIn("setTimeout(resolveRetry, 25)", source)
+
 
 if __name__ == "__main__":
     unittest.main()

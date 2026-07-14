@@ -180,9 +180,24 @@ try {
     socket.send(JSON.stringify({ id, method, params }));
   });
 
+  const evaluateAfterNavigation = async params => {
+    const deadline = Date.now() + 30_000;
+    while (true) {
+      try {
+        return await command("Runtime.evaluate", params);
+      } catch (error) {
+        const missingContext = String(error?.message ?? error).includes(
+          "Cannot find default execution context",
+        );
+        if (!missingContext || Date.now() >= deadline) throw error;
+        await new Promise(resolveRetry => setTimeout(resolveRetry, 25));
+      }
+    }
+  };
+
   await command("Runtime.enable");
   const evaluation = await Promise.race([
-    command("Runtime.evaluate", {
+    evaluateAfterNavigation({
       expression: `new Promise((resolve, reject) => {
         const deadline = Date.now() + 120000;
         const wait = () => {
