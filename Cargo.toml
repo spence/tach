@@ -41,11 +41,12 @@ core_affinity = { version = "0.8", optional = true }
 
 [features]
 default = ["thread-cpu-inline"]
-# DEFAULT: Linux x86, x86_64, aarch64, armv7, riscv64, s390x, LoongArch64,
-# and PowerPC64 plus Android x86_64 and aarch64 measure each current thread's
-# complete perf task-clock mmap/read routes against its selected
-# CLOCK_THREAD_CPUTIME_ID route, then retain only a repeatable material winner
-# for that thread.
+# DEFAULT: Linux AArch64 uses perf task-clock mmap whenever its complete inline
+# capability is available, with CLOCK_THREAD_CPUTIME_ID as the failure
+# fallback. Linux x86, x86_64, armv7, riscv64, s390x, LoongArch64, and
+# PowerPC64 plus Android x86_64 and aarch64 measure each current thread's
+# complete perf task-clock mmap/read routes against its selected native route,
+# then retain only a repeatable material winner for that thread.
 # Other targets ignore this feature. Disable default features to keep those
 # targets on the syscall-only no_std implementation.
 thread-cpu-inline = []

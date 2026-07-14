@@ -1520,12 +1520,81 @@ def validate_thread_cpu_path_probe(
   return {"selected": selected, "fallback": fallback}
 
 
+def validate_thread_cpu_capability_probe(
+  context: str,
+  probe: dict,
+  failures: list[str],
+) -> dict:
+  """Validate AArch64 capability selection and its non-selecting cost audit."""
+  names = probe.get("candidate_names")
+  eligible = probe.get("candidate_eligible")
+  batches = probe.get("candidate_batches_ns")
+  if (
+    probe.get("selection_kind") != "capability_preferred_with_performance_audit"
+    or names != ["posix_thread_cpu", "linux_perf_mmap", "linux_perf_read"]
+    or not isinstance(eligible, list)
+    or len(eligible) != 3
+    or eligible[0] is not True
+    or eligible[2] is not True
+    or not all(type(value) is bool for value in eligible)
+    or not isinstance(batches, list)
+    or len(batches) != 3
+    or probe.get("preferred_candidate") != "linux_perf_mmap"
+    or probe.get("failure_fallback_candidate") != "posix_thread_cpu"
+    or not isinstance(probe.get("selection_basis"), str)
+    or not probe["selection_basis"].strip()
+    or probe.get("reads_per_batch") != 4096
+    or probe.get("required_decisive_wins") != 8
+    or probe.get("equivalence_band")
+    != {"floor_ns_per_read": 1, "relative_denominator": 20}
+  ):
+    failures.append(f"{context}: malformed capability-preferred thread-CPU audit")
+    return {}
+  for name, available, samples in zip(names, eligible, batches, strict=True):
+    if not isinstance(samples, list) or len(samples) != 9 or not all(
+      type(value) is int and value >= 0 for value in samples
+    ):
+      failures.append(f"{context}: malformed thread-CPU audit samples for {name}")
+      return {}
+    if available and 0 in samples:
+      failures.append(f"{context}: eligible thread-CPU audit path {name} has zero samples")
+    if not available and any(samples):
+      failures.append(f"{context}: unavailable thread-CPU audit path {name} has samples")
+  try:
+    audit = replay_thread_cpu_paths(
+      names,
+      eligible,
+      batches,
+      probe.get("reads_per_batch"),
+      probe.get("required_decisive_wins"),
+    )
+  except (TypeError, ValueError):
+    failures.append(f"{context}: malformed capability-preferred thread-CPU audit decisions")
+    return {}
+  selected = "linux_perf_mmap" if eligible[1] else "posix_thread_cpu"
+  if probe.get("selected_candidate") != selected:
+    failures.append(f"{context}: thread-CPU capability policy does not reproduce")
+  if audit["winner"] != selected:
+    failures.append(
+      f"{context}: capability-preferred thread-CPU provider loses its performance audit"
+    )
+  fallback = {"winner": "posix_thread_cpu"} if selected == "linux_perf_mmap" else None
+  return {"selected": {"winner": selected}, "fallback": fallback, "audit": audit}
+
+
 def validate_thread_cpu_selector(
   context: str,
   selection: dict,
   failures: list[str],
   target_triple: str | None = None,
 ) -> dict:
+  capability_preferred = (
+    selection.get("selection_kind") == "capability_preferred_with_failure_fallback"
+  )
+  if capability_preferred and target_triple is not None and not (
+    target_triple.startswith("aarch64-") and "-linux-" in target_triple
+  ):
+    failures.append(f"{context}: capability-preferred thread-CPU policy used off Linux AArch64")
   if selection.get("selection_kind") == "availability_fallback":
     provider_key = selection.get("selected_provider")
     mechanism = selection.get("selected_mechanism")
@@ -1637,12 +1706,19 @@ def validate_thread_cpu_selector(
     if not isinstance(path_probe, dict) or not isinstance(read_probe, dict):
       failures.append(f"{context}: available perf selector lacks path/read probes")
       return {}
-    path_replay = validate_thread_cpu_path_probe(context, path_probe, failures)
+    if capability_preferred:
+      path_replay = validate_thread_cpu_capability_probe(context, path_probe, failures)
+    else:
+      path_replay = validate_thread_cpu_path_probe(context, path_probe, failures)
     read_entry = validate_thread_cpu_perf_read_entry_probe(context, read_probe, failures)
     if not path_replay or not read_entry:
       return {}
     selected_path = path_replay["selected"]["winner"]
-    fallback_path = path_replay["fallback"]["winner"]
+    fallback_path = (
+      path_replay["fallback"]["winner"]
+      if path_replay.get("fallback") is not None
+      else None
+    )
     read_mechanism = f"linux_perf_read__{read_entry['winner']}"
     expected_read_candidates = read_entry["candidates"]
     mmap_available = path_probe["candidate_eligible"][1]
@@ -1708,6 +1784,24 @@ def validate_thread_cpu_selector(
   ]
   if candidates != expected_candidates or len(candidates) != len(set(candidates)):
     failures.append(f"{context}: thread-CPU eligible candidate coverage is not exhaustive")
+
+  if capability_preferred:
+    expected_failure_fallback = {
+      "preferred_provider": "linux_perf_mmap",
+      "eligibility_gate": (
+        "perf task-clock mmap exposes complete seqlock conversion metadata and a "
+        "usable architectural counter"
+      ),
+      "fallback_provider": "posix_thread_cpu_clock",
+      "fallback_mechanism": native["winner"],
+      "trigger": (
+        "perf event or mmap capability is unavailable, or an inline mmap read fails"
+      ),
+    }
+    if selection.get("failure_fallback") != expected_failure_fallback:
+      failures.append(f"{context}: malformed capability-preferred failure fallback")
+  elif selection.get("failure_fallback") is not None:
+    failures.append(f"{context}: measured thread-CPU selector declares a capability fallback")
 
   def identity(path: str) -> tuple[str, str, str]:
     if path == "linux_perf_mmap":
@@ -4936,7 +5030,11 @@ def observed_supplemental_selection_profiles(clocks: object) -> dict:
     profiles["thread_cpu"] = "runtime_tournament"
   elif kind in ("fixed_native", "fixed_candidate"):
     profiles["thread_cpu"] = "fixed_native"
-  elif kind in ("availability_fallback", "fixed_windows_thread_times"):
+  elif kind in (
+    "availability_fallback",
+    "fixed_windows_thread_times",
+    "capability_preferred_with_failure_fallback",
+  ):
     profiles["thread_cpu"] = "availability_fallback"
   elif kind == "fallback_only":
     profiles["thread_cpu"] = "fallback_only"
@@ -5010,11 +5108,17 @@ def _validate_supplemental_selection_profile(
     if target_triple.endswith("-apple-darwin"):
       validate_thread_cpu_selector(context, selection, failures, target_triple)
   elif profile == "availability_fallback":
-    if selection_kind not in ("availability_fallback", "fixed_windows_thread_times"):
+    if selection_kind not in (
+      "availability_fallback",
+      "fixed_windows_thread_times",
+      "capability_preferred_with_failure_fallback",
+    ):
       failures.append(f"{context}: thread CPU availability selector has the wrong kind")
     if not isinstance(selection.get("failure_fallback"), dict):
       failures.append(f"{context}: thread CPU availability selector lacks a fallback branch")
     if selection_kind == "fixed_windows_thread_times":
+      validate_thread_cpu_selector(context, selection, failures, target_triple)
+    if selection_kind == "capability_preferred_with_failure_fallback":
       validate_thread_cpu_selector(context, selection, failures, target_triple)
   else:
     if selection_kind != "fallback_only" or selection.get("time_domain") != "monotonic wall fallback":

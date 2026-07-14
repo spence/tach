@@ -57,6 +57,12 @@ validator = "availability_fallback_thread_cpu_schema"
 selection_kinds = ["availability_fallback", "fixed_windows_thread_times"]
 metadata_fields = ["selected_provider", "selected_mechanism", "selected_read_cost", "selected_native_benchmark", "eligible_direct_candidates", "failure_fallback"]
 
+[selection_profile_contracts.thread_cpu_capability_preferred]
+selection_profile = "availability_fallback"
+validator = "validate_thread_cpu_selector"
+selection_kinds = ["capability_preferred_with_failure_fallback"]
+metadata_fields = ["selected_provider", "selected_mechanism", "selected_read_cost", "selected_native_benchmark", "eligible_direct_candidates", "native_entry_probe", "perf", "failure_fallback"]
+
 [selection_profile_contracts.thread_cpu_fallback_only]
 selection_profile = "fallback_only"
 validator = "fallback_only_thread_cpu_schema"
@@ -161,7 +167,7 @@ entrypoints = ["src/arch/wasm.rs", "benches/runtime-smoke/Cargo.toml", "benches/
 
 [[case]]
 id = "linux_android_adaptive_default"
-targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "i686-unknown-linux-gnu", "s390x-unknown-linux-gnu", "loongarch64-unknown-linux-gnu", "riscv64gc-unknown-linux-gnu", "powerpc64-unknown-linux-gnu", "powerpc64le-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf", "x86_64-unknown-linux-musl", "x86_64-linux-android", "aarch64-linux-android"]
+targets = ["x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu", "s390x-unknown-linux-gnu", "loongarch64-unknown-linux-gnu", "riscv64gc-unknown-linux-gnu", "powerpc64-unknown-linux-gnu", "powerpc64le-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf", "x86_64-unknown-linux-musl", "x86_64-linux-android", "aarch64-linux-android"]
 modes = ["default"]
 runtime_profile = "native_criterion"
 producer = "criterion_linux_adaptive"
@@ -178,6 +184,26 @@ thread_cpu = "runtime_tournament"
 instant = "wall_runtime_tournament"
 ordered = "wall_runtime_tournament"
 thread_cpu = "thread_cpu_runtime_tournament"
+
+[[case]]
+id = "linux_aarch64_capability_preferred_default"
+targets = ["aarch64-unknown-linux-gnu"]
+modes = ["default"]
+runtime_profile = "native_criterion"
+producer = "criterion_linux_adaptive"
+route_contract = "three_timer_direct"
+static_contract = true
+runtime_proof = "not_collected"
+
+[case.selection_profiles]
+instant = "runtime_tournament"
+ordered = "runtime_tournament"
+thread_cpu = "availability_fallback"
+
+[case.profile_contracts]
+instant = "wall_runtime_tournament"
+ordered = "wall_runtime_tournament"
+thread_cpu = "thread_cpu_capability_preferred"
 
 [[case]]
 id = "linux_android_native_no_default"

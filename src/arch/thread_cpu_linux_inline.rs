@@ -1,4 +1,4 @@
-//! Measured Linux-kernel perf task-clock provider for current-thread CPU time.
+//! Linux-kernel perf task-clock provider for current-thread CPU time.
 //!
 //! The persistent event is thread-bound, so both its owner and the hot pointer
 //! live in native TLS. The hot read copies only the pointer out of the
@@ -232,6 +232,11 @@ struct PerfCounterSelectionEvidence {
   selected: u8,
 }
 
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 #[derive(Clone, Copy)]
 struct PerfPathMeasurements {
   mmap: Option<[u64; MEASURE_SAMPLES]>,
@@ -1850,36 +1855,100 @@ fn select_current_thread_provider() -> u64 {
     return finish_failed_initialization(selection_pid);
   };
 
-  let measurements = measure_exact_paths(state_ptr);
-  #[cfg(feature = "bench-internal")]
-  if let Some(measurements) = measurements.as_ref() {
-    // SAFETY: state_ptr addresses this thread's owner-held state.
-    unsafe { (*state_ptr).path_measurements.set(Some(*measurements)) };
-  }
-  let Some(measurements) = measurements else {
-    if !state_is_current_process(state_ptr) {
-      return resume_current_after_obsolete(state_ptr);
-    }
+  #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+  {
     #[cfg(feature = "bench-internal")]
-    {
-      set_hot(syscall_ptr());
-      return super::posix_now_nanos();
+    if let Some(measurements) = measure_exact_paths(state_ptr) {
+      // SAFETY: state_ptr addresses this thread's owner-held state. These
+      // samples audit the capability policy; they do not select the provider.
+      unsafe { (*state_ptr).path_measurements.set(Some(measurements)) };
     }
-    #[cfg(not(feature = "bench-internal"))]
-    {
-      let Some(owner_pid) = discard_state_if_current(state_ptr) else {
+    return commit_aarch64_capability_provider(state_ptr);
+  }
+
+  #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+  {
+    let measurements = measure_exact_paths(state_ptr);
+    #[cfg(feature = "bench-internal")]
+    if let Some(measurements) = measurements.as_ref() {
+      // SAFETY: state_ptr addresses this thread's owner-held state.
+      unsafe { (*state_ptr).path_measurements.set(Some(*measurements)) };
+    }
+    let Some(measurements) = measurements else {
+      if !state_is_current_process(state_ptr) {
         return resume_current_after_obsolete(state_ptr);
-      };
-      // SAFETY: getpid has no caller-side preconditions.
-      if owner_pid != unsafe { libc::getpid() } {
-        return resume_or_reinitialize_after_fork(state_ptr);
       }
-      return super::posix_now_nanos();
-    }
-  };
-  commit_measured_provider(state_ptr, &measurements)
+      #[cfg(feature = "bench-internal")]
+      {
+        set_hot(syscall_ptr());
+        return super::posix_now_nanos();
+      }
+      #[cfg(not(feature = "bench-internal"))]
+      {
+        let Some(owner_pid) = discard_state_if_current(state_ptr) else {
+          return resume_current_after_obsolete(state_ptr);
+        };
+        // SAFETY: getpid has no caller-side preconditions.
+        if owner_pid != unsafe { libc::getpid() } {
+          return resume_or_reinitialize_after_fork(state_ptr);
+        }
+        return super::posix_now_nanos();
+      }
+    };
+    commit_measured_provider(state_ptr, &measurements)
+  }
 }
 
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+fn commit_aarch64_capability_provider(state_ptr: *const PerfState) -> u64 {
+  if !state_is_current_process(state_ptr) {
+    return resume_current_after_obsolete(state_ptr);
+  }
+
+  // Hide the provisional fd-read route before publishing the capability
+  // winner. Nested reads remain in the same POSIX CPU-time domain.
+  set_commit_state(state_ptr);
+  set_hot(committing_ptr());
+  #[cfg(test)]
+  test_signal_fork_at(TEST_FORK_DURING_COMMIT);
+
+  let floor = super::posix_now_nanos();
+  if crate::thread_cpu::is_wall_value(floor) {
+    return finish_posix_selection(state_ptr);
+  }
+
+  // SAFETY: install_state placed this state in the current thread's OWNER,
+  // and the commit sentinel prevents nested reads from replacing its route.
+  let state = unsafe { &*state_ptr };
+  state.publish_at_least(floor);
+  state.fallback_bias.store(FALLBACK_UNSET, Ordering::Release);
+  state.fallback_path.store(PATH_POSIX, Ordering::Release);
+
+  if !state.mmap_available() {
+    state.selected_path.store(PATH_POSIX, Ordering::Release);
+    return finish_posix_selection(state_ptr);
+  }
+
+  state.selected_path.store(PATH_MMAP, Ordering::Release);
+  let Some(value) = state.read_mmap() else {
+    state.mark_path_failed(PATH_MMAP);
+    state.selected_path.store(PATH_POSIX, Ordering::Release);
+    return finish_posix_selection(state_ptr);
+  };
+
+  let value = value.max(state.last_event_nanos.load(Ordering::Acquire));
+  set_hot(state_ptr);
+  set_commit_state(ptr::null());
+  // Publish first and check second so a nested fork cannot leave a live
+  // parent-owned mapping installed in the child.
+  // SAFETY: getpid has no caller-side preconditions.
+  if state.owner_pid != unsafe { libc::getpid() } {
+    return resume_current_after_obsolete(state_ptr);
+  }
+  value
+}
+
+#[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
 fn commit_measured_provider(
   state_ptr: *const PerfState,
   measurements: &PerfPathMeasurements,
@@ -2379,6 +2448,11 @@ fn arch_perf_counter_candidate_name(candidate: u8) -> &'static str {
   crate::arch::x86_64::perf_seqlock_candidate_name(candidate)
 }
 
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 fn measure_exact_paths(state: *const PerfState) -> Option<PerfPathMeasurements> {
   // SAFETY: install_state made this pointer current-thread-owned and live.
   let mmap_available = unsafe { (*state).mmap_available() };
@@ -2416,6 +2490,11 @@ fn measure_exact_paths(state: *const PerfState) -> Option<PerfPathMeasurements> 
   Some(PerfPathMeasurements { mmap, read, syscall })
 }
 
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 #[inline]
 fn force_path(state: *const PerfState, path: u8) -> Option<()> {
   if !state_is_current_process(state) {
@@ -2431,6 +2510,11 @@ fn force_path(state: *const PerfState, path: u8) -> Option<()> {
   Some(())
 }
 
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 fn measure_path(state: *const PerfState, path: u8) -> Option<u64> {
   force_path(state, path)?;
   let start = monotonic_raw_nanos()?;
@@ -2447,6 +2531,11 @@ fn measure_path(state: *const PerfState, path: u8) -> Option<u64> {
   end.checked_sub(start)
 }
 
+#[cfg(any(
+  feature = "bench-internal",
+  test,
+  not(all(target_os = "linux", target_arch = "aarch64")),
+))]
 #[inline]
 fn validate_forced_path(state: *const PerfState, path: u8, value: u64) -> Option<()> {
   if !state_is_current_process(state) {
@@ -2491,6 +2580,7 @@ fn bench_exact_perf_hot_path() -> u64 {
   unsafe { (*state).read_mmap().expect("forced perf candidate became unreadable") }
 }
 
+#[cfg(any(test, not(all(target_os = "linux", target_arch = "aarch64"))))]
 fn fastest_path_excluding(
   measurements: &PerfPathMeasurements,
   mmap_available: bool,

@@ -151,6 +151,21 @@ PROFILE_CONTRACT_DEFINITIONS = {
       "failure_fallback",
     ],
   },
+  "thread_cpu_capability_preferred": {
+    "selection_profile": "availability_fallback",
+    "validator": "validate_thread_cpu_selector",
+    "selection_kinds": ["capability_preferred_with_failure_fallback"],
+    "metadata_fields": [
+      "selected_provider",
+      "selected_mechanism",
+      "selected_read_cost",
+      "selected_native_benchmark",
+      "eligible_direct_candidates",
+      "native_entry_probe",
+      "perf",
+      "failure_fallback",
+    ],
+  },
   "thread_cpu_fallback_only": {
     "selection_profile": "fallback_only",
     "validator": "fallback_only_thread_cpu_schema",
@@ -298,7 +313,10 @@ def validate_profile_contracts(
     return
   for timer in ROUTE_TIMERS:
     profile = profiles.get(timer)
-    expected_contract = PROFILE_CONTRACT_BY_TIMER_PROFILE.get((timer, profile))
+    if case_id == "linux_aarch64_capability_preferred_default" and timer == "thread_cpu":
+      expected_contract = "thread_cpu_capability_preferred"
+    else:
+      expected_contract = PROFILE_CONTRACT_BY_TIMER_PROFILE.get((timer, profile))
     actual_contract = profile_contracts.get(timer)
     if expected_contract is None:
       failures.append(f"case {case_id!r} has no validator/schema for {timer} {profile!r}")
@@ -678,6 +696,90 @@ def adaptive_thread_cpu_selection() -> dict:
       "decision_rule": "synthetic material-win tournament",
     },
   }
+
+
+def aarch64_capability_thread_cpu_selection() -> dict:
+  selection = adaptive_thread_cpu_selection()
+  perf_mechanism = "linux_perf_mmap__aarch64_isb_cntvct_isb"
+  read_mechanism = "linux_perf_read__raw_read_svc"
+  selection.update({
+    "selection_kind": "capability_preferred_with_failure_fallback",
+    "selected_mechanism": perf_mechanism,
+    "selected_native_benchmark": f"direct_selected_thread_cpu__{perf_mechanism}",
+    "fallback_provider": "posix_thread_cpu_clock",
+    "fallback_read_cost": "system call",
+    "fallback_mechanism": "raw_entry",
+    "fallback_native_benchmark": "direct_fallback_thread_cpu__raw_entry",
+    "eligible_direct_candidates": [
+      "direct_thread_cpu__libc_entry",
+      "direct_thread_cpu__raw_entry",
+      "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "direct_thread_cpu__linux_perf_read__raw_read_svc",
+    ],
+    "failure_fallback": {
+      "preferred_provider": "linux_perf_mmap",
+      "eligibility_gate": (
+        "perf task-clock mmap exposes complete seqlock conversion metadata and a "
+        "usable architectural counter"
+      ),
+      "fallback_provider": "posix_thread_cpu_clock",
+      "fallback_mechanism": "raw_entry",
+      "trigger": (
+        "perf event or mmap capability is unavailable, or an inline mmap read fails"
+      ),
+    },
+  })
+  path = selection["perf"]["path_probe"]
+  path.pop("fallback_candidate")
+  path.pop("capability_was_not_profitable")
+  path.update({
+    "selection_kind": "capability_preferred_with_performance_audit",
+    "preferred_candidate": "linux_perf_mmap",
+    "failure_fallback_candidate": "posix_thread_cpu",
+    "selection_basis": (
+      "complete perf mmap metadata and architectural-counter capability; audit "
+      "samples do not select the provider"
+    ),
+  })
+  mmap = selection["perf"]["mmap"]
+  mmap.update({
+    "selected_mechanism": perf_mechanism,
+    "selected_candidate_benchmark": f"direct_thread_cpu__{perf_mechanism}",
+    "eligible_benchmarks": [
+      "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb"
+    ],
+    "counter_probe": {
+      "selection_kind": "tournament",
+      "candidate_names": ["aarch64_isb_cntvct_isb", "aarch64_cntvctss_isb"],
+      "candidate_eligible": [True, False],
+      "candidate_batches_ns": [[80_000] * 9, [0] * 9],
+      "selected_candidate": "aarch64_isb_cntvct_isb",
+      "reads_per_batch": 4_096,
+      "required_decisive_wins": 8,
+      "equivalence_band": {"floor_ns_per_read": 1, "relative_denominator": 20},
+    },
+  })
+  read = selection["perf"]["read"]
+  read.update({
+    "selected_mechanism": read_mechanism,
+    "selected_candidate_benchmark": f"direct_thread_cpu__{read_mechanism}",
+    "eligible_benchmarks": [f"direct_thread_cpu__{read_mechanism}"],
+    "entry_probe": {
+      "selection_kind": "fixed_candidate",
+      "candidate_names": ["raw_read_svc"],
+      "candidate_eligible": [True],
+      "candidate_measured": [False],
+      "candidate_batches_ns": None,
+      "selected_candidate": "raw_read_svc",
+      "reads_per_batch": 4_096,
+      "required_decisive_wins": 8,
+      "equivalence_band": {"floor_ns_per_read": 1, "relative_denominator": 20},
+    },
+  })
+  selection["perf"]["decision_rule"] = (
+    "prefer complete perf mmap capability; paired path samples are an audit"
+  )
+  return selection
 
 
 def freebsd_thread_cpu_selection() -> dict:
@@ -3287,6 +3389,44 @@ declare void @generic_implementation()
     self.assertEqual(result["selected_mechanism"], "raw_entry")
     self.assertEqual(result["perf_counter"], {})
     self.assertEqual(result["perf_read_entry"], {})
+
+  def test_aarch64_capability_policy_is_separate_from_its_performance_audit(self) -> None:
+    selection = aarch64_capability_thread_cpu_selection()
+    failures: list[str] = []
+    result = speed_evidence.validate_thread_cpu_selector(
+      "AArch64 capability policy",
+      selection,
+      failures,
+      "aarch64-unknown-linux-gnu",
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(result["winner"], "linux_perf_mmap")
+    self.assertEqual(result["fallback"][0], "posix_thread_cpu_clock")
+    self.assertEqual(result["perf_path"]["audit"]["winner"], "linux_perf_mmap")
+
+  def test_aarch64_capability_policy_fails_when_the_preferred_path_loses_audit(self) -> None:
+    selection = aarch64_capability_thread_cpu_selection()
+    selection["perf"]["path_probe"]["candidate_batches_ns"][1] = [120_000] * 9
+    failures: list[str] = []
+    speed_evidence.validate_thread_cpu_selector(
+      "AArch64 losing capability policy",
+      selection,
+      failures,
+      "aarch64-unknown-linux-gnu",
+    )
+    self.assertTrue(any("loses its performance audit" in item for item in failures))
+
+  def test_aarch64_capability_policy_cannot_claim_native_when_mmap_is_eligible(self) -> None:
+    selection = aarch64_capability_thread_cpu_selection()
+    selection["perf"]["path_probe"]["selected_candidate"] = "posix_thread_cpu"
+    failures: list[str] = []
+    speed_evidence.validate_thread_cpu_selector(
+      "AArch64 contradicted capability policy",
+      selection,
+      failures,
+      "aarch64-unknown-linux-gnu",
+    )
+    self.assertTrue(any("capability policy does not reproduce" in item for item in failures))
 
   def test_windows_thread_cpu_claim_requires_public_direct_parity_for_both_metrics(self) -> None:
     selection = windows_thread_cpu_selection()

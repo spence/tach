@@ -3961,6 +3961,7 @@ fn write_thread_cpu_perf_selection() {
   use std::fs;
   use std::path::PathBuf;
 
+  let capability_preferred = cfg!(all(target_os = "linux", target_arch = "aarch64"));
   let path_evidence = tach::bench::thread_cpu_perf_path_evidence();
   let mmap_available = path_evidence.as_ref().is_some_and(|probe| probe.mmap_batches_ns.is_some());
   #[allow(unused_mut)]
@@ -4235,37 +4236,85 @@ fn write_thread_cpu_perf_selection() {
     "measured thread-CPU selector and public read-cost hint disagree",
   );
 
-  let fallback_path = path_evidence.as_ref().map(|probe| probe.fallback_path);
+  let fallback_path = path_evidence.as_ref().and_then(|probe| {
+    if capability_preferred {
+      (probe.selected_path == "linux_perf_mmap").then_some("posix_thread_cpu")
+    } else {
+      Some(probe.fallback_path)
+    }
+  });
   let fallback_provider = fallback_path.map(provider_for_path);
   let fallback_mechanism = fallback_path.map(mechanism_for_path);
   let fallback_read_cost = fallback_path.map(cost_for_path);
   let fallback_native_benchmark = fallback_mechanism
     .as_ref()
     .map(|mechanism| format!("direct_fallback_thread_cpu__{mechanism}"));
-  let path_probe = path_evidence.as_ref().map(|probe| {
-    serde_json::json!({
-      "selection_kind": "tournament_with_measured_runner_up",
+  let path_probe = path_evidence.as_ref().map(|evidence| {
+    let common = serde_json::json!({
       "candidate_names": ["posix_thread_cpu", "linux_perf_mmap", "linux_perf_read"],
-      "candidate_eligible": [true, probe.mmap_batches_ns.is_some(), true],
+      "candidate_eligible": [true, evidence.mmap_batches_ns.is_some(), true],
       "candidate_batches_ns": [
-        probe.posix_batches_ns,
-        probe.mmap_batches_ns.unwrap_or([0; 9]),
-        probe.read_batches_ns,
+        evidence.posix_batches_ns,
+        evidence.mmap_batches_ns.unwrap_or([0; 9]),
+        evidence.read_batches_ns,
       ],
-      "selected_candidate": probe.selected_path,
-      "fallback_candidate": probe.fallback_path,
-      "reads_per_batch": probe.reads_per_batch,
-      "required_decisive_wins": probe.required_decisive_wins,
+      "selected_candidate": evidence.selected_path,
+      "reads_per_batch": evidence.reads_per_batch,
+      "required_decisive_wins": evidence.required_decisive_wins,
       "equivalence_band": {
         "floor_ns_per_read": 1,
         "relative_denominator": 20,
       },
-      "capability_was_not_profitable": probe.mmap_batches_ns.is_some()
-        && probe.selected_path != "linux_perf_mmap",
+    });
+    if capability_preferred {
+      let mut probe = common;
+      let object = probe.as_object_mut().expect("path probe object");
+      object.insert(
+        "selection_kind".to_owned(),
+        serde_json::json!("capability_preferred_with_performance_audit"),
+      );
+      object.insert("preferred_candidate".to_owned(), serde_json::json!("linux_perf_mmap"));
+      object.insert(
+        "failure_fallback_candidate".to_owned(),
+        serde_json::json!("posix_thread_cpu"),
+      );
+      object.insert(
+        "selection_basis".to_owned(),
+        serde_json::json!("complete perf mmap metadata and architectural-counter capability; audit samples do not select the provider"),
+      );
+      probe
+    } else {
+      let mut probe = common;
+      let object = probe.as_object_mut().expect("path probe object");
+      object.insert(
+        "selection_kind".to_owned(),
+        serde_json::json!("tournament_with_measured_runner_up"),
+      );
+      object.insert("fallback_candidate".to_owned(), serde_json::json!(evidence.fallback_path));
+      object.insert(
+        "capability_was_not_profitable".to_owned(),
+        serde_json::json!(evidence.mmap_batches_ns.is_some()
+          && evidence.selected_path != "linux_perf_mmap"),
+      );
+      probe
+    }
+  });
+  let selection_kind = if capability_preferred {
+    "capability_preferred_with_failure_fallback"
+  } else {
+    "tournament_with_measured_runner_up"
+  };
+  let failure_fallback = capability_preferred.then(|| {
+    serde_json::json!({
+      "preferred_provider": "linux_perf_mmap",
+      "eligibility_gate": "perf task-clock mmap exposes complete seqlock conversion metadata and a usable architectural counter",
+      "fallback_provider": "posix_thread_cpu_clock",
+      "fallback_mechanism": native_provider,
+      "trigger": "perf event or mmap capability is unavailable, or an inline mmap read fails",
     })
   });
   let payload = serde_json::json!({
-    "selection_kind": "tournament_with_measured_runner_up",
+    "selection_kind": selection_kind,
     "selected_provider": selected_provider,
     "selected_mechanism": selected_mechanism,
     "selected_read_cost": selected_read_cost,
@@ -4275,6 +4324,7 @@ fn write_thread_cpu_perf_selection() {
     "fallback_read_cost": fallback_read_cost,
     "fallback_native_benchmark": fallback_native_benchmark,
     "eligible_direct_candidates": eligible_direct_candidates,
+    "failure_fallback": failure_fallback,
     "native_entry_probe": native_entry_probe,
     "perf": {
       "event_available": path_evidence.is_some(),
@@ -4307,7 +4357,11 @@ fn write_thread_cpu_perf_selection() {
         "eligible_benchmarks": read_candidates,
         "entry_probe": read_entry_probe,
       },
-      "decision_rule": "POSIX, eligible perf-mmap, and persistent perf-read complete public-dispatch paths compete in order; a challenger replaces the incumbent only by > max(1 ns/read, 5%) in >=8/9 paired batches, and the same tournament excluding the winner selects the measured fallback",
+      "decision_rule": if capability_preferred {
+        "prefer perf task-clock mmap when its complete inline capability is available; otherwise use the selected native CLOCK_THREAD_CPUTIME_ID entry; paired path samples audit but do not choose this policy"
+      } else {
+        "POSIX, eligible perf-mmap, and persistent perf-read complete public-dispatch paths compete in order; a challenger replaces the incumbent only by > max(1 ns/read, 5%) in >=8/9 paired batches, and the same tournament excluding the winner selects the measured fallback"
+      },
       "measurement_clock": "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the candidate under test",
     },
     "read_cost_basis": "perf mmap is Inline because tach issues no OS or host call on the hot path; persistent perf read and every CLOCK_THREAD_CPUTIME_ID entry route are SystemCall",
