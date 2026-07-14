@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Collect the Graviton primary producer now, then continue the serial AWS default/no-default glibc/musl and FreeBSD matrix at 1182d7a while preserving each retained bundle at its final path.
+> Next:       Continue the serial AWS matrix at the same frozen revision: Intel glibc primary, Intel musl primary, Graviton and Intel glibc no-default, then FreeBSD.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: The decisive c7i musl no-default producer passed at 1182d7a after the symmetric probe correction; its retained bundle was recomposed at the final path and independently replay-validated. Apple primary plus eight browser/Wasm/WASI supplemental cells were also recollected and individually validated at the same revision. · By: nsr · 7d2e7b0
+> Last verified: 2026-07-13 · Changed: Recollected the Graviton primary producer at frozen source 1182d7a5e73dece6e1d2b7c8f5cea35f51d40778, preserved its retained collector bundle at the final artifact path, and replay-validated the recomposed cell. · By: nsr · 2602a23
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

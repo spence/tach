@@ -266,6 +266,11 @@ decision; never silently omit a failing target.
 - Found: Criterion measured OrderedInstant public elapsed at 45.82 ns versus 44.97 ns selected exact; the symmetric paired probe put the public median about 4.2% above exact, inside the declared 5% band. The prior 6.9% result was entirely the probe's asymmetric closure inlining, not a runtime dispatch defect.
 - Next: Collect the Graviton primary producer now, then continue the serial AWS default/no-default glibc/musl and FreeBSD matrix at 1182d7a while preserving each retained bundle at its final path.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Recollected the Graviton primary producer at frozen source 1182d7a5e73dece6e1d2b7c8f5cea35f51d40778, preserved its retained collector bundle at the final artifact path, and replay-validated the recomposed cell.
+- Found: The aarch64 Linux primary cell passes all three public-clock proofs: Instant 6.67 ns, OrderedInstant 20.64 ns, and ThreadCpuInstant 57.39 ns; the selected perf-mmap thread CPU path matches its direct mechanism and beats the measured raw-syscall runner-up.
+- Next: Continue the serial AWS matrix at the same frozen revision: Intel glibc primary, Intel musl primary, Graviton and Intel glibc no-default, then FreeBSD.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest
