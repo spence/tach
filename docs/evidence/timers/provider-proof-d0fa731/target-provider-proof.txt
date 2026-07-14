@@ -1,0 +1,34 @@
+schema: tach-target-provider-proof-v3
+source: d0fa731fe666718f70fde264296af7df0f6030d6
+source_tree_sha256: 9873d04433e1d9a9dc0870f8752064c2bd24db0610cee4237be18d7f44cdeef8
+report_sha256: e2233386f3d7c64fff705f75ad089ee0dd8717809ed5eadca1b85b1547a579ba
+proof_script_sha256: 21ed1e414196dc99da2818a332363e5c1517def58090a73479e5af647574e0ad
+rustc: rustc 1.97.0 (2d8144b78 2026-07-07)
+host: aarch64-apple-darwin
+verdict: PASS
+
+targets: 24/24
+feature_configurations: 49/49
+warning_strict_crate_checks: 49/49
+warning_strict_external_api_checks: 49/49
+strict_no_default_dependency_no_std_checks: 24/24
+optimized_instant_now_routes: 49/49
+optimized_instant_now_elapsed_routes: 49/49
+optimized_ordered_instant_now_routes: 49/49
+optimized_ordered_instant_now_elapsed_routes: 49/49
+optimized_thread_cpu_instant_now_routes: 49/49
+optimized_thread_cpu_instant_now_elapsed_routes: 49/49
+optimized_clock_routes: 294/294
+optimized_now_elapsed_phase_closures: 294/294
+optimized_vdso_resolver_artifacts: 12/12
+optimized_vdso_resolver_routes: 18/18
+
+Included public closures:
+- Instant::now() + Instant::elapsed()
+- OrderedInstant::now() + OrderedInstant::elapsed()
+- ThreadCpuInstant::now() + ThreadCpuInstant::elapsed()
+
+Scope boundary:
+This proves API availability, feature coverage, candidate enumeration, and optimized public/direct
+route closure for every advertised target. Runtime availability and relative latency are admitted
+separately at the 15 decision boundaries in OBJ-PROVE-TIMERS.M1.

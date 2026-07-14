@@ -26,8 +26,8 @@ for tach's default configuration, so no-default speed duplicates are not release
 
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Universal target contract | 🚧 | Prove every advertised target and feature route at frozen commit `d0fa731` | inline · G1⚪ |
-| `OBJ-PROVE-TIMERS.M1` | Runtime decision boundaries | 🟣 | Retain the exact 15 selector, host, and runtime boundaries listed below | inline · G1⚪ · 12/15 required retained |
+| `OBJ-PROVE-TIMERS.M0` | Universal target contract | ✅ | Prove every advertised target and feature route at frozen commit `d0fa731` | inline · G1🟢 |
+| `OBJ-PROVE-TIMERS.M1` | Runtime decision boundaries | 🚧 | Retain the exact 15 selector, host, and runtime boundaries listed below | inline · G1⚪ · 12/15 required retained |
 | `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
 ---
@@ -67,11 +67,11 @@ Charts may include optional corroborating environments, but optional evidence ca
 | # | Decision boundary | Required environment / mode | Frozen artifact | State |
 |---:|---|---|---|---|
 | 1 | Apple AArch64 native wall and thread clocks | macOS AArch64, default | `speed-0-apple.json` | retained |
-| 2 | Apple x86 native wall and thread clocks | macOS x86_64, default | `speed-apple-x86_64.json` | **missing** |
+| 2 | Apple x86 native wall and thread clocks | macOS x86_64, default | `speed-supplemental-macos-x86_64.json` | **missing** |
 | 3 | Linux x86 runtime tournament | Linux x86_64 GNU, default | `speed-2-inteln.json` | retained |
 | 4 | Linux AArch64 runtime tournament | Linux AArch64 GNU, default | `speed-1-c7g.json` | retained |
 | 5 | Windows native wall and thread clocks | Windows x86_64 MSVC, default | `speed-4-windows.json` | **missing** |
-| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-freebsd-x86_64.json` | **missing** |
+| 6 | FreeBSD native wall and thread clocks | FreeBSD x86_64, default | `speed-supplemental-freebsd-x86_64.json` | **missing** |
 | 7 | JavaScript host clock | `wasm32-unknown-unknown` on Node, default | `speed-supplemental-wasm-node.json` | retained |
 | 8 | Browser fallback without native thread CPU clock | browser, default negative environment | `speed-supplemental-browser-negative.json` | retained |
 | 9 | Emscripten host clock | Emscripten on Node, default | `speed-supplemental-emscripten-node.json` | retained |
@@ -184,6 +184,10 @@ availability but may not be rendered as speed wins.
 - Found: The release path is now mechanically bounded to 24 static target identities, 15 runtime boundaries with 12 retained, three named missing hosts, and one publication closure gate.
 - Next: Update the release validator to enforce the 15-row manifest and shipping-code closure before launching another benchmark host.
 - Board: M0 awaits retained-report admission; M1 is next at 12/15; M2 remains unopened; no owner decision is pending.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M0`
+- Did: Admitted the frozen d0fa731 universal provider proof: 24/24 targets, 49/49 feature configurations, 294/294 optimized clock routes, 294/294 now-plus-elapsed closures, and 18/18 vDSO resolver routes.; OBJ-PROVE-TIMERS.M0.G1 🟢 at SHA `d0fa731`.
+- Board: OBJ-PROVE-TIMERS.M0 G1 🟢 — evidence docs/evidence/timers/provider-proof-d0fa731/target-provider-proof.txt.
 
 ## /goal
 
