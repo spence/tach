@@ -324,6 +324,12 @@ availability but may not be rendered as speed wins.
 - Found: No owner decision is open; M1 remains 13/15 until both source-sealed hosted artifacts pass and are retained.
 - Next: Retain and validate the two artifacts from run 29358355745, then close M1 at 15/15 or fix any concrete boundary failure.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Completed hosted run 29358355745: both native benchmarks ran successfully, but neither evidence artifact was retained because composition failed.
+- Found: macOS Intel hit four parity-validator failures after successful measurement; Windows hit a source-seal metadata mismatch while reopening tach-speed-source-seal.json. M1 remains 13/15 and is not owner-blocked.
+- Next: Repair the two evidence-harness defects, verify them locally, then rerun only macOS Intel and Windows x86_64 and retain the passing artifacts.
+- Board: M0 is complete; M1 is active at 13/15 with two concrete harness defects and no owner decision pending; M2 has not started.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct

@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       Retain and validate the two artifacts from run 29358355745, then close M1 at 15/15 or fix any concrete boundary failure.
+> Next:       Repair the two evidence-harness defects, verify them locally, then rerun only macOS Intel and Windows x86_64 and retain the passing artifacts.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Pushed the verified boundary repairs through 91f7ca0 and dispatched release-missing run 29358355745; the macOS Intel and Windows x86_64 jobs are in progress. · By: nsr · 91f7ca0
+> Last verified: 2026-07-14 · Changed: Completed hosted run 29358355745: both native benchmarks ran successfully, but neither evidence artifact was retained because composition failed. · By: nsr · c80d9e7
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
