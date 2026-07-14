@@ -95,6 +95,18 @@ enter this gate as speed evidence.
 - Next: Run the source-sealed Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD AWS producers at a152e0a, then add hosted Windows/macOS-x86 and native rare-architecture cells.
 - Board: OBJ-PROVE-TIMERS.M0 remains active at a152e0a with 19/55 runtime artifacts replay-bound; M0.G1, M1.G1, and M2.G1 remain open.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Fixed the EC2 and FreeBSD producer layout at 2ea11ee so every cloud artifact retains an artifact-specific collector-bundle path that can coexist in the single release-evidence directory; 195 evidence tests pass.
+- Found: The a152e0a local tranche proved its 19 routes but is diagnostic after the source revision advanced; the bundle collision was caught before any AWS instance launched.
+- Next: Recollect and replay-compose the local 19 at 2ea11ee, then run AWS producers whose outputs can now assemble without path collisions.
+- Board: OBJ-PROVE-TIMERS.M0 remains active with all gates open; 2ea11ee is the current campaign revision and no cloud spend was wasted on the superseded layout.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Recollected and replay-composed all 19 locally runnable artifacts at final producer-layout revision 2ea11ee; every artifact is source-identical and the manifest binds 9 full-speed, 6 tagged-wall-fallback, and 4 runtime-smoke observations.
+- Found: The local tranche now proves 1/6 canonical and 18/49 supplemental identities at 2ea11ee; all 36 remaining artifacts can coexist in the same evidence directory because every retained bundle path is artifact-specific.
+- Next: Collect the canonical Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD AWS cells at 2ea11ee, then merge hosted and rare-native evidence.
+- Board: OBJ-PROVE-TIMERS.M0 remains active at 2ea11ee with 19/55 runtime artifacts replay-bound and all three objective gates still open.
+
 ## /goal
 
 Deliver `OBJ-PROVE-TIMERS`'s slice of the VISION — *Every public timing claim is reproducible from frozen evidence.* — by cleanly exiting every milestone gate. Done = every gate 🟢 with committed evidence at a recorded SHA; no gate weakened, no milestone closed by assertion.
