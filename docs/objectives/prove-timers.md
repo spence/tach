@@ -330,6 +330,12 @@ availability but may not be rendered as speed wins.
 - Next: Repair the two evidence-harness defects, verify them locally, then rerun only macOS Intel and Windows x86_64 and retain the passing artifacts.
 - Board: M0 is complete; M1 is active at 13/15 with two concrete harness defects and no owner decision pending; M2 has not started.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Fixed both hosted composition defects at 85e19ed, passed all 212 Python tests with one expected skip, pushed through a35bbf1, and dispatched release-missing run 29359437933.
+- Found: The Windows failure was path-stat versus handle-stat representation drift in the collector; the macOS failures came from validator layers bypassing the retained paired public/exact proof. Neither was a provider-selection regression.
+- Next: Let run 29359437933 complete, retain its macOS Intel and Windows x86_64 artifacts if both validate, and close M1 at 15/15.
+- Board: M0 is complete; M1 is active at 13/15 with the focused repair rerun in progress and no owner decision pending; M2 remains not started.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
