@@ -329,6 +329,9 @@ printf "SEAL_RAN\\n"
         self.assertIn("const deadline = Date.now() + 30_000", source)
         self.assertIn("Date.now() >= deadline", source)
         self.assertIn("setTimeout(resolveRetry, 25)", source)
+        self.assertIn("const withTimeout =", source)
+        self.assertEqual(source.count("clearTimeout(timeout)"), 2)
+        self.assertNotIn("await Promise.race", source)
 
 
 if __name__ == "__main__":

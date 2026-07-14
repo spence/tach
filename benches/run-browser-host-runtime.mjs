@@ -113,6 +113,20 @@ if (address === null || typeof address === "string") {
 }
 const pageUrl = `http://127.0.0.1:${address.port}/`;
 
+const withTimeout = (promise, milliseconds, errorFactory) => new Promise((resolve, reject) => {
+  const timeout = setTimeout(() => reject(errorFactory()), milliseconds);
+  promise.then(
+    value => {
+      clearTimeout(timeout);
+      resolve(value);
+    },
+    error => {
+      clearTimeout(timeout);
+      reject(error);
+    },
+  );
+});
+
 const profileDir = "/tmp/tach-browser-profile-" + process.pid;
 const browser = spawn(chromiumPath, [
   "--headless",
@@ -129,7 +143,7 @@ const browser = spawn(chromiumPath, [
 
 let stderr = "";
 const lines = createInterface({ input: browser.stderr });
-const browserWebSocket = await Promise.race([
+const browserWebSocket = await withTimeout(
   new Promise((resolveSocket, rejectSocket) => {
     lines.on("line", line => {
       stderr += line + "\n";
@@ -140,11 +154,9 @@ const browserWebSocket = await Promise.race([
       new Error(`Chromium exited before DevTools startup (${code})\n${stderr}`),
     ));
   }),
-  new Promise((_, rejectTimeout) => setTimeout(
-    () => rejectTimeout(new Error(`Chromium DevTools startup timed out\n${stderr}`)),
-    30_000,
-  )),
-]);
+  30_000,
+  () => new Error(`Chromium DevTools startup timed out\n${stderr}`),
+);
 
 let socket;
 try {
@@ -196,7 +208,7 @@ try {
   };
 
   await command("Runtime.enable");
-  const evaluation = await Promise.race([
+  const evaluation = await withTimeout(
     evaluateAfterNavigation({
       expression: `new Promise((resolve, reject) => {
         const deadline = Date.now() + 120000;
@@ -214,11 +226,9 @@ try {
       awaitPromise: true,
       returnByValue: true,
     }),
-    new Promise((_, rejectTimeout) => setTimeout(
-      () => rejectTimeout(new Error(`browser benchmark timed out\n${stderr}`)),
-      150_000,
-    )),
-  ]);
+    150_000,
+    () => new Error(`browser benchmark timed out\n${stderr}`),
+  );
   if (evaluation.exceptionDetails !== undefined) {
     throw new Error(JSON.stringify(evaluation.exceptionDetails));
   }
