@@ -83,6 +83,18 @@ enter this gate as speed evidence.
 - Next: Collect the locally runnable cd598b9 host-runtime, runtime-smoke, and Apple cells, then run serial AWS and hosted producers without mixing source revisions.
 - Board: OBJ-PROVE-TIMERS.M0 remains active at frozen revision cd598b9; 55/55 artifact contracts are ready and runtime collection is next.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Corrected route-observation admission at a152e0a so source-bound tagged wall fallbacks replay through the same retained-bundle path as full-speed cells; the complete 194-test evidence suite is green.
+- Found: The 19-artifact 6b4c1ed local tranche exposed the defect and is diagnostic only: the source revision advanced, so every promotable runtime artifact must be recollected at a152e0a.
+- Next: Recollect and replay-compose the 19 locally runnable artifacts at a152e0a, then begin the source-identical canonical AWS and hosted cells.
+- Board: OBJ-PROVE-TIMERS.M0 remains active with no gate closed; a152e0a is the corrected campaign revision and local recollection is in progress.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Collected and replay-composed the complete locally runnable tranche at source a152e0a: 19 retained artifacts bind to 19 committed route requirements as 9 full-speed, 6 tagged-wall-fallback, and 4 runtime-smoke observations.
+- Found: Local proof now covers 1 of 6 canonical and 18 of 49 supplemental artifacts at one revision; these are campaign work products, not a gate closure, until the remaining 36 runtime identities join the same source-bound snapshot.
+- Next: Run the source-sealed Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD AWS producers at a152e0a, then add hosted Windows/macOS-x86 and native rare-architecture cells.
+- Board: OBJ-PROVE-TIMERS.M0 remains active at a152e0a with 19/55 runtime artifacts replay-bound; M0.G1, M1.G1, and M2.G1 remain open.
+
 ## /goal
 
 Deliver `OBJ-PROVE-TIMERS`'s slice of the VISION — *Every public timing claim is reproducible from frozen evidence.* — by cleanly exiting every milestone gate. Done = every gate 🟢 with committed evidence at a recorded SHA; no gate weakened, no milestone closed by assertion.

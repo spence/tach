@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove fastest eligible routes  (M0 🚧 Canonical runtime cells)
-> Next:       Collect the locally runnable cd598b9 host-runtime, runtime-smoke, and Apple cells, then run serial AWS and hosted producers without mixing source revisions.
+> Next:       Run the source-sealed Graviton, Intel GNU, Intel musl, Lambda, and FreeBSD AWS producers at a152e0a, then add hosted Windows/macOS-x86 and native rare-architecture cells.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Froze the complete runtime artifact contract at cd598b9: all 55 runtime identities now have exact source-sealed producer and artifact bindings, with the 192-test evidence suite green in a detached worktree. · By: nsr · cd598b9
+> Last verified: 2026-07-14 · Changed: Collected and replay-composed the complete locally runnable tranche at source a152e0a: 19 retained artifacts bind to 19 committed route requirements as 9 full-speed, 6 tagged-wall-fallback, and 4 runtime-smoke observations. · By: nsr · a152e0a
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
