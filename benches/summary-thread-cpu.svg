@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1596" height="1648" viewBox="0 0 1596 1648">
+<rect width="1596" height="1648" fill="#FBF6EC"/>
+<g shape-rendering="crispEdges">
+<rect x="74" y="124" width="720" height="24" fill="#b5aea4"/>
+<rect x="74" y="124" width="331.2" height="24" fill="#2E231B"/>
+<text x="239.6" y="114" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" font-weight="600" fill="#2E231B">ThreadCpuInstant::now()</text>
+<text x="599.6" y="114" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" font-weight="600" fill="#2E231B">now() + elapsed()</text>
+<text x="1522" y="136" text-anchor="end" dominant-baseline="central" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#7A6E60">times shown in nanoseconds</text>
+<text x="74" y="266" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">Apple Silicon</text>
+<text x="74" y="306" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">M1 Max MacBook Pro</text>
+<text x="74" y="338" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">aarch64-apple-darwin</text>
+<text x="74" y="370" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">tach: POSIX thread clock · system call</text>
+<text x="74" y="402" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">native: clock_gettime_nsec_np</text>
+<text x="74" y="465.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">tach</text>
+<rect x="297" y="438" width="217.125" height="36" fill="#eda9a0"/>
+<rect x="297" y="438" width="108.403" height="36" fill="#D72D24"/>
+<text x="746" y="465.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">129<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">258</tspan></text>
+<text x="74" y="529.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">OS native</text>
+<rect x="297" y="502" width="219" height="36" fill="#bebebd"/>
+<rect x="297" y="502" width="108.097" height="36" fill="#5B6472"/>
+<text x="746" y="529.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">129<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">260</tspan></text>
+<text x="850" y="266" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">GitHub Intel macOS</text>
+<text x="850" y="306" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">macos-15-intel</text>
+<text x="850" y="338" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-apple-darwin</text>
+<text x="850" y="370" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">tach: POSIX thread clock · system call</text>
+<text x="850" y="402" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">native: clock_gettime_nsec_np</text>
+<text x="850" y="465.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">tach</text>
+<rect x="1073" y="438" width="219" height="36" fill="#eda9a0"/>
+<rect x="1073" y="438" width="106.028" height="36" fill="#D72D24"/>
+<text x="1522" y="465.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">445<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">918</tspan></text>
+<text x="850" y="529.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">OS native</text>
+<rect x="1073" y="502" width="211.924" height="36" fill="#bebebd"/>
+<rect x="1073" y="502" width="102.514" height="36" fill="#5B6472"/>
+<text x="1522" y="529.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">430<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">888</tspan></text>
+<text x="74" y="758" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">AWS Graviton 3</text>
+<text x="74" y="798" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">c7g.large</text>
+<text x="74" y="830" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">aarch64-unknown-linux-gnu</text>
+<text x="74" y="862" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">tach: Linux perf task-clock mmap · inline</text>
+<text x="74" y="894" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">native: raw syscall</text>
+<text x="74" y="957.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">tach</text>
+<rect x="297" y="930" width="46.9256" height="36" fill="#eda9a0"/>
+<rect x="297" y="930" width="23.3025" height="36" fill="#D72D24"/>
+<text x="746" y="957.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">56.9<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">115</tspan></text>
+<text x="74" y="1021.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">OS native</text>
+<rect x="297" y="994" width="219" height="36" fill="#bebebd"/>
+<rect x="297" y="994" width="106.118" height="36" fill="#5B6472"/>
+<text x="746" y="1021.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">259<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">535</tspan></text>
+<text x="850" y="758" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">AWS Intel Linux</text>
+<text x="850" y="798" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">c7i.large</text>
+<text x="850" y="830" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-unknown-linux-gnu</text>
+<text x="850" y="862" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">tach: POSIX thread clock · system call</text>
+<text x="850" y="894" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">native: raw syscall</text>
+<text x="850" y="957.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">tach</text>
+<rect x="1073" y="930" width="219" height="36" fill="#eda9a0"/>
+<rect x="1073" y="930" width="108.981" height="36" fill="#D72D24"/>
+<text x="1522" y="957.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">151<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">303</tspan></text>
+<text x="850" y="1021.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">OS native</text>
+<rect x="1073" y="994" width="218.772" height="36" fill="#bebebd"/>
+<rect x="1073" y="994" width="109.068" height="36" fill="#5B6472"/>
+<text x="1522" y="1021.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">151<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">303</tspan></text>
+<text x="74" y="1250" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">GitHub Windows</text>
+<text x="74" y="1290" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">windows-2025</text>
+<text x="74" y="1322" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-pc-windows-msvc</text>
+<text x="74" y="1354" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">tach: GetThreadTimes · system call</text>
+<text x="74" y="1386" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">native: GetThreadTimes</text>
+<text x="74" y="1449.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">tach</text>
+<rect x="297" y="1422" width="219" height="36" fill="#eda9a0"/>
+<rect x="297" y="1422" width="107.403" height="36" fill="#D72D24"/>
+<text x="746" y="1449.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">218<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">445</tspan></text>
+<text x="74" y="1513.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">OS native</text>
+<rect x="297" y="1486" width="214.473" height="36" fill="#bebebd"/>
+<rect x="297" y="1486" width="107.74" height="36" fill="#5B6472"/>
+<text x="746" y="1513.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">219<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">436</tspan></text>
+<text x="850" y="1250" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="50" font-weight="600" fill="#2E231B">AWS FreeBSD</text>
+<text x="850" y="1290" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">c7i.large</text>
+<text x="850" y="1322" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">x86_64-unknown-freebsd</text>
+<text x="850" y="1354" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">tach: POSIX thread clock · system call</text>
+<text x="850" y="1386" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#7A6E60">native: clock_gettime</text>
+<text x="850" y="1449.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">tach</text>
+<rect x="1073" y="1422" width="208.481" height="36" fill="#eda9a0"/>
+<rect x="1073" y="1422" width="104.16" height="36" fill="#D72D24"/>
+<text x="1522" y="1449.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">125<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">251</tspan></text>
+<text x="850" y="1513.18" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#2E231B">OS native</text>
+<rect x="1073" y="1486" width="219" height="36" fill="#bebebd"/>
+<rect x="1073" y="1486" width="109.176" height="36" fill="#5B6472"/>
+<text x="1522" y="1513.18" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="29" fill="#2E231B">131<tspan dx="5" fill="#7A6E60">/</tspan><tspan dx="5">263</tspan></text>
+</g>
+</svg>
