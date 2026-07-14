@@ -961,6 +961,7 @@ def validate_wall_public_exact_probe(
     or band.get("relative_denominator") != 20
     or probe.get("batch_order")
     != "public-first on even batches; exact-first on odd batches"
+    or probe.get("call_boundary") != "symmetric dynamic FnMut boundary"
     or probe.get("measurement_clock")
     != "std::time::Instant outside the measured read loop"
     or not isinstance(public, list)

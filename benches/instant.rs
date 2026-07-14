@@ -138,10 +138,9 @@ const WALL_PUBLIC_EXACT_READS: usize = 65_536;
   ),
 ))]
 #[inline(never)]
-fn measure_wall_read_batch<F, T>(read: &mut F) -> u64
-where
-  F: FnMut() -> T,
-{
+fn measure_wall_read_batch<T>(read: &mut dyn FnMut() -> T) -> u64 {
+  // Both sides cross the same opaque boundary, so closure-size-specific
+  // inlining cannot be misreported as public clock overhead.
   let started = StdInstant::now();
   for _ in 0..WALL_PUBLIC_EXACT_READS {
     black_box(read());
@@ -190,6 +189,7 @@ where
       "relative_denominator": 20,
     },
     "batch_order": "public-first on even batches; exact-first on odd batches",
+    "call_boundary": "symmetric dynamic FnMut boundary",
     "measurement_clock": "std::time::Instant outside the measured read loop",
     "public_batches_ns": public_batches_ns,
     "exact_batches_ns": direct_batches_ns,

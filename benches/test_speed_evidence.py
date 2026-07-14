@@ -1009,6 +1009,7 @@ def apple_aarch64_wall_selection() -> dict:
       "relative_denominator": 20,
     },
     "batch_order": "public-first on even batches; exact-first on odd batches",
+    "call_boundary": "symmetric dynamic FnMut boundary",
     "measurement_clock": "std::time::Instant outside the measured read loop",
     "public_batches_ns": [650_000] * 9,
     "exact_batches_ns": [600_000] * 9,
@@ -1044,6 +1045,7 @@ def linux_x86_wall_selection() -> dict:
       "relative_denominator": 20,
     },
     "batch_order": "public-first on even batches; exact-first on odd batches",
+    "call_boundary": "symmetric dynamic FnMut boundary",
     "measurement_clock": "std::time::Instant outside the measured read loop",
     "public_batches_ns": [100_000] * 9,
     "exact_batches_ns": [90_000] * 9,
@@ -3992,6 +3994,16 @@ declare void @generic_implementation()
     failures = []
     speed_evidence.validate_linux_x86_wall_selector("missing", missing, failures)
     self.assertTrue(any("ordered elapsed lacks paired" in item for item in failures))
+
+    asymmetric = copy.deepcopy(selection)
+    del asymmetric["public_exact_probe"]["ordered"]["elapsed"]["call_boundary"]
+    failures = []
+    speed_evidence.validate_linux_x86_wall_selector(
+      "asymmetric", asymmetric, failures
+    )
+    self.assertTrue(
+      any("malformed Linux x86 ordered elapsed paired" in item for item in failures)
+    )
 
     slower = copy.deepcopy(selection)
     slower["public_exact_probe"]["ordered"]["elapsed"]["public_batches_ns"] = [
