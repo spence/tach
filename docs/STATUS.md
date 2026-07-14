@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       After ESC-HOSTED-EVIDENCE-PUSH is approved, push the current branch and dispatch boundary=release-missing for native macOS Intel and Windows x86_64.
-> Blocked on you: ESC-HOSTED-EVIDENCE-PUSH
-> Last verified: 2026-07-14 · Changed: Passed the complete 207-test evidence suite (one expected skip) and defined hosted dispatch against the current branch head containing the verified f8b3628 harness tree. · By: nsr · 5bee1ea
+> Next:       When run 29356740765 completes, retain and validate its two source-sealed artifacts, then close M1 at 15/15 if both pass.
+> Blocked on you: nothing
+> Last verified: 2026-07-14 · Changed: Pushed bench/six-clock-speed at eb1ff16 and dispatched release-missing run 29356740765; only native macOS Intel and Windows x86_64 jobs are active. · By: nsr · eb1ff16
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
