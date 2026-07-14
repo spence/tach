@@ -55,11 +55,12 @@ jobs:
           python benches/compose-speed.py "$output_dir/speed-4-windows.json" \
             --collector-bundle "$bundle"
       - name: Upload immutable Windows campaign cell
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7.0.1
         with:
           name: tach-speed-windows-2025-${{ env.TACH_FREEZE_SHA }}
           path: hosted-speed-windows-2025-x86_64
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
 
   windows-i686-supplemental:
@@ -296,11 +297,12 @@ jobs:
             --ordered-profile runtime_tournament \
             --thread-cpu-profile fixed_native
       - name: Upload immutable Intel macOS evidence
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7.0.1
         with:
           name: tach-speed-macos-15-intel-${{ env.TACH_FREEZE_SHA }}
           path: hosted-speed-macos-15-intel
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
 
   hosted-no-default-supplemental:
