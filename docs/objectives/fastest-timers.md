@@ -256,6 +256,11 @@ decision; never silently omit a failing target.
 - Found: The paired gate exposed a real hot-path gap rather than Criterion interval drift: nine public OrderedInstant elapsed batches were about 2.97-3.01 ms per 65,536 brackets versus 2.78-2.86 ms exact, so the runtime provider/state reads compound beyond the 5% equivalence band. 8105273 cannot be the release freeze.
 - Next: Inspect the emitted Linux x86 public ordered hot path and the preserved self-patching implementation, close the dispatch gap without weakening the evidence contract, then refreeze and rerun the decisive c7i musl no-default producer before recollecting the matrix.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed 1182d7a making the paired public-versus-exact probe cross one shared opaque FnMut call boundary, and made that symmetry a validator-required evidence field.
+- Found: Emitted optimized x86_64-musl assembly now contains one shared measure_wall_read_batch body with the same indirect call for both closures. The 178-test evidence suite, Rust default/no-default tests, warning-strict library/test clippy, and optimized x86_64/i686 musl benchmark builds pass.
+- Next: Freeze at 1182d7a and rerun c7i musl no-default. Admit it only if retained paired proof and the independent Criterion route estimates both validate, then recollect Apple and the remaining matrix at that exact revision.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

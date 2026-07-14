@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Inspect the emitted Linux x86 public ordered hot path and the preserved self-patching implementation, close the dispatch gap without weakening the evidence contract, then refreeze and rerun the decisive c7i musl no-default producer before recollecting the matrix.
+> Next:       Freeze at 1182d7a and rerun c7i musl no-default. Admit it only if retained paired proof and the independent Criterion route estimates both validate, then recollect Apple and the remaining matrix at that exact revision.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Reran c7i musl no-default at 8105273 with retained paired public-versus-selected-exact now and elapsed proof; the selector chose LFENCE+RDTSC correctly, but public OrderedInstant elapsed was repeatably slower than the exact route and composition failed. Independently recollected and bundle-validated Apple Silicon primary evidence at the same revision. · By: nsr · c506378
+> Last verified: 2026-07-13 · Changed: Committed 1182d7a making the paired public-versus-exact probe cross one shared opaque FnMut call boundary, and made that symmetry a validator-required evidence field. · By: nsr · 1182d7a
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
