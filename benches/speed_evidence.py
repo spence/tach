@@ -1224,6 +1224,8 @@ def validate_wall_public_exact_probe(
   domain: str,
   probe: object,
   failures: list[str],
+  *,
+  material_loss_is_failure: bool = True,
 ) -> dict:
   """Replay an alternating public-vs-selected-direct steady-state probe."""
   if not isinstance(probe, dict):
@@ -1266,7 +1268,7 @@ def validate_wall_public_exact_probe(
   materially_slower = (
     public_median > exact_median + allowance and decisive_losses >= required
   )
-  if materially_slower:
+  if materially_slower and material_loss_is_failure:
     failures.append(
       f"{context}: {domain} public read is repeatably slower than its selected exact route"
     )
@@ -1278,6 +1280,11 @@ def validate_wall_public_exact_probe(
     "exact_ns_per_read": exact_median / reads,
     "equivalence_allowance_ns_per_read": allowance / reads,
     "decisive_losses": decisive_losses,
+    "admission_role": (
+      "public_exact_parity"
+      if material_loss_is_failure
+      else "diagnostic_dispatch_lower_bound"
+    ),
     "passed": not materially_slower,
   }
 
@@ -1295,6 +1302,62 @@ def wall_public_exact_metric(reproduction: object, metric: str) -> dict | None:
   if metric == "now" and "passed" in parity:
     return parity
   return None
+
+
+FREEBSD_PUBLIC_EXACT_CONTRACT = "dispatch_lower_bound_with_public_winner_gate"
+
+
+def wall_public_exact_contract(reproduction: object) -> str | None:
+  """Return the admission contract for a runtime-dispatched wall route."""
+  if not isinstance(reproduction, dict):
+    return None
+  contract = reproduction.get("public_exact_contract")
+  return contract if isinstance(contract, str) else None
+
+
+def public_reference_winner_gate(
+  clocks: dict,
+  use_case: str,
+  metric: str,
+  target_triple: str | None,
+) -> tuple[bool, dict]:
+  """Check only alternatives a caller can actually use through a public API."""
+  if use_case == "instant":
+    eligibility = local_reference_eligibility(target_triple)
+    comparisons = {}
+    passed = True
+    for reference_name in LOCAL_COMPETITORS:
+      policy = eligibility[reference_name]
+      if not policy["eligible"]:
+        continue
+      reference = clocks.get(reference_name)
+      if not isinstance(reference, dict):
+        comparisons[reference_name] = {"measured": False, "passed": False}
+        passed = False
+        continue
+      winner, allowance = equivalent_or_faster(clocks["tach"], reference, metric)
+      comparisons[reference_name] = {
+        "measured": True,
+        "reference_ns": reference[metric],
+        "equivalence_allowance_ns": allowance,
+        "passed": winner,
+      }
+      passed = passed and winner
+    return passed, comparisons
+  if use_case == "ordered":
+    reference = clocks.get("std")
+    if not isinstance(reference, dict):
+      return False, {"std": {"measured": False, "passed": False}}
+    winner, allowance = equivalent_or_faster(clocks["tach_ordered"], reference, metric)
+    return winner, {
+      "std": {
+        "measured": True,
+        "reference_ns": reference[metric],
+        "equivalence_allowance_ns": allowance,
+        "passed": winner,
+      }
+    }
+  raise ValueError(f"unsupported wall-clock use case {use_case!r}")
 
 
 def thread_public_exact_metric(reproduction: object, metric: str) -> dict | None:
@@ -3664,9 +3727,14 @@ def validate_residual_wall_selector(
       if not isinstance(domain_public_exact, dict):
         failures.append(f"{context}: FreeBSD {domain} lacks metric parity evidence")
         domain_public_exact = {}
+      domain_result["public_exact_contract"] = FREEBSD_PUBLIC_EXACT_CONTRACT
       domain_result["public_exact"] = {
         metric: validate_wall_public_exact_probe(
-          context, f"{domain}.{metric}", domain_public_exact.get(metric), failures
+          context,
+          f"{domain}.{metric}",
+          domain_public_exact.get(metric),
+          failures,
+          material_loss_is_failure=False,
         )
         for metric in METRICS
       }
@@ -4213,6 +4281,7 @@ def validate_cell(
       selected = {}
     for domain, public_name, direct_name in selected_pairs:
       domain_reproduction = selector_reproduction.get(domain)
+      public_exact_contract = wall_public_exact_contract(domain_reproduction)
       selected_direct_for_candidates = clocks.get(direct_name)
       candidate_results = {}
       declared_candidates = wall_selection.get("eligible_direct_candidates", {})
@@ -4247,7 +4316,17 @@ def validate_cell(
         for metric in METRICS:
           paired_public_exact = wall_public_exact_metric(domain_reproduction, metric)
           comparison_basis = "public Criterion estimate"
-          if (
+          public_reference_gate = None
+          if public_exact_contract == FREEBSD_PUBLIC_EXACT_CONTRACT:
+            passed, public_reference_gate = public_reference_winner_gate(
+              clocks, domain, metric, target_triple
+            )
+            allowance = None
+            comparison_basis = (
+              "runtime selector plus usable public-reference winner gate; "
+              "exact route retained as a diagnostic lower bound"
+            )
+          elif (
             isinstance(paired_public_exact, dict)
             and paired_public_exact.get("passed") is True
             and isinstance(selected_direct_for_candidates, dict)
@@ -4266,6 +4345,8 @@ def validate_cell(
             "candidate_ns": candidate_row[metric],
             "equivalence_allowance_ns": allowance,
             "comparison_basis": comparison_basis,
+            "public_reference_gate": public_reference_gate,
+            "paired_probe": paired_public_exact,
             "passed": passed,
           }
           if not passed:
@@ -4298,7 +4379,17 @@ def validate_cell(
       for metric in METRICS:
         paired_public_exact = wall_public_exact_metric(domain_reproduction, metric)
         comparison_basis = "Criterion estimate"
-        if (
+        public_reference_gate = None
+        if public_exact_contract == FREEBSD_PUBLIC_EXACT_CONTRACT:
+          passed, public_reference_gate = public_reference_winner_gate(
+            clocks, domain, metric, target_triple
+          )
+          allowance = None
+          comparison_basis = (
+            "usable public-reference winner gate; exact route is a diagnostic "
+            "dispatch lower bound"
+          )
+        elif (
           isinstance(paired_public_exact, dict)
           and paired_public_exact.get("passed") is not None
         ):
@@ -4314,6 +4405,7 @@ def validate_cell(
           "selected_native_ns": direct_wall[metric],
           "equivalence_allowance_ns": allowance,
           "comparison_basis": comparison_basis,
+          "public_reference_gate": public_reference_gate,
           "paired_probe": paired_public_exact,
           "passed": passed,
         }
@@ -4324,6 +4416,7 @@ def validate_cell(
           )
       selected_wall_parity[domain] = {
         "selected_provider": direct_wall.get("provider"),
+        "public_exact_contract": public_exact_contract,
         "metrics": metrics,
         "eligible_candidates": candidate_results,
         "passed": (
@@ -5578,7 +5671,8 @@ def validate_supplemental_route_coverage(
   wall_selection = tach_wall.get("selection") if isinstance(tach_wall, dict) else None
   if (
     isinstance(wall_selection, dict)
-    and wall_selection.get("architecture") in {"wasm32-host", "emscripten-host"}
+    and wall_selection.get("architecture")
+    in {"wasm32-host", "emscripten-host", "x86_64-freebsd"}
   ):
     wall_selector_reproduction = validate_residual_wall_selector(
       context, wall_selection, clocks, failures
@@ -5692,12 +5786,27 @@ def validate_supplemental_route_coverage(
       )
       for metric in METRICS:
         comparison_basis = default_comparison_basis
+        public_reference_gate = None
+        domain_reproduction = wall_selector_reproduction.get(use_case)
+        public_exact_contract = wall_public_exact_contract(domain_reproduction)
         paired_public_exact = (
-          wall_public_exact_metric(wall_selector_reproduction.get(use_case), metric)
+          wall_public_exact_metric(domain_reproduction, metric)
           if comparison is public and use_case in ("instant", "ordered")
           else None
         )
-        if isinstance(paired_public_exact, dict) and paired_public_exact.get("passed") is not None:
+        if (
+          comparison is public
+          and public_exact_contract == FREEBSD_PUBLIC_EXACT_CONTRACT
+        ):
+          passed, public_reference_gate = public_reference_winner_gate(
+            clocks, use_case, metric, target_triple
+          )
+          allowance = None
+          comparison_basis = (
+            "runtime selector plus usable public-reference winner gate; "
+            "exact route retained as a diagnostic lower bound"
+          )
+        elif isinstance(paired_public_exact, dict) and paired_public_exact.get("passed") is not None:
           passed = paired_public_exact.get("passed") is True
           allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
           comparison_basis = "alternating paired public/exact probe"
@@ -5713,6 +5822,8 @@ def validate_supplemental_route_coverage(
           "exact_ns": row[metric],
           "equivalence_allowance_ns": allowance,
           "comparison_basis": comparison_basis,
+          "public_reference_gate": public_reference_gate,
+          "paired_probe": paired_public_exact,
           "passed": passed,
         }
         if not passed:

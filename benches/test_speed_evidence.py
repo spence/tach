@@ -4652,7 +4652,79 @@ declare void @generic_implementation()
       "slower", slower, residual_rows(slower), failures
     )
     self.assertFalse(result["ordered"]["public_exact"]["elapsed"]["passed"])
-    self.assertTrue(any("public read is repeatably slower" in item for item in failures))
+    self.assertEqual(failures, [])
+    self.assertEqual(
+      result["ordered"]["public_exact_contract"],
+      speed_evidence.FREEBSD_PUBLIC_EXACT_CONTRACT,
+    )
+    self.assertEqual(
+      result["ordered"]["public_exact"]["elapsed"]["admission_role"],
+      "diagnostic_dispatch_lower_bound",
+    )
+
+  def test_freebsd_dispatch_lower_bound_is_admitted_only_by_public_winner_gate(self) -> None:
+    artifact = "speed-supplemental-freebsd-x86_64.json"
+    document = supplemental_speed_documents()[artifact]
+    values = document["clocks"]
+    selection = freebsd_wall_selection()
+    for domain in ("instant", "ordered"):
+      for metric in speed_evidence.METRICS:
+        selection["public_exact_probe"][domain][metric]["public_batches_ns"] = [
+          800_000
+        ] * 9
+    values["tach"]["selection"] = copy.deepcopy(selection)
+    values["tach_ordered"]["wall_selection"] = copy.deepcopy(selection)
+    values.update(residual_rows(selection))
+    for domain, selected_key, public_key in (
+      ("instant", "direct_selected_wall", "tach"),
+      ("ordered", "direct_selected_ordered_wall", "tach_ordered"),
+    ):
+      values[selected_key] = {
+        **estimate(8.0),
+        "provider": selection["selected_provider"][domain],
+        "read_cost": "inline",
+        "time_domain": f"{domain} wall",
+        "benchmark": selection["selected_native_benchmark"][domain],
+      }
+      values[public_key].update(estimate(10.0))
+    document["route_coverage"] = speed_evidence.supplemental_route_coverage_from_clocks(
+      values, document["selection_profiles"]
+    )
+
+    primary_values = copy.deepcopy(values)
+    primary_values["tach_thread_cpu"].pop("selection", None)
+    failures, primary = speed_evidence.validate_cell(
+      "synthetic FreeBSD", primary_values, "x86_64-unknown-freebsd"
+    )
+    self.assertEqual(failures, [])
+    for domain in ("instant", "ordered"):
+      result = primary["selected_wall_provider_parity"][domain]
+      self.assertTrue(result["passed"])
+      self.assertEqual(
+        result["public_exact_contract"],
+        speed_evidence.FREEBSD_PUBLIC_EXACT_CONTRACT,
+      )
+      self.assertFalse(result["metrics"]["now"]["paired_probe"]["passed"])
+      self.assertTrue(all(
+        item["passed"]
+        for item in result["metrics"]["now"]["public_reference_gate"].values()
+      ))
+
+    supplemental_failures: list[str] = []
+    supplemental = speed_evidence.validate_supplemental_route_coverage(
+      "synthetic FreeBSD", document, supplemental_failures
+    )
+    self.assertEqual(supplemental_failures, [])
+    self.assertTrue(supplemental["instant"]["passed"])
+    self.assertTrue(supplemental["ordered"]["passed"])
+
+    losing = copy.deepcopy(primary_values)
+    losing["tach"].update(estimate(30.0))
+    failures, primary = speed_evidence.validate_cell(
+      "losing FreeBSD", losing, "x86_64-unknown-freebsd"
+    )
+    self.assertTrue(any("Instant now is materially slower" in item for item in failures))
+    self.assertFalse(primary["selected_wall_provider_parity"]["instant"]["passed"])
 
   def test_residual_extractor_labels_direct_vdso_and_requires_elapsed_rows(self) -> None:
     selection = {

@@ -30,12 +30,19 @@ composed_output="$result_dir/$artifact"
 tarball="$(mktemp -t tach-speed-freebsd-src.XXXXXX)"
 source_dir="$(mktemp -d -t tach-speed-freebsd-source.XXXXXX)"
 remote_runner="$(mktemp -t tach-speed-freebsd-runner.XXXXXX)"
+remote_log="$(mktemp -t tach-speed-freebsd-log.XXXXXX)"
+bundle_archive="$(mktemp -t tach-speed-freebsd-bundle.XXXXXX)"
 instance_id=""
 key_created=0
+remote_ssh_pid=""
 
 aws_() { aws "$@" --region "$region" --profile "$profile"; }
 
 cleanup() {
+  if [ -n "${remote_ssh_pid:-}" ]; then
+    kill "$remote_ssh_pid" >/dev/null 2>&1 || true
+    wait "$remote_ssh_pid" >/dev/null 2>&1 || true
+  fi
   if [ -n "${instance_id:-}" ]; then
     echo "terminating $instance_id"
     if aws_ ec2 terminate-instances --instance-ids "$instance_id" >/dev/null 2>&1; then
@@ -45,7 +52,8 @@ cleanup() {
   if [ "$key_created" = 1 ]; then
     aws_ ec2 delete-key-pair --key-name "$key_name" >/dev/null 2>&1 || true
   fi
-  rm -f "$key_path" "$tarball" "$remote_runner" 2>/dev/null || true
+  rm -f "$key_path" "$tarball" "$remote_runner" "$remote_log" \
+    "$bundle_archive" 2>/dev/null || true
   rm -rf "$source_dir" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -89,7 +97,7 @@ instance_id="$(aws_ ec2 run-instances \
   --key-name "$key_name" \
   --security-group-ids "$security_group" \
   --instance-initiated-shutdown-behavior terminate \
-  --user-data $'#!/bin/sh\nshutdown -p +30\n' \
+  --user-data $'#!/bin/sh\nshutdown -p +60\n' \
   --tag-specifications \
     'ResourceType=instance,Tags=[{Key=Name,Value=tach-bench-speed-freebsd}]' \
   --query 'Instances[0].InstanceId' --output text)"
@@ -149,9 +157,40 @@ REMOTE_EOF
 chmod +x "$remote_runner"
 scp "${ssh_options[@]}" "$remote_runner" "ec2-user@$ip:/tmp/run-tach-speed.sh"
 ssh "${ssh_options[@]}" "ec2-user@$ip" \
-  "sh /tmp/run-tach-speed.sh '$source_revision' 'aws-freebsd-$build_mode' '$build_mode'"
+  "rm -f /tmp/tach-speed.status /tmp/tach-speed.log; \
+   sh /tmp/run-tach-speed.sh '$source_revision' 'aws-freebsd-$build_mode' '$build_mode' \
+     > /tmp/tach-speed.log 2>&1; \
+   status=\$?; printf '%s\\n' \"\$status\" > /tmp/tach-speed.status; exit \"\$status\"" &
+remote_ssh_pid=$!
 
-scp -r "${ssh_options[@]}" "ec2-user@$ip:tach/collector.bundle" "$bundle_dir"
+status=""
+for _ in $(seq 1 660); do
+  status="$(ssh "${ssh_options[@]}" "ec2-user@$ip" \
+    'test -f /tmp/tach-speed.status && cat /tmp/tach-speed.status' 2>/dev/null || true)"
+  if [ -n "$status" ]; then
+    break
+  fi
+  sleep 5
+done
+if [ -z "$status" ]; then
+  echo "remote FreeBSD benchmark did not finish within 55 minutes" >&2
+  exit 1
+fi
+scp "${ssh_options[@]}" "ec2-user@$ip:/tmp/tach-speed.log" "$remote_log"
+cat "$remote_log"
+kill "$remote_ssh_pid" >/dev/null 2>&1 || true
+wait "$remote_ssh_pid" >/dev/null 2>&1 || true
+remote_ssh_pid=""
+if [ "$status" != 0 ]; then
+  echo "remote FreeBSD benchmark exited $status" >&2
+  exit "$status"
+fi
+
+ssh "${ssh_options[@]}" "ec2-user@$ip" \
+  "tar -czf /tmp/tach-speed-collector.tgz -C tach collector.bundle"
+scp "${ssh_options[@]}" "ec2-user@$ip:/tmp/tach-speed-collector.tgz" "$bundle_archive"
+mkdir -p "$bundle_dir"
+tar -xzf "$bundle_archive" -C "$bundle_dir" --strip-components 1
 python3 "$source_dir/benches/compose-supplemental-speed.py" \
   --artifact "$artifact" \
   --output "$composed_output" \
