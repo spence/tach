@@ -271,6 +271,11 @@ decision; never silently omit a failing target.
 - Found: The aarch64 Linux primary cell passes all three public-clock proofs: Instant 6.67 ns, OrderedInstant 20.64 ns, and ThreadCpuInstant 57.39 ns; the selected perf-mmap thread CPU path matches its direct mechanism and beats the measured raw-syscall runner-up.
 - Next: Continue the serial AWS matrix at the same frozen revision: Intel glibc primary, Intel musl primary, Graviton and Intel glibc no-default, then FreeBSD.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Ran one frozen aarch64-unknown-linux-gnu selector binary across c6g.large, c7g.large, c8g.large, and t4g.small with both production providers eligible, then recorded the raw paired batches and cleanup evidence.
+- Found: All four Arm environments selected perf task-clock mmap by wide margins; no same-target cost-driven provider flip was observed. The repository therefore has evidence for runtime capability fallback but not for an aarch64 profitability tournament.
+- Next: Replace the aarch64 perf/native cost tournament with capability-based perf-mmap selection plus native failure fallback, preserve other architectures until their own evidence is resolved, then re-freeze and revalidate.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

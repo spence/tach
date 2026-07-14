@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Continue the serial AWS matrix at the same frozen revision: Intel glibc primary, Intel musl primary, Graviton and Intel glibc no-default, then FreeBSD.
+> Next:       Replace the aarch64 perf/native cost tournament with capability-based perf-mmap selection plus native failure fallback, preserve other architectures until their own evidence is resolved, then re-freeze and revalidate.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Recollected the Graviton primary producer at frozen source 1182d7a5e73dece6e1d2b7c8f5cea35f51d40778, preserved its retained collector bundle at the final artifact path, and replay-validated the recomposed cell. · By: nsr · 2602a23
+> Last verified: 2026-07-13 · Changed: Ran one frozen aarch64-unknown-linux-gnu selector binary across c6g.large, c7g.large, c8g.large, and t4g.small with both production providers eligible, then recorded the raw paired batches and cleanup evidence. · By: nsr · 37c3df3
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
