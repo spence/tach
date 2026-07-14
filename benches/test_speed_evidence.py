@@ -65,7 +65,7 @@ SELECTION_PROFILES = {
   "fallback_only",
 }
 PRODUCER_KINDS = {"criterion", "lambda", "host_runtime", "runtime_smoke"}
-RUNTIME_PROOFS = {"not_collected", "runtime_smoke"}
+RUNTIME_PROOFS = {"not_collected", "runtime_smoke", "tagged_wall_fallback"}
 NOW_ELAPSED_CODEGEN_ROUTES = {
   "instant_now_elapsed",
   "ordered_instant_now_elapsed",

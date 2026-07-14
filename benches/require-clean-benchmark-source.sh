@@ -28,6 +28,7 @@ paths=(
   benches/lambda-speed/src
   benches/release_matrix.py
   benches/route_observation.py
+  benches/runtime_route_classification.py
   benches/require-clean-benchmark-source.sh
   benches/probes/aarch64-thread-pmu.c
   benches/route-coverage.toml
@@ -54,6 +55,7 @@ paths=(
   benches/test_release_matrix.py
   benches/test_release_matrix_wiring.py
   benches/test_route_observation.py
+  benches/test_runtime_route_classification.py
   benches/test_runner_wiring.py
   benches/test_speed_evidence.py
   benches/validate-speed-evidence.py

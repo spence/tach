@@ -112,6 +112,20 @@ class RouteMatrixTests(unittest.TestCase):
     self.assertTrue(any(item[2] == "emscripten-pthreads" for item in actual))
     artifact_keys = {(target, build_mode, runtime_profile) for _, target, build_mode, runtime_profile in actual}
     self.assertEqual(len(artifact_keys), len(actual))
+    kinds_by_case = {
+      case_id: {requirement.required_kind for requirement in route_matrix.requirements
+                if requirement.identity.case_id == case_id}
+      for case_id, *_ in actual
+    }
+    for case_id in (
+      "wasm_browser_fallback",
+      "wasi_p1_wasmtime_fallback",
+      "wasi_p2_fallback_only",
+    ):
+      self.assertEqual(
+        kinds_by_case[case_id],
+        {release_matrix.EvidenceKind.TAGGED_WALL_FALLBACK},
+      )
 
   def test_manifest_rejects_cases_that_share_one_artifact_binding_key(self) -> None:
     manifest = {

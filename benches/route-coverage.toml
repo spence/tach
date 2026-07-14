@@ -385,7 +385,7 @@ runtime_profile = "browser_wasm_bindgen"
 producer = "wasm_browser"
 route_contract = "three_timer_direct"
 static_contract = true
-runtime_proof = "not_collected"
+runtime_proof = "tagged_wall_fallback"
 
 [case.selection_profiles]
 instant = "runtime_tournament"
@@ -425,7 +425,7 @@ runtime_profile = "wasmtime"
 producer = "wasi_p1_wasmtime"
 route_contract = "three_timer_direct"
 static_contract = true
-runtime_proof = "not_collected"
+runtime_proof = "tagged_wall_fallback"
 
 [case.selection_profiles]
 instant = "fixed_native"
@@ -445,7 +445,7 @@ runtime_profile = "wasmtime_component"
 producer = "wasi_p2_wasmtime"
 route_contract = "three_timer_direct"
 static_contract = true
-runtime_proof = "not_collected"
+runtime_proof = "tagged_wall_fallback"
 
 [case.selection_profiles]
 instant = "fixed_native"
