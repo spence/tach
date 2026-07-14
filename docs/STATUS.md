@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       When run 29356740765 completes, retain and validate its two source-sealed artifacts, then close M1 at 15/15 if both pass.
+> Next:       Verify the Windows seal repair and macOS x86 provider-owned elapsed path locally, push the focused fixes, then redispatch boundary=release-missing.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Pushed bench/six-clock-speed at eb1ff16 and dispatched release-missing run 29356740765; only native macOS Intel and Windows x86_64 jobs are active. · By: nsr · eb1ff16
+> Last verified: 2026-07-14 · Changed: Diagnosed hosted run 29356740765: Windows benchmark completed but source sealing rejected equivalent path/descriptor metadata; macOS Intel completed but public wall elapsed failed exact-route parity and the paired thread-CPU probe showed temporal bias despite identical optimized codegen. · By: nsr · ab5bc93
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

@@ -309,6 +309,11 @@ availability but may not be rendered as speed wins.
 - Next: When run 29356740765 completes, retain and validate its two source-sealed artifacts, then close M1 at 15/15 if both pass.
 - Board: The owner escalation is accepted and cleared; M1 remains active at 13/15 while the two final hosted native jobs run.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Diagnosed hosted run 29356740765: Windows benchmark completed but source sealing rejected equivalent path/descriptor metadata; macOS Intel completed but public wall elapsed failed exact-route parity and the paired thread-CPU probe showed temporal bias despite identical optimized codegen.
+- Found: M1 remains 13/15 and is not owner-blocked. Windows needs a no-reparse descriptor snapshot with Windows-compatible metadata comparison; macOS x86 elapsed paid redundant scale loads, while the 65,536-read all-at-once paired probe was too coarse to distinguish code overhead from time-varying host cost.
+- Next: Verify the Windows seal repair and macOS x86 provider-owned elapsed path locally, push the focused fixes, then redispatch boundary=release-missing.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
