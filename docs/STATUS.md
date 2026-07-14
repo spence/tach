@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove default timer selection by decision boundary  (M0 🚧 Universal target contract)
-> Next:       Update the release validator to enforce this exact manifest and shipping-code closure, then collect only macOS x86_64, Windows x86_64, and FreeBSD x86_64.
+> Next:       Update the release validator to enforce the 15-row manifest and shipping-code closure before launching another benchmark host.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Replaced the 55 target-by-mode runtime campaign with a three-layer proof contract: 24-target static closure, 15 runtime decision boundaries, and one publication closure. · By: nsr · 3b5ccc4
+> Last verified: 2026-07-14 · Changed: Committed the decision-boundary proof contract and ADR at c0c0032. · By: nsr · c0c0032
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

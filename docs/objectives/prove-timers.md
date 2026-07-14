@@ -179,6 +179,12 @@ availability but may not be rendered as speed wins.
 - Next: Update the release validator to enforce this exact manifest and shipping-code closure, then collect only macOS x86_64, Windows x86_64, and FreeBSD x86_64.
 - Board: M0 has complete evidence awaiting formal gate admission; M1 is 12/15; M2 begins with the validator rewrite; there is no owner blocker.
 
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M1`
+- Did: Committed the decision-boundary proof contract and ADR at c0c0032.
+- Found: The release path is now mechanically bounded to 24 static target identities, 15 runtime boundaries with 12 retained, three named missing hosts, and one publication closure gate.
+- Next: Update the release validator to enforce the 15-row manifest and shipping-code closure before launching another benchmark host.
+- Board: M0 awaits retained-report admission; M1 is next at 12/15; M2 remains unopened; no owner decision is pending.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
