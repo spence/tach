@@ -1,22 +1,46 @@
-# `OBJ-PROVE-TIMERS` — Prove default timer selection by decision boundary
+# `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route
 
 **VISION slice.** On every advertised target, each default timer uses the fastest eligible reliable
 provider available to the running program, and every public claim states whether it is proved
 universally or measured on a named environment.
 
 This objective proves one frozen shipping implementation without multiplying targets by build modes.
-Static target proof establishes universal route coverage. Runtime artifacts are required only where a
-selector decision, host capability, or execution environment can change the winning provider.
+Static target proof establishes that every API reaches its intended candidate routes; it does not, by
+itself, prove that the production selection policy chooses the fastest eligible candidate. Runtime
+evidence is required only where host capability, virtualization, or runtime availability can change
+which complete public path wins.
+
+## What is known versus what is retained
+
+Route coverage is closed for the current implementation: M0.G1 proves that all 24 advertised target
+identities and every supported feature configuration reach an eligible implementation for all three
+public timers. That is not yet the entire fastest-provider claim. M0.G2 separately requires an
+exhaustive provider-policy matrix and forbids using capability alone when eligible complete-path
+cost can vary by host. Linux AArch64 `ThreadCpuInstant` is the current known gap: benchmark builds
+audit perf-mmap against POSIX, but production currently chooses an available perf-mmap path without
+using those measurements to select it.
+
+M1 is release corroboration and bookkeeping. Its artifact count does **not** mean that only that
+fraction of the architecture matrix is understood. The retained set observes runtime-variable
+selection and fallback boundaries plus representative native fixed routes; it is not a second
+target-by-target provider-discovery exercise.
+
+After M0.G2 closes, the remaining work is artifact admission, publication-surface consistency, and
+release verification—not further architecture/provider discovery unless a retained run falsifies a
+matrix entry.
 
 ## Success contract
 
 At one reviewed candidate revision:
 
 1. all 24 advertised target identities and all 49 supported feature configurations compile and close
-   their `Instant`, `OrderedInstant`, and `ThreadCpuInstant` routes;
-2. all 15 distinct runtime decision boundaries below have retained, source-sealed evidence;
-3. the measured shipping-code closure is unchanged from the frozen implementation; and
-4. validators, charts, README, and BENCHMARKS agree on what is universal proof and what is host
+   their `Instant`, `OrderedInstant`, and `ThreadCpuInstant` candidate routes;
+2. a tracked matrix accounts for every eligible provider and proves that each production route is
+   fixed for a deterministic reason or selects by complete-path measurement when profitability can
+   vary at runtime;
+3. all 15 distinct runtime decision boundaries below have retained, source-sealed evidence;
+4. the measured shipping-code closure is unchanged from the frozen implementation; and
+5. validators, charts, README, and BENCHMARKS agree on what is universal proof and what is host
    measurement.
 
 `--no-default-features` is a compatibility and correctness configuration. The performance promise is
@@ -26,16 +50,18 @@ for tach's default configuration, so no-default speed duplicates are not release
 
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Universal target contract | ✅ | Prove every advertised target and feature route at frozen commit `d0fa731` | inline · G1🟢 |
-| `OBJ-PROVE-TIMERS.M1` | Runtime decision boundaries | 🚧 | Retain the exact 15 selector, host, and runtime boundaries listed below | inline · G1⚪ · 12/15 required retained |
+| `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | 🚧 | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2⚪ |
+| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | ⚪ | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1⚪ |
 | `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
 ---
 
-## `OBJ-PROVE-TIMERS.M0` — Universal target contract
+## `OBJ-PROVE-TIMERS.M0` — Provider matrix and selection policy
 
-**Description.** Freeze the shipping implementation at `d0fa731` and prove the public APIs and
-optimized routes for all advertised targets. The verifier must cover 24 target identities, 49
+**Description.** First prove the shipping implementation at `ceb69c1` across the public APIs and
+optimized candidate routes for all advertised targets. Then account for every eligible provider and
+prove that the production policy chooses among complete public paths at the correct boundary. The
+route verifier must cover 24 target identities, 49
 feature configurations, 98 warning-strict API checks, 294 optimized provider routes, 294
 `now`/elapsed closures, and 18 vDSO resolver routes. Runtime-self-selecting targets must enumerate
 all eligible providers and close the selected public/direct hot route; unique-provider and fallback
@@ -44,19 +70,33 @@ and semantic coverage but do not create separate performance cells.
 
 ### Gate `OBJ-PROVE-TIMERS.M0.G1` — all advertised target routes close at the frozen implementation
 
-Pass only when `benches/verify-target-providers.py` succeeds at literal commit `d0fa731`, its report
+Pass only when `benches/verify-target-providers.py` succeeds at literal commit `ceb69c1`, its report
 contains exactly the counts above, optimized code generation contains no missing or unsupported
 route, and selector tests cover candidate enumeration, complete-path measurement, and public/direct
 route closure. The retained report must hash to
-`e2233386f3d7c64fff705f75ad089ee0dd8717809ed5eadca1b85b1547a579ba`.
+`d6846288ab1eba664f2abad5836f0221a41aac49da6c870029a6528d17695431`.
 - **Fallback.** Fix the missing target, feature configuration, or codegen closure and rerun the full
   static verifier before collecting more runtime evidence.
 
+### Gate `OBJ-PROVE-TIMERS.M0.G2` — every production selection policy supports the fastest-provider claim
+
+Pass only when a tracked 24-target-by-three-timer matrix names every eligible OS/architecture
+provider considered, its semantic eligibility rule, and its production selection policy; official
+OS or architecture sources and optimized code generation account for the candidate set; a fixed
+route has exactly one eligible candidate or a documented invariant that determines the winner; and
+every route whose eligible complete-path cost can vary by host selects from the complete eligible
+set by production runtime measurement. The selector tests must prove that initialization measures
+the same complete public/direct paths later installed as the hot routes. A capability or availability
+bit alone is insufficient when it does not establish profitability.
+- **Fallback.** Add the missing candidate or replace the unsupported fixed/capability policy with a
+  complete-path runtime selector, then rerun the affected native comparison and the full static
+  route verifier; if no safe policy can satisfy the contract, escalate to user.
+
 ---
 
-## `OBJ-PROVE-TIMERS.M1` — Runtime decision boundaries
+## `OBJ-PROVE-TIMERS.M1` — Retained runtime corroboration
 
-**Description.** Runtime proof samples mechanisms, not the Cartesian product of targets, libc
+**Description.** Runtime corroboration samples mechanisms, not the Cartesian product of targets, libc
 variants, and feature modes. A boundary is required when the default provider is selected by
 measurement, when host availability changes the route, or when a runtime supplies a distinct clock
 implementation. Fixed OS primitives need one representative native runtime plus M0's target proof.
@@ -87,7 +127,7 @@ selector boundary. Lambda and no-default artifacts are diagnostic only: c7g alre
 perf-mmap win, c7i proves a raw-syscall win, and the selector makes that decision from measured
 complete-path cost rather than instance labels or capability bits.
 
-### Gate `OBJ-PROVE-TIMERS.M1.G1` — every distinct runtime decision is observed
+### Gate `OBJ-PROVE-TIMERS.M1.G1` — every runtime-variable or representative native boundary is retained
 
 Pass only when all 15 rows are present at the frozen shipping-code closure; every measured artifact
 is source-sealed, replay-bound, and passes timer semantics; every runtime tournament reports the
@@ -188,6 +228,24 @@ availability but may not be rendered as speed wins.
 ### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M0`
 - Did: Admitted the frozen d0fa731 universal provider proof: 24/24 targets, 49/49 feature configurations, 294/294 optimized clock routes, 294/294 now-plus-elapsed closures, and 18/18 vDSO resolver routes.; OBJ-PROVE-TIMERS.M0.G1 🟢 at SHA `d0fa731`.
 - Board: OBJ-PROVE-TIMERS.M0 G1 🟢 — evidence docs/evidence/timers/provider-proof-d0fa731/target-provider-proof.txt.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Re-proved the universal target contract at ceb69c1 after adding Intel macOS invariant-TSC selection: 24/24 targets, 294/294 optimized clock routes, 294/294 elapsed closures, and 18/18 vDSO routes.
+- Found: Rosetta x86_64 now selects apple_invariant_rdtsc at about 10.49 ns versus quanta at about 15.82 ns, while OrderedInstant remains on the XNU Mach path.
+- Next: Retain the source-sealed macOS x86_64 runtime artifact at ceb69c1, then resolve cross-revision admission for unaffected runtime boundaries without recollecting unchanged target code.
+- Board: M0 remains green at superseding shipping commit ceb69c1; M1 remains 12/15 until the passing macOS x86_64 artifact is retained.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Separated provider knowledge from release artifact retention: M0 already closes all 24 advertised target routes, while M1's 12/15 count describes retained corroboration artifacts only.
+- Found: The prior milestone name made three absent host artifacts sound like three unresolved clock decisions; macOS x86_64 is already decided and measured, while Windows and FreeBSD need source-sealed native corroboration rather than architecture discovery.
+- Next: Retain only the three named host artifacts, admit unchanged prior evidence by target-scoped shipping-code equivalence, then close publication consistency.
+- Board: Provider/route knowledge is 24/24 complete; runtime release evidence is 12/15 retained; no architecture-wide clock search remains.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Separated completed route closure from the still-open fastest-selection policy and added an explicit profitability gate.
+- Found: Linux AArch64 ThreadCpuInstant audits perf-mmap versus POSIX only in benchmark builds; production selects perf-mmap by capability, so one c7g win cannot establish fastest selection on every AArch64 host.
+- Next: Complete the provider-policy matrix, then either prove the AArch64 capability rule determines profitability or make production select from measured complete paths.
+- Board: M0.G1 remains green for 24-target route closure; M0 is reopened on new G2 for fastest-provider selection policy. M1 is corroboration only and cannot substitute for G2.
 
 ## /goal
 

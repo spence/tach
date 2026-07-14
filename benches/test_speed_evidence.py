@@ -1834,6 +1834,39 @@ class SpeedEvidenceTests(unittest.TestCase):
       "i686-unknown-linux-gnu", module.RELEASE_REQUIRED_HOSTED_SPEED_TARGETS
     )
 
+  def test_target_proof_classifies_production_selection_policy_separately(self) -> None:
+    path = Path(__file__).with_name("verify-target-providers.py")
+    spec = importlib.util.spec_from_file_location("verify_target_providers", path)
+    self.assertIsNotNone(spec)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    policies = {
+      (target, timer): module.selection_policy(target, timer, "default")
+      for target in module.TARGETS
+      for timer in ("instant", "ordered", "thread_cpu")
+    }
+    self.assertEqual(len(policies), 24 * 3)
+    self.assertNotIn("unknown", {entry["selection_policy"] for entry in policies.values()})
+    self.assertEqual(
+      policies[("aarch64-unknown-linux-gnu", "thread_cpu")]["selection_policy"],
+      "availability_preferred_with_audit",
+    )
+    self.assertEqual(
+      policies[("x86_64-unknown-linux-gnu", "thread_cpu")]["selection_policy"],
+      "runtime_measured",
+    )
+    self.assertEqual(
+      policies[("wasm32-wasip2", "thread_cpu")]["selection_policy"],
+      "fallback_only",
+    )
+    routes = module.route_specs("aarch64-unknown-linux-gnu", "default")
+    self.assertEqual(
+      routes["thread_cpu_instant_now"]["spec"]["selection_policy"],
+      "availability_preferred_with_audit",
+    )
+
   def test_wasip1_thread_cpu_route_matches_the_emitted_import_call(self) -> None:
     path = Path(__file__).with_name("verify-target-providers.py")
     spec = importlib.util.spec_from_file_location("verify_target_providers", path)

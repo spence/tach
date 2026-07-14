@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-PROVE-TIMERS` — Prove default timer selection by decision boundary  (M1 🚧 Runtime decision boundaries)
-> Next:       OBJ-PROVE-TIMERS.M1 — Retain the exact 15 selector, host, and runtime boundaries listed below
+> Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M0 🚧 Provider matrix and selection policy)
+> Next:       Complete the provider-policy matrix, then either prove the AArch64 capability rule determines profitability or make production select from measured complete paths.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Admitted the frozen d0fa731 universal provider proof: 24/24 targets, 49/49 feature configurations, 294/294 optimized clock routes, 294/294 now-plus-elapsed closures, and 18/18 vDSO resolver routes.; OBJ-PROVE-TIMERS.M0.G1 🟢 at SHA `d0fa731`. · By: nsr · 97b3489
+> Last verified: 2026-07-14 · Changed: Separated completed route closure from the still-open fastest-selection policy and added an explicit profitability gate. · By: nsr · 3e0d4b4
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -24,11 +24,11 @@ Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Universal target contract | ✅ | Prove every advertised target and feature route at frozen commit `d0fa731` | inline · G1🟢 |
-| `OBJ-PROVE-TIMERS.M1` | Runtime decision boundaries | 🚧 | Retain the exact 15 selector, host, and runtime boundaries listed below | inline · G1⚪ · 12/15 required retained |
+| `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | 🚧 | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2⚪ |
+| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | ⚪ | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1⚪ |
 | `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ⚪ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-PROVE-TIMERS.M1`): G1⚪
+Gate checklist (current milestone `OBJ-PROVE-TIMERS.M0`): G1🟢 · G2⚪
 <!-- /render:board -->
 
 ---

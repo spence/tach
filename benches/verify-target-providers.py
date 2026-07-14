@@ -1587,10 +1587,92 @@ def thread_cpu_route(target: str, mode: str) -> dict:
   }
 
 
+def selection_policy(target: str, timer: str, mode: str) -> dict[str, str]:
+  """Classify how the shipping route chooses its complete hot path.
+
+  This is deliberately separate from codegen reachability. A target can emit
+  every candidate while still choosing by a fixed or availability-only rule.
+  """
+  if timer not in ("instant", "ordered", "thread_cpu"):
+    raise ValueError(f"unknown timer policy: {timer}")
+
+  if timer == "thread_cpu":
+    if target == "aarch64-unknown-linux-gnu" and mode == "default":
+      return {
+        "selection_policy": "availability_preferred_with_audit",
+        "selection_basis": (
+          "production prefers a complete perf-mmap capability and falls back to the raw "
+          "thread clock; bench-internal measures profitability but does not select from it"
+        ),
+      }
+    if target in PERF_READ_THREAD_CPU_TARGETS and mode == "default":
+      return {
+        "selection_policy": "runtime_measured",
+        "selection_basis": "per-thread complete perf mmap/read/native paths compete by cost",
+      }
+    if target.endswith("pc-windows-msvc"):
+      return {
+        "selection_policy": "availability_fallback",
+        "selection_basis": "GetThreadTimes is native thread CPU; read failure uses QPC wall time",
+      }
+    if target in ("wasm32-unknown-unknown", "wasm32v1-none", "wasm32-unknown-emscripten"):
+      return {
+        "selection_policy": "availability_fallback",
+        "selection_basis": "native Node thread CPU is used when exposed; otherwise wall fallback",
+      }
+    if "wasip1" in target:
+      return {
+        "selection_policy": "availability_fallback",
+        "selection_basis": "host clock id 3 is used when accepted; otherwise monotonic wall time",
+      }
+    if target == "wasm32-wasip2":
+      return {
+        "selection_policy": "fallback_only",
+        "selection_basis": "WASI Preview 2 exposes no current-thread CPU clock",
+      }
+    if target == "x86_64-unknown-freebsd":
+      return {
+        "selection_policy": "runtime_measured",
+        "selection_basis": "libc and raw current-thread clock entry paths compete by cost",
+      }
+    return {
+      "selection_policy": "fixed_contract",
+      "selection_basis": "the target's native current-thread CPU API is the only eligible route",
+    }
+
+  if target in ("wasm32-wasip1", "wasm32-wasip1-threads", "wasm32-wasip2"):
+    return {
+      "selection_policy": "fixed_contract",
+      "selection_basis": "the WASI host monotonic clock is the only eligible wall timeline",
+    }
+  if target == "aarch64-apple-darwin" and timer == "instant":
+    return {
+      "selection_policy": "fixed_contract",
+      "selection_basis": "XNU's approved architectural counter is the eligible local wall route",
+    }
+  if target == "aarch64-pc-windows-msvc" and timer == "ordered":
+    return {
+      "selection_policy": "runtime_measured",
+      "selection_basis": (
+        "the Windows reliable-clock provider is measured; the AArch64 ordering fence is fixed"
+      ),
+    }
+  return {
+    "selection_policy": "runtime_measured",
+    "selection_basis": "complete eligible public paths compete by runtime cost",
+  }
+
+
 def route_specs(target: str, mode: str) -> dict[str, dict]:
-  instant = instant_route(target)
-  ordered = ordered_instant_route(target, mode)
-  thread_cpu = thread_cpu_route(target, mode)
+  instant = {**instant_route(target), **selection_policy(target, "instant", mode)}
+  ordered = {
+    **ordered_instant_route(target, mode),
+    **selection_policy(target, "ordered", mode),
+  }
+  thread_cpu = {
+    **thread_cpu_route(target, mode),
+    **selection_policy(target, "thread_cpu", mode),
+  }
   return {
     "instant_now": {"root": "tach_probe_instant_now", "spec": instant},
     "instant_now_elapsed": {
@@ -1864,6 +1946,14 @@ def main() -> None:
   vdso_resolver_route_count = sum(
     len(vdso_resolver_spec(target)["detectors"]) for target in LINUX_VDSO_TARGETS
   )
+  default_timer_policies = [
+    selection_policy(target, timer, "default")["selection_policy"]
+    for target in TARGETS
+    for timer in ("instant", "ordered", "thread_cpu")
+  ]
+  policy_counts = {
+    policy: default_timer_policies.count(policy) for policy in sorted(set(default_timer_policies))
+  }
   rustc = subprocess.check_output(["rustc", f"+{args.toolchain}", "-Vv"], text=True)
   report = {
     "schema": "tach-target-provider-proof-v3",
@@ -1891,6 +1981,7 @@ def main() -> None:
       "optimized_clock_route_checks": configuration_count * 6,
       "optimized_vdso_resolver_artifact_checks": len(LINUX_VDSO_TARGETS),
       "optimized_vdso_resolver_route_checks": vdso_resolver_route_count,
+      "default_timer_policy_cells": len(default_timer_policies),
       "targets_with_runtime_speed_evidence": len(BENCHMARKED_TARGETS),
       "targets_without_external_runtime_artifacts": len(TARGETS) - len(BENCHMARKED_TARGETS),
     },
@@ -1923,6 +2014,25 @@ def main() -> None:
         "never masquerades as an external latency measurement"
       ),
     },
+    "provider_policy_coverage": {
+      "timer_cells": len(default_timer_policies),
+      "policy_counts": policy_counts,
+      "non_profitability_selecting_cells": [
+        {
+          "target": target,
+          "timer": timer,
+          **selection_policy(target, timer, "default"),
+        }
+        for target in TARGETS
+        for timer in ("instant", "ordered", "thread_cpu")
+        if selection_policy(target, timer, "default")["selection_policy"]
+        == "availability_preferred_with_audit"
+      ],
+      "invariant": (
+        "policy classification states how production chooses; codegen candidate reachability "
+        "does not imply runtime profitability selection"
+      ),
+    },
     "public_elapsed_route_scope": {
       "included": [
         "Instant::now() + Instant::elapsed()",
@@ -1950,8 +2060,10 @@ def main() -> None:
       (
         "Linux x86, x86_64, Arm, aarch64, riscv64, LoongArch64, and powerpc64 builds contain "
         "their eligible architectural, libc, direct versioned vDSO, and raw-syscall candidates; "
-        "tach chooses by measured runtime cost, which native benchmark evidence must establish "
-        "per environment."
+        "wall routes and all default thread-CPU routes except Linux AArch64 choose by measured "
+        "runtime cost. Linux AArch64 thread CPU uses capability-preferred perf mmap with a "
+        "benchmark-only profitability audit. Native benchmark evidence remains distinct from "
+        "the production selection policy."
       ),
       (
         "Linux-kernel x86 and x86_64 contain direct TSC plus CLOCK_MONOTONIC and "

@@ -11,6 +11,7 @@ dated package; do not silently rewrite a verdict.
 |---|---|---|
 | `EVID-PROVIDER-CORRECTNESS` | 🟢 | [`providers/remediation-2026-07-12/README.md`](providers/remediation-2026-07-12/README.md) |
 | `EVID-LINUX-PRIMARY-SPEED` | 🟡 | [`timers/primary-linux-2026-07-13/README.md`](timers/primary-linux-2026-07-13/README.md) |
+| `EVID-TARGET-PROVIDER-CEB69C1` | 🟢 | [`timers/provider-proof-ceb69c1-2026-07-14/README.md`](timers/provider-proof-ceb69c1-2026-07-14/README.md) |
 | `EVID-TARGET-PROVIDER-D0FA731` | 🟢 | [`timers/provider-proof-d0fa731/README.md`](timers/provider-proof-d0fa731/README.md) |
 | `EVID-ROUTE-CONTRACT-6685B22` | 🟢 | [`timers/route-contract-2026-07-14/README.md`](timers/route-contract-2026-07-14/README.md) |
 | `EVID-RUNTIME-ARTIFACT-BINDINGS-CD598B9` | 🟡 | [`timers/runtime-artifact-bindings-2026-07-14/README.md`](timers/runtime-artifact-bindings-2026-07-14/README.md) |
