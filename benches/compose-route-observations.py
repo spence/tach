@@ -83,7 +83,7 @@ def _validated_contexts(data_dir: Path, checkout_root: Path):
       failures.append(f"supplemental {artifact_id}: unknown supplemental artifact")
       continue
     mode = expected[2]
-    if mode == "full_speed_cell":
+    if mode in {"full_speed_cell", "tagged_wall_fallback"}:
       bundle_path, bundle_error = validator.retained_collector_bundle_path(
         snapshot.directory, snapshot.document
       )

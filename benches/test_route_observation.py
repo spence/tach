@@ -428,6 +428,83 @@ class RouteObservationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "retained bundle mismatch"):
           COMPOSER._validated_contexts(root, root)
 
+  def test_validated_contexts_binds_tagged_fallback_bundle(self) -> None:
+    artifact = "speed-supplemental-browser-negative.json"
+    identity = release_matrix.RouteIdentity(
+      "case-tagged-fallback",
+      "wasm32-unknown-unknown",
+      "default",
+      "browser_wasm_bindgen",
+    )
+    item = release_matrix.CoverageRequirement(
+      identity,
+      release_matrix.EvidenceKind.TAGGED_WALL_FALLBACK,
+      "producer-tagged-fallback",
+      "three_timer_direct",
+    )
+    context = {
+      "artifact_id": artifact,
+      "target": identity.target,
+      "build_mode": identity.build_mode,
+      "runtime_profile": identity.runtime_profile,
+      "source_revision": REVISION,
+      "evidence_kind": item.required_kind,
+      "scope": "supplemental",
+    }
+    with tempfile.TemporaryDirectory() as temporary:
+      root = Path(temporary)
+      (root / artifact).write_text("{}")
+      bundle = root / "collector.bundle"
+      bundle.mkdir()
+      snapshot = SimpleNamespace(
+        directory=root,
+        document={"artifact_id": artifact},
+        sha256="d" * 64,
+      )
+      validator = SimpleNamespace(
+        load_primary_campaign=mock.Mock(return_value=({}, [])),
+        load_supplemental_campaign=mock.Mock(
+          return_value=({artifact: snapshot}, {artifact: bundle}, [])
+        ),
+        retained_collector_bundle_path=mock.Mock(return_value=(bundle, None)),
+        _supplemental_context=mock.Mock(return_value=(context, [])),
+        load_campaign_route_matrix=mock.Mock(
+          return_value=(release_matrix.RouteMatrix((item,)), {})
+        ),
+      )
+      passed = {
+        "artifact_id": artifact,
+        "source_revision": REVISION,
+        "passed": True,
+        "bound_observation": True,
+        "failures": [],
+      }
+      with (
+        mock.patch.object(COMPOSER, "_load_release_validator", return_value=validator),
+        mock.patch.object(
+          COMPOSER.speed_evidence,
+          "validate_supplemental_speed_cell_from_bundle",
+          return_value=passed,
+        ) as validate_bound,
+        mock.patch.object(
+          COMPOSER.speed_evidence,
+          "validate_supplemental_speed_cell",
+        ) as validate_unbound,
+        mock.patch.object(
+          COMPOSER.speed_evidence,
+          "validate_checkout_binding",
+          return_value=([], {}),
+        ),
+      ):
+        revision, matrix, snapshots, contexts = COMPOSER._validated_contexts(root, root)
+
+      self.assertEqual(revision, REVISION)
+      self.assertEqual(matrix.requirements, (item,))
+      self.assertEqual(set(snapshots), {artifact})
+      self.assertEqual(contexts, {artifact: context})
+      validate_bound.assert_called_once_with(artifact, snapshot.document, bundle)
+      validate_unbound.assert_not_called()
+
   def test_manifest_requires_at_least_one_artifact(self) -> None:
     with self.assertRaisesRegex(ValueError, "at least one artifact"):
       route_observation.compose_manifest(REVISION, [])
