@@ -4,3 +4,6 @@ target
 # misc
 .DS_Store
 .claude/
+
+# Regenerable source-sealed benchmark bundles and runtime observations.
+.tach-bench-out/
