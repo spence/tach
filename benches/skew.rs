@@ -82,10 +82,10 @@ fn main() {
 
   let mut clocks: BTreeMap<String, ClockReport> = BTreeMap::new();
   for &name in ALL_CLOCKS {
-    if let Some(only) = &args.only_clock {
-      if only != name {
-        continue;
-      }
+    if let Some(only) = &args.only_clock
+      && only != name
+    {
+      continue;
     }
     eprintln!("=== {} ===", name);
     let report = run_clock(name, &args);

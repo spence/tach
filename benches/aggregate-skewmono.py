@@ -304,7 +304,7 @@ def main():
     print(perthread)
 
     if args.write:
-        for name in ("README.md", "README.crates-io.md"):
+        for name in ("README.md",):
             p = REPO / name
             txt = p.read_text()
             txt = replace_drift_table(txt, drift)
