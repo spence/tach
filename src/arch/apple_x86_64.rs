@@ -175,6 +175,19 @@ pub fn ticks() -> u64 {
 
 #[inline(always)]
 #[allow(clippy::inline_always)]
+pub(crate) fn ticks_with_scale() -> (u64, u64) {
+  let provider = INSTANT_PROVIDER.load(Ordering::Relaxed);
+  match provider {
+    INSTANT_PROVIDER_MACH_ABSOLUTE_TIME => (super::fallback::mach_time(), 1_u64 << 32),
+    INSTANT_PROVIDER_TSC => {
+      (read_tsc(), INSTANT_TSC_NANOS_PER_TICK_Q32.load(Ordering::Acquire).max(1))
+    }
+    _ => ticks_with_scale_after_selection(),
+  }
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
   let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
   match provider {
@@ -193,6 +206,12 @@ pub fn ticks_ordered() -> u64 {
 
 #[inline(always)]
 #[allow(clippy::inline_always)]
+pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
+  (ticks_ordered(), 1_u64 << 32)
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
 pub fn ticks_ordered_unordered() -> u64 {
   // Both ordered candidates use the same XNU Mach absolute-time domain. The
   // system fallback remains the safe unordered endpoint for that domain.
@@ -205,6 +224,17 @@ fn ticks_after_selection() -> u64 {
   match selected_instant_provider() {
     INSTANT_PROVIDER_TSC => read_tsc(),
     _ => super::fallback::mach_time(),
+  }
+}
+
+#[cold]
+#[inline(never)]
+fn ticks_with_scale_after_selection() -> (u64, u64) {
+  match selected_instant_provider() {
+    INSTANT_PROVIDER_TSC => {
+      (read_tsc(), INSTANT_TSC_NANOS_PER_TICK_Q32.load(Ordering::Acquire).max(1))
+    }
+    _ => (super::fallback::mach_time(), 1_u64 << 32),
   }
 }
 

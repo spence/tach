@@ -128,6 +128,18 @@ const WALL_PUBLIC_EXACT_BATCHES: usize = 9;
   ),
 ))]
 const WALL_PUBLIC_EXACT_READS: usize = 65_536;
+#[cfg(all(
+  feature = "bench-internal",
+  any(
+    target_os = "macos",
+    all(target_arch = "x86_64", target_os = "freebsd"),
+    all(
+      any(target_arch = "x86", target_arch = "x86_64"),
+      any(target_os = "android", target_os = "linux"),
+    ),
+  ),
+))]
+const WALL_PUBLIC_EXACT_CHUNKS: usize = 64;
 
 #[cfg(all(
   feature = "bench-internal",
@@ -141,14 +153,48 @@ const WALL_PUBLIC_EXACT_READS: usize = 65_536;
   ),
 ))]
 #[inline(never)]
-fn measure_wall_read_batch<T>(read: &mut dyn FnMut() -> T) -> u64 {
+fn measure_wall_read_chunk<T>(read: &mut dyn FnMut() -> T) -> u64 {
   // Both sides cross the same opaque boundary, so closure-size-specific
   // inlining cannot be misreported as public clock overhead.
   let started = StdInstant::now();
-  for _ in 0..WALL_PUBLIC_EXACT_READS {
+  for _ in 0..(WALL_PUBLIC_EXACT_READS / WALL_PUBLIC_EXACT_CHUNKS) {
     black_box(read());
   }
   u64::try_from(started.elapsed().as_nanos()).expect("wall parity batch exceeded u64 nanoseconds")
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  any(
+    target_os = "macos",
+    all(target_arch = "x86_64", target_os = "freebsd"),
+    all(
+      any(target_arch = "x86", target_arch = "x86_64"),
+      any(target_os = "android", target_os = "linux"),
+    ),
+  ),
+))]
+fn measure_wall_paired_batch<P, PT, D, DT>(
+  public: &mut P,
+  direct: &mut D,
+  public_first: bool,
+) -> (u64, u64)
+where
+  P: FnMut() -> PT,
+  D: FnMut() -> DT,
+{
+  let mut public_ns = 0_u64;
+  let mut direct_ns = 0_u64;
+  for chunk in 0..WALL_PUBLIC_EXACT_CHUNKS {
+    if (chunk & 1 == 0) == public_first {
+      public_ns = public_ns.saturating_add(measure_wall_read_chunk(public));
+      direct_ns = direct_ns.saturating_add(measure_wall_read_chunk(direct));
+    } else {
+      direct_ns = direct_ns.saturating_add(measure_wall_read_chunk(direct));
+      public_ns = public_ns.saturating_add(measure_wall_read_chunk(public));
+    }
+  }
+  (public_ns, direct_ns)
 }
 
 #[cfg(all(
@@ -175,13 +221,8 @@ where
   let mut public_batches_ns = [0_u64; WALL_PUBLIC_EXACT_BATCHES];
   let mut direct_batches_ns = [0_u64; WALL_PUBLIC_EXACT_BATCHES];
   for batch in 0..WALL_PUBLIC_EXACT_BATCHES {
-    if batch & 1 == 0 {
-      public_batches_ns[batch] = measure_wall_read_batch(&mut public);
-      direct_batches_ns[batch] = measure_wall_read_batch(&mut direct);
-    } else {
-      direct_batches_ns[batch] = measure_wall_read_batch(&mut direct);
-      public_batches_ns[batch] = measure_wall_read_batch(&mut public);
-    }
+    (public_batches_ns[batch], direct_batches_ns[batch]) =
+      measure_wall_paired_batch(&mut public, &mut direct, batch & 1 == 0);
   }
 
   serde_json::json!({
@@ -192,7 +233,7 @@ where
       "floor_ns_per_read": 1,
       "relative_denominator": 20,
     },
-    "batch_order": "public-first on even batches; exact-first on odd batches",
+    "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
     "call_boundary": "symmetric dynamic FnMut boundary",
     "measurement_clock": "std::time::Instant outside the measured read loop",
     "public_batches_ns": public_batches_ns,

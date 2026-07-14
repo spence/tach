@@ -1244,7 +1244,7 @@ def validate_wall_public_exact_probe(
     or band.get("floor_ns_per_read") != 1
     or band.get("relative_denominator") != 20
     or probe.get("batch_order")
-    != "public-first on even batches; exact-first on odd batches"
+    != "64 alternating 1024-read chunks per batch; starting side flips by batch"
     or probe.get("call_boundary") != "symmetric dynamic FnMut boundary"
     or probe.get("measurement_clock")
     != "std::time::Instant outside the measured read loop"
