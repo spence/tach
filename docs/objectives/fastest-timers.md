@@ -318,6 +318,12 @@ decision; never silently omit a failing target.
 - Next: Reconcile the stale README and benchmark claim surfaces with the deterministic Linux AArch64/x86_64 policies, then freeze the final campaign revision and recollect the remaining admitted native and hosted matrix.
 - Board: The corrected c7i provider and public/native parity proof are green at 1a0b3c2; M1 remains active on public-doc reconciliation and full one-revision recollection.
 
+### 2026-07-14 · codex · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed 6cda166 to correct the WASI Preview 1 thread-CPU LLVM route matcher and added a regression against the emitted clock-id-3 import call; the exhaustive verifier now passes 24/24 targets, 98 warning-strict API checks, 294 optimized public routes, 294 now-plus-elapsed phase closures, and 18 vDSO resolver routes.
+- Found: The timer implementation already emitted the correct thread CPU call and monotonic fallback, but the proof pattern concatenated two distinct Rust symbols and could never match current LLVM; because the verifier is source-bound, prior 1a0b3c2 runtime cells remain diagnostic rather than final campaign evidence.
+- Next: Freeze 6cda166 and recollect every admitted native and hosted producer at that one revision, then run unified release admission and chart generation.
+- Board: M1 remains active on the one-revision runtime campaign; the complete static target-route proof is green at 6cda166 and no advertised target is omitted.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

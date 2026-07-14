@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Reconcile the stale README and benchmark claim surfaces with the deterministic Linux AArch64/x86_64 policies, then freeze the final campaign revision and recollect the remaining admitted native and hosted matrix.
+> Next:       Freeze 6cda166 and recollect every admitted native and hosted producer at that one revision, then run unified release admission and chart generation.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Source-sealed and independently replay-validated the corrected c7i default producer at 1a0b3c279b59e61f4b59b24f97ff056dff82c70d; all 92 remote correctness and thread semantics tests passed and the retained bundle reported zero failures. · By: nsr · 1a0b3c2
+> Last verified: 2026-07-14 · Changed: Committed 6cda166 to correct the WASI Preview 1 thread-CPU LLVM route matcher and added a regression against the emitted clock-id-3 import call; the exhaustive verifier now passes 24/24 targets, 98 warning-strict API checks, 294 optimized public routes, 294 now-plus-elapsed phase closures, and 18 vDSO resolver routes. · By: nsr · 6cda166
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
