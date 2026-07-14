@@ -30,11 +30,11 @@ class RuntimeRouteClassificationTests(unittest.TestCase):
       "tagged_wall_fallback": 6,
     })
     self.assertEqual(report["counts"]["by_classification"], {
-      "open_artifact_binding_gap": 32,
-      "producer_ready_artifact_declared": 23,
+      "producer_ready_artifact_declared": 55,
     })
     self.assertEqual(len(report["routes"]), 55)
     self.assertTrue(all(route["producer"]["state"] == "ready" for route in report["routes"]))
+    self.assertTrue(all(route["artifact_id"] is not None for route in report["routes"]))
 
   def test_fallback_artifacts_match_fallback_requirements(self) -> None:
     report = runtime_route_classification.classify(REVISION)
@@ -43,11 +43,24 @@ class RuntimeRouteClassificationTests(unittest.TestCase):
       for route in report["routes"]
       if route["artifact_id"] is not None
     }
-    for artifact_id in (
+    fallback_artifacts = {
       "speed-supplemental-browser-negative.json",
+      "speed-supplemental-browser-negative-no-default.json",
       "speed-supplemental-wasi-p1-wasmtime.json",
+      "speed-supplemental-wasi-p1-wasmtime-no-default.json",
       "speed-supplemental-wasi-p2-wasmtime.json",
-    ):
+      "speed-supplemental-wasi-p2-wasmtime-no-default.json",
+    }
+    self.assertEqual(
+      {
+        artifact_id
+        for artifact_id, route in by_artifact.items()
+        if route["required_evidence_kind"]
+        == release_matrix.EvidenceKind.TAGGED_WALL_FALLBACK.value
+      },
+      fallback_artifacts,
+    )
+    for artifact_id in fallback_artifacts:
       self.assertEqual(
         by_artifact[artifact_id]["required_evidence_kind"],
         release_matrix.EvidenceKind.TAGGED_WALL_FALLBACK.value,

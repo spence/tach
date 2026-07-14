@@ -304,6 +304,11 @@ fn runtime_attestation() -> Result<Value, String> {
   let runner = option_env!("TACH_BENCH_RUNNER")
     .filter(|value| !value.is_empty())
     .ok_or("host-runtime benchmark build omitted its runner identity")?;
+  let features = if cfg!(feature = "tach-default") {
+    vec!["bench-internal", "thread-cpu-inline"]
+  } else {
+    vec!["bench-internal"]
+  };
   Ok(json!({
     "schema": "tach-benchmark-runtime-v2",
     "invocation_id": invocation_id,
@@ -319,8 +324,8 @@ fn runtime_attestation() -> Result<Value, String> {
       "os": "wasi",
       "env": if cfg!(target_env = "p2") { "p2" } else { "p1" },
     },
-    "features": ["bench-internal", "thread-cpu-inline"],
-    "build_mode": "default",
+    "features": features,
+    "build_mode": if cfg!(feature = "tach-default") { "default" } else { "no-default" },
     "build_profile": if cfg!(debug_assertions) { "debug" } else { "optimized" },
     "source_revision": source_revision,
     "runner": runner,

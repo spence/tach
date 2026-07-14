@@ -19,6 +19,8 @@ SNAPSHOT_RUNNERS = (
     "run-speed-freebsd-aws.sh",
     "run-speed-lambda.sh",
     "run-speed-host-runtime.sh",
+    "run-speed-native-supplemental.sh",
+    "run-runtime-smoke.sh",
 )
 
 
@@ -50,7 +52,9 @@ class SealedRunnerWiringTests(unittest.TestCase):
     def test_primary_and_supplemental_runners_use_their_correct_composers(self) -> None:
         source = self.source("run-speed-local.sh")
         self.assertIn("compose-speed.py", source)
-        self.assertNotIn("compose-supplemental-speed.py", source)
+        self.assertIn("compose-supplemental-speed.py", source)
+        self.assertIn("speed-supplemental-macos-aarch64-no-default.json", source)
+        self.assertIn("--no-default-features --features bench-internal", source)
         self.assertIn("--collector-bundle", source)
 
         source = self.source("run-speed-aws.sh")
@@ -70,11 +74,22 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertIn("--collector-bundle", source)
 
         source = self.source("run-speed-host-runtime.sh")
-        self.assertIn("speed-supplemental-wasm-node.json", source)
-        self.assertIn("speed-supplemental-emscripten-node.json", source)
-        self.assertIn("speed-supplemental-wasi-p1-node.json", source)
-        self.assertIn("speed-supplemental-wasi-p1-wasmtime.json", source)
-        self.assertIn("speed-supplemental-wasi-p2-wasmtime.json", source)
+        for artifact in (
+            "speed-supplemental-wasm-node.json",
+            "speed-supplemental-wasm-node-no-default.json",
+            "speed-supplemental-browser-negative.json",
+            "speed-supplemental-browser-negative-no-default.json",
+            "speed-supplemental-emscripten-node.json",
+            "speed-supplemental-emscripten-node-no-default.json",
+            "speed-supplemental-emscripten-pthreads.json",
+            "speed-supplemental-wasi-p1-node.json",
+            "speed-supplemental-wasi-p1-node-no-default.json",
+            "speed-supplemental-wasi-p1-wasmtime.json",
+            "speed-supplemental-wasi-p1-wasmtime-no-default.json",
+            "speed-supplemental-wasi-p2-wasmtime.json",
+            "speed-supplemental-wasi-p2-wasmtime-no-default.json",
+        ):
+            self.assertIn(artifact, source)
         self.assertIn("wasm-bindgen", source)
         self.assertIn("tach-host-runtime-emscripten", source)
         self.assertIn("tach-host-runtime-wasip1", source)
@@ -84,32 +99,66 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertIn("compose-supplemental-speed.py", source)
         self.assertIn('thread_cpu_profile="availability_fallback"', source)
         self.assertIn('thread_cpu_profile="fallback_only"', source)
+        self.assertIn('cargo_args+=(--no-default-features)', source)
+        self.assertIn("emscripten-host,emscripten-pthreads", source)
+        self.assertIn('pthread_toolchain="nightly-2026-06-02"', source)
+        self.assertIn("-Z build-std=std,panic_abort", source)
+        self.assertIn("-C panic=abort", source)
+
+        source = self.source("run-runtime-smoke.sh")
+        for artifact in (
+            "speed-supplemental-wasip1-threads-smoke.json",
+            "speed-supplemental-wasip1-threads-no-default-smoke.json",
+            "speed-supplemental-wasm32v1-none-smoke.json",
+            "speed-supplemental-wasm32v1-none-no-default-smoke.json",
+        ):
+            self.assertIn(artifact, source)
+        self.assertIn('feature_args+=(--no-default-features)', source)
+        self.assertIn("compose-supplemental-speed.py", source)
 
         source = self.source("run-speed-freebsd-aws.sh")
         self.assertIn("compose-supplemental-speed.py", source)
         self.assertNotIn('compose-speed.py"', source)
-        self.assertIn("--artifact speed-supplemental-freebsd-x86_64.json", source)
+        self.assertIn("speed-supplemental-freebsd-x86_64.json", source)
+        self.assertIn("speed-supplemental-freebsd-x86_64-no-default.json", source)
+        self.assertIn('build_mode="${2:-default}"', source)
+        self.assertIn("--no-default-features --features bench-internal", source)
         self.assertIn("--collector-bundle", source)
+        self.assertIn("--thread-cpu-profile runtime_tournament", source)
+
+        source = self.source("run-speed-native-supplemental.sh")
+        self.assertIn("SUPPLEMENTAL_SPEED_CELLS", source)
+        self.assertIn("run-speed-criterion.sh", source)
+        self.assertIn("compose-supplemental-speed.py", source)
+        self.assertIn('host_triple" != "$target', source)
         self.assertIn("--thread-cpu-profile runtime_tournament", source)
 
     def test_hosted_criterion_workflow_retains_source_sealed_bundles(self) -> None:
         source = (BENCHES_DIR.parent / ".github/workflows/bench-speed-windows.yml").read_text(
             encoding="utf-8"
         )
-        self.assertEqual(source.count("seal-speed-source.py"), 5)
-        self.assertEqual(source.count("collect-speed-bundle.py"), 5)
-        self.assertEqual(source.count("--collector-bundle"), 5)
-        self.assertEqual(source.count("TACH_BENCH_EVIDENCE:"), 5)
-        self.assertEqual(source.count("TACH_BENCH_SOURCE_REVISION:"), 5)
-        self.assertEqual(source.count("TACH_BENCH_RUNNER:"), 5)
-        self.assertEqual(source.count("compose-supplemental-speed.py"), 4)
+        self.assertEqual(source.count("seal-speed-source.py"), 8)
+        self.assertEqual(source.count("collect-speed-bundle.py"), 8)
+        self.assertEqual(source.count("--collector-bundle"), 8)
+        self.assertEqual(source.count("TACH_BENCH_EVIDENCE:"), 7)
+        self.assertEqual(source.count("TACH_BENCH_SOURCE_REVISION:"), 7)
+        self.assertEqual(source.count("TACH_BENCH_RUNNER:"), 10)
+        self.assertEqual(source.count("compose-supplemental-speed.py"), 7)
         self.assertIn("python benches/compose-speed.py", source)
         for artifact in (
             "speed-4-windows.json",
             "speed-supplemental-windows-i686.json",
             "speed-supplemental-windows-aarch64.json",
             "speed-supplemental-linux-i686.json",
+            "speed-supplemental-linux-i686-no-default.json",
+            "speed-supplemental-linux-riscv64gc.json",
+            "speed-supplemental-linux-riscv64gc-no-default.json",
             "speed-supplemental-macos-x86_64.json",
+            "speed-supplemental-windows-x86_64-no-default.json",
+            "speed-supplemental-windows-i686-no-default.json",
+            "speed-supplemental-windows-aarch64-no-default.json",
+            "speed-supplemental-macos-x86_64-no-default.json",
+            "speed-supplemental-macos-aarch64-no-default.json",
         ):
             self.assertIn(artifact, source)
         self.assertNotIn("extract_speed.py", source)
@@ -268,7 +317,20 @@ printf "SEAL_RAN\\n"
             "run-speed-host-runtime.sh": (
                 'git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"',
                 'tar -xf - -C "$source_dir"',
-                'cargo +1.95 build --locked --release --manifest-path "$manifest"',
+                'cargo_command=(cargo +1.95 build)',
+                '"${cargo_command[@]}" --locked --release --manifest-path "$manifest"',
+                'python3 "$source_dir/benches/compose-supplemental-speed.py"',
+            ),
+            "run-runtime-smoke.sh": (
+                'git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"',
+                'tar -xf - -C "$source_dir"',
+                'cargo +1.95 build --locked --release',
+                'python3 "$source_dir/benches/compose-supplemental-speed.py"',
+            ),
+            "run-speed-native-supplemental.sh": (
+                'git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"',
+                'tar -xf - -C "$source_dir"',
+                'run-speed-criterion.sh',
                 'python3 "$source_dir/benches/compose-supplemental-speed.py"',
             ),
         }

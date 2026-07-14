@@ -16,12 +16,28 @@ case "$output_name" in
     runner="wasmtime-wasi-threads"
     target="wasm32-wasip1-threads"
     runtime_kind="wasip1-threads"
+    build_mode="default"
+    ;;
+  speed-supplemental-wasip1-threads-no-default-smoke.json)
+    invocation_prefix="wasi-p1-threads-no-default-smoke"
+    runner="wasmtime-wasi-threads-no-default"
+    target="wasm32-wasip1-threads"
+    runtime_kind="wasip1-threads"
+    build_mode="no-default"
     ;;
   speed-supplemental-wasm32v1-none-smoke.json)
     invocation_prefix="wasm32v1-none-smoke"
     runner="node-wasm-bindgen-none"
     target="wasm32v1-none"
     runtime_kind="wasm32v1-none"
+    build_mode="default"
+    ;;
+  speed-supplemental-wasm32v1-none-no-default-smoke.json)
+    invocation_prefix="wasm32v1-none-no-default-smoke"
+    runner="node-wasm-bindgen-none-no-default"
+    target="wasm32v1-none"
+    runtime_kind="wasm32v1-none"
+    build_mode="no-default"
     ;;
   *)
     echo "unsupported runtime-smoke artifact: $output_name" >&2
@@ -58,12 +74,17 @@ common_env=(
   TACH_BENCH_INVOCATION_ID="$invocation_id"
   TACH_BENCH_RUNNER="$runner"
 )
+feature_args=()
+if [ "$build_mode" = "no-default" ]; then
+  feature_args+=(--no-default-features)
+fi
 
 if [ "$runtime_kind" = "wasip1-threads" ]; then
   env "${common_env[@]}" cargo +1.95 build --locked --release \
     --manifest-path "$manifest" \
     --target "$target" \
     --bin tach-runtime-smoke-wasip1-threads \
+    "${feature_args[@]}" \
     --features wasip1-threads
   wasmtime run -W threads=y -W shared-memory=y -S threads=y \
     "$target_dir/$target/release/tach-runtime-smoke-wasip1-threads.wasm" \
@@ -72,14 +93,17 @@ else
   env "${common_env[@]}" cargo +1.95 build --locked --release \
     --manifest-path "$manifest" \
     --target "$target" \
+    "${feature_args[@]}" \
     --lib
   wasm-bindgen \
     "$target_dir/$target/release/tach_runtime_smoke.wasm" \
     --target nodejs \
     --out-dir "$generated_dir"
-  node - "$generated_dir/tach_runtime_smoke.js" "$runner" > "$smoke_attestation" <<'NODE'
+  node - "$generated_dir/tach_runtime_smoke.js" "$runner" "$build_mode" \
+    > "$smoke_attestation" <<'NODE'
 const modulePath = process.argv[2];
 const runner = process.argv[3];
+const buildMode = process.argv[4];
 const smoke = require(modulePath);
 const readString = (lengthName, byteName) => {
   const length = smoke[lengthName]();
@@ -120,8 +144,8 @@ process.stdout.write(JSON.stringify({
     invocation_id: invocationId,
     harness: "wasm32v1-none-smoke",
     target: { arch: "wasm32", os: "none", env: "" },
-    features: ["thread-cpu-inline"],
-    build_mode: "default",
+    features: buildMode === "default" ? ["thread-cpu-inline"] : [],
+    build_mode: buildMode,
     build_profile: "optimized",
     source_revision: sourceRevision,
     runner,

@@ -4,6 +4,19 @@
 set -euo pipefail
 
 instance_type="${1:-c7i.large}"
+build_mode="${2:-default}"
+case "$build_mode" in
+  default)
+    artifact="speed-supplemental-freebsd-x86_64.json"
+    ;;
+  no-default)
+    artifact="speed-supplemental-freebsd-x86_64-no-default.json"
+    ;;
+  *)
+    echo "usage: $0 [instance-type] [default|no-default]" >&2
+    exit 2
+    ;;
+esac
 region=us-east-2
 profile=tach
 key_name="tach-speed-freebsd-$$-$(date +%s 2>/dev/null || echo 0)"
@@ -13,7 +26,7 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 source_revision="$(bash "$repo_root/benches/require-clean-benchmark-source.sh")"
 result_dir="$(mktemp -d -t tach-speed-freebsd.XXXXXX)"
 bundle_dir="$result_dir/collector.bundle"
-composed_output="$result_dir/speed-supplemental-freebsd-x86_64.json"
+composed_output="$result_dir/$artifact"
 tarball="$(mktemp -t tach-speed-freebsd-src.XXXXXX)"
 source_dir="$(mktemp -d -t tach-speed-freebsd-source.XXXXXX)"
 remote_runner="$(mktemp -t tach-speed-freebsd-runner.XXXXXX)"
@@ -102,6 +115,7 @@ cat > "$remote_runner" <<'REMOTE_EOF'
 set -eu
 SOURCE_REVISION="$1"
 RUNNER="$2"
+BUILD_MODE="$3"
 sudo env ASSUME_ALWAYS_YES=yes pkg bootstrap -f
 sudo pkg install -y curl python311
 rm -rf "$HOME/tach"
@@ -116,24 +130,30 @@ if [ -e "$target_dir" ]; then
   echo "fresh benchmark target already exists: $target_dir" >&2
   exit 1
 fi
-cargo test --locked --release --tests --features bench-internal
+if [ "$BUILD_MODE" = default ]; then
+  cargo_mode="--features bench-internal,thread-cpu-inline"
+else
+  cargo_mode="--no-default-features --features bench-internal"
+fi
+# shellcheck disable=SC2086
+cargo test --locked --release --tests $cargo_mode
 export CARGO_TARGET_DIR="$target_dir"
 export TACH_BENCH_EVIDENCE=1
 export TACH_BENCH_SOURCE_REVISION="$SOURCE_REVISION"
 export TACH_BENCH_RUNNER="$RUNNER"
 python3.11 benches/seal-speed-source.py "$target_dir/criterion" -- \
-  cargo bench --locked --bench instant --features bench-internal -- \
+  cargo bench --locked --bench instant $cargo_mode -- \
     --warm-up-time 1 --measurement-time 3
 python3.11 benches/collect-speed-bundle.py "$target_dir/criterion" "$HOME/tach/collector.bundle"
 REMOTE_EOF
 chmod +x "$remote_runner"
 scp "${ssh_options[@]}" "$remote_runner" "ec2-user@$ip:/tmp/run-tach-speed.sh"
 ssh "${ssh_options[@]}" "ec2-user@$ip" \
-  "sh /tmp/run-tach-speed.sh '$source_revision' 'aws-freebsd'"
+  "sh /tmp/run-tach-speed.sh '$source_revision' 'aws-freebsd-$build_mode' '$build_mode'"
 
 scp -r "${ssh_options[@]}" "ec2-user@$ip:tach/collector.bundle" "$bundle_dir"
 python3 "$source_dir/benches/compose-supplemental-speed.py" \
-  --artifact speed-supplemental-freebsd-x86_64.json \
+  --artifact "$artifact" \
   --output "$composed_output" \
   --source-revision "$source_revision" \
   --collector-bundle "$bundle_dir" \

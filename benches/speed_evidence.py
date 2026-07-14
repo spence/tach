@@ -168,6 +168,7 @@ BENCHMARK_SOURCE_PATHS = (
   "benches/run-speed-aws.sh",
   "benches/run-speed-freebsd-aws.sh",
   "benches/run-speed-lambda.sh",
+  "benches/run-speed-native-supplemental.sh",
   "benches/run-speed-host-runtime.sh",
   "benches/run-speed-criterion.sh",
   "benches/run-speed-local.sh",
@@ -255,14 +256,53 @@ SUPPLEMENTAL_SPEED_CELLS = {
   "speed-supplemental-macos-x86_64.json": (
     "x86_64-apple-darwin", "criterion", "full_speed_cell", "default"
   ),
+  "speed-supplemental-macos-x86_64-no-default.json": (
+    "x86_64-apple-darwin", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-macos-aarch64-no-default.json": (
+    "aarch64-apple-darwin", "criterion", "full_speed_cell", "no-default"
+  ),
   "speed-supplemental-windows-i686.json": (
     "i686-pc-windows-msvc", "criterion", "full_speed_cell", "default"
   ),
   "speed-supplemental-windows-aarch64.json": (
     "aarch64-pc-windows-msvc", "criterion", "full_speed_cell", "default"
   ),
+  "speed-supplemental-windows-x86_64-no-default.json": (
+    "x86_64-pc-windows-msvc", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-windows-i686-no-default.json": (
+    "i686-pc-windows-msvc", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-windows-aarch64-no-default.json": (
+    "aarch64-pc-windows-msvc", "criterion", "full_speed_cell", "no-default"
+  ),
   "speed-supplemental-linux-i686.json": (
     "i686-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-linux-s390x.json": (
+    "s390x-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-linux-loongarch64.json": (
+    "loongarch64-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-linux-riscv64gc.json": (
+    "riscv64gc-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-linux-powerpc64.json": (
+    "powerpc64-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-linux-powerpc64le.json": (
+    "powerpc64le-unknown-linux-gnu", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-linux-armv7.json": (
+    "armv7-unknown-linux-gnueabihf", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-android-x86_64.json": (
+    "x86_64-linux-android", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-android-aarch64.json": (
+    "aarch64-linux-android", "criterion", "full_speed_cell", "default"
   ),
   "speed-supplemental-linux-x86_64-no-default.json": (
     "x86_64-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
@@ -273,8 +313,38 @@ SUPPLEMENTAL_SPEED_CELLS = {
   "speed-supplemental-linux-musl-x86_64-no-default.json": (
     "x86_64-unknown-linux-musl", "criterion", "full_speed_cell", "no-default"
   ),
+  "speed-supplemental-linux-i686-no-default.json": (
+    "i686-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-s390x-no-default.json": (
+    "s390x-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-loongarch64-no-default.json": (
+    "loongarch64-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-riscv64gc-no-default.json": (
+    "riscv64gc-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-powerpc64-no-default.json": (
+    "powerpc64-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-powerpc64le-no-default.json": (
+    "powerpc64le-unknown-linux-gnu", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-linux-armv7-no-default.json": (
+    "armv7-unknown-linux-gnueabihf", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-android-x86_64-no-default.json": (
+    "x86_64-linux-android", "criterion", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-android-aarch64-no-default.json": (
+    "aarch64-linux-android", "criterion", "full_speed_cell", "no-default"
+  ),
   "speed-supplemental-freebsd-x86_64.json": (
     "x86_64-unknown-freebsd", "criterion", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-freebsd-x86_64-no-default.json": (
+    "x86_64-unknown-freebsd", "criterion", "full_speed_cell", "no-default"
   ),
   "speed-supplemental-lambda-aarch64.json": (
     "aarch64-unknown-linux-gnu", "lambda", "full_speed_cell", "default"
@@ -282,26 +352,53 @@ SUPPLEMENTAL_SPEED_CELLS = {
   "speed-supplemental-wasm-node.json": (
     "wasm32-unknown-unknown", "node-wasm-bindgen", "full_speed_cell", "default"
   ),
+  "speed-supplemental-wasm-node-no-default.json": (
+    "wasm32-unknown-unknown", "node-wasm-bindgen", "full_speed_cell", "no-default"
+  ),
   "speed-supplemental-emscripten-node.json": (
     "wasm32-unknown-emscripten", "emcc-node", "full_speed_cell", "default"
+  ),
+  "speed-supplemental-emscripten-node-no-default.json": (
+    "wasm32-unknown-emscripten", "emcc-node", "full_speed_cell", "no-default"
+  ),
+  "speed-supplemental-emscripten-pthreads.json": (
+    "wasm32-unknown-emscripten", "emcc-node", "full_speed_cell", "emscripten-pthreads"
   ),
   "speed-supplemental-wasi-p1-node.json": (
     "wasm32-wasip1", "node-uvwasi", "full_speed_cell", "default"
   ),
+  "speed-supplemental-wasi-p1-node-no-default.json": (
+    "wasm32-wasip1", "node-uvwasi", "full_speed_cell", "no-default"
+  ),
   "speed-supplemental-wasi-p1-wasmtime.json": (
     "wasm32-wasip1", "wasmtime", "tagged_wall_fallback", "default"
+  ),
+  "speed-supplemental-wasi-p1-wasmtime-no-default.json": (
+    "wasm32-wasip1", "wasmtime", "tagged_wall_fallback", "no-default"
   ),
   "speed-supplemental-wasi-p2-wasmtime.json": (
     "wasm32-wasip2", "wasmtime-component", "tagged_wall_fallback", "default"
   ),
+  "speed-supplemental-wasi-p2-wasmtime-no-default.json": (
+    "wasm32-wasip2", "wasmtime-component", "tagged_wall_fallback", "no-default"
+  ),
   "speed-supplemental-browser-negative.json": (
     "wasm32-unknown-unknown", "browser", "tagged_wall_fallback", "default"
+  ),
+  "speed-supplemental-browser-negative-no-default.json": (
+    "wasm32-unknown-unknown", "browser", "tagged_wall_fallback", "no-default"
   ),
   "speed-supplemental-wasip1-threads-smoke.json": (
     "wasm32-wasip1-threads", "wasi-threads-smoke", "runtime_smoke", "default"
   ),
+  "speed-supplemental-wasip1-threads-no-default-smoke.json": (
+    "wasm32-wasip1-threads", "wasi-threads-smoke", "runtime_smoke", "no-default"
+  ),
   "speed-supplemental-wasm32v1-none-smoke.json": (
     "wasm32v1-none", "wasm32v1-none-smoke", "runtime_smoke", "default"
+  ),
+  "speed-supplemental-wasm32v1-none-no-default-smoke.json": (
+    "wasm32v1-none", "wasm32v1-none-smoke", "runtime_smoke", "no-default"
   ),
 }
 
@@ -338,6 +435,14 @@ RUNTIME_TARGETS = {
   "aarch64-unknown-linux-gnu": {"arch": "aarch64", "os": "linux", "env": "gnu"},
   "x86_64-unknown-linux-gnu": {"arch": "x86_64", "os": "linux", "env": "gnu"},
   "x86_64-unknown-linux-musl": {"arch": "x86_64", "os": "linux", "env": "musl"},
+  "s390x-unknown-linux-gnu": {"arch": "s390x", "os": "linux", "env": "gnu"},
+  "loongarch64-unknown-linux-gnu": {"arch": "loongarch64", "os": "linux", "env": "gnu"},
+  "riscv64gc-unknown-linux-gnu": {"arch": "riscv64", "os": "linux", "env": "gnu"},
+  "powerpc64-unknown-linux-gnu": {"arch": "powerpc64", "os": "linux", "env": "gnu"},
+  "powerpc64le-unknown-linux-gnu": {"arch": "powerpc64", "os": "linux", "env": "gnu"},
+  "armv7-unknown-linux-gnueabihf": {"arch": "arm", "os": "linux", "env": "gnu"},
+  "x86_64-linux-android": {"arch": "x86_64", "os": "android", "env": ""},
+  "aarch64-linux-android": {"arch": "aarch64", "os": "android", "env": ""},
   "x86_64-pc-windows-msvc": {"arch": "x86_64", "os": "windows", "env": "msvc"},
   "x86_64-apple-darwin": {"arch": "x86_64", "os": "macos", "env": ""},
   "i686-pc-windows-msvc": {"arch": "x86", "os": "windows", "env": "msvc"},
@@ -399,11 +504,75 @@ SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES = {
     "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
     "system call",
   ),
+  ("i686-unknown-linux-gnu", "criterion", "no-default"): (
+    "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+    "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  **{
+    (target, "criterion", build_mode): (
+      "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+      "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+      "system call",
+    )
+    for target in (
+      "s390x-unknown-linux-gnu",
+      "loongarch64-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-gnu",
+      "powerpc64-unknown-linux-gnu",
+      "powerpc64le-unknown-linux-gnu",
+      "armv7-unknown-linux-gnueabihf",
+    )
+    for build_mode in ("default", "no-default")
+  },
+  ("x86_64-linux-android", "criterion", "default"): (
+    "native_thread_cpu__inline_syscall_clock_thread_cputime_id",
+    "inline syscall(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  ("aarch64-linux-android", "criterion", "default"): (
+    "native_thread_cpu__inline_syscall_clock_thread_cputime_id",
+    "inline syscall(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  **{
+    (target, "criterion", "no-default"): (
+      "native_thread_cpu__libc_clock_gettime_clock_thread_cputime_id",
+      "libc::clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+      "system call",
+    )
+    for target in ("x86_64-linux-android", "aarch64-linux-android")
+  },
   ("x86_64-unknown-freebsd", "criterion", "default"): (
     "native_thread_cpu__clock_gettime_clock_thread_cputime_id",
     "clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
     "system call",
   ),
+  ("x86_64-unknown-freebsd", "criterion", "no-default"): (
+    "native_thread_cpu__clock_gettime_clock_thread_cputime_id",
+    "clock_gettime(CLOCK_THREAD_CPUTIME_ID)",
+    "system call",
+  ),
+  **{
+    (target, "criterion", "no-default"): (
+      "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
+      "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+      "system call",
+    )
+    for target in ("x86_64-apple-darwin", "aarch64-apple-darwin")
+  },
+  **{
+    (target, "criterion", "no-default"): (
+      "native_thread_cpu__get_thread_times_current_thread_pseudohandle",
+      "GetThreadTimes(current-thread pseudo-handle)",
+      "system call",
+    )
+    for target in (
+      "x86_64-pc-windows-msvc",
+      "i686-pc-windows-msvc",
+      "aarch64-pc-windows-msvc",
+    )
+  },
 }
 
 WINDOWS_QPC_AUTHORITY = (

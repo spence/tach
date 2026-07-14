@@ -54,6 +54,8 @@ fn main() {
   let source_revision = env!("TACH_BENCH_SOURCE_REVISION");
   let invocation_id = env!("TACH_BENCH_INVOCATION_ID");
   let runner = env!("TACH_BENCH_RUNNER");
+  let features =
+    if cfg!(feature = "tach-default") { vec!["thread-cpu-inline"] } else { Vec::new() };
   let observation = json!({
     "schema": "tach-runtime-smoke-attestation-v1",
     "runtime_attestation": {
@@ -61,8 +63,8 @@ fn main() {
       "invocation_id": invocation_id,
       "harness": "wasi-threads-smoke",
       "target": {"arch": "wasm32", "os": "wasi", "env": "p1"},
-      "features": ["thread-cpu-inline"],
-      "build_mode": "default",
+      "features": features,
+      "build_mode": if cfg!(feature = "tach-default") { "default" } else { "no-default" },
       "build_profile": if cfg!(debug_assertions) { "debug" } else { "optimized" },
       "source_revision": source_revision,
       "runner": runner,

@@ -220,16 +220,33 @@ fn runtime_attestation() -> Result<Value, String> {
   let invocation_id = option_env!("TACH_BENCH_INVOCATION_ID")
     .filter(|value| !value.is_empty())
     .ok_or("host-runtime benchmark build omitted its invocation ID")?;
+  let runner = option_env!("TACH_BENCH_RUNNER")
+    .filter(|value| !value.is_empty())
+    .ok_or("host-runtime benchmark build omitted its runner identity")?;
+  let mut features = vec!["bench-internal"];
+  if cfg!(feature = "tach-default") {
+    features.push("thread-cpu-inline");
+  }
+  if cfg!(feature = "emscripten-pthreads") {
+    features.push("emscripten-pthreads");
+  }
+  let build_mode = if cfg!(feature = "emscripten-pthreads") {
+    "emscripten-pthreads"
+  } else if cfg!(feature = "tach-default") {
+    "default"
+  } else {
+    "no-default"
+  };
   Ok(json!({
     "schema": "tach-benchmark-runtime-v2",
     "invocation_id": invocation_id,
     "harness": "emcc-node",
     "target": {"arch": "wasm32", "os": "emscripten", "env": ""},
-    "features": ["bench-internal", "thread-cpu-inline"],
-    "build_mode": "default",
+    "features": features,
+    "build_mode": build_mode,
     "build_profile": if cfg!(debug_assertions) { "debug" } else { "optimized" },
     "source_revision": source_revision,
-    "runner": "emcc-node",
+    "runner": runner,
     "output_isolated": true,
   }))
 }

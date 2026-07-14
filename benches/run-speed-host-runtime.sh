@@ -19,6 +19,17 @@ case "$output_name" in
     instant_profile="runtime_tournament"
     ordered_profile="runtime_tournament"
     thread_cpu_profile="availability_fallback"
+    build_mode="default"
+    ;;
+  speed-supplemental-wasm-node-no-default.json)
+    invocation_prefix="wasm-node-no-default"
+    runner="node-wasm-bindgen-no-default"
+    target="wasm32-unknown-unknown"
+    runtime_kind="wasm-node"
+    instant_profile="runtime_tournament"
+    ordered_profile="runtime_tournament"
+    thread_cpu_profile="availability_fallback"
+    build_mode="no-default"
     ;;
   speed-supplemental-browser-negative.json)
     invocation_prefix="wasm-browser"
@@ -28,6 +39,17 @@ case "$output_name" in
     instant_profile="runtime_tournament"
     ordered_profile="runtime_tournament"
     thread_cpu_profile="fallback_only"
+    build_mode="default"
+    ;;
+  speed-supplemental-browser-negative-no-default.json)
+    invocation_prefix="wasm-browser-no-default"
+    runner="browser-no-default"
+    target="wasm32-unknown-unknown"
+    runtime_kind="wasm-browser"
+    instant_profile="runtime_tournament"
+    ordered_profile="runtime_tournament"
+    thread_cpu_profile="fallback_only"
+    build_mode="no-default"
     ;;
   speed-supplemental-emscripten-node.json)
     invocation_prefix="emscripten-node"
@@ -37,6 +59,27 @@ case "$output_name" in
     instant_profile="runtime_tournament"
     ordered_profile="runtime_tournament"
     thread_cpu_profile="availability_fallback"
+    build_mode="default"
+    ;;
+  speed-supplemental-emscripten-node-no-default.json)
+    invocation_prefix="emscripten-node-no-default"
+    runner="emcc-node-no-default"
+    target="wasm32-unknown-emscripten"
+    runtime_kind="emscripten-node"
+    instant_profile="runtime_tournament"
+    ordered_profile="runtime_tournament"
+    thread_cpu_profile="availability_fallback"
+    build_mode="no-default"
+    ;;
+  speed-supplemental-emscripten-pthreads.json)
+    invocation_prefix="emscripten-pthreads"
+    runner="emcc-node-pthreads"
+    target="wasm32-unknown-emscripten"
+    runtime_kind="emscripten-node"
+    instant_profile="runtime_tournament"
+    ordered_profile="runtime_tournament"
+    thread_cpu_profile="availability_fallback"
+    build_mode="emscripten-pthreads"
     ;;
   speed-supplemental-wasi-p1-node.json)
     invocation_prefix="wasi-p1-node"
@@ -46,6 +89,17 @@ case "$output_name" in
     instant_profile="fixed_native"
     ordered_profile="fixed_native"
     thread_cpu_profile="availability_fallback"
+    build_mode="default"
+    ;;
+  speed-supplemental-wasi-p1-node-no-default.json)
+    invocation_prefix="wasi-p1-node-no-default"
+    runner="node-uvwasi-no-default"
+    target="wasm32-wasip1"
+    runtime_kind="wasip1-node"
+    instant_profile="fixed_native"
+    ordered_profile="fixed_native"
+    thread_cpu_profile="availability_fallback"
+    build_mode="no-default"
     ;;
   speed-supplemental-wasi-p1-wasmtime.json)
     invocation_prefix="wasi-p1-wasmtime"
@@ -55,6 +109,17 @@ case "$output_name" in
     instant_profile="fixed_native"
     ordered_profile="fixed_native"
     thread_cpu_profile="fallback_only"
+    build_mode="default"
+    ;;
+  speed-supplemental-wasi-p1-wasmtime-no-default.json)
+    invocation_prefix="wasi-p1-wasmtime-no-default"
+    runner="wasmtime-no-default"
+    target="wasm32-wasip1"
+    runtime_kind="wasip1-wasmtime"
+    instant_profile="fixed_native"
+    ordered_profile="fixed_native"
+    thread_cpu_profile="fallback_only"
+    build_mode="no-default"
     ;;
   speed-supplemental-wasi-p2-wasmtime.json)
     invocation_prefix="wasi-p2-wasmtime"
@@ -64,6 +129,17 @@ case "$output_name" in
     instant_profile="fixed_native"
     ordered_profile="fixed_native"
     thread_cpu_profile="fallback_only"
+    build_mode="default"
+    ;;
+  speed-supplemental-wasi-p2-wasmtime-no-default.json)
+    invocation_prefix="wasi-p2-wasmtime-no-default"
+    runner="wasmtime-component-no-default"
+    target="wasm32-wasip2"
+    runtime_kind="wasip2-wasmtime"
+    instant_profile="fixed_native"
+    ordered_profile="fixed_native"
+    thread_cpu_profile="fallback_only"
+    build_mode="no-default"
     ;;
   *)
     echo "unsupported host-runtime evidence artifact: $output_name" >&2
@@ -98,12 +174,19 @@ git -C "$repo_root" --no-replace-objects archive --format=tar "$source_revision"
 
 manifest="$source_dir/benches/host-runtime-speed/Cargo.toml"
 cargo_args=(--target "$target")
+if [ "$build_mode" = "no-default" ]; then
+  cargo_args+=(--no-default-features)
+fi
 case "$runtime_kind" in
   wasm-browser)
     cargo_args+=(--lib --features browser-host)
     ;;
   emscripten-node)
-    cargo_args+=(--bin tach-host-runtime-emscripten --features emscripten-host)
+    if [ "$build_mode" = "emscripten-pthreads" ]; then
+      cargo_args+=(--bin tach-host-runtime-emscripten --features emscripten-host,emscripten-pthreads)
+    else
+      cargo_args+=(--bin tach-host-runtime-emscripten --features emscripten-host)
+    fi
     ;;
   wasip1-node)
     cargo_args+=(--bin tach-host-runtime-wasip1 --features wasip1-node-host)
@@ -115,12 +198,24 @@ case "$runtime_kind" in
     cargo_args+=(--bin tach-host-runtime-wasip2 --features wasip2-host)
     ;;
 esac
-env \
-  CARGO_TARGET_DIR="$target_dir" \
-  TACH_BENCH_SOURCE_REVISION="$source_revision" \
-  TACH_BENCH_INVOCATION_ID="$invocation_id" \
-  TACH_BENCH_RUNNER="$runner" \
-  cargo +1.95 build --locked --release --manifest-path "$manifest" \
+build_env=(
+  CARGO_TARGET_DIR="$target_dir"
+  TACH_BENCH_SOURCE_REVISION="$source_revision"
+  TACH_BENCH_INVOCATION_ID="$invocation_id"
+  TACH_BENCH_RUNNER="$runner"
+)
+cargo_command=(cargo +1.95 build)
+if [ "$build_mode" = "emscripten-pthreads" ]; then
+  pthread_toolchain="nightly-2026-06-02"
+  rustup toolchain install "$pthread_toolchain" --profile minimal \
+    --component rust-src --target wasm32-unknown-emscripten
+  build_env+=(
+    "RUSTFLAGS=-C panic=abort -C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=-pthread -C link-arg=-sPTHREAD_POOL_SIZE=1"
+  )
+  cargo_command=(cargo +"$pthread_toolchain" -Z build-std=std,panic_abort build)
+fi
+env "${build_env[@]}" \
+  "${cargo_command[@]}" --locked --release --manifest-path "$manifest" \
     "${cargo_args[@]}"
 
 case "$runtime_kind" in

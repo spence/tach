@@ -14,10 +14,12 @@ path = "src/bin/wasip1_threads.rs"
 required-features = ["wasip1-threads"]
 
 [features]
+default = ["tach-default"]
+tach-default = ["tach/thread-cpu-inline"]
 wasip1-threads = ["dep:serde_json"]
 
 [dependencies]
-tach = { path = "../.." }
+tach = { path = "../..", default-features = false }
 wasm-bindgen = { version = "=0.2.114", default-features = false }
 serde_json = { version = "1", optional = true }
 

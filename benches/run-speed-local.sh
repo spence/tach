@@ -1,28 +1,35 @@
 #!/usr/bin/env bash
 # Run the complete wall/thread-CPU Criterion campaign on this Apple Silicon
-# machine and write one source-bound primary speed cell plus its retained bundle.
+# machine and write one source-bound speed cell plus its retained bundle.
 #
 # Usage:
-#   benches/run-speed-local.sh <output-dir>/speed-0-apple.json
+#   benches/run-speed-local.sh <output-dir>/{speed-0-apple.json|speed-supplemental-macos-aarch64-no-default.json}
 set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
-  echo "usage: $0 <output-dir>/speed-0-apple.json" >&2
+  echo "usage: $0 <output-dir>/{speed-0-apple.json|speed-supplemental-macos-aarch64-no-default.json}" >&2
   exit 2
 fi
 
 output_input="$1"
 output_name="$(basename "$output_input")"
 case "$output_name" in
-  speed-0-apple.json) runner="local-macos-criterion" ;;
+  speed-0-apple.json)
+    runner="local-macos-criterion"
+    build_mode="default"
+    ;;
+  speed-supplemental-macos-aarch64-no-default.json)
+    runner="local-macos-criterion-no-default"
+    build_mode="no-default"
+    ;;
   *)
-    echo "local Criterion runner only composes the canonical speed-0-apple.json artifact" >&2
+    echo "unsupported local Apple speed artifact: $output_name" >&2
     exit 2
     ;;
 esac
 host_triple="$(rustc -vV | sed -n 's/^host: //p')"
 if [ "$host_triple" != "aarch64-apple-darwin" ]; then
-  echo "speed-0-apple.json requires an aarch64-apple-darwin host, got ${host_triple:-unknown}" >&2
+  echo "$output_name requires an aarch64-apple-darwin host, got ${host_triple:-unknown}" >&2
   exit 2
 fi
 
@@ -66,14 +73,30 @@ if [ -e "$criterion_dir" ] || [ -L "$criterion_dir" ]; then
   echo "fresh local target directory already contains Criterion output: $criterion_dir" >&2
   exit 1
 fi
+if [ "$build_mode" = "default" ]; then
+  cargo_mode=(--features bench-internal,thread-cpu-inline)
+else
+  cargo_mode=(--no-default-features --features bench-internal)
+fi
 python3 benches/seal-speed-source.py "$criterion_dir" -- \
   env \
     CARGO_TARGET_DIR="$target_dir" \
     TACH_BENCH_EVIDENCE=1 \
     TACH_BENCH_SOURCE_REVISION="$source_revision" \
     TACH_BENCH_RUNNER="$runner" \
-    cargo bench --locked --bench instant --features bench-internal,thread-cpu-inline -- \
+    cargo bench --locked --bench instant "${cargo_mode[@]}" -- \
       --warm-up-time 1 --measurement-time 3
 python3 benches/collect-speed-bundle.py "$criterion_dir" "$bundle_dir"
-python3 benches/compose-speed.py "$output" --collector-bundle "$bundle_dir"
+if [ "$build_mode" = "default" ]; then
+  python3 benches/compose-speed.py "$output" --collector-bundle "$bundle_dir"
+else
+  python3 benches/compose-supplemental-speed.py \
+    --artifact "$output_name" \
+    --output "$output" \
+    --source-revision "$source_revision" \
+    --collector-bundle "$bundle_dir" \
+    --instant-profile runtime_tournament \
+    --ordered-profile runtime_tournament \
+    --thread-cpu-profile fixed_native
+fi
 echo "wrote $output with retained collector bundle $bundle_dir"

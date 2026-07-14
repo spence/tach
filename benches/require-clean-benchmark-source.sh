@@ -40,6 +40,7 @@ paths=(
   benches/run-speed-host-runtime.sh
   benches/run-speed-criterion.sh
   benches/run-speed-local.sh
+  benches/run-speed-native-supplemental.sh
   benches/run-thread-pmu-aws.sh
   benches/runtime-smoke/Cargo.lock
   benches/runtime-smoke/Cargo.toml

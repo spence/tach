@@ -73,19 +73,19 @@ metadata_fields = ["selected_provider", "selected_mechanism", "selected_read_cos
 id = "criterion_linux_adaptive"
 kind = "criterion"
 state = "ready"
-entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-criterion.sh", "benches/run-speed-aws.sh"]
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-criterion.sh", "benches/run-speed-native-supplemental.sh", "benches/run-speed-aws.sh"]
 
 [[producer]]
 id = "criterion_linux_mainstream_no_default"
 kind = "criterion"
 state = "ready"
-entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-criterion.sh"]
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-criterion.sh", "benches/run-speed-native-supplemental.sh"]
 
 [[producer]]
 id = "criterion_linux_rare_no_default"
 kind = "criterion"
 state = "ready"
-entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-criterion.sh"]
+entrypoints = ["benches/instant.rs", "benches/extract_speed.py", "benches/run-speed-criterion.sh", "benches/run-speed-native-supplemental.sh"]
 
 [[producer]]
 id = "criterion_macos_fixed_native"

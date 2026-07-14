@@ -24,8 +24,11 @@ path = "src/bin/wasip2.rs"
 required-features = ["wasip2-host"]
 
 [features]
+default = ["tach-default"]
+tach-default = ["tach/thread-cpu-inline"]
 browser-host = []
 emscripten-host = []
+emscripten-pthreads = ["tach/emscripten-pthreads"]
 wasip1-host = []
 wasip1-node-host = ["wasip1-host"]
 wasip2-host = []
@@ -34,7 +37,7 @@ wasip2-host = []
 fastant = "0.1.11"
 minstant = "0.1.7"
 serde_json = "1"
-tach = { path = "../..", features = ["bench-internal"] }
+tach = { path = "../..", default-features = false, features = ["bench-internal"] }
 wasm-bindgen = { version = "=0.2.114", default-features = false }
 
 [target.'cfg(not(target_os = "emscripten"))'.dependencies]

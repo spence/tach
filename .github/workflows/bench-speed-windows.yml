@@ -197,6 +197,49 @@ jobs:
           path: hosted-speed-ubuntu-24-i686
           if-no-files-found: error
           retention-days: 90
+      - name: Verify i686 no-default configuration
+        env:
+          CARGO_TARGET_DIR: target/linux-i686-no-default
+          TACH_BENCH_RUNNER: github-ubuntu-24-i686-no-default
+        run: |
+          cargo test --locked --release --tests --no-default-features \
+            --features bench-internal --target i686-unknown-linux-gnu
+      - name: Run source-sealed i686 no-default benchmark
+        env:
+          CARGO_TARGET_DIR: target/linux-i686-no-default
+          TACH_BENCH_RUNNER: github-ubuntu-24-i686-no-default
+        run: |
+          python3 benches/seal-speed-source.py "$CARGO_TARGET_DIR/criterion" -- \
+            cargo bench --locked --bench instant --no-default-features \
+              --features bench-internal --target i686-unknown-linux-gnu -- \
+              --warm-up-time 1 --measurement-time 3
+      - name: Retain and compose i686 no-default evidence
+        env:
+          CARGO_TARGET_DIR: target/linux-i686-no-default
+          TACH_BENCH_RUNNER: github-ubuntu-24-i686-no-default
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          output_dir=hosted-speed-ubuntu-24-i686-no-default
+          artifact=speed-supplemental-linux-i686-no-default.json
+          bundle="$output_dir/speed-supplemental-linux-i686-no-default.collector.bundle"
+          mkdir -p "$output_dir"
+          python3 benches/collect-speed-bundle.py "$CARGO_TARGET_DIR/criterion" "$bundle"
+          python3 benches/compose-supplemental-speed.py \
+            --artifact "$artifact" \
+            --output "$output_dir/$artifact" \
+            --source-revision "$source_revision" \
+            --collector-bundle "$bundle" \
+            --instant-profile runtime_tournament \
+            --ordered-profile runtime_tournament \
+            --thread-cpu-profile runtime_tournament
+      - name: Upload immutable i686 Linux no-default evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-ubuntu-24-i686-no-default-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-ubuntu-24-i686-no-default
+          if-no-files-found: error
+          retention-days: 90
 
   macos-intel-supplemental:
     name: macOS 15 Intel supplemental
@@ -241,5 +284,168 @@ jobs:
         with:
           name: tach-speed-macos-15-intel-${{ env.TACH_FREEZE_SHA }}
           path: hosted-speed-macos-15-intel
+          if-no-files-found: error
+          retention-days: 90
+
+  hosted-no-default-supplemental:
+    name: ${{ matrix.label }} no-default supplemental
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows 2025 x86_64
+            runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            artifact: speed-supplemental-windows-x86_64-no-default.json
+            instant_profile: fixed_native
+            ordered_profile: fixed_native
+            thread_cpu_profile: availability_fallback
+          - label: Windows 2025 i686
+            runner: windows-2025
+            target: i686-pc-windows-msvc
+            artifact: speed-supplemental-windows-i686-no-default.json
+            instant_profile: fixed_native
+            ordered_profile: fixed_native
+            thread_cpu_profile: availability_fallback
+          - label: Windows 11 Arm64
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            artifact: speed-supplemental-windows-aarch64-no-default.json
+            instant_profile: fixed_native
+            ordered_profile: fixed_native
+            thread_cpu_profile: availability_fallback
+          - label: macOS 15 Intel
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            artifact: speed-supplemental-macos-x86_64-no-default.json
+            instant_profile: runtime_tournament
+            ordered_profile: runtime_tournament
+            thread_cpu_profile: fixed_native
+          - label: macOS 15 Apple Silicon
+            runner: macos-15
+            target: aarch64-apple-darwin
+            artifact: speed-supplemental-macos-aarch64-no-default.json
+            instant_profile: runtime_tournament
+            ordered_profile: runtime_tournament
+            thread_cpu_profile: fixed_native
+    runs-on: ${{ matrix.runner }}
+    env:
+      CARGO_TARGET_DIR: target/no-default-${{ matrix.target }}
+      TACH_BENCH_EVIDENCE: "1"
+      TACH_BENCH_SOURCE_REVISION: ${{ github.sha }}
+      TACH_BENCH_RUNNER: github-${{ matrix.target }}-no-default
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install target
+        shell: bash
+        run: rustup target add "${{ matrix.target }}"
+      - name: Verify no-default configuration
+        shell: bash
+        run: |
+          cargo test --locked --release --tests --no-default-features \
+            --features bench-internal --target "${{ matrix.target }}"
+      - name: Run source-sealed no-default benchmark
+        shell: bash
+        run: |
+          python3 benches/seal-speed-source.py "$CARGO_TARGET_DIR/criterion" -- \
+            cargo bench --locked --bench instant --no-default-features \
+              --features bench-internal --target "${{ matrix.target }}" -- \
+              --warm-up-time 1 --measurement-time 3
+      - name: Retain and compose no-default evidence
+        shell: bash
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          artifact="${{ matrix.artifact }}"
+          output_dir="hosted-speed-${{ matrix.target }}-no-default"
+          bundle="$output_dir/${artifact%.json}.collector.bundle"
+          mkdir -p "$output_dir"
+          python3 benches/collect-speed-bundle.py "$CARGO_TARGET_DIR/criterion" "$bundle"
+          python3 benches/compose-supplemental-speed.py \
+            --artifact "$artifact" \
+            --output "$output_dir/$artifact" \
+            --source-revision "$source_revision" \
+            --collector-bundle "$bundle" \
+            --instant-profile "${{ matrix.instant_profile }}" \
+            --ordered-profile "${{ matrix.ordered_profile }}" \
+            --thread-cpu-profile "${{ matrix.thread_cpu_profile }}"
+      - name: Upload immutable no-default evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-${{ matrix.target }}-no-default-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-${{ matrix.target }}-no-default
+          if-no-files-found: error
+          retention-days: 90
+
+  linux-riscv64-supplemental:
+    name: Native RISC-V ${{ matrix.mode }} supplemental
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: default
+            artifact: speed-supplemental-linux-riscv64gc.json
+          - mode: no-default
+            artifact: speed-supplemental-linux-riscv64gc-no-default.json
+    runs-on: ubuntu-24.04-riscv
+    env:
+      CARGO_TARGET_DIR: target/riscv64-${{ matrix.mode }}
+      TACH_BENCH_EVIDENCE: "1"
+      TACH_BENCH_SOURCE_REVISION: ${{ github.sha }}
+      TACH_BENCH_RUNNER: rise-riscv-${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: riscv64gc-unknown-linux-gnu
+      - name: Verify configuration
+        shell: bash
+        run: |
+          cargo_mode=(--features bench-internal,thread-cpu-inline)
+          if [ "${{ matrix.mode }}" = no-default ]; then
+            cargo_mode=(--no-default-features --features bench-internal)
+          fi
+          cargo test --locked --release --tests --target riscv64gc-unknown-linux-gnu \
+            "${cargo_mode[@]}"
+      - name: Run source-sealed native RISC-V benchmark
+        shell: bash
+        run: |
+          cargo_mode=(--features bench-internal,thread-cpu-inline)
+          if [ "${{ matrix.mode }}" = no-default ]; then
+            cargo_mode=(--no-default-features --features bench-internal)
+          fi
+          python3 benches/seal-speed-source.py "$CARGO_TARGET_DIR/criterion" -- \
+            cargo bench --locked --bench instant --target riscv64gc-unknown-linux-gnu \
+              "${cargo_mode[@]}" -- --warm-up-time 1 --measurement-time 3
+      - name: Retain and compose native RISC-V evidence
+        shell: bash
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          artifact="${{ matrix.artifact }}"
+          output_dir="hosted-speed-riscv64-${{ matrix.mode }}"
+          bundle="$output_dir/${artifact%.json}.collector.bundle"
+          mkdir -p "$output_dir"
+          python3 benches/collect-speed-bundle.py "$CARGO_TARGET_DIR/criterion" "$bundle"
+          python3 benches/compose-supplemental-speed.py \
+            --artifact "$artifact" \
+            --output "$output_dir/$artifact" \
+            --source-revision "$source_revision" \
+            --collector-bundle "$bundle" \
+            --instant-profile runtime_tournament \
+            --ordered-profile runtime_tournament \
+            --thread-cpu-profile runtime_tournament
+      - name: Upload immutable native RISC-V evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-riscv64-${{ matrix.mode }}-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-riscv64-${{ matrix.mode }}
           if-no-files-found: error
           retention-days: 90

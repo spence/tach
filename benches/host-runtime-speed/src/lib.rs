@@ -348,13 +348,18 @@ fn runtime_attestation() -> Result<Value, String> {
     .filter(|value| !value.is_empty())
     .ok_or("host-runtime benchmark build omitted its runner identity")?;
   let harness = if cfg!(feature = "browser-host") { "browser" } else { "node-wasm-bindgen" };
+  let features = if cfg!(feature = "tach-default") {
+    vec!["bench-internal", "thread-cpu-inline"]
+  } else {
+    vec!["bench-internal"]
+  };
   Ok(json!({
     "schema": "tach-benchmark-runtime-v2",
     "invocation_id": invocation_id,
     "harness": harness,
     "target": {"arch": "wasm32", "os": "unknown", "env": ""},
-    "features": ["bench-internal", "thread-cpu-inline"],
-    "build_mode": "default",
+    "features": features,
+    "build_mode": if cfg!(feature = "tach-default") { "default" } else { "no-default" },
     "build_profile": if cfg!(debug_assertions) { "debug" } else { "optimized" },
     "source_revision": source_revision,
     "runner": runner,
