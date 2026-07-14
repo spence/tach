@@ -300,6 +300,12 @@ decision; never silently omit a failing target.
 - Next: Keep OrderedInstant at 8 bytes and correct the repeated Linux x86 ordered dispatch without slowing now; rerun the affected canonical Intel producer only after targeted public/exact proof passes.
 - Board: Intel OrderedInstant remains the release-critical gap; the 16-byte state-retention design is dispositioned no-go and AWS cleanup is complete.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Committed the 8-byte Linux x86 LFENCE hot-path specialization at 1edcd01, corrected the signal-regression TLS teardown race at 3954caa, and source-sealed plus independently replay-validated the canonical c7i default bundle.
+- Found: OrderedInstant measured 20.313 ns now and 40.372 ns elapsed versus 20.312/40.069 ns for its exact selected route and 23.507/50.659 ns for std; all optimized Linux correctness tests and the retained bundle passed with zero validation failures.
+- Next: Freeze 3954caa and recollect the remaining one-revision native and hosted matrix, beginning with the canonical Graviton primary cell and the Intel musl/no-default identities.
+- Board: The Intel ordered-dispatch investigation is frozen as resolved and the c7i default cell is green at 3954caa; M1 remains open until every admitted producer is recollected and unified validation passes.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

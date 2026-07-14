@@ -1,8 +1,8 @@
 # `INV-X86-ORDERED-DISPATCH` — Linux x86 OrderedInstant dispatch parity
 
-Status: INVESTIGATION, 2026-07-13 — active; the retained-state design is rejected and the
-8-byte hot-path correction remains open. This is a frozen record of one effort; never renamed,
-pruned, or rolled-up once concluded. Read
+Status: INVESTIGATION, 2026-07-13 — concluded and FROZEN; the retained-state design was rejected
+and the 8-byte LFENCE hot-path specialization passed its source-sealed verification. Never rename,
+prune, or roll up this record. Read
 [`../STATUS.md`](../STATUS.md) and [`../README.md`](../README.md) first.
 
 ## Context
@@ -43,12 +43,46 @@ eligible-provider purpose. The experiment was therefore interrupted instead of b
 release evidence. AWS instance `i-0a7f4d44e5e84d106` was terminated, its ephemeral key was deleted,
 and a post-run query found no live `tach-bench-*` instance or `tach-speed-*` key.
 
-## Conclusion and next constraint
+## Accepted 8-byte specialization
 
-Retaining selector state by doubling the public sample representation is rejected. The correction
-must keep the 8-byte `OrderedInstant` representation and remove or amortize the repeated dynamic
-dispatch without slowing `now()`. Weakening the public/exact equivalence band, accepting a slower
-public `now()`, or treating the rejected partial run as canonical evidence are not valid fallbacks.
+Commit `1edcd017a5842d05a3c76700df50b05f4f5c07b8` kept `OrderedInstant` at 8 bytes and
+specialized the selected Linux x86 LFENCE+RDTSC route as the first branch of the public hot reader.
+Other ordered providers remain in an out-of-line route, and the selector measures candidates
+through that same public dispatch shape. This removes the multi-comparison decision tree from the
+route selected on the tested Intel host without executable self-patching.
+
+The first final-revision run exposed a shutdown race in the signal-reentry regression harness: the
+worker published completion before its TLS teardown, allowing an already-issued signal to make TLS
+unavailability look like provider failure. Commit
+`3954caa54c2207dc4ad09c229d6594e5698485cc` blocks the test signal before publishing worker
+completion. This was a harness correction; the production provider code remained the code from
+`1edcd01`.
+
+The exact `3954caa` source then passed all 86 optimized unit tests, four Linux thread-CPU semantics
+tests, and both initialization/reentry tests on `c7i.large`. Its retained collector bundle replayed
+with zero validation failures:
+
+| Operation / route | Median |
+|---|---:|
+| public `OrderedInstant::now()` | 20.313 ns |
+| exact selected LFENCE+RDTSC `now()` | 20.312 ns |
+| `std::time::Instant::now()` | 23.507 ns |
+| public `OrderedInstant::now() + elapsed()` | 40.372 ns |
+| exact selected LFENCE+RDTSC `now() + elapsed()` | 40.069 ns |
+| `std::time::Instant::now() + elapsed()` | 50.659 ns |
+
+The alternating paired probe also passed its repeatability rule: public/exact medians were
+19.494/18.888 ns for `now()` with zero decisive losses and 41.270/39.212 ns for elapsed with five
+decisive losses. The independent Criterion route estimates remained materially tied for both
+operations, and every eligible ordered candidate plus the public `std` comparison passed.
+
+## Conclusion
+
+Retaining selector state by doubling the public sample representation is rejected. The accepted
+correction is the 8-byte LFENCE-first public dispatch at `1edcd01`, verified as part of exact source
+`3954caa`. It closes the Intel dispatch-parity investigation without weakening the evidence rule,
+slowing public `now()`, or reviving the former executable self-patching machinery. This result is
+one passing canonical Intel cell, not proof of the remaining platform matrix.
 
 ## Verification
 

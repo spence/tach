@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Keep OrderedInstant at 8 bytes and correct the repeated Linux x86 ordered dispatch without slowing now; rerun the affected canonical Intel producer only after targeted public/exact proof passes.
+> Next:       Freeze 3954caa and recollect the remaining one-revision native and hosted matrix, beginning with the canonical Graviton primary cell and the Intel musl/no-default identities.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Ran and rejected the 16-byte Linux x86 OrderedInstant retained-state experiment at afab34d; optimized correctness suites passed and the source-sealed c7i Criterion run reached both decisive public operations before cleanup. · By: nsr · 9ac10bd
+> Last verified: 2026-07-13 · Changed: Committed the 8-byte Linux x86 LFENCE hot-path specialization at 1edcd01, corrected the signal-regression TLS teardown race at 3954caa, and source-sealed plus independently replay-validated the canonical c7i default bundle. · By: nsr · 3954caa
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
