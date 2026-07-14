@@ -92,6 +92,30 @@ class SealedRunnerWiringTests(unittest.TestCase):
         self.assertIn("--collector-bundle", source)
         self.assertIn("--thread-cpu-profile runtime_tournament", source)
 
+    def test_hosted_criterion_workflow_retains_source_sealed_bundles(self) -> None:
+        source = (BENCHES_DIR.parent / ".github/workflows/bench-speed-windows.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual(source.count("seal-speed-source.py"), 5)
+        self.assertEqual(source.count("collect-speed-bundle.py"), 5)
+        self.assertEqual(source.count("--collector-bundle"), 5)
+        self.assertEqual(source.count("TACH_BENCH_EVIDENCE:"), 5)
+        self.assertEqual(source.count("TACH_BENCH_SOURCE_REVISION:"), 5)
+        self.assertEqual(source.count("TACH_BENCH_RUNNER:"), 5)
+        self.assertEqual(source.count("compose-supplemental-speed.py"), 4)
+        self.assertIn("python benches/compose-speed.py", source)
+        for artifact in (
+            "speed-4-windows.json",
+            "speed-supplemental-windows-i686.json",
+            "speed-supplemental-windows-aarch64.json",
+            "speed-supplemental-linux-i686.json",
+            "speed-supplemental-macos-x86_64.json",
+        ):
+            self.assertIn(artifact, source)
+        self.assertNotIn("extract_speed.py", source)
+        self.assertNotIn("clocks.json", source)
+        self.assertNotIn("cp -R", source)
+
     def test_aws_correctness_gate_retains_failure_and_prevents_sealing(self) -> None:
         source = self.source("run-speed-aws.sh")
         functions = []
