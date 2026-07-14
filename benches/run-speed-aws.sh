@@ -78,7 +78,7 @@ SG_ID="sg-05e99abafa54936d3"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE_REVISION="$(bash "$REPO_ROOT/benches/require-clean-benchmark-source.sh")"
 RESULT_DIR="$(mktemp -d -t "tach-speed-${CELL}.XXXXXX")"
-BUNDLE_DIR="$RESULT_DIR/collector.bundle"
+BUNDLE_DIR="$RESULT_DIR/${artifact_id%.json}.collector.bundle"
 BUNDLE_ARCHIVE="$RESULT_DIR/collector.bundle.tgz"
 COMPOSED_OUT="$RESULT_DIR/$artifact_id"
 TARBALL="$(mktemp -t tach-speed-src.XXXXXX)"
@@ -327,6 +327,7 @@ $SSH "sh /tmp/remote-speed.sh '$MODE' '$SOURCE_REVISION' '$runner' '$BUILD_MODE'
 retry_scp "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"
 tar -xzf "$BUNDLE_ARCHIVE" -C "$RESULT_DIR"
 rm -f "$BUNDLE_ARCHIVE"
+mv "$RESULT_DIR/collector.bundle" "$BUNDLE_DIR"
 if [ "$BUILD_MODE" = no-default ]; then
   python3 "$SOURCE_DIR/benches/compose-supplemental-speed.py" \
     --artifact "$artifact_id" \

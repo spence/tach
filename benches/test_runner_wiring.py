@@ -249,6 +249,20 @@ printf "SEAL_RAN\\n"
         self.assertLess(transfer, extract)
         self.assertNotIn('$SCP -r "ec2-user@$IP:tach/collector.bundle"', source)
 
+    def test_cloud_runners_emit_artifact_specific_bundle_names(self) -> None:
+        aws = self.source("run-speed-aws.sh")
+        self.assertIn(
+            'BUNDLE_DIR="$RESULT_DIR/${artifact_id%.json}.collector.bundle"',
+            aws,
+        )
+        self.assertIn('mv "$RESULT_DIR/collector.bundle" "$BUNDLE_DIR"', aws)
+
+        freebsd = self.source("run-speed-freebsd-aws.sh")
+        self.assertIn(
+            'bundle_dir="$result_dir/${artifact%.json}.collector.bundle"',
+            freebsd,
+        )
+
     def test_aws_waits_for_stable_cloud_init_before_source_transfer(self) -> None:
         source = self.source("run-speed-aws.sh")
 
