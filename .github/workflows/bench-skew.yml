@@ -2,9 +2,19 @@ name: bench-skew
 
 on:
   workflow_dispatch:
+    inputs:
+      boundary:
+        description: Evidence boundary to run
+        required: true
+        default: windows-ordered-contract
+        type: choice
+        options:
+          - windows-ordered-contract
+          - full
 
 jobs:
   bench-skew:
+    if: ${{ inputs.boundary == 'full' }}
     strategy:
       fail-fast: false
       matrix:
@@ -62,3 +72,44 @@ jobs:
         with:
           name: skewmono-${{ matrix.label }}
           path: skewmono-github-windows-x86_64.json
+
+  windows-ordered-contract:
+    if: ${{ inputs.boundary == 'windows-ordered-contract' }}
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build synchronization-order probe
+        run: cargo build --locked --release --bench skew --features bench-quanta
+      - name: Run current Windows QPC contract probes
+        shell: bash
+        run: |
+          bin=$(ls -t target/release/deps/skew-*.exe | grep -v '\.d$' | head -1)
+          for clock in tach tach_ordered std; do
+            "$bin" --mode sync-order --cell github-windows-x86_64 \
+              --only-clock "$clock" --duration 30 \
+              --output "sync-order-$clock.json"
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for path in sorted(Path('.').glob('sync-order-*.json')):
+              payload = json.loads(path.read_text())
+              clock, report = next(iter(payload['clocks'].items()))
+              result = report['synchronization_order']
+              print(
+                  f"{clock}: {result['total_violations']} violations / "
+                  f"{result['total_reads']} reads; max={result['max_violation_ns']} ns"
+              )
+          PY
+      - name: Upload Windows ordering evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-ordered-contract-${{ github.sha }}
+          path: sync-order-*.json
+          if-no-files-found: error
+          retention-days: 90

@@ -6,6 +6,7 @@
 //!   --mode fast   per-thread + cross-thread + skew-1s  (~50s)
 //!   --mode drift  skew-1m only                          (~5m per clock)
 //!   --mode all    everything                            (default; ~35m+)
+//!   --mode sync-order synchronization-order only
 //!
 //! Useful args:
 //!   --cell <name>           cell identifier for the JSON header
@@ -62,6 +63,7 @@ enum Mode {
   Fast,
   Drift,
   All,
+  SyncOrder,
   OrderedVerify,
 }
 
@@ -129,6 +131,15 @@ fn run_for<C: ClockSource>(args: &Args) -> ClockReport {
 
   let (per_thread, cross_thread, synchronization_order, skew_1s) = match args.mode {
     Mode::Drift => (empty_per_thread::<C>(), empty_cross_thread::<C>(), None, empty_skew_1s::<C>()),
+    Mode::SyncOrder => {
+      eprintln!("  synchronization-order ({} threads, {:?})...", args.threads, args.duration);
+      let st = measure_synchronization_order::<C>(args.threads, args.duration);
+      eprintln!(
+        "    {} contract violations (max {} ns) / {} reads",
+        st.total_violations, st.max_violation_ns, st.total_reads
+      );
+      (empty_per_thread::<C>(), empty_cross_thread::<C>(), Some(st), empty_skew_1s::<C>())
+    }
     Mode::Fast | Mode::All => {
       eprintln!("  per-thread ({:?})...", args.duration);
       let pt = measure_per_thread::<C>(args.duration);
@@ -162,7 +173,7 @@ fn run_for<C: ClockSource>(args: &Args) -> ClockReport {
   };
 
   let skew_1m = match args.mode {
-    Mode::Fast | Mode::OrderedVerify => None,
+    Mode::Fast | Mode::SyncOrder | Mode::OrderedVerify => None,
     Mode::Drift | Mode::All => {
       eprintln!("  skew-1m ({} samples)...", args.skew_1m_samples);
       let s60 = measure_skew::<C>(Duration::from_secs(60), args.skew_1m_samples, "1m");
@@ -239,6 +250,7 @@ fn parse_args() -> Args {
           "fast" => Mode::Fast,
           "drift" => Mode::Drift,
           "all" => Mode::All,
+          "sync-order" => Mode::SyncOrder,
           "ordered-verify" => Mode::OrderedVerify,
           other => panic!("unknown mode {other:?}"),
         };
