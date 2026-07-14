@@ -3117,6 +3117,74 @@ declare void @generic_implementation()
       for failure in failures
     ))
 
+  def test_emscripten_pthread_ordered_selector_reproduces_real_candidates(self) -> None:
+    local_performance = [80_000] * 9
+    local_hrtime = [100_000] * 9
+    epoch = [100_000] * 9
+    get_now = [80_000] * 9
+    local_decision = speed_evidence.reproduce_material_decision(
+      local_hrtime, local_performance, 4_096, 8
+    )
+    ordered_decision = speed_evidence.reproduce_material_decision(
+      get_now, epoch, 4_096, 8
+    )
+    selected = {
+      "instant": "performance.now",
+      "ordered": "emscripten_get_now_atomic_max",
+    }
+    candidates = {
+      "instant": [
+        "direct_wall__performance.now",
+        "direct_wall__process.hrtime.bigint",
+      ],
+      "ordered": [
+        "direct_ordered_wall__emscripten_performance_epoch_atomic_max",
+        "direct_ordered_wall__emscripten_get_now_atomic_max",
+      ],
+    }
+    probe = {
+      "reads_per_batch": 4_096,
+      "required_decisive_wins": 8,
+      "instant": {
+        "performance_eligible": True,
+        "hrtime_eligible": True,
+        "performance_batches_ns": local_performance,
+        "hrtime_batches_ns": local_hrtime,
+        "allowance_ns": local_decision["allowance_ns"],
+        "hrtime_decisive_wins": local_decision["decisive_wins"],
+      },
+      "ordered": {
+        "shared_memory": True,
+        "pthread_build": True,
+        "epoch_eligible": True,
+        "get_now_eligible": True,
+        "get_now_offset_ns": 123,
+        "epoch_batches_ns": epoch,
+        "get_now_batches_ns": get_now,
+        "allowance_ns": ordered_decision["allowance_ns"],
+        "get_now_decisive_wins": ordered_decision["decisive_wins"],
+      },
+    }
+    failures = []
+    reproduction = speed_evidence.validate_emscripten_wall_selector(
+      "Emscripten pthread", selected, candidates, probe, failures
+    )
+    self.assertEqual(failures, [])
+    self.assertEqual(
+      reproduction["ordered"]["winner"],
+      "emscripten_get_now_atomic_max",
+    )
+
+    probe["ordered"]["shared_memory"] = False
+    failures = []
+    speed_evidence.validate_emscripten_wall_selector(
+      "Emscripten pthread", selected, candidates, probe, failures
+    )
+    self.assertTrue(any(
+      "malformed Emscripten pthread Ordered substrate" in failure
+      for failure in failures
+    ))
+
   def test_wasm_unknown_ineligible_references_are_explicit(self) -> None:
     target = "wasm32-unknown-unknown"
     policies = speed_evidence.local_reference_eligibility(target)

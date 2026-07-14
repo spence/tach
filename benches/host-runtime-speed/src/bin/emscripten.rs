@@ -54,7 +54,7 @@ fn run_observation() -> Result<Value, String> {
     .as_str()
     .ok_or("missing selected OrderedInstant provider")?;
   let selected_local_read = exact_wall_reader(selected_local)?;
-  let selected_ordered_read = exact_wall_reader(selected_ordered)?;
+  let selected_ordered_read = exact_ordered_wall_reader(selected_ordered)?;
   let (instant_now, direct_instant_now) =
     paired_median_cost(|| black_box(Instant::now()), || black_box(selected_local_read()));
   let (instant_elapsed, direct_instant_elapsed) = paired_median_cost(
@@ -260,19 +260,60 @@ fn wall_selection() -> Value {
   .into_iter()
   .filter_map(|(eligible, name)| eligible.then_some(name))
   .collect::<Vec<_>>();
-  let ordered_candidates = instant_candidates
-    .iter()
-    .map(|name| name.replacen("direct_wall__", "direct_ordered_wall__", 1))
+  #[cfg(feature = "emscripten-pthreads")]
+  let (selected_ordered, ordered_candidates, ordered_probe) = {
+    let ordered = tach::bench::emscripten_ordered_selection_evidence();
+    let candidates = [
+      (
+        ordered.performance_epoch_eligible,
+        "direct_ordered_wall__emscripten_performance_epoch_atomic_max",
+      ),
+      (ordered.emscripten_get_now_eligible, "direct_ordered_wall__emscripten_get_now_atomic_max"),
+    ]
+    .into_iter()
+    .filter_map(|(eligible, name)| eligible.then_some(name))
     .collect::<Vec<_>>();
+    (
+      ordered.selected_provider,
+      candidates,
+      json!({
+        "shared_memory": ordered.shared_memory,
+        "pthread_build": ordered.pthread_build,
+        "epoch_eligible": ordered.performance_epoch_eligible,
+        "get_now_eligible": ordered.emscripten_get_now_eligible,
+        "get_now_offset_ns": ordered.emscripten_get_now_offset_ns,
+        "epoch_batches_ns": ordered.performance_epoch_samples_ns,
+        "get_now_batches_ns": ordered.emscripten_get_now_samples_ns,
+        "allowance_ns": ordered.allowance_ns,
+        "get_now_decisive_wins": ordered.emscripten_get_now_decisive_wins,
+      }),
+    )
+  };
+  #[cfg(not(feature = "emscripten-pthreads"))]
+  let (selected_ordered, ordered_candidates, ordered_probe) = (
+    evidence.selected_provider,
+    instant_candidates
+      .iter()
+      .map(|name| name.replacen("direct_wall__", "direct_ordered_wall__", 1))
+      .collect::<Vec<_>>(),
+    json!({
+      "performance_eligible": evidence.performance_eligible,
+      "hrtime_eligible": evidence.hrtime_eligible,
+      "performance_batches_ns": evidence.performance_samples_ns,
+      "hrtime_batches_ns": evidence.hrtime_samples_ns,
+      "allowance_ns": evidence.allowance_ns,
+      "hrtime_decisive_wins": evidence.hrtime_decisive_wins,
+    }),
+  );
   json!({
     "architecture": "emscripten-host",
     "selected_provider": {
       "instant": evidence.selected_provider,
-      "ordered": evidence.selected_provider,
+      "ordered": selected_ordered,
     },
     "selected_native_benchmark": {
       "instant": format!("direct_selected_wall__{}", evidence.selected_provider),
-      "ordered": format!("direct_selected_ordered_wall__{}", evidence.selected_provider),
+      "ordered": format!("direct_selected_ordered_wall__{selected_ordered}"),
     },
     "eligible_direct_candidates": {
       "instant": instant_candidates,
@@ -289,14 +330,7 @@ fn wall_selection() -> Value {
         "allowance_ns": evidence.allowance_ns,
         "hrtime_decisive_wins": evidence.hrtime_decisive_wins,
       },
-      "ordered": {
-        "performance_eligible": evidence.performance_eligible,
-        "hrtime_eligible": evidence.hrtime_eligible,
-        "performance_batches_ns": evidence.performance_samples_ns,
-        "hrtime_batches_ns": evidence.hrtime_samples_ns,
-        "allowance_ns": evidence.allowance_ns,
-        "hrtime_decisive_wins": evidence.hrtime_decisive_wins,
-      },
+      "ordered": ordered_probe,
     },
   })
 }
@@ -391,8 +425,29 @@ fn exact_wall_reader(provider: &str) -> Result<fn() -> u64, String> {
   }
 }
 
+fn exact_ordered_wall_reader(provider: &str) -> Result<fn() -> u64, String> {
+  #[cfg(feature = "emscripten-pthreads")]
+  {
+    return match provider {
+      "emscripten_performance_epoch_atomic_max" => {
+        Ok(tach::bench::emscripten_exact_ordered_performance_epoch_ticks)
+      }
+      "emscripten_get_now_atomic_max" => {
+        Ok(tach::bench::emscripten_exact_ordered_aligned_get_now_ticks)
+      }
+      _ => Err(format!("unsupported Emscripten ordered wall provider {provider}")),
+    };
+  }
+  #[cfg(not(feature = "emscripten-pthreads"))]
+  exact_wall_reader(provider)
+}
+
 fn exact_wall_row(domain: &str, provider: &str) -> Result<Value, String> {
-  let read = exact_wall_reader(provider)?;
+  let read = if domain == "ordered" {
+    exact_ordered_wall_reader(provider)?
+  } else {
+    exact_wall_reader(provider)?
+  };
   let (now, elapsed) = cost_pair(read);
   Ok(exact_wall_row_from_costs(domain, provider, WallCosts { now, elapsed }))
 }

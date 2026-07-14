@@ -888,7 +888,7 @@ fn detect_ordered_provider(shared: bool, pthread: bool) -> OrderedSelectionOutco
   if let Some(provider) =
     provider_without_tournament(true, epoch_eligible, get_now_eligible, get_now_aligned)
   {
-    return unmeasured_outcome(provider, epoch_eligible, get_now_eligible);
+    return unmeasured_outcome(provider, epoch_eligible, get_now_eligible && get_now_aligned);
   }
 
   let mut epoch_samples = [0; PROBE_SAMPLES];

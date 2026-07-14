@@ -3682,16 +3682,57 @@ def validate_emscripten_wall_selector(
       if not isinstance(domain_probe, dict) or not isinstance(declared, list):
         failures.append(f"{context}: malformed Emscripten {domain} selector evidence")
         continue
-      candidate_map = {
-        f"{direct_prefix}__performance.now": (
-          "performance.now",
-          domain_probe.get("performance_eligible"),
-        ),
-        f"{direct_prefix}__process.hrtime.bigint": (
-          "process.hrtime.bigint",
-          domain_probe.get("hrtime_eligible"),
-        ),
-      }
+      pthread_ordered = domain == "ordered" and "epoch_eligible" in domain_probe
+      if pthread_ordered:
+        candidate_map = {
+          f"{direct_prefix}__emscripten_performance_epoch_atomic_max": (
+            "emscripten_performance_epoch_atomic_max",
+            domain_probe.get("epoch_eligible"),
+          ),
+          f"{direct_prefix}__emscripten_get_now_atomic_max": (
+            "emscripten_get_now_atomic_max",
+            domain_probe.get("get_now_eligible"),
+          ),
+        }
+        incumbent_samples = domain_probe.get("epoch_batches_ns")
+        challenger_samples = domain_probe.get("get_now_batches_ns")
+        incumbent_provider = "emscripten_performance_epoch_atomic_max"
+        challenger_provider = "emscripten_get_now_atomic_max"
+        decisive_wins_field = "get_now_decisive_wins"
+        zero_fields = (
+          "epoch_batches_ns",
+          "get_now_batches_ns",
+          "allowance_ns",
+          decisive_wins_field,
+        )
+        if (
+          domain_probe.get("shared_memory") is not True
+          or domain_probe.get("pthread_build") is not True
+          or type(domain_probe.get("get_now_offset_ns")) is not int
+        ):
+          failures.append(f"{context}: malformed Emscripten pthread Ordered substrate")
+      else:
+        candidate_map = {
+          f"{direct_prefix}__performance.now": (
+            "performance.now",
+            domain_probe.get("performance_eligible"),
+          ),
+          f"{direct_prefix}__process.hrtime.bigint": (
+            "process.hrtime.bigint",
+            domain_probe.get("hrtime_eligible"),
+          ),
+        }
+        incumbent_samples = domain_probe.get("performance_batches_ns")
+        challenger_samples = domain_probe.get("hrtime_batches_ns")
+        incumbent_provider = "performance.now"
+        challenger_provider = "process.hrtime.bigint"
+        decisive_wins_field = "hrtime_decisive_wins"
+        zero_fields = (
+          "performance_batches_ns",
+          "hrtime_batches_ns",
+          "allowance_ns",
+          decisive_wins_field,
+        )
       expected_candidates = [
         name for name, (_, eligible) in candidate_map.items() if eligible is True
       ]
@@ -3706,31 +3747,24 @@ def validate_emscripten_wall_selector(
       if len(declared) == 2:
         try:
           decision = reproduce_material_decision(
-            domain_probe.get("hrtime_batches_ns"),
-            domain_probe.get("performance_batches_ns"),
+            challenger_samples,
+            incumbent_samples,
             reads,
             required,
           )
         except (TypeError, ValueError):
           failures.append(f"{context}: malformed Emscripten {domain} paired samples")
           continue
-        expected_selected = (
-          "process.hrtime.bigint" if decision["selected"] else "performance.now"
-        )
+        expected_selected = challenger_provider if decision["selected"] else incumbent_provider
         if domain_probe.get("allowance_ns") != decision["allowance_ns"]:
           failures.append(f"{context}: Emscripten {domain} allowance does not reproduce")
-        if domain_probe.get("hrtime_decisive_wins") != decision["decisive_wins"]:
+        if domain_probe.get(decisive_wins_field) != decision["decisive_wins"]:
           failures.append(
             f"{context}: Emscripten {domain} decisive wins do not reproduce"
           )
       elif any(
         domain_probe.get(field) not in (0, [0] * 9)
-        for field in (
-          "performance_batches_ns",
-          "hrtime_batches_ns",
-          "allowance_ns",
-          "hrtime_decisive_wins",
-        )
+        for field in zero_fields
       ):
         failures.append(
           f"{context}: Emscripten {domain} single-candidate route retained tournament data"
