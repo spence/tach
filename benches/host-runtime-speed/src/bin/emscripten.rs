@@ -224,11 +224,11 @@ fn runtime_attestation() -> Result<Value, String> {
     .filter(|value| !value.is_empty())
     .ok_or("host-runtime benchmark build omitted its runner identity")?;
   let mut features = vec!["bench-internal"];
-  if cfg!(feature = "tach-default") {
-    features.push("thread-cpu-inline");
-  }
   if cfg!(feature = "emscripten-pthreads") {
     features.push("emscripten-pthreads");
+  }
+  if cfg!(feature = "tach-default") {
+    features.push("thread-cpu-inline");
   }
   let build_mode = if cfg!(feature = "emscripten-pthreads") {
     "emscripten-pthreads"
