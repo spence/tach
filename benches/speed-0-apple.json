@@ -1,32 +1,1024 @@
 {
+  "schema": "tach-speed-primary-v1",
+  "artifact_id": "speed-0-apple.json",
   "title": "Apple Silicon",
   "instance": "M1 Max MacBook Pro",
   "triple": "aarch64-apple-darwin",
   "order": 0,
+  "build_mode": "default",
+  "evidence_kind": "full_speed",
+  "provenance": {
+    "harness": "criterion",
+    "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+    "runner": "local-macos-criterion",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "bench-internal",
+      "thread-cpu-inline"
+    ]
+  },
+  "collector_bundle": {
+    "schema": "tach-speed-collector-v1",
+    "path": "speed-0-apple.collector.bundle",
+    "manifest_sha256": "b9bc60888e3dbb656396c17d469317e3486e918dddd5aa25250f9bff1cdf5bab"
+  },
+  "collector_attestation": {
+    "schema": "tach-speed-collector-v1",
+    "invocation_id": "criterion-ea58837df4e8c4b3",
+    "runtime_attestation": {
+      "build_mode": "default",
+      "build_profile": "optimized",
+      "features": [
+        "bench-internal",
+        "thread-cpu-inline"
+      ],
+      "harness": "criterion",
+      "invocation_id": "criterion-ea58837df4e8c4b3",
+      "output_isolated": true,
+      "runner": "local-macos-criterion",
+      "schema": "tach-benchmark-runtime-v2",
+      "source_revision": "68dc2015bbb81e16b9a1911c566b52aca8ff1c77",
+      "target": {
+        "arch": "aarch64",
+        "env": "",
+        "os": "macos"
+      }
+    },
+    "manifest_sha256": "b9bc60888e3dbb656396c17d469317e3486e918dddd5aa25250f9bff1cdf5bab"
+  },
   "clocks": {
     "tach": {
-      "now": 0.3362562111273043,
-      "elapsed": 1.2886593221139806
+      "now": 7.794512607438518,
+      "now_ci95": [
+        7.767611349409269,
+        7.811047571250626
+      ],
+      "elapsed": 15.473917562266946,
+      "elapsed_ci95": [
+        15.436985433818872,
+        15.52610720103879
+      ],
+      "time_domain": "instant wall",
+      "selection": {
+        "decision_rule": "Instant and OrderedInstant independently tournament every eligible Mach absolute, Mach continuous, and direct commpage path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__apple_continuous_hw_acntvct_base",
+            "direct_wall__apple_commpage_acntvct_offset",
+            "direct_wall__apple_mach_absolute_time",
+            "direct_wall__apple_mach_continuous_time"
+          ],
+          "ordered": [
+            "direct_ordered_wall__apple_continuous_hw_acntvct_base",
+            "direct_ordered_wall__apple_commpage_acntvct_offset",
+            "direct_ordered_wall__apple_mach_absolute_time",
+            "direct_ordered_wall__apple_mach_continuous_time"
+          ]
+        },
+        "probe": {
+          "instant": {
+            "candidate_count": 4,
+            "candidates": [
+              {
+                "batches_ticks": [
+                  570,
+                  583,
+                  565,
+                  565,
+                  565,
+                  566,
+                  565,
+                  568,
+                  567
+                ],
+                "median_ticks": 566,
+                "provider": "apple_continuous_hw_acntvct_base"
+              },
+              {
+                "batches_ticks": [
+                  559,
+                  583,
+                  565,
+                  566,
+                  566,
+                  566,
+                  565,
+                  565,
+                  566
+                ],
+                "median_ticks": 566,
+                "provider": "apple_commpage_acntvct_offset"
+              },
+              {
+                "batches_ticks": [
+                  603,
+                  616,
+                  596,
+                  597,
+                  597,
+                  595,
+                  597,
+                  597,
+                  597
+                ],
+                "median_ticks": 597,
+                "provider": "apple_mach_absolute_time"
+              },
+              {
+                "batches_ticks": [
+                  628,
+                  634,
+                  596,
+                  852,
+                  597,
+                  597,
+                  596,
+                  595,
+                  597
+                ],
+                "median_ticks": 597,
+                "provider": "apple_mach_continuous_time"
+              }
+            ],
+            "continuous_hwclock": true,
+            "equivalence_floor_ticks_per_batch": 99,
+            "equivalence_relative_denominator": 20,
+            "measured_winner": "apple_continuous_hw_acntvct_base",
+            "reads_per_batch": 4096,
+            "ready": true,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_continuous_hw_acntvct_base",
+            "selection_basis": "runtime_measured_complete_public_path",
+            "user_timebase_mode": 3
+          },
+          "ordered": {
+            "candidate_count": 4,
+            "candidates": [
+              {
+                "batches_ticks": [
+                  562,
+                  561,
+                  560,
+                  561,
+                  564,
+                  558,
+                  558,
+                  557,
+                  560
+                ],
+                "median_ticks": 560,
+                "provider": "apple_continuous_hw_acntvct_base"
+              },
+              {
+                "batches_ticks": [
+                  560,
+                  563,
+                  561,
+                  561,
+                  561,
+                  560,
+                  559,
+                  560,
+                  557
+                ],
+                "median_ticks": 560,
+                "provider": "apple_commpage_acntvct_offset"
+              },
+              {
+                "batches_ticks": [
+                  594,
+                  593,
+                  595,
+                  598,
+                  595,
+                  591,
+                  590,
+                  590,
+                  591
+                ],
+                "median_ticks": 593,
+                "provider": "apple_mach_absolute_time"
+              },
+              {
+                "batches_ticks": [
+                  594,
+                  592,
+                  590,
+                  591,
+                  596,
+                  590,
+                  590,
+                  590,
+                  975
+                ],
+                "median_ticks": 591,
+                "provider": "apple_mach_continuous_time"
+              }
+            ],
+            "continuous_hwclock": true,
+            "equivalence_floor_ticks_per_batch": 99,
+            "equivalence_relative_denominator": 20,
+            "measured_winner": "apple_continuous_hw_acntvct_base",
+            "reads_per_batch": 4096,
+            "ready": true,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_continuous_hw_acntvct_base",
+            "selection_basis": "runtime_measured_complete_public_path",
+            "user_timebase_mode": 3
+          }
+        },
+        "public_exact_probe": {
+          "instant": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              382703,
+              394250,
+              381461,
+              382043,
+              381878,
+              378542,
+              377754,
+              378001,
+              390081
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              382249,
+              399958,
+              429498,
+              383292,
+              382414,
+              378499,
+              378834,
+              378044,
+              401247
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          },
+          "ordered": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              382588,
+              390335,
+              390793,
+              387457,
+              388041,
+              375583,
+              399459,
+              383039,
+              379373
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              382586,
+              379540,
+              390669,
+              388416,
+              389206,
+              375920,
+              408252,
+              379211,
+              378214
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__apple_continuous_hw_acntvct_base",
+          "ordered": "direct_selected_ordered_wall__apple_continuous_hw_acntvct_base"
+        },
+        "selected_provider": {
+          "instant": "apple_continuous_hw_acntvct_base",
+          "ordered": "apple_continuous_hw_acntvct_base"
+        }
+      }
     },
     "tach_ordered": {
-      "now": 12.16457579994848,
-      "elapsed": 23.107674397804082
+      "now": 7.743937667853562,
+      "now_ci95": [
+        7.7371782359094485,
+        7.774191820003425
+      ],
+      "elapsed": 15.415603498416665,
+      "elapsed_ci95": [
+        15.384548266451025,
+        15.43673100087604
+      ],
+      "time_domain": "ordered wall",
+      "selection": {
+        "decision_rule": "every eligible Mach absolute, Mach continuous, and direct commpage path competes by repeatable material wins",
+        "eligible_direct_candidates": [
+          "direct_ordered_wall__apple_continuous_hw_acntvct_base",
+          "direct_ordered_wall__apple_commpage_acntvct_offset",
+          "direct_ordered_wall__apple_mach_absolute_time",
+          "direct_ordered_wall__apple_mach_continuous_time"
+        ],
+        "probe": {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "batches_ticks": [
+                562,
+                561,
+                560,
+                561,
+                564,
+                558,
+                558,
+                557,
+                560
+              ],
+              "median_ticks": 560,
+              "provider": "apple_continuous_hw_acntvct_base"
+            },
+            {
+              "batches_ticks": [
+                560,
+                563,
+                561,
+                561,
+                561,
+                560,
+                559,
+                560,
+                557
+              ],
+              "median_ticks": 560,
+              "provider": "apple_commpage_acntvct_offset"
+            },
+            {
+              "batches_ticks": [
+                594,
+                593,
+                595,
+                598,
+                595,
+                591,
+                590,
+                590,
+                591
+              ],
+              "median_ticks": 593,
+              "provider": "apple_mach_absolute_time"
+            },
+            {
+              "batches_ticks": [
+                594,
+                592,
+                590,
+                591,
+                596,
+                590,
+                590,
+                590,
+                975
+              ],
+              "median_ticks": 591,
+              "provider": "apple_mach_continuous_time"
+            }
+          ],
+          "continuous_hwclock": true,
+          "equivalence_floor_ticks_per_batch": 99,
+          "equivalence_relative_denominator": 20,
+          "measured_winner": "apple_continuous_hw_acntvct_base",
+          "reads_per_batch": 4096,
+          "ready": true,
+          "required_decisive_wins": 8,
+          "selected_provider": "apple_continuous_hw_acntvct_base",
+          "selection_basis": "runtime_measured_complete_public_path",
+          "user_timebase_mode": 3
+        },
+        "selected_provider": "apple_continuous_hw_acntvct_base"
+      },
+      "wall_selection": {
+        "decision_rule": "Instant and OrderedInstant independently tournament every eligible Mach absolute, Mach continuous, and direct commpage path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
+        "eligible_direct_candidates": {
+          "instant": [
+            "direct_wall__apple_continuous_hw_acntvct_base",
+            "direct_wall__apple_commpage_acntvct_offset",
+            "direct_wall__apple_mach_absolute_time",
+            "direct_wall__apple_mach_continuous_time"
+          ],
+          "ordered": [
+            "direct_ordered_wall__apple_continuous_hw_acntvct_base",
+            "direct_ordered_wall__apple_commpage_acntvct_offset",
+            "direct_ordered_wall__apple_mach_absolute_time",
+            "direct_ordered_wall__apple_mach_continuous_time"
+          ]
+        },
+        "probe": {
+          "instant": {
+            "candidate_count": 4,
+            "candidates": [
+              {
+                "batches_ticks": [
+                  570,
+                  583,
+                  565,
+                  565,
+                  565,
+                  566,
+                  565,
+                  568,
+                  567
+                ],
+                "median_ticks": 566,
+                "provider": "apple_continuous_hw_acntvct_base"
+              },
+              {
+                "batches_ticks": [
+                  559,
+                  583,
+                  565,
+                  566,
+                  566,
+                  566,
+                  565,
+                  565,
+                  566
+                ],
+                "median_ticks": 566,
+                "provider": "apple_commpage_acntvct_offset"
+              },
+              {
+                "batches_ticks": [
+                  603,
+                  616,
+                  596,
+                  597,
+                  597,
+                  595,
+                  597,
+                  597,
+                  597
+                ],
+                "median_ticks": 597,
+                "provider": "apple_mach_absolute_time"
+              },
+              {
+                "batches_ticks": [
+                  628,
+                  634,
+                  596,
+                  852,
+                  597,
+                  597,
+                  596,
+                  595,
+                  597
+                ],
+                "median_ticks": 597,
+                "provider": "apple_mach_continuous_time"
+              }
+            ],
+            "continuous_hwclock": true,
+            "equivalence_floor_ticks_per_batch": 99,
+            "equivalence_relative_denominator": 20,
+            "measured_winner": "apple_continuous_hw_acntvct_base",
+            "reads_per_batch": 4096,
+            "ready": true,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_continuous_hw_acntvct_base",
+            "selection_basis": "runtime_measured_complete_public_path",
+            "user_timebase_mode": 3
+          },
+          "ordered": {
+            "candidate_count": 4,
+            "candidates": [
+              {
+                "batches_ticks": [
+                  562,
+                  561,
+                  560,
+                  561,
+                  564,
+                  558,
+                  558,
+                  557,
+                  560
+                ],
+                "median_ticks": 560,
+                "provider": "apple_continuous_hw_acntvct_base"
+              },
+              {
+                "batches_ticks": [
+                  560,
+                  563,
+                  561,
+                  561,
+                  561,
+                  560,
+                  559,
+                  560,
+                  557
+                ],
+                "median_ticks": 560,
+                "provider": "apple_commpage_acntvct_offset"
+              },
+              {
+                "batches_ticks": [
+                  594,
+                  593,
+                  595,
+                  598,
+                  595,
+                  591,
+                  590,
+                  590,
+                  591
+                ],
+                "median_ticks": 593,
+                "provider": "apple_mach_absolute_time"
+              },
+              {
+                "batches_ticks": [
+                  594,
+                  592,
+                  590,
+                  591,
+                  596,
+                  590,
+                  590,
+                  590,
+                  975
+                ],
+                "median_ticks": 591,
+                "provider": "apple_mach_continuous_time"
+              }
+            ],
+            "continuous_hwclock": true,
+            "equivalence_floor_ticks_per_batch": 99,
+            "equivalence_relative_denominator": 20,
+            "measured_winner": "apple_continuous_hw_acntvct_base",
+            "reads_per_batch": 4096,
+            "ready": true,
+            "required_decisive_wins": 8,
+            "selected_provider": "apple_continuous_hw_acntvct_base",
+            "selection_basis": "runtime_measured_complete_public_path",
+            "user_timebase_mode": 3
+          }
+        },
+        "public_exact_probe": {
+          "instant": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              382703,
+              394250,
+              381461,
+              382043,
+              381878,
+              378542,
+              377754,
+              378001,
+              390081
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              382249,
+              399958,
+              429498,
+              383292,
+              382414,
+              378499,
+              378834,
+              378044,
+              401247
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          },
+          "ordered": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              382588,
+              390335,
+              390793,
+              387457,
+              388041,
+              375583,
+              399459,
+              383039,
+              379373
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              382586,
+              379540,
+              390669,
+              388416,
+              389206,
+              375920,
+              408252,
+              379211,
+              378214
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__apple_continuous_hw_acntvct_base",
+          "ordered": "direct_selected_ordered_wall__apple_continuous_hw_acntvct_base"
+        },
+        "selected_provider": {
+          "instant": "apple_continuous_hw_acntvct_base",
+          "ordered": "apple_continuous_hw_acntvct_base"
+        }
+      }
     },
     "quanta": {
-      "now": 3.2217623957442334,
-      "elapsed": 6.983948912058802
+      "now": 3.343708690891239,
+      "now_ci95": [
+        3.3337794201586846,
+        3.354160712226284
+      ],
+      "elapsed": 7.299268259478593,
+      "elapsed_ci95": [
+        7.2570043706811935,
+        7.322067294602137
+      ]
     },
     "fastant": {
-      "now": 25.87016860114153,
-      "elapsed": 57.763405101339494
+      "now": 26.834065229804217,
+      "now_ci95": [
+        26.783914211852014,
+        26.882577117045543
+      ],
+      "elapsed": 60.474336277350346,
+      "elapsed_ci95": [
+        60.3023140004139,
+        60.60355390619774
+      ]
     },
     "minstant": {
-      "now": 25.846189122877185,
-      "elapsed": 57.760847978812905
+      "now": 26.965360945740386,
+      "now_ci95": [
+        26.918798962379206,
+        27.08184056579062
+      ],
+      "elapsed": 60.11909113774519,
+      "elapsed_ci95": [
+        59.89893602283118,
+        60.391351091269115
+      ]
     },
     "std": {
-      "now": 19.352142656431695,
-      "elapsed": 42.3316771657519
+      "now": 20.095822011026094,
+      "now_ci95": [
+        20.069616673176505,
+        20.128156131240342
+      ],
+      "elapsed": 44.076220452326865,
+      "elapsed_ci95": [
+        43.89928645520726,
+        44.2096698237186
+      ]
+    },
+    "direct_ordered_wall__apple_continuous_hw_acntvct_base": {
+      "provider": "apple_continuous_hw_acntvct_base",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__apple_continuous_hw_acntvct_base",
+      "now": 7.526449265012309,
+      "now_ci95": [
+        7.5093191673544695,
+        7.552322765705264
+      ],
+      "elapsed": 15.18113417916186,
+      "elapsed_ci95": [
+        15.157589046947756,
+        15.208190468700849
+      ]
+    },
+    "direct_ordered_wall__apple_commpage_acntvct_offset": {
+      "provider": "apple_commpage_acntvct_offset",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__apple_commpage_acntvct_offset",
+      "now": 7.637741682979491,
+      "now_ci95": [
+        7.621803134047793,
+        7.659217423884064
+      ],
+      "elapsed": 15.506946744863509,
+      "elapsed_ci95": [
+        15.479488071908005,
+        15.54638185539189
+      ]
+    },
+    "direct_ordered_wall__apple_mach_absolute_time": {
+      "provider": "apple_mach_absolute_time",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__apple_mach_absolute_time",
+      "now": 8.087775671002177,
+      "now_ci95": [
+        8.076283862821974,
+        8.104944532493574
+      ],
+      "elapsed": 16.162874248080477,
+      "elapsed_ci95": [
+        16.13717978522919,
+        16.210986613688068
+      ]
+    },
+    "direct_ordered_wall__apple_mach_continuous_time": {
+      "provider": "apple_mach_continuous_time",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered_wall__apple_mach_continuous_time",
+      "now": 7.647475725629462,
+      "now_ci95": [
+        7.63347405563681,
+        7.659883953065243
+      ],
+      "elapsed": 15.74222888090133,
+      "elapsed_ci95": [
+        15.68613952792127,
+        15.862252081742348
+      ]
+    },
+    "direct_wall__apple_continuous_hw_acntvct_base": {
+      "provider": "apple_continuous_hw_acntvct_base",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__apple_continuous_hw_acntvct_base",
+      "now": 7.5065528034509,
+      "now_ci95": [
+        7.492544136788373,
+        7.5171527829573925
+      ],
+      "elapsed": 15.140697355838428,
+      "elapsed_ci95": [
+        15.122266020214973,
+        15.179586026291238
+      ]
+    },
+    "direct_wall__apple_commpage_acntvct_offset": {
+      "provider": "apple_commpage_acntvct_offset",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__apple_commpage_acntvct_offset",
+      "now": 7.6453584036205875,
+      "now_ci95": [
+        7.6332631492901175,
+        7.670304379942012
+      ],
+      "elapsed": 15.523757683371567,
+      "elapsed_ci95": [
+        15.473495489001273,
+        15.557708882543452
+      ]
+    },
+    "direct_wall__apple_mach_absolute_time": {
+      "provider": "apple_mach_absolute_time",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__apple_mach_absolute_time",
+      "now": 8.120532982071985,
+      "now_ci95": [
+        8.106550796040327,
+        8.146151423150858
+      ],
+      "elapsed": 15.904553659765515,
+      "elapsed_ci95": [
+        15.88437298406366,
+        15.926456527449293
+      ]
+    },
+    "direct_wall__apple_mach_continuous_time": {
+      "provider": "apple_mach_continuous_time",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_wall__apple_mach_continuous_time",
+      "now": 7.666801475392823,
+      "now_ci95": [
+        7.63851892778921,
+        7.687944433134911
+      ],
+      "elapsed": 15.673326757086055,
+      "elapsed_ci95": [
+        15.619593366102116,
+        15.735600097349408
+      ]
+    },
+    "direct_selected_wall": {
+      "provider": "apple_continuous_hw_acntvct_base",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_selected_wall__apple_continuous_hw_acntvct_base",
+      "now": 7.503366141495992,
+      "now_ci95": [
+        7.487400226125989,
+        7.530962070047169
+      ],
+      "elapsed": 15.192375926352687,
+      "elapsed_ci95": [
+        15.171145130555699,
+        15.227357550728742
+      ]
+    },
+    "direct_selected_ordered_wall": {
+      "provider": "apple_continuous_hw_acntvct_base",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_selected_ordered_wall__apple_continuous_hw_acntvct_base",
+      "now": 7.5376437020692295,
+      "now_ci95": [
+        7.514674896488269,
+        7.554791619973341
+      ],
+      "elapsed": 15.225779744361832,
+      "elapsed_ci95": [
+        15.192892796601516,
+        15.256283563531895
+      ]
+    },
+    "tach_thread_cpu": {
+      "benchmark": "tach_thread_cpu__posix_thread_cpu_clock__system_call",
+      "now": 128.89942810622844,
+      "now_ci95": [
+        128.70917953462543,
+        129.12697753816397
+      ],
+      "elapsed": 258.1772753896281,
+      "elapsed_ci95": [
+        257.73679655569225,
+        258.47358578905937
+      ],
+      "provider": "POSIX thread CPU clock",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "selection": {
+        "eligible_direct_candidates": [
+          "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu"
+        ],
+        "fallback_mechanism": null,
+        "fallback_native_benchmark": null,
+        "fallback_provider": null,
+        "fallback_read_cost": null,
+        "fixed_provider": {
+          "candidate": "macos_clock_gettime_nsec_np_thread_cpu",
+          "native_primitive": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+          "selection_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is macOS's direct current-thread CPU-time entry",
+          "supported_architectures": [
+            "x86_64",
+            "aarch64"
+          ],
+          "time_domain": "thread CPU"
+        },
+        "public_exact_probe": {
+          "elapsed": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              16995750,
+              16873159,
+              16819289,
+              16948248,
+              16882335,
+              16907960,
+              16945418,
+              16904879,
+              16796621
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              16982750,
+              16953880,
+              16772710,
+              16794495,
+              16902041,
+              16925959,
+              16872538,
+              16802419,
+              16803001
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          },
+          "now": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              8418790,
+              8479208,
+              8356745,
+              8359243,
+              8323083,
+              8464003,
+              8261509,
+              8365085,
+              8320334
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              8412332,
+              8352706,
+              8473288,
+              8262296,
+              8297957,
+              8405084,
+              8235507,
+              8301033,
+              8208708
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          }
+        },
+        "read_cost_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is a native system-call tier for scheduled CPU time on the current macOS thread",
+        "selected_mechanism": "macos_clock_gettime_nsec_np_thread_cpu",
+        "selected_native_benchmark": "direct_selected_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+        "selected_provider": "posix_thread_cpu_clock",
+        "selected_read_cost": "system call",
+        "selection_kind": "fixed_native"
+      }
+    },
+    "native_thread_cpu": {
+      "benchmark": "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
+      "now": 128.53536979929197,
+      "now_ci95": [
+        128.17034404659188,
+        128.69099263599333
+      ],
+      "elapsed": 260.40681854341085,
+      "elapsed_ci95": [
+        259.21900042964154,
+        261.30399585207215
+      ],
+      "provider": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+      "read_cost": "system call",
+      "time_domain": "thread CPU"
+    },
+    "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu": {
+      "provider": "macos_clock_gettime_nsec_np_thread_cpu",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+      "now": 128.33344998748927,
+      "now_ci95": [
+        128.16605258483665,
+        128.53366443422937
+      ],
+      "elapsed": 261.4327855007646,
+      "elapsed_ci95": [
+        260.43495400788436,
+        262.1519929916776
+      ]
+    },
+    "direct_selected_thread_cpu": {
+      "provider": "macos_clock_gettime_nsec_np_thread_cpu",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_selected_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+      "now": 128.32986800780918,
+      "now_ci95": [
+        128.0680204643841,
+        128.58793118257404
+      ],
+      "elapsed": 257.4107722629431,
+      "elapsed_ci95": [
+        257.037603301673,
+        257.9465629133598
+      ]
     }
   }
 }

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Render ThreadCpuInstant versus the OS-native thread CPU primitive.
-
-The input is the same six `speed-*.json` files used by the Instant and
-OrderedInstant charts. Each cell must carry `tach_thread_cpu` and
-`native_thread_cpu` measurements with explicit provider metadata.
-"""
+"""Render ThreadCpuInstant versus native across six admitted native environments."""
 
 from __future__ import annotations
 
@@ -16,6 +11,7 @@ from pathlib import Path
 import sys
 
 import summary
+import release_chart
 
 
 ROOT = Path(__file__).resolve().parent
@@ -54,6 +50,7 @@ def compact_provider(label: str) -> str:
     .replace("clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime_nsec_np")
     .replace("clock_gettime(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime")
     .replace("inline syscall(CLOCK_THREAD_CPUTIME_ID)", "raw syscall")
+    .replace("GetThreadTimes(current-thread pseudo-handle)", "GetThreadTimes")
   )
 
 
@@ -98,13 +95,8 @@ def groups(cells, kind: str):
 
 
 def cells_from_release_snapshot(snapshot) -> list[tuple[tuple[str, str, str], dict]]:
-  """Build chart cells only from the full-gate snapshot's captured primary bytes."""
-  documents = snapshot.primary_chart_documents()
-  cells = [
-    ((document["title"], document["instance"], document["triple"]), document["clocks"])
-    for _, document in sorted(documents.items(), key=lambda item: item[1].get("order", 99))
-  ]
-  return cells
+  """Build chart cells only from the full-gate snapshot's captured bytes."""
+  return release_chart.cells_from_release_snapshot(snapshot)
 
 
 def render_cells(cells, output_dir: Path, png: bool = True) -> None:
@@ -112,7 +104,7 @@ def render_cells(cells, output_dir: Path, png: bool = True) -> None:
   now_groups = groups(cells, "now")
   elapsed_groups = groups(cells, "elapsed")
   if len(now_groups) != 6:
-    raise ValueError(f"expected the prior campaign's six cells, found {len(now_groups)}")
+    raise ValueError(f"expected six admitted native chart cells, found {len(now_groups)}")
 
   summary.HEADER_NOW_LABEL = "ThreadCpuInstant::now()"
   summary.HEADER_ELAPSED_LABEL = "now() + elapsed()"

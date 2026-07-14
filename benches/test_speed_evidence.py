@@ -2435,11 +2435,12 @@ declare void @generic_implementation()
       for failure in report["failures"]
     ))
 
-    legacy = json.loads((ROOT / "benches" / artifact_id).read_text())
+    legacy = copy.deepcopy(document)
+    legacy["schema"] = "tach-speed-primary-v0"
     legacy_report = speed_evidence.validate_primary_speed_cell(artifact_id, legacy)
     self.assertFalse(legacy_report["passed"])
     self.assertTrue(any(
-      "document schema changed" in failure for failure in legacy_report["failures"]
+      "identity does not match" in failure for failure in legacy_report["failures"]
     ))
 
   def test_primary_validator_rejects_provenance_and_build_mode_drift(self) -> None:

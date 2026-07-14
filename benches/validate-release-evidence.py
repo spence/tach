@@ -235,6 +235,28 @@ class ReleaseEvidenceSnapshot:
       )
     return documents
 
+  def claim_chart_documents(self, artifact_ids: tuple[str, ...]) -> dict[str, dict]:
+    """Return selected chart inputs from the exact admitted primary/supplemental bytes."""
+    if self.report.get("passed") is not True:
+      raise ValueError("release evidence snapshot did not pass")
+    requested = set(artifact_ids)
+    if len(requested) != len(artifact_ids):
+      raise ValueError("release chart artifact list contains duplicates")
+    documents: dict[str, dict] = {}
+    for cell in (*self.primary_cells, *self.supplemental_cells):
+      if cell.artifact_id not in requested:
+        continue
+      if cell.artifact_id in documents:
+        raise ValueError(f"duplicate chart snapshot artifact {cell.artifact_id!r}")
+      documents[cell.artifact_id] = parse_strict_json_object(
+        cell.raw,
+        f"captured release evidence {cell.artifact_id}",
+      )
+    missing = requested - documents.keys()
+    if missing:
+      raise ValueError(f"release chart snapshot is missing {sorted(missing)!r}")
+    return documents
+
 
 def snapshot_evidence_document(
   path: Path,

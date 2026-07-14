@@ -157,6 +157,7 @@ BENCHMARK_SOURCE_PATHS = (
   "benches/lambda-speed/Cargo.toml",
   "benches/lambda-speed/Cargo.lock",
   "benches/lambda-speed/src",
+  "benches/release_chart.py",
   "benches/release_matrix.py",
   "benches/route_observation.py",
   "benches/runtime_route_classification.py",

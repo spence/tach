@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render one six-platform chart covering tach's three timing use cases."""
+"""Render the six admitted native environments for tach's three timing use cases."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ import shutil
 import subprocess
 from pathlib import Path
 import sys
+
+import release_chart
 
 ROOT = Path(__file__).resolve().parent
 RELEASE_VALIDATOR_PATH = ROOT / "validate-release-evidence.py"
@@ -25,14 +27,14 @@ SECTIONS = [
     "SAME-THREAD ELAPSED TIME",
     [
       ("tach", "tach::Instant", "#D72D24", True),
-      ("quanta", "quanta †", "#5B6472", False),
-      ("fastant", "fastant †", "#4F6F6A", False),
-      ("minstant", "minstant †", "#8B5E3C", False),
+      ("quanta", "quanta", "#5B6472", False),
+      ("fastant", "fastant", "#4F6F6A", False),
+      ("minstant", "minstant", "#8B5E3C", False),
       ("std", "std", "#9A8A3A", False),
     ],
   ),
   (
-    "CROSS-THREAD ELAPSED TIME",
+    "SYNCHRONIZATION-ORDERED ELAPSED",
     [
       ("tach_ordered", "tach::OrderedInstant", "#EC7A1C", True),
       ("std", "std", "#9A8A3A", False),
@@ -107,12 +109,13 @@ def compact_provider(label: str) -> str:
     .replace("clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime_nsec_np")
     .replace("clock_gettime(CLOCK_THREAD_CPUTIME_ID)", "clock_gettime")
     .replace("inline syscall(CLOCK_THREAD_CPUTIME_ID)", "raw syscall")
+    .replace("GetThreadTimes(current-thread pseudo-handle)", "GetThreadTimes")
   )
 
 
 def validate(cells) -> None:
   if len(cells) != 6:
-    raise ValueError(f"expected the prior campaign's six cells, found {len(cells)}")
+    raise ValueError(f"expected six admitted native chart cells, found {len(cells)}")
   missing = []
   for header, clocks in cells:
     for _section, rows in SECTIONS:
@@ -241,7 +244,7 @@ def render_svg(cells, columns: int) -> str:
   parts.append(
     text(
       margin, margin + 76 * scale,
-      "median nanoseconds per call · lower is better · † informational, outside the audited contract",
+      "median nanoseconds per call · lower is better · eligibility is contract-specific",
       20 * scale, family=MONO, color=MUTED,
     )
   )
@@ -274,12 +277,8 @@ def render_svg(cells, columns: int) -> str:
 
 
 def cells_from_release_snapshot(snapshot) -> list[tuple[tuple[str, str, str], dict]]:
-  """Build chart cells only from the full-gate snapshot's captured primary bytes."""
-  documents = snapshot.primary_chart_documents()
-  cells = [
-    ((document["title"], document["instance"], document["triple"]), document["clocks"])
-    for _, document in sorted(documents.items(), key=lambda item: item[1].get("order", 99))
-  ]
+  """Build chart cells only from the full-gate snapshot's captured bytes."""
+  cells = release_chart.cells_from_release_snapshot(snapshot)
   validate(cells)
   return cells
 

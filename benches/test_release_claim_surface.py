@@ -18,6 +18,8 @@ BENCHES_DIR = Path(__file__).resolve().parent
 if str(BENCHES_DIR) not in sys.path:
   sys.path.insert(0, str(BENCHES_DIR))
 
+import release_chart
+
 
 def load_script(filename: str, module_name: str):
   spec = importlib.util.spec_from_file_location(module_name, BENCHES_DIR / filename)
@@ -82,10 +84,11 @@ def chart_document(index: int, marker: float = 1.23) -> dict:
 
 def write_primary_documents(root: Path, marker: float = 1.23) -> tuple[dict[str, dict], Path]:
   documents: dict[str, dict] = {}
-  artifact_ids = tuple(RELEASE_VALIDATOR.speed_evidence.PRIMARY_SPEED_CELLS)
+  artifact_ids = tuple(artifact_id for artifact_id, _header in release_chart.CHART_CELLS)
   first_path = root / artifact_ids[0]
-  for index, artifact_id in enumerate(artifact_ids):
+  for index, (artifact_id, header) in enumerate(release_chart.CHART_CELLS):
     document = chart_document(index, marker)
+    document["triple"] = header[2]
     documents[artifact_id] = document
     (root / artifact_id).write_text(json.dumps(document), encoding="utf-8")
   return documents, first_path
@@ -122,10 +125,10 @@ def route_report() -> dict:
 
 def boundary_matrix():
   boundaries = []
-  for index, artifact_id in enumerate(RELEASE_VALIDATOR.speed_evidence.PRIMARY_SPEED_CELLS):
+  for index, (artifact_id, header) in enumerate(release_chart.CHART_CELLS):
     identity = RELEASE_VALIDATOR.release_matrix.RouteIdentity(
       f"case-{index}",
-      f"target-{index}",
+      header[2],
       "default",
       f"runtime-{index}",
     )
