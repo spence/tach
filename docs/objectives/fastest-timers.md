@@ -282,6 +282,12 @@ decision; never silently omit a failing target.
 - Next: Freeze e7cb1d0 plus this evidence update, rerun the canonical Graviton producer against the capability-policy schema, then resolve the retained Intel ordered-parity failure before recollecting the remaining matrix.
 - Board: M1 remains active until the revised source-sealed primary cells pass the route and parity validators.
 
+### 2026-07-13 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Preserved the passing e1f38c6 canonical Graviton bundle, used its exact native rows to identify a libc fallback mismatch, then committed ed1d017 so Linux AArch64 deterministically prefers the inlined raw thread-clock syscall with libc only as failure fallback.
+- Found: The canonical rows measured raw at 259.81 ns versus libc at 278.86 ns. A corrected same-binary c7g run selected raw with perf enabled and denied; its paired native audits measured raw 4-5% faster in both processes, and the denied public provider remained PosixThreadCpuClock/SystemCall.
+- Next: Freeze ed1d017 plus this evidence update and rerun the canonical Graviton producer; admit the resulting cell only if capability policy, raw native fallback, public/exact parity, and all release tests pass together.
+- Board: M1 remains active; the final revised Graviton source seal is the next admission gate.
+
 ## /goal
 
 Deliver `OBJ-FASTEST-TIMERS`'s slice of the VISION — *Every advertised target receives the fastest

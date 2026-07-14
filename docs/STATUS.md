@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Freeze e7cb1d0 plus this evidence update, rerun the canonical Graviton producer against the capability-policy schema, then resolve the retained Intel ordered-parity failure before recollecting the remaining matrix.
+> Next:       Freeze ed1d017 plus this evidence update and rerun the canonical Graviton producer; admit the resulting cell only if capability policy, raw native fallback, public/exact parity, and all release tests pass together.
 > Blocked on you: nothing
-> Last verified: 2026-07-13 · Changed: Committed e7cb1d0 to replace Linux AArch64 provider-cost selection with capability-preferred perf task-clock mmap and native thread-CPU failure fallback, while retaining paired path measurements only in benchmark evidence builds. · By: nsr · e7cb1d0
+> Last verified: 2026-07-13 · Changed: Preserved the passing e1f38c6 canonical Graviton bundle, used its exact native rows to identify a libc fallback mismatch, then committed ed1d017 so Linux AArch64 deterministically prefers the inlined raw thread-clock syscall with libc only as failure fallback. · By: nsr · ed1d017
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

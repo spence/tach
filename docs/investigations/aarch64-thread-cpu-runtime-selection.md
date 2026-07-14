@@ -102,6 +102,23 @@ case also returned no perf-event evidence, proving that denial selects the nativ
 rather than silently substituting wall time. The instance was terminated immediately after both
 branches ran; ephemeral key pair `tach-capability-20260713-1` and its local private key were deleted.
 
+The source-sealed canonical producer at `e1f38c6dca84ad46fb7ff72bc59fc5d7b53f1a93` passed the new
+capability-policy schema and all 79 release/integration tests. Its long Criterion rows then exposed
+a second cold-selector mismatch inside the native failure path: the short initialization probe kept
+the libc entry even though the exact raw AArch64 syscall measured 259.81 ns versus 278.86 ns for
+libc. Commit `ed1d017` therefore makes the Linux AArch64 build target prefer its inlined raw syscall,
+with libc retained only if that syscall fails. `bench-internal` still measures both entries as an
+audit but does not let that short audit override the deterministic native mechanism.
+
+A corrected probe with SHA-256
+`2e9cc30103bf3409f1dbf17b48d231d5c5e4e2112d3368aaf7fd6e982ba39407` ran both fleet-control
+states on `c7g.large` instance `i-02354d7312d82ce1a`. Both selected
+`linux_aarch64_raw_syscall_clock_thread_cputime` as the native mechanism. The enabled audit measured
+raw at 256.50 ns/read versus libc at 269.32 ns/read; the perf-denied process measured raw at
+249.16 ns/read versus libc at 260.07 ns/read and publicly reported
+`PosixThreadCpuClock`/`SystemCall`. The instance, key pair `tach-native-raw-20260713-1`, and local key
+were deleted after the run.
+
 ## Limits
 
 The survey covers AWS Graviton 2–4 and a burstable Graviton 2 host, not every non-AWS hypervisor.
