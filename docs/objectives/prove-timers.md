@@ -353,6 +353,12 @@ availability but may not be rendered as speed wins.
 - Next: Admit or diagnose retained Windows run 29369713783, rerun retained macOS x86_64 parity, then freeze the source closure and collect only the remaining release-missing native boundaries.
 - Board: M1 remains in progress; no owner decision is required.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Admitted the source-sealed Windows x86_64 artifact and repaired supplemental validation so the retained native Intel macOS paired public/exact proof is preserved through full-cell admission; all 12 collected decision-boundary artifacts now validate at shipping revision 68dc201.
+- Found: The objective was not blocked: the Intel macOS clock path passed its paired parity probe, but _selector_free_clocks discarded that proof before the generic native comparison. Commit 33cd5d0 fixes the validator without changing Cargo/src shipping code; the release validator now reports only Linux x86_64, Linux AArch64, and FreeBSD x86_64 artifacts missing.
+- Next: Collect the three missing native artifacts at 68dc201, compose route-observations-v1.json, run the complete M1/M2 release gate, then align README and BENCHMARKS before requesting explicit publication approval.
+- Board: M0 is complete. M1 is active at 12/15 with exactly three native recollections remaining and no owner or external blocker. M2 follows with release validation, charts, and public wording.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct

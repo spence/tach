@@ -36,9 +36,9 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 | `x86_64-unknown-freebsd` | `W-FREEBSD-X86` | `O-FREEBSD-X86` | `T-FREEBSD-X86` |
 | `x86_64-apple-darwin` | `W-MAC-X86` | `O-MAC-X86` | `T-MAC` |
 | `aarch64-apple-darwin` | `W-MAC-A64` | `O-MAC-A64` | `T-MAC` |
-| `x86_64-pc-windows-msvc` | `W-WINDOWS` | `O-WINDOWS-X86` | `T-WINDOWS` |
-| `i686-pc-windows-msvc` | `W-WINDOWS` | `O-WINDOWS-X86` | `T-WINDOWS` |
-| `aarch64-pc-windows-msvc` | `W-WINDOWS` | `O-WINDOWS-A64` | `T-WINDOWS` |
+| `x86_64-pc-windows-msvc` | `W-WINDOWS` | `O-WINDOWS` | `T-WINDOWS` |
+| `i686-pc-windows-msvc` | `W-WINDOWS` | `O-WINDOWS` | `T-WINDOWS` |
+| `aarch64-pc-windows-msvc` | `W-WINDOWS` | `O-WINDOWS` | `T-WINDOWS` |
 | `wasm32-unknown-unknown` | `W-JS` | `O-JS` | `T-JS` |
 | `wasm32v1-none` | `W-JS` | `O-JS` | `T-JS` |
 | `wasm32-unknown-emscripten` | `W-EMSCRIPTEN` | `O-EMSCRIPTEN` | `T-EMSCRIPTEN` |
@@ -66,13 +66,12 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 | `O-LINUX-POWER` | SYNC+Time Base; SYNC or OS-owned SC/SCV clock forms | measured independently from `Instant` | source/codegen closed; native performance corroboration absent |
 | `W-FREEBSD-X86` | kernel-eligible TSC; direct `AT_TIMEKEEP`; libc or raw `CLOCK_MONOTONIC` | measured | native selector chose TSC; public 13.83/28.74 ns beats every usable public reference; static 13.30/27.13 ns route retained as a diagnostic lower bound |
 | `O-FREEBSD-X86` | every FreeBSD wall candidate with eligible x86 or OS-owned ordering | measured independently from `Instant` | native selector chose LFENCE+TSC; public 22.37/42.92 ns beats `std` at 31.41/65.36 ns; static 20.65/39.89 ns route is a diagnostic lower bound |
-| `W-MAC-X86` | XNU Mach absolute-time path; invariant TSC only after XNU-compatible eligibility and scale checks | measured | policy/codegen closed; Rosetta selected TSC but is compatibility evidence only; native Intel corroboration remains M1 work |
-| `O-MAC-X86` | Mach system path; XNU commpage LFENCE+RDTSC nanotime | measured independently from `Instant` | policy/codegen closed; Rosetta diagnostic keeps the reliable Mach timeline; native Intel corroboration remains M1 work |
+| `W-MAC-X86` | XNU Mach absolute-time path; invariant TSC only after XNU-compatible eligibility and scale checks | measured | native Intel corroboration passes at `68dc201`; selected invariant TSC beats every eligible wall reference |
+| `O-MAC-X86` | Mach system path; XNU commpage LFENCE+RDTSC nanotime | measured independently from `Instant` | native Intel corroboration passes at `68dc201`; the public route beats every eligible wall reference and its paired exact-route probe passes |
 | `W-MAC-A64` | XNU-approved architectural counter | fixed | retained native run passes; bare quanta path is ineligible because it omits XNU wake correction |
 | `O-MAC-A64` | eligible ordered architectural counter forms | measured | retained native run passes |
-| `W-WINDOWS` | QPC and documented precise interrupt-time APIs whose backing contracts validate | measured | x86_64 native evidence retained at an older shipping closure; current closure needs corroboration |
-| `O-WINDOWS-X86` | selected reliable Windows clock compounded with every eligible x86 barrier | measured independently from `Instant` | implementation/codegen closed; current native artifact missing |
-| `O-WINDOWS-A64` | Windows-owned reliable clock after the required architectural fence | fixed compound path | codegen closed; native performance corroboration absent |
+| `W-WINDOWS` | QPC and available precise interrupt-time APIs | measured | native Windows x86_64 corroboration passes at `68dc201`; selected QPC is faster than `std` for both public wall APIs |
+| `O-WINDOWS` | the same Windows-owned APIs through their opaque call boundaries; raw TSC/CNTVCT and redundant pre-call fences are ineligible | measured independently from `Instant` | 24-target optimized codegen closes at `5a2eb05`; focused proof found zero inversions for bare QPC in 945,307,669 reads, and native Windows x86_64 corroboration passes at `68dc201` |
 | `W-JS` | guarded `performance.now()`; Node `process.hrtime.bigint()` | measured at module initialization | Node and browser-negative boundaries retained |
 | `O-JS` | worker-comparable epoch-correlated performance clock or synchronized Node timeline | measured at module initialization | Node and browser-negative boundaries retained |
 | `W-EMSCRIPTEN` | guarded `performance.now()`; Node `process.hrtime.bigint()` import | measured at module initialization | Node host boundary retained |
@@ -90,8 +89,8 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 | `T-LINUX-ARM32` / `T-LINUX-RISCV` | perf task-clock mmap/read and native thread clock | measured per OS thread | source/codegen closed; native performance corroboration absent |
 | `T-LINUX-READ` | persistent perf task-clock read and native thread clock | measured per OS thread | source/codegen closed; native performance corroboration absent |
 | `T-FREEBSD-X86` | libc and exact raw `CLOCK_THREAD_CPUTIME_ID` entries | measured | native run selected raw syscall; public 125.20/249.71 ns matches raw 124.87/249.65 ns and beats libc 129.56/262.51 ns |
-| `T-MAC` | `clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)` | fixed native API | native AArch64 retained; x86_64 Rosetta is diagnostic only and native Intel corroboration remains M1 work |
-| `T-WINDOWS` | `GetThreadTimes`; QPC wall fallback on failure | availability fallback | x86_64 native evidence retained at an older shipping closure; current closure needs corroboration |
+| `T-MAC` | `clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)` | fixed native API | native AArch64 and Intel x86_64 corroboration pass; Intel paired public/exact probes have zero decisive losses |
+| `T-WINDOWS` | `GetThreadTimes`; QPC wall fallback on failure | availability fallback | native Windows x86_64 corroboration passes at `68dc201`; paired public/exact probes have zero decisive losses |
 | `T-JS` | Node `process.threadCpuUsage()`; otherwise selected JS wall clock or frozen unavailable | availability fallback | Node and browser-negative boundaries retained |
 | `T-EMSCRIPTEN` | Node `process.threadCpuUsage()` import; otherwise selected guarded wall clock | availability fallback | Node boundary retained |
 | `T-WASI-P1` | host clock ID 3; monotonic wall fallback when rejected | availability fallback | positive Node and negative Wasmtime boundaries retained |
