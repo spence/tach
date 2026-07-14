@@ -347,6 +347,12 @@ availability but may not be rendered as speed wins.
 - Next: Resolve the Windows OrderedInstant eligibility/ordering contract and remove or disprove ThreadCpuInstant public-path overhead; freeze shipping code, rerun Windows, then recollect only the closure-invalidated native rows and execute M2 release validation.
 - Board: M0 is complete. M1 is active at 11/15 on the current closure with one concrete Windows performance defect and three deferred native recollections; no owner decision or external resource blocks progress. M2 remains not started.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Replaced the Windows raw-counter ordering machinery with independently selected Windows OS-call paths at 5a2eb05; completed exhaustive static provider verification across 24/24 targets; fixed Windows benchmark compilation and the collector's Windows platform-call identity classification; pushed 68dc201 and dispatched retained native rerun 29369713783.
+- Found: Run 29369043533 compiled, tested, and completed the Windows benchmark; composition failed only because the extractor mislabeled Windows platform calls as inline, now covered by a regression test. The objective is actionable, not blocked.
+- Next: Admit or diagnose retained Windows run 29369713783, rerun retained macOS x86_64 parity, then freeze the source closure and collect only the remaining release-missing native boundaries.
+- Board: M1 remains in progress; no owner decision is required.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct

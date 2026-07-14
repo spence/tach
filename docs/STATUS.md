@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       Resolve the Windows OrderedInstant eligibility/ordering contract and remove or disprove ThreadCpuInstant public-path overhead; freeze shipping code, rerun Windows, then recollect only the closure-invalidated native rows and execute M2 release validation.
+> Next:       Admit or diagnose retained Windows run 29369713783, rerun retained macOS x86_64 parity, then freeze the source closure and collect only the remaining release-missing native boundaries.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Completed hosted run 29359437933, retained the passing native Intel macOS artifact, and reproduced it byte-for-byte from its collector bundle (SHA-256 759d09a78a20705342f86d534fcc564d726dd74a915b925a2e161ec5d85120d4). · By: nsr · 6d2e11d
+> Last verified: 2026-07-14 · Changed: Replaced the Windows raw-counter ordering machinery with independently selected Windows OS-call paths at 5a2eb05; completed exhaustive static provider verification across 24/24 targets; fixed Windows benchmark compilation and the collector's Windows platform-call identity classification; pushed 68dc201 and dispatched retained native rerun 29369713783. · By: nsr · 68dc201
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
