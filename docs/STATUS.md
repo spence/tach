@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M1 🚧 Retained runtime corroboration)
-> Next:       After ESC-HOSTED-EVIDENCE-PUSH is approved, push f8b3628 and dispatch boundary=release-missing for native macOS Intel and Windows x86_64.
+> Next:       After ESC-HOSTED-EVIDENCE-PUSH is approved, push the current branch and dispatch boundary=release-missing for native macOS Intel and Windows x86_64.
 > Blocked on you: ESC-HOSTED-EVIDENCE-PUSH
-> Last verified: 2026-07-14 · Changed: Advanced the hosted evidence freeze to f8b3628 after verifying that the harness-only fix leaves shipping providers unchanged and passes both feature surfaces. · By: nsr · f8b3628
+> Last verified: 2026-07-14 · Changed: Passed the complete 207-test evidence suite (one expected skip) and defined hosted dispatch against the current branch head containing the verified f8b3628 harness tree. · By: nsr · 5bee1ea
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

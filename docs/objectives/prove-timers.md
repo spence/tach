@@ -296,6 +296,13 @@ availability but may not be rendered as speed wins.
 - Blocked/unsure: ESC-HOSTED-EVIDENCE-PUSH
 - Board: M1 remains active at 13/15 and has one bounded owner-only dispatch blocker; M2 retains the completed early release-check result.
 
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M1`
+- Did: Passed the complete 207-test evidence suite (one expected skip) and defined hosted dispatch against the current branch head containing the verified f8b3628 harness tree.
+- Found: A later documentation-only commit necessarily advances the repository SHA; runtime admission must bind the dispatched revision and prove shipping-code plus harness-tree equivalence rather than chase an ever-changing documentation HEAD.
+- Next: After ESC-HOSTED-EVIDENCE-PUSH is approved, push the current branch and dispatch boundary=release-missing for native macOS Intel and Windows x86_64.
+- Blocked/unsure: ESC-HOSTED-EVIDENCE-PUSH
+- Board: All available local Rust and evidence checks pass; M1 remains 13/15 with only the two hosted native artifacts outstanding.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
