@@ -1,0 +1,17 @@
+# Command: python3 benches/verify-target-providers.py --install-targets
+# Source: 6685b224d0a04dfcc8ed4b959bccb8bc8a3ff875
+# Substrate: clean detached worktree, Apple Silicon macOS cross-compilation
+# Full generated report SHA-256: 05335800ac945659155db6040ecb37e087c67e225fd7b248756fbb2c3a30793f
+# Proof script SHA-256: 21ed1e414196dc99da2818a332363e5c1517def58090a73479e5af647574e0ad
+
+PASS 24/24 targets
+PASS 49/49 warning-strict crate checks
+PASS 49/49 warning-strict external API checks
+PASS 24/24 strict no-default dependency no_std checks
+PASS 294/294 optimized public clock routes
+PASS 294/294 now-plus-elapsed phase closures
+PASS 18/18 optimized vDSO resolver routes
+
+Runtime classification reported by the verifier:
+- targets with external runtime-speed evidence: 5
+- targets without external runtime artifacts: 19

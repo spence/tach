@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M1 🚧 Benchmark contract)
-> Next:       Freeze 6cda166 and recollect every admitted native and hosted producer at that one revision, then run unified release admission and chart generation.
+> Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M2 🚧 Target-route proof)
+> Next:       Build the exact 55-identity runtime classification, add missing runnable observations without weakening evidence kinds, and preserve genuinely unavailable native hosts as explicit open gaps.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Committed 6cda166 to correct the WASI Preview 1 thread-CPU LLVM route matcher and added a regression against the emitted clock-id-3 import call; the exhaustive verifier now passes 24/24 targets, 98 warning-strict API checks, 294 optimized public routes, 294 now-plus-elapsed phase closures, and 18 vDSO resolver routes. · By: nsr · 6cda166
+> Last verified: 2026-07-14 · Changed: Promoted the 6685b22 clean-source proof: 24/24 targets, 98 warning-strict API checks, 294 optimized public routes, 294 now-plus-elapsed closures, and 18 vDSO routes passed; marked M2.T1 complete. · By: nsr · 6685b22
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -25,10 +25,8 @@ Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
 | `OBJ-FASTEST-TIMERS.M0` | Provider correctness | ✅ | Close known selector, reentry, and retiering correctness gaps | inline · G1🟢 |
-| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | 🚧 | Make every eligible and public route measurable and schema-checked | inline · G1⚪ |
-| `OBJ-FASTEST-TIMERS.M2` | Target-route proof | ⚪ | Prove all advertised target identities and complete public paths | inline · G1⚪ |
-
-Gate checklist (current milestone `OBJ-FASTEST-TIMERS.M1`): G1⚪
+| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | ✅ | Make every eligible and public route measurable and schema-checked | inline · G1🟢 |
+| `OBJ-FASTEST-TIMERS.M2` | Target-route proof | 🚧 | Prove all advertised target identities and complete public paths | ↗ M2.md |
 <!-- /render:board -->
 
 ---

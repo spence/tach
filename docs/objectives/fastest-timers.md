@@ -2,7 +2,7 @@
 
 **VISION slice.** Every advertised target receives the fastest eligible reliable timer for its timing contract.
 
-Read [`../STATUS.md`](../STATUS.md) and [`../README.md`](../README.md) first. The milestone table
+Read [`../STATUS.md`](../../STATUS.md) and [`../README.md`](../../README.md) first. The milestone table
 is the current-status surface; the Working Log is append-only trajectory and audit. **Definition of
 Done:** every gate is green with committed evidence at a recorded SHA, then the owner accepts the
 objective. A failed gate is a finding, never permission to weaken it.
@@ -15,8 +15,8 @@ objective. A failed gate is a finding, never permission to weaken it.
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
 | `OBJ-FASTEST-TIMERS.M0` | Provider correctness | ✅ | Close known selector, reentry, and retiering correctness gaps | inline · G1🟢 |
-| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | 🚧 | Make every eligible and public route measurable and schema-checked | inline · G1⚪ |
-| `OBJ-FASTEST-TIMERS.M2` | Target-route proof | ⚪ | Prove all advertised target identities and complete public paths | inline · G1⚪ |
+| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | ✅ | Make every eligible and public route measurable and schema-checked | inline · G1🟢 |
+| `OBJ-FASTEST-TIMERS.M2` | Target-route proof | 🚧 | Prove all advertised target identities and complete public paths | ↗ M2.md |
 
 ---
 
@@ -40,7 +40,7 @@ failure remaining.
 - **Fallback.** Preserve the failing reproducer, force the affected provider onto its safe eligible
   fallback, and continue diagnosis; if no safe fallback exists, escalate to user. Never weaken the
   contract.
-- **Evidence.** [`EVID-PROVIDER-CORRECTNESS`](../evidence/providers/remediation-2026-07-12/README.md).
+- **Evidence.** [`EVID-PROVIDER-CORRECTNESS`](../../evidence/providers/remediation-2026-07-12/README.md).
 
 ---
 
@@ -50,17 +50,17 @@ failure remaining.
 route for both `now()` and `now() + elapsed()`: 24 advertised targets expand to 49 target-mode and
 55 target-mode-runtime identities. Candidate counts, read-cost labels, and provider identities must
 reproduce the implementation rather than hand-wave over a faster path.
-[`../plans/thread-cpu-route-coverage.md`](../plans/thread-cpu-route-coverage.md) owns the
+[`../plans/thread-cpu-route-coverage.md`](../../plans/thread-cpu-route-coverage.md) owns the
 selection-profile and target-family breakdown for `ThreadCpuInstant`.
 
 **Tasks.**
 
 - [x] `OBJ-FASTEST-TIMERS.M1.T1` Repair FreeBSD and LoongArch route-schema drift.
-- [ ] `OBJ-FASTEST-TIMERS.M1.T2` Add missing Apple, Windows, Lambda, and thread-CPU public/direct rows.
+- [x] `OBJ-FASTEST-TIMERS.M1.T2` Add missing Apple, Windows, Lambda, and thread-CPU public/direct rows.
 - [x] `OBJ-FASTEST-TIMERS.M1.T3` Remove generated evidence from source-binding inputs.
 - [x] `OBJ-FASTEST-TIMERS.M1.T4` Make every exact candidate row statically direct and
   provider-scale-correct for both operations.
-- [ ] `OBJ-FASTEST-TIMERS.M1.T5` Bind every exact row to its identity, raw samples, and one
+- [x] `OBJ-FASTEST-TIMERS.M1.T5` Bind every exact row to its identity, raw samples, and one
   isolated benchmark invocation.
 - [x] `OBJ-FASTEST-TIMERS.M1.T6` Declare a producer and typed route profile for the 24 advertised
   targets, 49 target-mode identities, and 55 target-mode-runtime identities.
@@ -89,7 +89,7 @@ claim. It covers public elapsed behavior as well as raw reads.
 
 **Tasks.**
 
-- [ ] `OBJ-FASTEST-TIMERS.M2.T1` Prove optimized codegen and public route closure for every
+- [x] `OBJ-FASTEST-TIMERS.M2.T1` Prove optimized codegen and public route closure for every
   advertised target-mode identity.
 - [ ] `OBJ-FASTEST-TIMERS.M2.T2` Establish a runnable producer or explicit unavailable-host record
   for every target-mode-runtime identity.
@@ -323,6 +323,16 @@ decision; never silently omit a failing target.
 - Found: The timer implementation already emitted the correct thread CPU call and monotonic fallback, but the proof pattern concatenated two distinct Rust symbols and could never match current LLVM; because the verifier is source-bound, prior 1a0b3c2 runtime cells remain diagnostic rather than final campaign evidence.
 - Next: Freeze 6cda166 and recollect every admitted native and hosted producer at that one revision, then run unified release admission and chart generation.
 - Board: M1 remains active on the one-revision runtime campaign; the complete static target-route proof is green at 6cda166 and no advertised target is omitted.
+
+### 2026-07-14 · spence · `OBJ-FASTEST-TIMERS.M1`
+- Did: Closed the exhaustive benchmark contract after 89/89 schema tests passed at 6685b22 with all 24 targets, 49 build identities, 55 runtime identities, source-sealed producers, exact public/direct rows, raw sample binding, and typed selection profiles.; OBJ-FASTEST-TIMERS.M1.G1 🟢 at SHA `6685b22`.
+- Board: OBJ-FASTEST-TIMERS.M1 G1 🟢 — evidence EVID-ROUTE-CONTRACT-6685B22.
+
+### 2026-07-14 · spence · `OBJ-FASTEST-TIMERS.M2`
+- Did: Promoted the 6685b22 clean-source proof: 24/24 targets, 98 warning-strict API checks, 294 optimized public routes, 294 now-plus-elapsed closures, and 18 vDSO routes passed; marked M2.T1 complete.
+- Found: The retained artifact catalog directly covers 23 of 55 exact runtime identities; 32 default/no-default or rare-host identities still require direct evidence or an explicit producer-gap classification. Codegen remains non-latency evidence.
+- Next: Build the exact 55-identity runtime classification, add missing runnable observations without weakening evidence kinds, and preserve genuinely unavailable native hosts as explicit open gaps.
+- Board: M1 is complete at 6685b22; M2 is active on runtime-identity classification and producer closure.
 
 ## /goal
 
