@@ -2689,7 +2689,7 @@ fn hot() -> *const PerfState {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 fn commit_state() -> *const PerfState {
-  COMMIT_STATE.try_with(Cell::get).unwrap_or_else(|_| ptr::null())
+  COMMIT_STATE.try_with(Cell::get).unwrap_or(ptr::null())
 }
 
 #[inline]

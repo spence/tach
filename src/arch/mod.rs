@@ -225,6 +225,7 @@ where
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
 #[cold]
 #[inline(never)]
+#[allow(clippy::too_many_arguments)]
 fn select_thread_owned_process_provider_slow<F>(
   state: &AtomicU8,
   unknown: u8,
@@ -380,7 +381,7 @@ pub fn ordered_nanos_per_tick_q32() -> u64 {
   {
     // The selector publishes the selected domain's scale before its provider.
     // The initial nanosecond scale is exact for the reentrant OS-clock route.
-    return ORDERED_NANOS_PER_TICK_Q32.load(Ordering::Acquire);
+    ORDERED_NANOS_PER_TICK_Q32.load(Ordering::Acquire)
   }
 
   #[cfg(not(all(
@@ -410,7 +411,7 @@ pub(crate) fn ordered_ticks_with_scale() -> (u64, u64) {
     any(target_arch = "x86", target_arch = "x86_64"),
   ))]
   {
-    return linux_x86_wall::ticks_ordered_with_scale();
+    linux_x86_wall::ticks_ordered_with_scale()
   }
   #[cfg(all(any(target_os = "android", target_os = "linux"), target_arch = "aarch64",))]
   {
@@ -817,7 +818,7 @@ fn recalibration_domains() -> (bool, bool) {
     any(target_arch = "x86_64", target_arch = "x86"),
   ))]
   {
-    return (linux_x86_wall::instant_uses_tsc(), linux_x86_wall::ordered_uses_tsc());
+    (linux_x86_wall::instant_uses_tsc(), linux_x86_wall::ordered_uses_tsc())
   }
 
   #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
