@@ -363,8 +363,16 @@ pub fn ticks_ordered() -> u64 {
 
 #[inline(always)]
 fn read_hot_ordered_provider(provider: u8) -> u64 {
+  if provider == PROVIDER_TSC_LFENCE_RDTSC {
+    return read_tsc_lfence_ordered();
+  }
+  read_non_lfence_ordered_provider(provider)
+}
+
+#[cold]
+#[inline(never)]
+fn read_non_lfence_ordered_provider(provider: u8) -> u64 {
   match provider {
-    PROVIDER_TSC_LFENCE_RDTSC => read_tsc_lfence_ordered(),
     PROVIDER_TSC_RDTSCP => read_tsc_rdtscp_ordered(),
     PROVIDER_TSC_MFENCE_RDTSC => read_tsc_mfence_ordered(),
     PROVIDER_TSC_SERIALIZE_RDTSC => read_tsc_serialize_ordered(),
@@ -1580,7 +1588,7 @@ fn probe_instant_hot_path() -> u64 {
 
 #[inline(always)]
 fn probe_ordered_hot_path() -> u64 {
-  read_ordered_provider(ORDERED_PROBE_PROVIDER.load(Ordering::Relaxed))
+  read_hot_ordered_provider(ORDERED_PROBE_PROVIDER.load(Ordering::Relaxed))
 }
 
 #[inline(never)]
