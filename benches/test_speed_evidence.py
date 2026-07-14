@@ -1011,6 +1011,20 @@ def loongarch_wall_selection() -> dict:
 
 
 def freebsd_wall_selection() -> dict:
+  parity = {
+    "selection_kind": "paired_public_exact_parity",
+    "reads_per_batch": 65_536,
+    "required_decisive_losses": 8,
+    "equivalence_band": {
+      "floor_ns_per_read": 1,
+      "relative_denominator": 20,
+    },
+    "batch_order": "public-first on even batches; exact-first on odd batches",
+    "call_boundary": "symmetric dynamic FnMut boundary",
+    "measurement_clock": "std::time::Instant outside the measured read loop",
+    "public_batches_ns": [650_000] * 9,
+    "exact_batches_ns": [600_000] * 9,
+  }
   instant = {
     "candidate_count": 2,
     "direct_eligible": False,
@@ -1085,6 +1099,13 @@ def freebsd_wall_selection() -> dict:
       "ordered_syscall_barrier_allowances_ns": [],
       "ordered_syscall_barrier_tournament_decisive_wins": [],
       "ordered_syscall_barrier_challenger_selected": [],
+    },
+    "public_exact_probe": {
+      domain: {
+        metric: copy.deepcopy(parity)
+        for metric in speed_evidence.METRICS
+      }
+      for domain in ("instant", "ordered")
     },
   }
 
@@ -4610,6 +4631,9 @@ declare void @generic_implementation()
       result["ordered"]["winner"],
       "freebsd_clock_monotonic_x86_lfence",
     )
+    for domain in ("instant", "ordered"):
+      for metric in speed_evidence.METRICS:
+        self.assertTrue(result[domain]["public_exact"][metric]["passed"])
 
     tampered = copy.deepcopy(selection)
     tampered["selected_provider"]["ordered"] = "freebsd_clock_monotonic"
@@ -4618,6 +4642,17 @@ declare void @generic_implementation()
       "tampered", tampered, residual_rows(tampered), failures
     )
     self.assertTrue(any("winner is not an eligible candidate" in item for item in failures))
+
+    slower = copy.deepcopy(selection)
+    slower["public_exact_probe"]["ordered"]["elapsed"]["public_batches_ns"] = [
+      800_000
+    ] * 9
+    failures = []
+    result = speed_evidence.validate_residual_wall_selector(
+      "slower", slower, residual_rows(slower), failures
+    )
+    self.assertFalse(result["ordered"]["public_exact"]["elapsed"]["passed"])
+    self.assertTrue(any("public read is repeatably slower" in item for item in failures))
 
   def test_residual_extractor_labels_direct_vdso_and_requires_elapsed_rows(self) -> None:
     selection = {

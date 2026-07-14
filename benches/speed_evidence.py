@@ -3651,7 +3651,26 @@ def validate_residual_wall_selector(
   if architecture == "powerpc64-linux-gnu":
     return validate_power_wall_selector(context, selected, candidates, probe, failures)
   if architecture == "x86_64-freebsd":
-    return validate_freebsd_wall_selector(context, selected, candidates, probe, failures)
+    result = validate_freebsd_wall_selector(context, selected, candidates, probe, failures)
+    public_exact = selection.get("public_exact_probe")
+    if not isinstance(public_exact, dict):
+      failures.append(f"{context}: FreeBSD selector lacks paired public/exact evidence")
+      public_exact = {}
+    for domain in ("instant", "ordered"):
+      domain_result = result.get(domain)
+      domain_public_exact = public_exact.get(domain)
+      if not isinstance(domain_result, dict):
+        continue
+      if not isinstance(domain_public_exact, dict):
+        failures.append(f"{context}: FreeBSD {domain} lacks metric parity evidence")
+        domain_public_exact = {}
+      domain_result["public_exact"] = {
+        metric: validate_wall_public_exact_probe(
+          context, f"{domain}.{metric}", domain_public_exact.get(metric), failures
+        )
+        for metric in METRICS
+      }
+    return result
   failures.append(f"{context}: unknown residual wall architecture {architecture!r}")
   return {}
 

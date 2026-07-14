@@ -108,6 +108,7 @@ macro_rules! register_selected_elapsed {
   feature = "bench-internal",
   any(
     target_os = "macos",
+    all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -119,6 +120,7 @@ const WALL_PUBLIC_EXACT_BATCHES: usize = 9;
   feature = "bench-internal",
   any(
     target_os = "macos",
+    all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -131,6 +133,7 @@ const WALL_PUBLIC_EXACT_READS: usize = 65_536;
   feature = "bench-internal",
   any(
     target_os = "macos",
+    all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -152,6 +155,7 @@ fn measure_wall_read_batch<T>(read: &mut dyn FnMut() -> T) -> u64 {
   feature = "bench-internal",
   any(
     target_os = "macos",
+    all(target_arch = "x86_64", target_os = "freebsd"),
     all(
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
@@ -1520,6 +1524,44 @@ macro_rules! with_residual_ordered_read {
   }};
 }
 
+#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd"))]
+macro_rules! measure_freebsd_public_exact {
+  (instant, $nanos_per_tick_q32:expr, $read:path) => {{
+    let scale = $nanos_per_tick_q32;
+    serde_json::json!({
+      "now": measure_wall_public_exact(|| Instant::now(), || $read()),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = Instant::now();
+          start.elapsed()
+        },
+        || {
+          let start = $read();
+          let elapsed = $read().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        },
+      ),
+    })
+  }};
+  (ordered, $nanos_per_tick_q32:expr, $read:path) => {{
+    let scale = $nanos_per_tick_q32;
+    serde_json::json!({
+      "now": measure_wall_public_exact(|| OrderedInstant::now(), || $read()),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = OrderedInstant::now();
+          start.elapsed()
+        },
+        || {
+          let start = $read();
+          let elapsed = $read().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        },
+      ),
+    })
+  }};
+}
+
 #[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
 macro_rules! with_apple_aarch64_instant_read {
   ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
@@ -2138,6 +2180,29 @@ fn write_residual_wall_selection() {
     "ordering": ordering,
     "probe": probe,
   });
+  #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
+  let payload = {
+    let mut payload = payload;
+    let instant = tach::bench::residual_selected_instant_primitive();
+    let instant_public_exact = with_residual_instant_read!(
+      instant.provider(),
+      measure_freebsd_public_exact,
+      instant,
+      instant.nanos_per_tick_q32()
+    );
+    let ordered = tach::bench::residual_selected_ordered_primitive();
+    let ordered_public_exact = with_residual_ordered_read!(
+      ordered.provider(),
+      measure_freebsd_public_exact,
+      ordered,
+      ordered.nanos_per_tick_q32()
+    );
+    payload["public_exact_probe"] = serde_json::json!({
+      "instant": instant_public_exact,
+      "ordered": ordered_public_exact,
+    });
+    payload
+  };
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
