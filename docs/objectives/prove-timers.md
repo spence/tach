@@ -113,6 +113,12 @@ enter this gate as speed evidence.
 - Next: Treat d0fa731 as the new campaign freeze; recollect the other 5 canonical and all 49 supplemental identities at this exact revision, then run unified validators and regenerate the performance charts.
 - Board: The c7i OrderedInstant release regression is resolved at d0fa731; M0 remains active on the final one-revision 55-cell campaign (1/55 currently retained at the new freeze).
 
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M0`
+- Did: Retained and replay-composed the exact d0fa731 Graviton default and no-default pair; the campaign manifest now binds 22 of 55 required runtime identities at one frozen source revision.
+- Found: The default c7g build selected perf-mmap thread CPU at about 58 ns versus about 260 ns for the syscall runner-up, while no-default selected the raw syscall at about 259 ns and matched its selected-exact route; all remote correctness, semantic, and initialization tests passed and both EC2 instances terminated.
+- Next: Collect Intel GNU no-default, Intel musl default/no-default, Lambda, and FreeBSD cells at d0fa731, then merge hosted Windows/macOS-x86 and rare-native identities before running the unified release validators.
+- Board: OBJ-PROVE-TIMERS.M0 remains active at d0fa731 with 3/6 canonical and 19/49 supplemental identities retained (22/55 total); all three proof gates remain open.
+
 ## /goal
 
 Deliver `OBJ-PROVE-TIMERS`'s slice of the VISION — *Every public timing claim is reproducible from frozen evidence.* — by cleanly exiting every milestone gate. Done = every gate 🟢 with committed evidence at a recorded SHA; no gate weakened, no milestone closed by assertion.

@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove fastest eligible routes  (M0 🚧 Canonical runtime cells)
-> Next:       Treat d0fa731 as the new campaign freeze; recollect the other 5 canonical and all 49 supplemental identities at this exact revision, then run unified validators and regenerate the performance charts.
+> Next:       Collect Intel GNU no-default, Intel musl default/no-default, Lambda, and FreeBSD cells at d0fa731, then merge hosted Windows/macOS-x86 and rare-native identities before running the unified release validators.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Committed d0fa731 to unify Linux x86 OrderedInstant now and elapsed on one packed hot-state selector, proved x86_64/i686 optimized route closures, and source-sealed plus byte-for-byte replay-validated the canonical c7i GNU cell. · By: nsr · d0fa731
+> Last verified: 2026-07-14 · Changed: Retained and replay-composed the exact d0fa731 Graviton default and no-default pair; the campaign manifest now binds 22 of 55 required runtime identities at one frozen source revision. · By: nsr · 7ffefae
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
