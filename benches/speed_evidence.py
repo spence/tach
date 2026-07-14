@@ -1022,7 +1022,7 @@ def validate_legacy_native_thread_cpu_entry_probe(
 ) -> dict:
   raw_preferred = probe.get("selection_kind") == "raw_syscall_preferred_with_performance_audit"
   if raw_preferred and probe.get("selection_basis") != (
-    "the inlined raw Linux AArch64 syscall is the native primitive; libc wraps the "
+    "the inlined raw Linux syscall is the native primitive; libc wraps the "
     "same kernel clock and remains the failure fallback"
   ):
     failures.append(f"{context}: native raw-syscall preference lacks its selection basis")

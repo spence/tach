@@ -732,7 +732,7 @@ def aarch64_capability_thread_cpu_selection() -> dict:
   selection["native_entry_probe"].update({
     "selection_kind": "raw_syscall_preferred_with_performance_audit",
     "selection_basis": (
-      "the inlined raw Linux AArch64 syscall is the native primitive; libc wraps "
+      "the inlined raw Linux syscall is the native primitive; libc wraps "
       "the same kernel clock and remains the failure fallback"
     ),
   })
