@@ -1,0 +1,9 @@
+# Command: python3 -m unittest discover -s benches -p 'test_*.py'
+# Source: 463faa04cde78f4eef35129df866cfb76e7e785b
+# Substrate: clean detached worktree, Apple Silicon macOS
+
+Ran 191 tests in 23.142s
+
+OK (skipped=1)
+
+# The one skipped case is the platform-specific POSIX no-follow branch on this macOS host.

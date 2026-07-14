@@ -1,5 +1,10 @@
 # `EVID-ROUTE-CONTRACT-6685B22` — benchmark contract and target-route proof (2026-07-14)
 
+> **SUPERSEDED 2026-07-14 by
+> [`EVID-TARGET-ROUTE-CLASSIFICATION-463FAA0`](../target-route-classification-2026-07-14/README.md).**
+> Retained for history; the later package corrects fallback evidence kinds and binds all 55
+> runtime classifications.
+
 **Status: `OBJ-FASTEST-TIMERS.M1.G1` CLOSED 🟢; target-route runtime proof remains partial**
 
 ## Provenance

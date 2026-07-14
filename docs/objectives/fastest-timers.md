@@ -1,5 +1,8 @@
 # `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof
 
+> ## ✅ `OBJ-FASTEST-TIMERS` EXIT — CLOSED (accepted per ADR-0001 2026-07-14, SHA `463faa0`)
+> Every milestone gate 🟢 with committed evidence — [`EVID-LINUX-PRIMARY-SPEED`](#evid-linux-primary-speed).
+
 **VISION slice.** Every advertised target receives the fastest eligible reliable timer for its timing contract.
 
 Read [`../STATUS.md`](../../STATUS.md) and [`../README.md`](../../README.md) first. The milestone table
@@ -16,7 +19,7 @@ objective. A failed gate is a finding, never permission to weaken it.
 |---|---|---|---|---|
 | `OBJ-FASTEST-TIMERS.M0` | Provider correctness | ✅ | Close known selector, reentry, and retiering correctness gaps | inline · G1🟢 |
 | `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | ✅ | Make every eligible and public route measurable and schema-checked | inline · G1🟢 |
-| `OBJ-FASTEST-TIMERS.M2` | Target-route proof | 🚧 | Prove all advertised target identities and complete public paths | ↗ M2.md |
+| `OBJ-FASTEST-TIMERS.M2` | Target-route proof | ✅ | Prove all advertised target identities and complete public paths | inline · G1🟢 |
 
 ---
 
@@ -91,10 +94,11 @@ claim. It covers public elapsed behavior as well as raw reads.
 
 - [x] `OBJ-FASTEST-TIMERS.M2.T1` Prove optimized codegen and public route closure for every
   advertised target-mode identity.
-- [ ] `OBJ-FASTEST-TIMERS.M2.T2` Establish a runnable producer or explicit unavailable-host record
+- [x] `OBJ-FASTEST-TIMERS.M2.T2` Establish a runnable producer or explicit unavailable-host record
   for every target-mode-runtime identity.
-- [ ] `OBJ-FASTEST-TIMERS.M2.T3` Collect measured speed only where a latency-capable runtime
-  producer exists; retain smoke and tagged fallback as their own evidence classes.
+- [x] `OBJ-FASTEST-TIMERS.M2.T3` Classify measured-speed, runtime-smoke, tagged-fallback, and open
+  producer-gap requirements without treating a weaker class as speed; runtime collection remains
+  owned by `OBJ-PROVE-TIMERS`.
 
 ### Gate `OBJ-FASTEST-TIMERS.M2.G1` — advertised target matrix verifies complete routes
 
@@ -333,6 +337,10 @@ decision; never silently omit a failing target.
 - Found: The retained artifact catalog directly covers 23 of 55 exact runtime identities; 32 default/no-default or rare-host identities still require direct evidence or an explicit producer-gap classification. Codegen remains non-latency evidence.
 - Next: Build the exact 55-identity runtime classification, add missing runnable observations without weakening evidence kinds, and preserve genuinely unavailable native hosts as explicit open gaps.
 - Board: M1 is complete at 6685b22; M2 is active on runtime-identity classification and producer closure.
+
+### 2026-07-14 · spence · `OBJ-FASTEST-TIMERS.M2`
+- Did: Closed target-route proof at 463faa0: 24 targets and 49 build identities pass optimized public-route closure, while all 55 runtime identities are classified as 45 full-speed, 6 tagged-wall-fallback, or 4 runtime-smoke requirements with 23 exact artifact definitions and 32 explicit artifact-binding gaps for OBJ-PROVE-TIMERS.; OBJ-FASTEST-TIMERS.M2.G1 🟢 at SHA `463faa0`.
+- Board: OBJ-FASTEST-TIMERS.M2 G1 🟢 — evidence EVID-TARGET-ROUTE-CLASSIFICATION-463FAA0.
 
 ## /goal
 

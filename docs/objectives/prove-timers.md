@@ -9,7 +9,7 @@ contract. Its milestone table is the current-status surface; the Working Log is 
 
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Canonical runtime cells | ⚪ | Re-run the six primary environments against one frozen revision | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M0` | Canonical runtime cells | 🚧 | Re-run the six primary environments against one frozen revision | inline · G1⚪ |
 | `OBJ-PROVE-TIMERS.M1` | Supplemental platforms | ⚪ | Produce the required native, Wasm, and negative-environment artifacts | inline · G1⚪ |
 | `OBJ-PROVE-TIMERS.M2` | Release evidence | ⚪ | Validate performance, semantics, provenance, and regenerated charts | inline · G1⚪ |
 
@@ -70,6 +70,12 @@ enter this gate as speed evidence.
 - Found: the old six-cell JSON lacks the current source-seal, collector, route-commit, and supplemental provenance required for a release claim.
 - Next: collect fresh primary cells only after the source and route contract freeze.
 - Board: M0 remains ⚪ with G1⚪; no legacy evidence was promoted.
+
+### 2026-07-14 · spence · `OBJ-PROVE-TIMERS.M0`
+- Did: Opened canonical runtime collection after closing provider and target-route proof at source revision 463faa04cde78f4eef35129df866cfb76e7e785b.
+- Found: The exact runtime classification declares 23 artifact identities and 32 open artifact-binding gaps; final release admission remains red until source-consistent primary and supplemental artifacts are retained.
+- Next: Collect the six canonical primary cells at 463faa0, beginning with local Apple and serial AWS Graviton/Intel cells while the hosted Windows producer runs from the same revision.
+- Board: OBJ-PROVE-TIMERS.M0 is active on one-revision canonical collection at 463faa0.
 
 ## /goal
 

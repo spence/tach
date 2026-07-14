@@ -1,0 +1,1320 @@
+{
+  "schema": "tach-runtime-route-classification-v1",
+  "source_revision": "463faa04cde78f4eef35129df866cfb76e7e785b",
+  "route_manifest_sha256": "406b830a0b7f65bf6acf2dc96e61703cd32501243e3975302258abc0e6757652",
+  "counts": {
+    "runtime_identities": 55,
+    "by_evidence_kind": {
+      "full_speed": 45,
+      "runtime_smoke": 4,
+      "tagged_wall_fallback": 6
+    },
+    "by_classification": {
+      "open_artifact_binding_gap": 32,
+      "producer_ready_artifact_declared": 23
+    }
+  },
+  "routes": [
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-2-inteln.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "i686-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-linux-i686.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "s390x-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "loongarch64-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "riscv64gc-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "powerpc64-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "powerpc64le-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "armv7-unknown-linux-gnueabihf",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "x86_64-unknown-linux-musl",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-3-intelm.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "x86_64-linux-android",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_adaptive_default",
+        "target": "aarch64-linux-android",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_aarch64_capability_preferred_default",
+        "target": "aarch64-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_adaptive",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh",
+          "benches/run-speed-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-1-c7g.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_native_no_default",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_mainstream_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-linux-x86_64-no-default.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_native_no_default",
+        "target": "aarch64-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_mainstream_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-linux-aarch64-no-default.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_native_no_default",
+        "target": "x86_64-unknown-linux-musl",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_mainstream_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-linux-musl-x86_64-no-default.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_native_no_default",
+        "target": "x86_64-linux-android",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_mainstream_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_android_native_no_default",
+        "target": "aarch64-linux-android",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_mainstream_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_rare_native_no_default",
+        "target": "i686-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_rare_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_rare_native_no_default",
+        "target": "s390x-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_rare_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_rare_native_no_default",
+        "target": "loongarch64-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_rare_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_rare_native_no_default",
+        "target": "riscv64gc-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_rare_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_rare_native_no_default",
+        "target": "powerpc64-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_rare_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_rare_native_no_default",
+        "target": "powerpc64le-unknown-linux-gnu",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_rare_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "linux_rare_native_no_default",
+        "target": "armv7-unknown-linux-gnueabihf",
+        "build_mode": "no-default",
+        "runtime_profile": "native_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_linux_rare_no_default",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-criterion.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "windows_availability_fallback",
+        "target": "x86_64-pc-windows-msvc",
+        "build_mode": "default",
+        "runtime_profile": "windows_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_windows_availability_fallback",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          ".github/workflows/bench-speed-windows.yml",
+          "benches/instant.rs",
+          "benches/extract_speed.py"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-4-windows.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "windows_availability_fallback",
+        "target": "x86_64-pc-windows-msvc",
+        "build_mode": "no-default",
+        "runtime_profile": "windows_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_windows_availability_fallback",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          ".github/workflows/bench-speed-windows.yml",
+          "benches/instant.rs",
+          "benches/extract_speed.py"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "windows_availability_fallback",
+        "target": "i686-pc-windows-msvc",
+        "build_mode": "default",
+        "runtime_profile": "windows_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_windows_availability_fallback",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          ".github/workflows/bench-speed-windows.yml",
+          "benches/instant.rs",
+          "benches/extract_speed.py"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-windows-i686.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "windows_availability_fallback",
+        "target": "i686-pc-windows-msvc",
+        "build_mode": "no-default",
+        "runtime_profile": "windows_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_windows_availability_fallback",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          ".github/workflows/bench-speed-windows.yml",
+          "benches/instant.rs",
+          "benches/extract_speed.py"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "windows_availability_fallback",
+        "target": "aarch64-pc-windows-msvc",
+        "build_mode": "default",
+        "runtime_profile": "windows_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_windows_availability_fallback",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          ".github/workflows/bench-speed-windows.yml",
+          "benches/instant.rs",
+          "benches/extract_speed.py"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-windows-aarch64.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "windows_availability_fallback",
+        "target": "aarch64-pc-windows-msvc",
+        "build_mode": "no-default",
+        "runtime_profile": "windows_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_windows_availability_fallback",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          ".github/workflows/bench-speed-windows.yml",
+          "benches/instant.rs",
+          "benches/extract_speed.py"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "macos_fixed_native",
+        "target": "x86_64-apple-darwin",
+        "build_mode": "default",
+        "runtime_profile": "macos_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_macos_fixed_native",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-local.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-macos-x86_64.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "macos_fixed_native",
+        "target": "x86_64-apple-darwin",
+        "build_mode": "no-default",
+        "runtime_profile": "macos_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_macos_fixed_native",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-local.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "macos_fixed_native",
+        "target": "aarch64-apple-darwin",
+        "build_mode": "default",
+        "runtime_profile": "macos_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_macos_fixed_native",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-local.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-0-apple.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "macos_fixed_native",
+        "target": "aarch64-apple-darwin",
+        "build_mode": "no-default",
+        "runtime_profile": "macos_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_macos_fixed_native",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-local.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "freebsd_runtime_tournament",
+        "target": "x86_64-unknown-freebsd",
+        "build_mode": "default",
+        "runtime_profile": "freebsd_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_freebsd_runtime_tournament",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-freebsd-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-freebsd-x86_64.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "freebsd_runtime_tournament",
+        "target": "x86_64-unknown-freebsd",
+        "build_mode": "no-default",
+        "runtime_profile": "freebsd_criterion"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "criterion_freebsd_runtime_tournament",
+        "kind": "criterion",
+        "state": "ready",
+        "entrypoints": [
+          "benches/instant.rs",
+          "benches/extract_speed.py",
+          "benches/run-speed-freebsd-aws.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "lambda_x86_64_default",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "aws_lambda_x86_64"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "lambda_x86_64",
+        "kind": "lambda",
+        "state": "ready",
+        "entrypoints": [
+          "benches/lambda-speed/Cargo.toml",
+          "benches/lambda-speed/src/main.rs",
+          "benches/run-speed-lambda.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-5-lambda.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "lambda_aarch64_default",
+        "target": "aarch64-unknown-linux-gnu",
+        "build_mode": "default",
+        "runtime_profile": "aws_lambda_aarch64"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "lambda_aarch64",
+        "kind": "lambda",
+        "state": "ready",
+        "entrypoints": [
+          "benches/lambda-speed/Cargo.toml",
+          "benches/lambda-speed/src/main.rs",
+          "benches/run-speed-lambda.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-lambda-aarch64.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasm_node_availability_fallback",
+        "target": "wasm32-unknown-unknown",
+        "build_mode": "default",
+        "runtime_profile": "node_wasm_bindgen"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "wasm_node",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/wasm.rs",
+          "benches/host-runtime-speed/Cargo.toml",
+          "benches/host-runtime-speed/src/lib.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-wasm-node.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasm_node_availability_fallback",
+        "target": "wasm32-unknown-unknown",
+        "build_mode": "no-default",
+        "runtime_profile": "node_wasm_bindgen"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "wasm_node",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/wasm.rs",
+          "benches/host-runtime-speed/Cargo.toml",
+          "benches/host-runtime-speed/src/lib.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "wasm_browser_fallback",
+        "target": "wasm32-unknown-unknown",
+        "build_mode": "default",
+        "runtime_profile": "browser_wasm_bindgen"
+      },
+      "required_evidence_kind": "tagged_wall_fallback",
+      "producer": {
+        "id": "wasm_browser",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/wasm.rs",
+          "benches/host-runtime-speed/Cargo.toml",
+          "benches/host-runtime-speed/src/lib.rs",
+          "benches/run-browser-host-runtime.mjs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-browser-negative.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasm_browser_fallback",
+        "target": "wasm32-unknown-unknown",
+        "build_mode": "no-default",
+        "runtime_profile": "browser_wasm_bindgen"
+      },
+      "required_evidence_kind": "tagged_wall_fallback",
+      "producer": {
+        "id": "wasm_browser",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/wasm.rs",
+          "benches/host-runtime-speed/Cargo.toml",
+          "benches/host-runtime-speed/src/lib.rs",
+          "benches/run-browser-host-runtime.mjs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p1_node_availability_fallback",
+        "target": "wasm32-wasip1",
+        "build_mode": "default",
+        "runtime_profile": "node_uvwasi"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "wasi_p1_node",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/fallback.rs",
+          "src/arch/thread_cpu.rs",
+          "benches/host-runtime-speed/src/bin/wasip1.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-wasi-p1-node.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p1_node_availability_fallback",
+        "target": "wasm32-wasip1",
+        "build_mode": "no-default",
+        "runtime_profile": "node_uvwasi"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "wasi_p1_node",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/fallback.rs",
+          "src/arch/thread_cpu.rs",
+          "benches/host-runtime-speed/src/bin/wasip1.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p1_wasmtime_fallback",
+        "target": "wasm32-wasip1",
+        "build_mode": "default",
+        "runtime_profile": "wasmtime"
+      },
+      "required_evidence_kind": "tagged_wall_fallback",
+      "producer": {
+        "id": "wasi_p1_wasmtime",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/fallback.rs",
+          "src/arch/thread_cpu.rs",
+          "benches/host-runtime-speed/src/bin/wasip1.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-wasi-p1-wasmtime.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p1_wasmtime_fallback",
+        "target": "wasm32-wasip1",
+        "build_mode": "no-default",
+        "runtime_profile": "wasmtime"
+      },
+      "required_evidence_kind": "tagged_wall_fallback",
+      "producer": {
+        "id": "wasi_p1_wasmtime",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/fallback.rs",
+          "src/arch/thread_cpu.rs",
+          "benches/host-runtime-speed/src/bin/wasip1.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p2_fallback_only",
+        "target": "wasm32-wasip2",
+        "build_mode": "default",
+        "runtime_profile": "wasmtime_component"
+      },
+      "required_evidence_kind": "tagged_wall_fallback",
+      "producer": {
+        "id": "wasi_p2_wasmtime",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/fallback.rs",
+          "src/arch/thread_cpu.rs",
+          "benches/host-runtime-speed/src/bin/wasip1.rs",
+          "benches/host-runtime-speed/src/bin/wasip2.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-wasi-p2-wasmtime.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p2_fallback_only",
+        "target": "wasm32-wasip2",
+        "build_mode": "no-default",
+        "runtime_profile": "wasmtime_component"
+      },
+      "required_evidence_kind": "tagged_wall_fallback",
+      "producer": {
+        "id": "wasi_p2_wasmtime",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/fallback.rs",
+          "src/arch/thread_cpu.rs",
+          "benches/host-runtime-speed/src/bin/wasip1.rs",
+          "benches/host-runtime-speed/src/bin/wasip2.rs",
+          "benches/run-speed-host-runtime.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "emscripten_node_availability_fallback",
+        "target": "wasm32-unknown-emscripten",
+        "build_mode": "default",
+        "runtime_profile": "emcc_node"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "emscripten_node",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/emscripten.rs",
+          "benches/host-runtime-speed/Cargo.toml",
+          "benches/host-runtime-speed/src/bin/emscripten.rs",
+          "benches/run-speed-host-runtime.sh",
+          "benches/run-emscripten-reentry.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-emscripten-node.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "emscripten_node_availability_fallback",
+        "target": "wasm32-unknown-emscripten",
+        "build_mode": "no-default",
+        "runtime_profile": "emcc_node"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "emscripten_node",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/emscripten.rs",
+          "benches/host-runtime-speed/Cargo.toml",
+          "benches/host-runtime-speed/src/bin/emscripten.rs",
+          "benches/run-speed-host-runtime.sh",
+          "benches/run-emscripten-reentry.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "emscripten_node_availability_fallback",
+        "target": "wasm32-unknown-emscripten",
+        "build_mode": "emscripten-pthreads",
+        "runtime_profile": "emcc_node"
+      },
+      "required_evidence_kind": "full_speed",
+      "producer": {
+        "id": "emscripten_node",
+        "kind": "host_runtime",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/emscripten.rs",
+          "benches/host-runtime-speed/Cargo.toml",
+          "benches/host-runtime-speed/src/bin/emscripten.rs",
+          "benches/run-speed-host-runtime.sh",
+          "benches/run-emscripten-reentry.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p1_threads_smoke",
+        "target": "wasm32-wasip1-threads",
+        "build_mode": "default",
+        "runtime_profile": "wasi_threads_smoke"
+      },
+      "required_evidence_kind": "runtime_smoke",
+      "producer": {
+        "id": "wasi_p1_threads_smoke",
+        "kind": "runtime_smoke",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/thread_cpu.rs",
+          "benches/runtime-smoke/Cargo.toml",
+          "benches/runtime-smoke/src/bin/wasip1_threads.rs",
+          "benches/run-runtime-smoke.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-wasip1-threads-smoke.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasi_p1_threads_smoke",
+        "target": "wasm32-wasip1-threads",
+        "build_mode": "no-default",
+        "runtime_profile": "wasi_threads_smoke"
+      },
+      "required_evidence_kind": "runtime_smoke",
+      "producer": {
+        "id": "wasi_p1_threads_smoke",
+        "kind": "runtime_smoke",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/thread_cpu.rs",
+          "benches/runtime-smoke/Cargo.toml",
+          "benches/runtime-smoke/src/bin/wasip1_threads.rs",
+          "benches/run-runtime-smoke.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    },
+    {
+      "identity": {
+        "case_id": "wasm32v1_none_smoke",
+        "target": "wasm32v1-none",
+        "build_mode": "default",
+        "runtime_profile": "wasm32v1_none_smoke"
+      },
+      "required_evidence_kind": "runtime_smoke",
+      "producer": {
+        "id": "wasm32v1_none_smoke",
+        "kind": "runtime_smoke",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/wasm.rs",
+          "benches/runtime-smoke/Cargo.toml",
+          "benches/runtime-smoke/src/lib.rs",
+          "benches/run-runtime-smoke.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": "speed-supplemental-wasm32v1-none-smoke.json",
+      "classification": "producer_ready_artifact_declared",
+      "gap_reason": null
+    },
+    {
+      "identity": {
+        "case_id": "wasm32v1_none_smoke",
+        "target": "wasm32v1-none",
+        "build_mode": "no-default",
+        "runtime_profile": "wasm32v1_none_smoke"
+      },
+      "required_evidence_kind": "runtime_smoke",
+      "producer": {
+        "id": "wasm32v1_none_smoke",
+        "kind": "runtime_smoke",
+        "state": "ready",
+        "entrypoints": [
+          "src/arch/wasm.rs",
+          "benches/runtime-smoke/Cargo.toml",
+          "benches/runtime-smoke/src/lib.rs",
+          "benches/run-runtime-smoke.sh"
+        ]
+      },
+      "route_contract": "three_timer_direct",
+      "artifact_id": null,
+      "classification": "open_artifact_binding_gap",
+      "gap_reason": "no exact retained artifact identity is declared"
+    }
+  ]
+}

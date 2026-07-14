@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-FASTEST-TIMERS` — Close provider correctness and route proof  (M2 🚧 Target-route proof)
-> Next:       Build the exact 55-identity runtime classification, add missing runnable observations without weakening evidence kinds, and preserve genuinely unavailable native hosts as explicit open gaps.
+> Objective:  `OBJ-PROVE-TIMERS` — Prove fastest eligible routes  (M0 🚧 Canonical runtime cells)
+> Next:       Collect the six canonical primary cells at 463faa0, beginning with local Apple and serial AWS Graviton/Intel cells while the hosted Windows producer runs from the same revision.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Promoted the 6685b22 clean-source proof: 24/24 targets, 98 warning-strict API checks, 294 optimized public routes, 294 now-plus-elapsed closures, and 18 vDSO routes passed; marked M2.T1 complete. · By: nsr · 6685b22
+> Last verified: 2026-07-14 · Changed: Opened canonical runtime collection after closing provider and target-route proof at source revision 463faa04cde78f4eef35129df866cfb76e7e785b. · By: nsr · 463faa0
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -17,16 +17,18 @@ objective doc: author status there, not here.
 
 ---
 
-## Current objective — `OBJ-FASTEST-TIMERS` 🚧 (tach)
+## Current objective — `OBJ-PROVE-TIMERS` 🚧 (Prove fastest eligible routes)
 
 Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
 
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-FASTEST-TIMERS.M0` | Provider correctness | ✅ | Close known selector, reentry, and retiering correctness gaps | inline · G1🟢 |
-| `OBJ-FASTEST-TIMERS.M1` | Benchmark contract | ✅ | Make every eligible and public route measurable and schema-checked | inline · G1🟢 |
-| `OBJ-FASTEST-TIMERS.M2` | Target-route proof | 🚧 | Prove all advertised target identities and complete public paths | ↗ M2.md |
+| `OBJ-PROVE-TIMERS.M0` | Canonical runtime cells | 🚧 | Re-run the six primary environments against one frozen revision | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M1` | Supplemental platforms | ⚪ | Produce the required native, Wasm, and negative-environment artifacts | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M2` | Release evidence | ⚪ | Validate performance, semantics, provenance, and regenerated charts | inline · G1⚪ |
+
+Gate checklist (current milestone `OBJ-PROVE-TIMERS.M0`): G1⚪
 <!-- /render:board -->
 
 ---
