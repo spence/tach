@@ -56,6 +56,17 @@ const PROVIDER_CLOCK_MONOTONIC_SERIALIZE: u8 = 15;
 const PROVIDER_CLOCK_MONOTONIC_SYSCALL_SERIALIZE: u8 = 16;
 const PROVIDER_TIMEKEEP: u8 = 17;
 
+// The selection/evidence provider remains PROVIDER_TSC. The installed ordered
+// hot state carries the exact x86 barrier so a read does not dispatch through
+// both the FreeBSD provider selector and the shared x86 barrier selector.
+const HOT_PROVIDER_TSC_LFENCE: u8 = 18;
+const HOT_PROVIDER_TSC_RDTSCP: u8 = 19;
+const HOT_PROVIDER_TSC_CPUID: u8 = 20;
+const HOT_PROVIDER_TSC_MFENCE: u8 = 21;
+const HOT_PROVIDER_TSC_SERIALIZE: u8 = 22;
+const MAX_HOT_SCALE: u64 = u64::MAX >> 8;
+const UNSELECTED_HOT_STATE: u64 = (1_u64 << 32) << 8;
+
 const TIMEKEEP_UNKNOWN: u8 = 0;
 const TIMEKEEP_SELECTING: u8 = 1;
 const TIMEKEEP_READY: u8 = 2;
@@ -103,6 +114,8 @@ static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_TIMEKEEP_FALLBACK: AtomicU8 = AtomicU8::new(PROVIDER_CLOCK_MONOTONIC_CPUID);
+static INSTANT_HOT_STATE: AtomicU64 = AtomicU64::new(UNSELECTED_HOT_STATE);
+static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(UNSELECTED_HOT_STATE);
 static TSC_FREQUENCY: AtomicU64 = AtomicU64::new(0);
 
 static TIMEKEEP_STATE: AtomicU8 = AtomicU8::new(TIMEKEEP_UNKNOWN);
@@ -373,7 +386,27 @@ static ORDERED_EVIDENCE_READY: AtomicBool = AtomicBool::new(false);
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
-  let provider = INSTANT_PROVIDER.load(Ordering::Relaxed);
+  let provider = INSTANT_HOT_STATE.load(Ordering::Relaxed) as u8;
+  if provider == PROVIDER_TSC {
+    return super::x86_64::rdtsc();
+  }
+  match provider {
+    PROVIDER_TIMEKEEP => instant_timekeep_clock_monotonic(),
+    PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
+    PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
+    _ => ticks_after_selection(),
+  }
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub(crate) fn ticks_with_scale() -> (u64, u64) {
+  let state = INSTANT_HOT_STATE.load(Ordering::Relaxed);
+  (read_hot_instant_provider(state as u8), state >> 8)
+}
+
+#[inline(always)]
+fn read_hot_instant_provider(provider: u8) -> u64 {
   if provider == PROVIDER_TSC {
     return super::x86_64::rdtsc();
   }
@@ -399,11 +432,20 @@ fn ticks_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
-  let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
-  if provider == PROVIDER_TSC {
-    return super::x86_64::rdtsc_ordered();
+  let provider = ORDERED_HOT_STATE.load(Ordering::Relaxed) as u8;
+  read_hot_ordered_provider(provider)
+}
+
+#[inline(always)]
+fn read_hot_ordered_provider(provider: u8) -> u64 {
+  if provider == HOT_PROVIDER_TSC_LFENCE {
+    return super::x86_64::read_lfence_rdtsc();
   }
   match provider {
+    HOT_PROVIDER_TSC_RDTSCP => super::x86_64::read_rdtscp(),
+    HOT_PROVIDER_TSC_CPUID => super::x86_64::read_cpuid_rdtsc(),
+    HOT_PROVIDER_TSC_MFENCE => super::x86_64::read_mfence_rdtsc(),
+    HOT_PROVIDER_TSC_SERIALIZE => super::x86_64::read_serialize_rdtsc(),
     PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC_MFENCE => ordered_clock_monotonic_mfence(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL_MFENCE => ordered_clock_monotonic_syscall_mfence(),
@@ -421,11 +463,44 @@ pub fn ticks_ordered() -> u64 {
   }
 }
 
+#[inline]
+fn installed_ordered_provider(provider: u8) -> u8 {
+  if provider != PROVIDER_TSC {
+    return provider;
+  }
+  match super::x86_64::selected_ordered_read_kind() {
+    super::x86_64::ORDERED_READ_LFENCE_RDTSC => HOT_PROVIDER_TSC_LFENCE,
+    super::x86_64::ORDERED_READ_RDTSCP => HOT_PROVIDER_TSC_RDTSCP,
+    super::x86_64::ORDERED_READ_MFENCE_RDTSC => HOT_PROVIDER_TSC_MFENCE,
+    super::x86_64::ORDERED_READ_SERIALIZE_RDTSC => HOT_PROVIDER_TSC_SERIALIZE,
+    _ => HOT_PROVIDER_TSC_CPUID,
+  }
+}
+
+#[inline(always)]
+const fn is_hot_tsc_provider(provider: u8) -> bool {
+  matches!(
+    provider,
+    HOT_PROVIDER_TSC_LFENCE
+      | HOT_PROVIDER_TSC_RDTSCP
+      | HOT_PROVIDER_TSC_CPUID
+      | HOT_PROVIDER_TSC_MFENCE
+      | HOT_PROVIDER_TSC_SERIALIZE
+  )
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
+  let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
+  (read_hot_ordered_provider(state as u8), state >> 8)
+}
+
 #[cold]
 #[inline(never)]
 fn ticks_ordered_after_selection() -> u64 {
   match selected_ordered_provider() {
-    PROVIDER_TSC => super::x86_64::rdtsc_ordered(),
+    PROVIDER_TSC => read_hot_ordered_provider(installed_ordered_provider(PROVIDER_TSC)),
     PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic(),
     PROVIDER_CLOCK_MONOTONIC_MFENCE => ordered_clock_monotonic_mfence(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL_MFENCE => ordered_clock_monotonic_syscall_mfence(),
@@ -445,8 +520,8 @@ fn ticks_ordered_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered_unordered() -> u64 {
-  let provider = ORDERED_PROVIDER.load(Ordering::Relaxed);
-  if provider == PROVIDER_TSC {
+  let provider = ORDERED_HOT_STATE.load(Ordering::Relaxed) as u8;
+  if is_hot_tsc_provider(provider) {
     return super::x86_64::rdtsc();
   }
   match provider {
@@ -666,13 +741,19 @@ fn ordered_timekeep_clock_monotonic_unordered() -> u64 {
 #[inline(always)]
 fn retier_instant_timekeep() {
   let fallback = instant_fallback_provider(INSTANT_TIMEKEEP_FALLBACK.load(Ordering::Acquire));
-  let _ = retier_timekeep_provider(&INSTANT_PROVIDER, &TIMEKEEP_STATE, fallback);
+  let provider = retier_timekeep_provider(&INSTANT_PROVIDER, &TIMEKEEP_STATE, fallback);
+  let scale = scale_for_provider(provider);
+  super::NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+  publish_hot_state(&INSTANT_HOT_STATE, provider, scale);
 }
 
 #[inline(always)]
 fn retier_ordered_timekeep() {
   let fallback = ordered_fallback_provider(ORDERED_TIMEKEEP_FALLBACK.load(Ordering::Acquire));
-  let _ = retier_timekeep_provider(&ORDERED_PROVIDER, &TIMEKEEP_STATE, fallback);
+  let provider = retier_timekeep_provider(&ORDERED_PROVIDER, &TIMEKEEP_STATE, fallback);
+  let scale = scale_for_provider(provider);
+  super::ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+  publish_hot_state(&ORDERED_HOT_STATE, installed_ordered_provider(provider), scale);
 }
 
 #[inline(always)]
@@ -1262,6 +1343,20 @@ fn instant_read_cost_only_marks_guaranteed_userspace_paths_inline() {
 
 #[cfg(test)]
 #[test]
+fn packed_hot_state_keeps_provider_and_scale_together() {
+  let state = AtomicU64::new(UNSELECTED_HOT_STATE);
+  let scale = 1_u64 << 31;
+  publish_hot_state(&state, HOT_PROVIDER_TSC_LFENCE, scale);
+
+  let published = state.load(Ordering::Acquire);
+  assert_eq!(published as u8, HOT_PROVIDER_TSC_LFENCE);
+  assert_eq!(published >> 8, scale);
+  assert!(is_hot_tsc_provider(published as u8));
+  assert!(!is_hot_tsc_provider(PROVIDER_TIMEKEEP));
+}
+
+#[cfg(test)]
+#[test]
 fn timekeep_retirement_updates_the_selected_read_cost() {
   let provider = AtomicU8::new(PROVIDER_TIMEKEEP);
   let timekeep_state = AtomicU8::new(TIMEKEEP_READY);
@@ -1293,16 +1388,49 @@ pub(crate) fn ordered_uses_tsc() -> bool {
 }
 
 fn selected_instant_provider() -> u8 {
-  select_provider(
+  let provider = select_provider(
     &INSTANT_PROVIDER,
     &INSTANT_PROVIDER_OWNER_PID,
     &INSTANT_PROVIDER_OWNER_TID,
     false,
-  )
+  );
+  if INSTANT_PROVIDER.load(Ordering::Acquire) == provider {
+    let scale = scale_for_provider(provider);
+    super::NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+    publish_hot_state(&INSTANT_HOT_STATE, provider, scale);
+  }
+  provider
 }
 
 fn selected_ordered_provider() -> u8 {
-  select_provider(&ORDERED_PROVIDER, &ORDERED_PROVIDER_OWNER_PID, &ORDERED_PROVIDER_OWNER_TID, true)
+  let provider = select_provider(
+    &ORDERED_PROVIDER,
+    &ORDERED_PROVIDER_OWNER_PID,
+    &ORDERED_PROVIDER_OWNER_TID,
+    true,
+  );
+  if ORDERED_PROVIDER.load(Ordering::Acquire) == provider {
+    let scale = scale_for_provider(provider);
+    super::ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
+    publish_hot_state(&ORDERED_HOT_STATE, installed_ordered_provider(provider), scale);
+  }
+  provider
+}
+
+#[inline]
+fn scale_for_provider(provider: u8) -> u64 {
+  let frequency = if provider == PROVIDER_TSC {
+    TSC_FREQUENCY.load(Ordering::Acquire).max(1)
+  } else {
+    1_000_000_000
+  };
+  super::scale_from_ratio(1_000_000_000, frequency)
+}
+
+#[inline]
+fn publish_hot_state(state: &AtomicU64, provider: u8, scale: u64) {
+  assert!(scale <= MAX_HOT_SCALE, "tach: selected FreeBSD scale is not packable");
+  state.store((scale << 8) | u64::from(provider), Ordering::Release);
 }
 
 fn select_provider(
@@ -1922,7 +2050,7 @@ fn probe_instant_hot_path() -> u64 {
 fn probe_ordered_hot_path() -> u64 {
   let provider = PROBE_ORDERED_PROVIDER.load(Ordering::Relaxed);
   if provider == PROVIDER_TSC {
-    return super::x86_64::rdtsc_ordered();
+    return read_hot_ordered_provider(installed_ordered_provider(provider));
   }
   match provider {
     PROVIDER_TIMEKEEP => ordered_timekeep_clock_monotonic(),

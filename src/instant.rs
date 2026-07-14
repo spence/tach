@@ -61,8 +61,9 @@ impl Instant {
   #[allow(clippy::inline_always)]
   #[must_use]
   pub fn elapsed(&self) -> Duration {
-    let delta = arch::ticks().saturating_sub(self.0);
-    ticks_to_duration(delta)
+    let (ticks, scale) = arch::ticks_with_scale();
+    let delta = ticks.saturating_sub(self.0);
+    ticks_to_duration_with_scale(delta, scale)
   }
 
   /// Returns the duration elapsed from `earlier` to `self`, or zero if

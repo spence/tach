@@ -352,6 +352,17 @@ pub fn nanos_per_tick_q32() -> u64 {
   initialize_nanos_per_tick_q32()
 }
 
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub(crate) fn ticks_with_scale() -> (u64, u64) {
+  #[cfg(all(target_os = "freebsd", target_arch = "x86_64"))]
+  {
+    return freebsd_x86_64::ticks_with_scale();
+  }
+  #[cfg(not(all(target_os = "freebsd", target_arch = "x86_64")))]
+  (ticks(), nanos_per_tick_q32())
+}
+
 #[cold]
 #[inline(never)]
 fn initialize_nanos_per_tick_q32() -> u64 {
@@ -406,6 +417,10 @@ pub fn ordered_nanos_per_tick_q32() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub(crate) fn ordered_ticks_with_scale() -> (u64, u64) {
+  #[cfg(all(target_os = "freebsd", target_arch = "x86_64"))]
+  {
+    return freebsd_x86_64::ticks_ordered_with_scale();
+  }
   #[cfg(all(
     any(target_os = "android", target_os = "linux"),
     any(target_arch = "x86", target_arch = "x86_64"),
@@ -417,9 +432,12 @@ pub(crate) fn ordered_ticks_with_scale() -> (u64, u64) {
   {
     return linux_aarch64_wall::ticks_ordered_with_scale();
   }
-  #[cfg(not(all(
-    any(target_os = "android", target_os = "linux"),
-    any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"),
+  #[cfg(not(any(
+    all(
+      any(target_os = "android", target_os = "linux"),
+      any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"),
+    ),
+    all(target_os = "freebsd", target_arch = "x86_64"),
   )))]
   (ticks_ordered(), ordered_nanos_per_tick_q32())
 }
