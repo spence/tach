@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import ctypes
 import hashlib
 import json
 import os
@@ -29,6 +30,95 @@ SOURCE_SEAL_FILENAME = "tach-speed-source-seal.json"
 SOURCE_SEAL_SCHEMA = "tach-speed-source-seal-v1"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _COPY_CHUNK_SIZE = 1024 * 1024
+
+
+def _open_windows_no_reparse(
+    path: Path,
+    kernel32=None,
+    open_osfhandle=None,
+    get_last_error=None,
+) -> int:
+    """Open one Windows path without traversing a final reparse point."""
+
+    class FileInformation(ctypes.Structure):
+        _fields_ = [
+            ("dwFileAttributes", ctypes.c_uint32),
+            ("ftCreationTimeLow", ctypes.c_uint32),
+            ("ftCreationTimeHigh", ctypes.c_uint32),
+            ("ftLastAccessTimeLow", ctypes.c_uint32),
+            ("ftLastAccessTimeHigh", ctypes.c_uint32),
+            ("ftLastWriteTimeLow", ctypes.c_uint32),
+            ("ftLastWriteTimeHigh", ctypes.c_uint32),
+            ("dwVolumeSerialNumber", ctypes.c_uint32),
+            ("nFileSizeHigh", ctypes.c_uint32),
+            ("nFileSizeLow", ctypes.c_uint32),
+            ("nNumberOfLinks", ctypes.c_uint32),
+            ("nFileIndexHigh", ctypes.c_uint32),
+            ("nFileIndexLow", ctypes.c_uint32),
+        ]
+
+    if kernel32 is None:
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    if open_osfhandle is None:
+        import msvcrt
+
+        open_osfhandle = msvcrt.open_osfhandle
+    if get_last_error is None:
+        get_last_error = ctypes.get_last_error
+
+    handle_type = ctypes.c_void_p
+    kernel32.CreateFileW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        handle_type,
+    ]
+    kernel32.CreateFileW.restype = handle_type
+    kernel32.GetFileInformationByHandle.argtypes = [
+        handle_type,
+        ctypes.POINTER(FileInformation),
+    ]
+    kernel32.GetFileInformationByHandle.restype = ctypes.c_int
+    kernel32.CloseHandle.argtypes = [handle_type]
+    kernel32.CloseHandle.restype = ctypes.c_int
+
+    handle = kernel32.CreateFileW(
+        str(path),
+        0x80000000,
+        0x00000007,
+        None,
+        3,
+        0x00000080 | 0x00200000,
+        None,
+    )
+    if handle == ctypes.c_void_p(-1).value:
+        error_code = get_last_error()
+        raise OSError(error_code, f"CreateFileW failed with Windows error {error_code}", path)
+
+    transferred = False
+    try:
+        information = FileInformation()
+        if not kernel32.GetFileInformationByHandle(handle, ctypes.byref(information)):
+            error_code = get_last_error()
+            raise OSError(
+                error_code,
+                f"GetFileInformationByHandle failed with Windows error {error_code}",
+                path,
+            )
+        if information.dwFileAttributes & 0x00000400:
+            raise RuntimeError(f"Criterion input rejects a reparse point: {path}")
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOINHERIT", 0)
+        descriptor = open_osfhandle(handle, flags)
+        if descriptor < 0:
+            raise OSError("open_osfhandle returned an invalid descriptor")
+        transferred = True
+        return descriptor
+    finally:
+        if not transferred:
+            kernel32.CloseHandle(handle)
 
 
 def _require_directory(path: Path, description: str) -> None:
@@ -68,6 +158,29 @@ def _stat_fingerprint(value: os.stat_result) -> tuple[int, ...]:
     )
 
 
+def _path_matches_opened_file(initial: os.stat_result, opened: os.stat_result) -> bool:
+    if os.name != "nt":
+        return _stat_fingerprint(initial) == _stat_fingerprint(opened)
+    return (
+        stat.S_IFMT(initial.st_mode),
+        initial.st_size,
+        initial.st_mtime_ns,
+    ) == (
+        stat.S_IFMT(opened.st_mode),
+        opened.st_size,
+        opened.st_mtime_ns,
+    )
+
+
+def _open_source_file(path: Path) -> int:
+    if os.name == "nt":
+        return _open_windows_no_reparse(path)
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:
+        raise RuntimeError("secure evidence collection requires O_NOFOLLOW")
+    return os.open(path, os.O_RDONLY | no_follow)
+
+
 def _read_regular_file(
     path: Path,
     relative: str,
@@ -82,15 +195,14 @@ def _read_regular_file(
         raise RuntimeError(f"could not stat Criterion input {relative!r}: {error}") from error
     if not stat.S_ISREG(initial.st_mode):
         raise RuntimeError(f"Criterion input {relative!r} is not a regular file")
-    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
-        descriptor = os.open(path, flags)
+        descriptor = _open_source_file(path)
     except OSError as error:
         raise RuntimeError(f"could not open Criterion input {relative!r}: {error}") from error
     try:
         opened = os.fstat(descriptor)
-        expected = _stat_fingerprint(initial)
-        if not stat.S_ISREG(opened.st_mode) or _stat_fingerprint(opened) != expected:
+        expected = _stat_fingerprint(opened)
+        if not stat.S_ISREG(opened.st_mode) or not _path_matches_opened_file(initial, opened):
             raise RuntimeError(f"Criterion input {relative!r} changed while opening it")
         digest = hashlib.sha256()
         chunks = []
@@ -127,15 +239,14 @@ def _copy_sealed_file(
         raise RuntimeError(f"could not stat Criterion input {relative!r}: {error}") from error
     if not stat.S_ISREG(initial.st_mode):
         raise RuntimeError(f"Criterion input {relative!r} is not a regular file")
-    expected_state = _stat_fingerprint(initial)
-    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
-        descriptor = os.open(source_path, flags)
+        descriptor = _open_source_file(source_path)
     except OSError as error:
         raise RuntimeError(f"could not open Criterion input {relative!r}: {error}") from error
     try:
         opened = os.fstat(descriptor)
-        if not stat.S_ISREG(opened.st_mode) or _stat_fingerprint(opened) != expected_state:
+        expected_state = _stat_fingerprint(opened)
+        if not stat.S_ISREG(opened.st_mode) or not _path_matches_opened_file(initial, opened):
             raise RuntimeError(f"Criterion input {relative!r} changed while opening it")
         destination.parent.mkdir(parents=True, exist_ok=True)
         digest = hashlib.sha256()

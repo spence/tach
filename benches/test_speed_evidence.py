@@ -2687,6 +2687,86 @@ declare void @generic_implementation()
     )
     self.assertEqual(nonselected["comparison_ns"], 10.0)
 
+  def test_selected_wall_candidate_uses_the_paired_public_exact_probe(self) -> None:
+    selection = apple_x86_wall_selection()
+    values = clocks()
+    values["tach"]["selection"] = copy.deepcopy(selection)
+    values["tach_ordered"]["wall_selection"] = copy.deepcopy(selection)
+    for domain in ("instant", "ordered"):
+      for candidate in selection["eligible_direct_candidates"][domain]:
+        identity = speed_evidence.exact_wall_candidate_identity(domain, candidate)
+        self.assertIsNotNone(identity)
+        values[candidate] = {**estimate(10.0), **identity}
+      selected_key = (
+        "direct_selected_wall" if domain == "instant"
+        else "direct_selected_ordered_wall"
+      )
+      values[selected_key] = {
+        **estimate(10.0),
+        "provider": selection["selected_provider"][domain],
+        "read_cost": "inline" if domain == "instant" else "system call",
+        "time_domain": f"{domain} wall",
+        "benchmark": selection["selected_native_benchmark"][domain],
+      }
+
+    selected_candidate = selection["eligible_direct_candidates"]["ordered"][0]
+    values[selected_candidate].update(estimate(1.0))
+    _, report = speed_evidence.validate_cell(
+      "synthetic Apple x86", values, "x86_64-apple-darwin"
+    )
+
+    result = report["selected_wall_provider_parity"]["ordered"][
+      "eligible_candidates"
+    ][selected_candidate]["metrics"]["now"]
+    self.assertTrue(result["passed"])
+    self.assertEqual(
+      result["comparison_basis"],
+      "alternating paired public/selected-exact probe",
+    )
+
+  def test_supplemental_macos_thread_route_uses_paired_public_exact_probe(self) -> None:
+    artifact = "speed-supplemental-macos-x86_64.json"
+    document = supplemental_speed_documents()[artifact]
+    values = document["clocks"]
+    selection = macos_fixed_native_thread_cpu_selection()
+    mechanism = selection["selected_mechanism"]
+    candidate = selection["eligible_direct_candidates"][0]
+    values["tach_thread_cpu"].update({
+      **estimate(100.0),
+      "provider": "posix_thread_cpu_clock",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "selection": copy.deepcopy(selection),
+    })
+    values["direct_selected_thread_cpu"] = {
+      **estimate(10.0),
+      "provider": mechanism,
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": selection["selected_native_benchmark"],
+    }
+    values[candidate] = {
+      **estimate(1.0),
+      "provider": mechanism,
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": candidate,
+    }
+    document["selection_profiles"]["thread_cpu"] = "fixed_native"
+    document["route_coverage"] = speed_evidence.supplemental_route_coverage_from_clocks(
+      values, document["selection_profiles"]
+    )
+    failures: list[str] = []
+
+    report = speed_evidence.validate_supplemental_route_coverage(
+      "synthetic macOS", document, failures
+    )
+
+    self.assertEqual(failures, [])
+    result = report["thread_cpu"]["eligible_exact_routes"][candidate]["metrics"]["now"]
+    self.assertTrue(result["passed"])
+    self.assertEqual(result["comparison_basis"], "alternating paired public/exact probe")
+
   def test_supplemental_validator_rejects_cross_target_or_cross_run_inputs(self) -> None:
     macos = supplemental_speed_documents()["speed-supplemental-macos-x86_64.json"]
     relabeled = copy.deepcopy(macos)

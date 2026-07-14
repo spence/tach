@@ -4141,6 +4141,37 @@ def validate_checkout_binding(root: Path, revision: str) -> tuple[list[str], dic
   }
 
 
+def validate_wall_selector_reproduction(
+  context: str,
+  selection: object,
+  clocks: dict,
+  failures: list[str],
+) -> dict:
+  """Validate any supported wall selector and return its measured decisions."""
+
+  if not isinstance(selection, dict):
+    return {}
+  selected = selection.get("selected_provider")
+  if isinstance(selection.get("architecture"), str):
+    return validate_residual_wall_selector(context, selection, clocks, failures)
+  if (
+    isinstance(selection.get("probe"), dict)
+    and "instant_candidate_names" in selection["probe"]
+  ):
+    return validate_linux_x86_wall_selector(context, selection, failures)
+  if isinstance(selection.get("instant_probe"), dict):
+    return validate_linux_aarch64_wall_selector(context, selection, failures)
+  if isinstance(selected, dict) and selected.get("instant") == "windows_qpc":
+    return validate_windows_wall_selector(context, selection, failures)
+  if (
+    isinstance(selected, dict)
+    and isinstance(selected.get("instant"), str)
+    and selected["instant"].startswith("apple_")
+  ):
+    return validate_apple_wall_selector(context, selection, failures)
+  return {}
+
+
 def validate_cell(
   context: str,
   clocks: dict,
@@ -4243,33 +4274,9 @@ def validate_cell(
 
   selected_wall_parity = {}
   wall_selection = clocks["tach"].get("selection")
-  selector_reproduction = {}
-  if isinstance(wall_selection, dict):
-    selected_mapping = wall_selection.get("selected_provider")
-    if isinstance(wall_selection.get("architecture"), str):
-      selector_reproduction = validate_residual_wall_selector(
-        context, wall_selection, clocks, failures
-      )
-    elif isinstance(wall_selection.get("probe"), dict) and "instant_candidate_names" in wall_selection["probe"]:
-      selector_reproduction = validate_linux_x86_wall_selector(
-        context, wall_selection, failures
-      )
-    elif isinstance(wall_selection.get("instant_probe"), dict):
-      selector_reproduction = validate_linux_aarch64_wall_selector(
-        context, wall_selection, failures
-      )
-    elif isinstance(selected_mapping, dict) and selected_mapping.get("instant") == "windows_qpc":
-      selector_reproduction = validate_windows_wall_selector(
-        context, wall_selection, failures
-      )
-    elif (
-      isinstance(selected_mapping, dict)
-      and isinstance(selected_mapping.get("instant"), str)
-      and selected_mapping["instant"].startswith("apple_")
-    ):
-      selector_reproduction = validate_apple_wall_selector(
-        context, wall_selection, failures
-      )
+  selector_reproduction = validate_wall_selector_reproduction(
+    context, wall_selection, clocks, failures
+  )
   selected_pairs = (
     ("instant", "tach", "direct_selected_wall"),
     ("ordered", "tach_ordered", "direct_selected_ordered_wall"),
@@ -4317,6 +4324,7 @@ def validate_cell(
           paired_public_exact = wall_public_exact_metric(domain_reproduction, metric)
           comparison_basis = "public Criterion estimate"
           public_reference_gate = None
+          selected_candidate = candidate_row.get("provider") == selected.get(domain)
           if public_exact_contract == FREEBSD_PUBLIC_EXACT_CONTRACT:
             passed, public_reference_gate = public_reference_winner_gate(
               clocks, domain, metric, target_triple
@@ -4326,16 +4334,25 @@ def validate_cell(
               "runtime selector plus usable public-reference winner gate; "
               "exact route retained as a diagnostic lower bound"
             )
-          elif (
-            isinstance(paired_public_exact, dict)
-            and paired_public_exact.get("passed") is True
-            and isinstance(selected_direct_for_candidates, dict)
-          ):
-            selected_passed, allowance = equivalent_or_faster(
-              selected_direct_for_candidates, candidate_row, metric
-            )
-            passed = selected_passed
-            comparison_basis = "paired public/exact parity plus selected-exact candidate estimate"
+          elif isinstance(paired_public_exact, dict) and paired_public_exact.get("passed") is not None:
+            if selected_candidate:
+              passed = paired_public_exact.get("passed") is True
+              allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
+              comparison_basis = "alternating paired public/selected-exact probe"
+            elif (
+              paired_public_exact.get("passed") is True
+              and isinstance(selected_direct_for_candidates, dict)
+            ):
+              passed, allowance = equivalent_or_faster(
+                selected_direct_for_candidates, candidate_row, metric
+              )
+              comparison_basis = (
+                "paired public/exact parity plus selected-exact candidate estimate"
+              )
+            else:
+              passed = False
+              allowance = paired_public_exact.get("equivalence_allowance_ns_per_read")
+              comparison_basis = "failed paired public/selected-exact probe"
           else:
             passed, allowance = equivalent_or_faster(
               clocks[public_name], candidate_row, metric
@@ -5666,25 +5683,29 @@ def validate_supplemental_route_coverage(
   target_triple = document.get("triple")
   if not isinstance(target_triple, str):
     target_triple = ""
-  wall_selector_reproduction = {}
   tach_wall = clocks.get("tach")
   wall_selection = tach_wall.get("selection") if isinstance(tach_wall, dict) else None
-  if (
-    isinstance(wall_selection, dict)
-    and wall_selection.get("architecture")
-    in {"wasm32-host", "emscripten-host", "x86_64-freebsd"}
-  ):
-    wall_selector_reproduction = validate_residual_wall_selector(
-      context, wall_selection, clocks, failures
+  wall_selector_reproduction = validate_wall_selector_reproduction(
+    context, wall_selection, clocks, failures
+  )
+  tach_thread = clocks.get("tach_thread_cpu")
+  thread_selection = (
+    tach_thread.get("selection") if isinstance(tach_thread, dict) else None
+  )
+  thread_selector_failures: list[str] = []
+  thread_selector_reproduction = (
+    validate_thread_cpu_selector(
+      context, thread_selection, thread_selector_failures, target_triple
     )
-  elif (
-    isinstance(wall_selection, dict)
-    and isinstance(wall_selection.get("probe"), dict)
-    and "instant_candidate_names" in wall_selection["probe"]
-  ):
-    wall_selector_reproduction = validate_linux_x86_wall_selector(
-      context, wall_selection, failures
+    if (
+      isinstance(thread_selection, dict)
+      and isinstance(thread_selection.get("public_exact_probe"), dict)
     )
+    else {}
+  )
+  for failure in thread_selector_failures:
+    if failure not in failures:
+      failures.append(failure)
   for use_case, (expected_public, expected_selected, _) in SUPPLEMENTAL_ROUTE_ROWS.items():
     route = coverage.get(use_case)
     profile = profiles.get(use_case)
@@ -5789,11 +5810,14 @@ def validate_supplemental_route_coverage(
         public_reference_gate = None
         domain_reproduction = wall_selector_reproduction.get(use_case)
         public_exact_contract = wall_public_exact_contract(domain_reproduction)
-        paired_public_exact = (
-          wall_public_exact_metric(domain_reproduction, metric)
-          if comparison is public and use_case in ("instant", "ordered")
-          else None
-        )
+        if comparison is public and use_case in ("instant", "ordered"):
+          paired_public_exact = wall_public_exact_metric(domain_reproduction, metric)
+        elif comparison is public and use_case == "thread_cpu":
+          paired_public_exact = thread_public_exact_metric(
+            thread_selector_reproduction, metric
+          )
+        else:
+          paired_public_exact = None
         if (
           comparison is public
           and public_exact_contract == FREEBSD_PUBLIC_EXACT_CONTRACT

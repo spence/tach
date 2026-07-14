@@ -97,20 +97,26 @@ class SourceSealSnapshotTests(unittest.TestCase):
     def test_windows_accepts_path_descriptor_identity_representation_difference(self) -> None:
         initial = self.stat_value(inode=0)
         opened = self.stat_value(inode=42)
-        with mock.patch.object(seal_speed_source.os, "name", "nt"):
-            self.assertTrue(seal_speed_source._path_matches_opened_file(initial, opened))
+        for module in (seal_speed_source, collect_speed_bundle):
+            with self.subTest(module=module.__name__):
+                with mock.patch.object(module.os, "name", "nt"):
+                    self.assertTrue(module._path_matches_opened_file(initial, opened))
 
     def test_windows_still_rejects_content_metadata_change(self) -> None:
         initial = self.stat_value(inode=0)
         opened = self.stat_value(inode=42, size=11)
-        with mock.patch.object(seal_speed_source.os, "name", "nt"):
-            self.assertFalse(seal_speed_source._path_matches_opened_file(initial, opened))
+        for module in (seal_speed_source, collect_speed_bundle):
+            with self.subTest(module=module.__name__):
+                with mock.patch.object(module.os, "name", "nt"):
+                    self.assertFalse(module._path_matches_opened_file(initial, opened))
 
     def test_posix_requires_full_path_descriptor_identity(self) -> None:
         initial = self.stat_value(inode=1)
         opened = self.stat_value(inode=2)
-        with mock.patch.object(seal_speed_source.os, "name", "posix"):
-            self.assertFalse(seal_speed_source._path_matches_opened_file(initial, opened))
+        for module in (seal_speed_source, collect_speed_bundle):
+            with self.subTest(module=module.__name__):
+                with mock.patch.object(module.os, "name", "posix"):
+                    self.assertFalse(module._path_matches_opened_file(initial, opened))
 
 
 def write_benchmark(
