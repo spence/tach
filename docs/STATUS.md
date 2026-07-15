@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M2 🚧 Release-claim closure)
-> Next:       Generate charts directly from the tracked accepted snapshot, reconcile the two public documents to those results, and run the complete release gate.
+> Next:       Push the focused fix and require a green Linux retained-evidence job plus the complete CI matrix before closing M2.G1.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Promoted the objective to release-claim closure after M1 admitted all 15 runtime decision boundaries at evidence SHA a6e73e8. · By: nsr · a6e73e8
+> Last verified: 2026-07-14 · Changed: Repaired cross-platform retained-evidence replay at 292a5fd by resolving Criterion group directories case-insensitively and rejecting ambiguous matches; the exact 15-boundary validator and byte-clean chart regeneration now pass locally, alongside 214 Python tests and the complete Rust and 24-target provider checks. · By: nsr · 292a5fd
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

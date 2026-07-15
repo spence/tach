@@ -374,6 +374,12 @@ availability but may not be rendered as speed wins.
 - Next: Generate charts directly from the tracked accepted snapshot, reconcile the two public documents to those results, and run the complete release gate.
 - Board: M0 and M1 are complete. M2 is active with G1 open; there is no owner blocker until explicit publication approval.
 
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M2`
+- Did: Repaired cross-platform retained-evidence replay at 292a5fd by resolving Criterion group directories case-insensitively and rejecting ambiguous matches; the exact 15-boundary validator and byte-clean chart regeneration now pass locally, alongside 214 Python tests and the complete Rust and 24-target provider checks.
+- Found: GitHub run 29377723378 exposed one evidence-tool portability defect: Windows Criterion emits lowercase group directories, while the Linux replay expected title-cased names; local macOS validation had masked it on a case-insensitive filesystem. Shipping Cargo configuration and src/ remain unchanged.
+- Next: Push the focused fix and require a green Linux retained-evidence job plus the complete CI matrix before closing M2.G1.
+- Board: M0 and M1 remain complete. M2 has one repaired CI portability defect awaiting independent Linux replay; there is no owner blocker and no runtime research remains.
+
 ## /goal
 
 At one reviewed release candidate, prove all 24 advertised target routes statically, all 15 distinct
