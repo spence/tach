@@ -152,6 +152,22 @@ def boundary_matrix():
 
 
 class ReleaseClaimSurfaceTests(unittest.TestCase):
+  def test_ci_pins_and_retains_the_canonical_raster_renderer_output(self) -> None:
+    root = BENCHES_DIR.parent
+    workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    benchmarks = (root / "BENCHMARKS.md").read_text(encoding="utf-8")
+
+    self.assertIn("rsvg-convert version 2.58.0", workflow)
+    self.assertIn("name: Upload mismatched release charts", workflow)
+    self.assertIn("if: failure()", workflow)
+    self.assertIn("uses: actions/upload-artifact@v7.0.1", workflow)
+    self.assertLess(
+      workflow.index("name: Require checked-in evidence to match"),
+      workflow.index("name: Upload mismatched release charts"),
+    )
+    self.assertIn("canonical Ubuntu 24.04 release", benchmarks)
+    self.assertIn("--svg-only", benchmarks)
+
   def test_ci_validator_rejects_primary_only_release_report(self) -> None:
     with tempfile.TemporaryDirectory() as temporary:
       data_dir = Path(temporary)

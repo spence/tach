@@ -173,10 +173,13 @@ tar -xzf "$evidence/collector-bundles.tgz" -C "$scratch"
 python3 benches/validate-speed-evidence.py \
   --data-dir "$scratch" \
   --output "$scratch/release-report.json"
-python3 benches/summary-use-cases.py --data-dir "$scratch" --output-dir benches
-python3 benches/summary-thread-cpu.py --data-dir "$scratch" --output-dir benches
+python3 benches/summary-use-cases.py --data-dir "$scratch" --output-dir benches --svg-only
+python3 benches/summary-thread-cpu.py --data-dir "$scratch" --output-dir benches --svg-only
 ```
 
 The renderers consume the full validated snapshot and refuse to render a primary-only subset.
+SVG output is platform-independent. The checked-in PNGs are the canonical Ubuntu 24.04 release
+rasters produced with `rsvg-convert 2.58.0`; newer local librsvg and font stacks may produce
+visually equivalent but byte-different PNGs, so CI owns their byte-for-byte regeneration.
 Recollecting a native cell uses the source-sealed runners in `benches/run-speed-aws.sh`,
 `benches/run-speed-freebsd-aws.sh`, `benches/run-speed-local.sh`, and the hosted benchmark workflow.

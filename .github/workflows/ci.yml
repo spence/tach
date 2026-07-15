@@ -94,7 +94,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install raster renderer
-        run: sudo apt-get update && sudo apt-get install --yes librsvg2-bin
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes librsvg2-bin
+          rsvg-convert --version | head -n 1 | grep -Fx 'rsvg-convert version 2.58.0'
 
       - name: Test evidence rules
         run: python3 -m unittest discover -s benches -p 'test_*.py'
@@ -128,6 +131,23 @@ jobs:
             benches/summary-thread-cpu-wide.png \
             benches/summary-thread-cpu.svg \
             benches/summary-thread-cpu-wide.svg
+
+      - name: Upload mismatched release charts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-claim-charts
+          path: |
+            benches/summary-use-cases.png
+            benches/summary-use-cases-wide.png
+            benches/summary-use-cases.svg
+            benches/summary-use-cases-wide.svg
+            benches/summary-thread-cpu.png
+            benches/summary-thread-cpu-wide.png
+            benches/summary-thread-cpu.svg
+            benches/summary-thread-cpu-wide.svg
+          if-no-files-found: error
+          retention-days: 1
 
   msrv:
     name: MSRV 1.95
