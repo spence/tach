@@ -125,7 +125,7 @@ never rendered as speed wins.
 Every measured cell retains its source revision, build profile, enabled features, runner identity,
 medians, confidence intervals, raw selector samples, and source-sealed collector bundle. The
 durable package is
-[`docs/evidence/timers/release-speed-closure-2026-07-14`](docs/evidence/timers/release-speed-closure-2026-07-14/README.md).
+[`docs/evidence/timers/release-speed-closure-2026-07-14`](https://github.com/spence/tach/tree/v0.2.0/docs/evidence/timers/release-speed-closure-2026-07-14).
 All temporary AWS instances and keys were removed after collection.
 
 ## Methodology

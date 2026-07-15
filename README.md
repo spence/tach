@@ -155,17 +155,17 @@ comparison is unordered.
 
 | Platform / target | `Instant` | `OrderedInstant` | `ThreadCpuInstant` |
 |---|---|---|---|
-| Linux x86 / x86_64 / aarch64 | RDTSC / CNTVCT_EL0 | RDTSCP / ISB + CNTVCT | Perf mmap when selected/capable; raw POSIX syscall fallback |
-| Linux RISC-V | `rdtime` | Fenced counter read † | Measured perf mmap or POSIX thread clock |
-| Linux LoongArch | `rdtime.d` | Fenced counter read † | Measured perf mmap/read or POSIX thread clock |
-| Linux armv7 / s390x / powerpc64 | `CLOCK_MONOTONIC` | `CLOCK_MONOTONIC` | Measured perf mmap/read or POSIX thread clock |
-| macOS x86_64 / aarch64 | RDTSC / CNTVCT_EL0 | RDTSCP / ISB + CNTVCT | `clock_gettime_nsec_np` thread clock |
-| Windows x86 / x86_64 / aarch64 | RDTSC / CNTVCT_EL0 | Ordered architecture counter | `GetThreadTimes` |
-| Android x86_64 / aarch64 | RDTSC / CNTVCT_EL0 | Ordered architecture counter | Measured perf mmap or POSIX thread clock |
-| FreeBSD x86_64 | RDTSC | RDTSCP | POSIX thread clock |
-| WASI preview 1 / 2 | Host monotonic clock | Host monotonic clock | Host thread clock, otherwise explicit wall fallback |
-| wasm-bindgen JavaScript host | `Performance.now()` | `Performance.now()` | `Performance.now()` wall fallback |
-| Emscripten | `CLOCK_MONOTONIC` | `CLOCK_MONOTONIC` | `CLOCK_MONOTONIC` wall fallback |
+| Linux x86 / x86_64 | Measured kernel-eligible RDTSC or OS monotonic route | Independently measured ordered counter or OS monotonic route | Measured perf task-clock mmap/read or native thread-clock route |
+| Linux AArch64 | Measured CNTVCT or OS monotonic route | Independently measured ordered CNTVCT or OS monotonic route | Complete inline perf capability when available; native raw syscall fallback |
+| Linux RISC-V / LoongArch | Measured architecture counter or OS monotonic route | Independently measured ordered counter or OS monotonic route † | Measured perf task-clock mmap/read or native thread-clock route |
+| Linux armv7 / s390x / powerpc64 | Measured architecture or OS monotonic route | Independently measured barrier/exception-ordered route | Measured perf task-clock mmap/read or native thread-clock route |
+| macOS x86_64 / AArch64 | Independently measured eligible XNU Mach/commpage route | Independently measured ordered XNU Mach/commpage route | `clock_gettime_nsec_np` thread clock |
+| Windows x86 / x86_64 / AArch64 | Measured Windows-owned high-resolution monotonic route | Independently measured Windows-owned ordered route | `GetThreadTimes`; explicit QPC wall fallback on failure |
+| Android x86_64 / AArch64 | Measured architecture counter or OS monotonic route | Independently measured ordered counter or OS monotonic route | Measured perf task-clock mmap/read or native thread-clock route |
+| FreeBSD x86_64 | Measured kernel-eligible TSC, libc, or raw clock route | Independently measured ordered TSC or OS clock route | Measured libc or raw native thread-clock route |
+| WASI preview 1 / 2 | Host monotonic clock | Host monotonic clock | Host thread clock where exposed; otherwise explicit wall fallback |
+| wasm-bindgen JavaScript host | Measured `Performance.now()` or Node `hrtime` route | Worker-comparable host route | Node thread CPU where exposed; otherwise explicit wall fallback |
+| Emscripten | Measured local JavaScript host route | Local host route, or worker-comparable route with pthread support | Node thread CPU where exposed; otherwise explicit wall fallback |
 
 The provider proof compiles all three public APIs with warnings denied in default and
 `--no-default-features` modes for 24 target triples, then inspects optimized LLVM IR for each

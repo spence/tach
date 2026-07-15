@@ -43,6 +43,9 @@ USE_CASES_CHART = load_script(
 THREAD_CPU_CHART = load_script(
   "summary-thread-cpu.py", "tach_release_claim_surface_thread_cpu"
 )
+PROVIDER_PROOF = load_script(
+  "verify-target-providers.py", "tach_release_claim_surface_provider_proof"
+)
 
 
 SOURCE_REVISION = "a" * 40
@@ -152,6 +155,55 @@ def boundary_matrix():
 
 
 class ReleaseClaimSurfaceTests(unittest.TestCase):
+  def test_public_release_surface_matches_manifest_and_package_contract(self) -> None:
+    root = BENCHES_DIR.parent
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    benchmarks = (root / "BENCHMARKS.md").read_text(encoding="utf-8")
+    crate_docs = (root / "src/lib.rs").read_text(encoding="utf-8")
+    example = (root / "examples/basic.rs").read_text(encoding="utf-8")
+    cargo = (root / "Cargo.toml").read_text(encoding="utf-8")
+
+    target_count = len(PROVIDER_PROOF.TARGETS)
+    self.assertEqual(target_count, 24)
+    for surface in (readme, benchmarks, crate_docs):
+      self.assertRegex(
+        surface, rf"\b{target_count}(?:-target| target| advertised Rust targets)"
+      )
+      for timer in ("Instant", "OrderedInstant", "ThreadCpuInstant"):
+        self.assertIn(timer, surface)
+
+    for stale in ("23-target", "23 target", "89b42f1", "0df505b"):
+      for surface in (readme, benchmarks, crate_docs, example):
+        self.assertNotIn(stale, surface)
+
+    self.assertIn('version = "0.2.0"', cargo)
+    self.assertIn("spence/tach/v0.2.0/benches/summary-use-cases.png", readme)
+    self.assertIn(
+      "spence/tach/tree/v0.2.0/docs/evidence/timers/release-speed-closure",
+      benchmarks,
+    )
+    self.assertNotIn(
+      "](docs/evidence/timers/release-speed-closure", benchmarks
+    )
+    self.assertNotIn(
+      "Windows x86 / x86_64 / aarch64 | RDTSC / CNTVCT_EL0", readme
+    )
+    self.assertIn("Windows-owned high-resolution monotonic route", readme)
+    self.assertIn("eligible XNU Mach/commpage route", readme)
+
+    for timer in ("Instant", "OrderedInstant", "ThreadCpuInstant"):
+      self.assertIn(timer, example)
+    for packaged in (
+      '"/README.md"',
+      '"/BENCHMARKS.md"',
+      '"/examples/**"',
+      '"/benches/summary-thread-cpu.png"',
+      '"/benches/summary-use-cases.png"',
+    ):
+      self.assertIn(packaged, cargo)
+    for chart in ("summary-thread-cpu.png", "summary-use-cases.png"):
+      self.assertTrue((BENCHES_DIR / chart).is_file())
+
   def test_ci_pins_and_retains_the_canonical_raster_renderer_output(self) -> None:
     root = BENCHES_DIR.parent
     workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
