@@ -9,18 +9,17 @@ decision; the objective records everything needed to make that decision safely.
 
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-RELEASE-0-2.M0` | Public truth | ⚪ | Align README, benchmark report, crate metadata, and platform claims | inline · G1⚪ |
-| `OBJ-RELEASE-0-2.M1` | Release candidate | ⚪ | Verify archive, docs, MSRV, package, and publish dry run | inline · G1⚪ |
-| `OBJ-RELEASE-0-2.M2` | Owner-approved publish | ⚪ | Publish only after the complete approval packet is accepted | inline · G1⚪ |
+| `OBJ-RELEASE-0-2.M0` | Public truth | ✅ | Align README, benchmark report, crate metadata, and platform claims | inline · G1🟢 |
+| `OBJ-RELEASE-0-2.M1` | Release candidate | ✅ | Verify archive, docs, MSRV, package, and publish dry run | inline · G1🟢 |
+| `OBJ-RELEASE-0-2.M2` | Owner-approved publish | 🚧 | Publish only after the complete approval packet is accepted | inline · G1⚪ |
 
 ---
 
 ## `OBJ-RELEASE-0-2.M0` — Public truth
 
-**Description.** Replace stale two-timer and old-revision copy with the approved three-contract
-mental model, final provider matrix, evidence SHA, and current toolchain facts. The checked-in
-v0.2.0 wording, 23-target availability claims, legacy `89b42f1` report, and untracked charts are
-held pending current retained proof; they are not release-ready public evidence.
+**Description.** The approved three-contract mental model, manifest-backed provider matrix,
+24-target availability boundary, retained release report, and canonical charts now replace the
+stale two-timer and old-revision release surface.
 
 ### Gate `OBJ-RELEASE-0-2.M0.G1` — every public claim traces to frozen proof
 
@@ -65,6 +64,14 @@ tag and crate publication succeed and a fresh consumer verifies the published cr
 - Found: public output cannot lead retained full-matrix proof.
 - Next: rewrite public documents only from the admitted candidate snapshot.
 - Board: M0 remains ⚪ with G1⚪; public truth is intentionally unpromoted.
+
+### 2026-07-14 · spence · `OBJ-RELEASE-0-2.M0`
+- Did: Audited and corrected every public release surface against the route manifest and exact candidate package.; OBJ-RELEASE-0-2.M0.G1 🟢 at evidence SHA `1e830ba`.
+- Board: OBJ-RELEASE-0-2.M0 G1 🟢 — evidence EVID-RELEASE-APPROVAL-76FD4B1.
+
+### 2026-07-14 · spence · `OBJ-RELEASE-0-2.M1`
+- Did: Verified candidate 76fd4b1 through the 15-boundary replay, 24-target proof, 27-job CI matrix, package, docs, MSRV, and publish dry run.; OBJ-RELEASE-0-2.M1.G1 🟢 at evidence SHA `1e830ba`.
+- Board: OBJ-RELEASE-0-2.M1 G1 🟢 — evidence EVID-RELEASE-APPROVAL-76FD4B1.
 
 ## /goal
 

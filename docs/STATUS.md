@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-RELEASE-0-2` — Release the proven three-timer crate  (M0 ⚪ Public truth)
-> Next:       rewrite public documents only from the admitted candidate snapshot.
-> Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: OBJ-RELEASE-0-2.M0 ⚪ (Public truth) · By: nsr · 76fd4b1
+> Objective:  `OBJ-RELEASE-0-2` — Release the proven three-timer crate  (M2 🚧 Owner-approved publish)
+> Next:       OBJ-RELEASE-0-2.M2 — Publish only after the complete approval packet is accepted
+> Blocked on you: ESC-PUBLISH-TACH-0-2-0-76FD4B1
+> Last verified: 2026-07-14 · Changed: Verified candidate 76fd4b1 through the 15-boundary replay, 24-target proof, 27-job CI matrix, package, docs, MSRV, and publish dry run.; OBJ-RELEASE-0-2.M1.G1 🟢 at evidence SHA `1e830ba`. · By: nsr · 1e830ba
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -24,11 +24,11 @@ Context: [`objectives/release-0-2.md`](objectives/release-0-2.md).
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-RELEASE-0-2.M0` | Public truth | ⚪ | Align README, benchmark report, crate metadata, and platform claims | inline · G1⚪ |
-| `OBJ-RELEASE-0-2.M1` | Release candidate | ⚪ | Verify archive, docs, MSRV, package, and publish dry run | inline · G1⚪ |
-| `OBJ-RELEASE-0-2.M2` | Owner-approved publish | ⚪ | Publish only after the complete approval packet is accepted | inline · G1⚪ |
+| `OBJ-RELEASE-0-2.M0` | Public truth | ✅ | Align README, benchmark report, crate metadata, and platform claims | inline · G1🟢 |
+| `OBJ-RELEASE-0-2.M1` | Release candidate | ✅ | Verify archive, docs, MSRV, package, and publish dry run | inline · G1🟢 |
+| `OBJ-RELEASE-0-2.M2` | Owner-approved publish | 🚧 | Publish only after the complete approval packet is accepted | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-RELEASE-0-2.M0`): G1⚪
+Gate checklist (current milestone `OBJ-RELEASE-0-2.M2`): G1⚪
 <!-- /render:board -->
 
 ---
