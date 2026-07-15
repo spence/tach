@@ -55,7 +55,7 @@ for tach's default configuration, so no-default speed duplicates are not release
 |---|---|---|---|---|
 | `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | ✅ | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2🟢 |
 | `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | ✅ | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1🟢 |
-| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | 🚧 | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1⚪ |
+| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ✅ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1🟢 |
 
 ---
 
@@ -379,6 +379,10 @@ availability but may not be rendered as speed wins.
 - Found: GitHub run 29377723378 exposed one evidence-tool portability defect: Windows Criterion emits lowercase group directories, while the Linux replay expected title-cased names; local macOS validation had masked it on a case-insensitive filesystem. Shipping Cargo configuration and src/ remain unchanged.
 - Next: Push the focused fix and require a green Linux retained-evidence job plus the complete CI matrix before closing M2.G1.
 - Board: M0 and M1 remain complete. M2 has one repaired CI portability defect awaiting independent Linux replay; there is no owner blocker and no runtime research remains.
+
+### 2026-07-14 · codex · `OBJ-PROVE-TIMERS.M2`
+- Did: Closed release-claim closure: candidate 84c73f7 passed the 15-boundary replay, 24-target provider proof, MSRV, package, all native and cross-target jobs, and byte-clean canonical PNG/SVG regeneration.; OBJ-PROVE-TIMERS.M2.G1 🟢 at evidence SHA `d0f5da8`.
+- Board: OBJ-PROVE-TIMERS.M2 G1 🟢 — evidence docs/evidence/timers/release-candidate-2026-07-14/README.md.
 
 ## /goal
 
