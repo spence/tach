@@ -9,7 +9,7 @@ objective doc: author status there, not here.
 > Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M2 🚧 Release-claim closure)
 > Next:       Push the focused fix and require a green Linux retained-evidence job plus the complete CI matrix before closing M2.G1.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Repaired cross-platform retained-evidence replay at 292a5fd by resolving Criterion group directories case-insensitively and rejecting ambiguous matches; the exact 15-boundary validator and byte-clean chart regeneration now pass locally, alongside 214 Python tests and the complete Rust and 24-target provider checks. · By: nsr · 292a5fd
+> Last verified: 2026-07-14 · Changed: Repaired cross-platform retained-evidence replay at 292a5fd by resolving Criterion group directories case-insensitively and rejecting ambiguous matches; the exact 15-boundary validator and byte-clean chart regeneration now pass locally, alongside 214 Python tests and the complete Rust and 24-target provider checks. · By: nsr · 84c73f7
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

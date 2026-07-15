@@ -1,0 +1,23 @@
+# Provenance: gh run view 29380497913 at candidate
+# 84c73f7810518526f6ab38f872d43f49bce05d95, completed 2026-07-15T01:03:14Z.
+
+run=https://github.com/spence/tach/actions/runs/29380497913
+status=completed
+conclusion=success
+head_sha=84c73f7810518526f6ab38f872d43f49bce05d95
+
+success: crate package
+success: retained release claim evidence
+success: 24-target provider proof
+success: benchmark check
+success: MSRV 1.95
+success: native linux-x86_64
+success: native linux-aarch64
+success: native macos-x86_64
+success: native macos-aarch64
+success: native windows-x86_64
+success: native windows-aarch64
+success: 16 cross-target warning-strict builds
+
+Aggregate: 27/27 jobs succeeded. The retained release claim job validated all 15 decision
+boundaries and regenerated all four PNG plus four SVG publication artifacts byte-for-byte.

@@ -1,0 +1,25 @@
+# Provenance: local release verification at candidate
+# 84c73f7810518526f6ab38f872d43f49bce05d95 on Apple M1 Max, aarch64-apple-darwin.
+
+PASS python3 -m unittest discover -s benches -p 'test_*.py'
+     215 tests, 1 expected skip
+PASS retained release validator
+     4 primary + 11 supplemental = 15/15 decision boundaries, zero failures
+PASS cargo fmt --all --check
+PASS cargo clippy --all-targets --all-features -- -D warnings
+PASS cargo test --release --all-features
+     41 library + 4 integration + 4 documentation tests
+PASS cargo test --release --no-default-features
+     35 library + 4 integration + 4 documentation tests
+PASS cargo doc --no-deps --all-features
+PASS python3 benches/verify-target-providers.py --install-targets
+     24/24 targets, 98 warning-strict API checks, 294 optimized public clock routes,
+     294 now-plus-elapsed phase closures, 18 optimized vDSO resolver routes
+PASS cargo package --offline --locked
+     48 files, 2.7 MiB, 894.8 KiB compressed
+PASS cargo publish --dry-run --locked
+     package verified; upload intentionally aborted by dry run
+PASS canonical PNG visual inspection
+     use-case and ThreadCpuInstant wide charts retain readable labels, bars, values, and provenance
+PASS nsr check
+     0 violations

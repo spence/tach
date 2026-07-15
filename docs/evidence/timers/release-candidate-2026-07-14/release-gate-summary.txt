@@ -1,0 +1,25 @@
+# Provenance: benches/validate-speed-evidence.py at candidate
+# 84c73f7810518526f6ab38f872d43f49bce05d95 on Apple M1 Max, aarch64-apple-darwin.
+# Full output: release-report-84c73f7.json (SHA-256 b1da9b518c04406640912964b0c244e0ac5bf192420989d4caf7dc39e2556eea).
+
+schema=tach-release-speed-evidence-v4
+passed=true
+failures=0
+primary_passed=true
+primary_cells=4
+supplemental_passed=true
+supplemental_cells=11
+route_matrix_passed=true
+runtime_decision_boundaries=15
+
+source_revision=68dc2015bbb81e16b9a1911c566b52aca8ff1c77
+candidate_revision=84c73f7810518526f6ab38f872d43f49bce05d95
+shipping_sha256=7f888cd0e4ed668a4ecdd6cacb1af3dbe1749ce57d2b17e86c1988103d2f5771
+files_match=true
+binding_passed=true
+
+source_revision=c64dcb732723c6cf288c6a453545bfc00f6b2b5d
+candidate_revision=84c73f7810518526f6ab38f872d43f49bce05d95
+shipping_sha256=7f888cd0e4ed668a4ecdd6cacb1af3dbe1749ce57d2b17e86c1988103d2f5771
+files_match=true
+binding_passed=true

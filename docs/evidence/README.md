@@ -14,6 +14,7 @@ dated package; do not silently rewrite a verdict.
 | `EVID-PROVIDER-POLICY-2026-07-14` | 🟢 | [`timers/provider-policy-closure-2026-07-14/README.md`](timers/provider-policy-closure-2026-07-14/README.md) |
 | `EVID-TARGET-PROVIDER-CEB69C1` | 🟢 | [`timers/provider-proof-ceb69c1-2026-07-14/README.md`](timers/provider-proof-ceb69c1-2026-07-14/README.md) |
 | `EVID-TARGET-PROVIDER-D0FA731` | 🟢 | [`timers/provider-proof-d0fa731/README.md`](timers/provider-proof-d0fa731/README.md) |
+| `EVID-RELEASE-CANDIDATE-84C73F7` | 🟢 | [`timers/release-candidate-2026-07-14/README.md`](timers/release-candidate-2026-07-14/README.md) |
 | `EVID-RELEASE-SPEED-2026-07-14` | 🟢 | [`timers/release-speed-closure-2026-07-14/README.md`](timers/release-speed-closure-2026-07-14/README.md) |
 | `EVID-ROUTE-CONTRACT-6685B22` | 🟢 | [`timers/route-contract-2026-07-14/README.md`](timers/route-contract-2026-07-14/README.md) |
 | `EVID-RUNTIME-ARTIFACT-BINDINGS-CD598B9` | 🟡 | [`timers/runtime-artifact-bindings-2026-07-14/README.md`](timers/runtime-artifact-bindings-2026-07-14/README.md) |
