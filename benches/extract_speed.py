@@ -629,6 +629,26 @@ CRITERION_GROUP_IDS = {
     THREAD_CPU_GROUPS["elapsed"]: "ThreadCpuInstant::now() + elapsed()",
 }
 
+
+def criterion_group_directory(criterion_dir: Path, group_dir: str) -> Path | None:
+    """Resolve Criterion's platform-normalized group directory unambiguously."""
+
+    folded = group_dir.casefold()
+    matches = sorted(
+        (
+            entry
+            for entry in criterion_dir.iterdir()
+            if entry.is_dir() and entry.name.casefold() == folded
+        ),
+        key=lambda entry: entry.name,
+    )
+    if len(matches) > 1:
+        raise RuntimeError(
+            f"ambiguous Criterion group {group_dir!r} under {criterion_dir}: "
+            f"{[entry.name for entry in matches]}"
+        )
+    return matches[0] if matches else None
+
 TACH_PROVIDER_LABELS = {
     "linux_perf_mmap": "Linux perf task-clock mmap",
     "linux_perf_read": "Linux perf task-clock read",
@@ -670,8 +690,8 @@ NATIVE_PROVIDER_LABELS = {
 def criterion_benchmarks(
     criterion_dir: Path, group_dir: str
 ) -> list[tuple[int, str, Path]]:
-    group = criterion_dir / group_dir
-    if not group.is_dir():
+    group = criterion_group_directory(criterion_dir, group_dir)
+    if group is None:
         return []
 
     expected_group_id = CRITERION_GROUP_IDS.get(group_dir)

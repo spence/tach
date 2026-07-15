@@ -504,6 +504,35 @@ class HostCollectorBundleTests(unittest.TestCase):
 
 
 class CriterionLookupTests(unittest.TestCase):
+    def test_group_lookup_preserves_windows_case_normalization(self) -> None:
+        group_dir = extract_speed.THREAD_CPU_GROUPS["now"]
+        group_id = extract_speed.CRITERION_GROUP_IDS[group_dir]
+        function_id = "tach_thread_cpu__windows_thread_times__system_call"
+
+        with tempfile.TemporaryDirectory() as directory:
+            criterion = Path(directory)
+            normalized_group = group_dir.lower()
+            write_benchmark(
+                criterion,
+                normalized_group,
+                group_id,
+                function_id,
+                function_id,
+            )
+
+            resolved = extract_speed.criterion_group_directory(
+                criterion, group_dir
+            )
+            self.assertIsNotNone(resolved)
+            assert resolved is not None
+            self.assertEqual(resolved.name, normalized_group)
+            self.assertEqual(
+                extract_speed.median_estimate(
+                    criterion, group_dir, function_id
+                )["point"],
+                7.25,
+            )
+
     def test_truncated_directory_resolves_full_recorded_identity(self) -> None:
         group_dir = extract_speed.THREAD_CPU_GROUPS["now"]
         group_id = "ThreadCpuInstant::now()"
