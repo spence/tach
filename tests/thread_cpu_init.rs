@@ -87,24 +87,24 @@ mod linux_signal_reentry {
       while SIGNAL_COUNT.load(Ordering::Relaxed) == 0 {
         core::hint::spin_loop();
       }
-      let end = ThreadCpuInstant::now();
-      let last_signal = SIGNAL_LAST.with(Cell::get);
-      let monotonic = end.checked_duration_since(start).is_some()
-        && last_signal
-          .is_none_or(|signal_sample| end.checked_duration_since(signal_sample).is_some());
-      let provider = ThreadCpuInstant::provider();
       let mut blocked = unsafe { core::mem::zeroed::<libc::sigset_t>() };
       // SAFETY: `blocked` is writable signal-set storage local to this thread.
       unsafe {
         libc::sigemptyset(&mut blocked);
         libc::sigaddset(&mut blocked, libc::SIGUSR1);
       }
-      // Stop delivery before publishing completion so an already-issued
-      // signal cannot enter the handler during this thread's TLS teardown.
+      // Stop delivery before taking the final sample. Every handler sample is
+      // then ordered before `end`, and no signal can enter during TLS teardown.
       // SAFETY: the set is initialized above and the old mask is not needed
       // because this worker exits immediately after returning its result.
       let mask_status =
         unsafe { libc::pthread_sigmask(libc::SIG_BLOCK, &blocked, core::ptr::null_mut()) };
+      let end = ThreadCpuInstant::now();
+      let last_signal = SIGNAL_LAST.with(Cell::get);
+      let monotonic = end.checked_duration_since(start).is_some()
+        && last_signal
+          .is_none_or(|signal_sample| end.checked_duration_since(signal_sample).is_some());
+      let provider = ThreadCpuInstant::provider();
       worker_done.store(true, Ordering::Release);
       (monotonic, provider, mask_status)
     });
