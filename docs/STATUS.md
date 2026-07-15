@@ -9,7 +9,7 @@ objective doc: author status there, not here.
 > Objective:  `OBJ-RELEASE-0-2` — Release the proven three-timer crate  (M0 ⚪ Public truth)
 > Next:       rewrite public documents only from the admitted candidate snapshot.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: OBJ-RELEASE-0-2.M0 ⚪ (Public truth) · By: nsr · fffbd61
+> Last verified: 2026-07-14 · Changed: OBJ-RELEASE-0-2.M0 ⚪ (Public truth) · By: nsr · 9c8e7a3
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -19,7 +19,7 @@ objective doc: author status there, not here.
 
 ## Current objective — `OBJ-RELEASE-0-2` 🚧 (Release the proven three-timer crate)
 
-Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
+Context: [`objectives/release-0-2.md`](objectives/release-0-2.md).
 
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
@@ -33,11 +33,10 @@ Gate checklist (current milestone `OBJ-RELEASE-0-2.M0`): G1⚪
 
 ---
 
-## Next objective — `OBJ-PROVE-TIMERS` 🟣
+## Next objective — `OBJ-PROCESS-INSTANT` 🟣
 
-Freeze the provider implementation and route contract first; then collect primary and supplemental
-runtime evidence rather than carrying `0df505b`'s pre-freeze benchmark artifacts forward.
-Context: [`objectives/prove-timers.md`](objectives/prove-timers.md).
+Add the planned post-release timer ergonomics without weakening the three proven timer contracts.
+Context: [`objectives/process-instant.md`](objectives/process-instant.md).
 
 ---
 
