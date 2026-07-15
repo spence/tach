@@ -1,0 +1,33 @@
+GitHub Actions run: 29381431032
+URL: https://github.com/spence/tach/actions/runs/29381431032
+Candidate: 76fd4b1599ddc4a743a8f1ac7a86613d3c2f4135
+Conclusion: success
+Jobs: 27/27 success
+
+success benchmark check
+success crate package
+success 24-target provider proof
+success retained release claim evidence
+success MSRV 1.95
+success native / linux-x86_64
+success native / linux-aarch64
+success native / macos-x86_64
+success native / macos-aarch64
+success native / windows-x86_64
+success native / windows-aarch64
+success cross-check / aarch64-unknown-linux-gnu
+success cross-check / aarch64-pc-windows-msvc
+success cross-check / armv7-unknown-linux-gnueabihf
+success cross-check / i686-pc-windows-msvc
+success cross-check / i686-unknown-linux-gnu
+success cross-check / loongarch64-unknown-linux-gnu
+success cross-check / powerpc64-unknown-linux-gnu
+success cross-check / powerpc64le-unknown-linux-gnu
+success cross-check / riscv64gc-unknown-linux-gnu
+success cross-check / s390x-unknown-linux-gnu
+success cross-check / wasm32-unknown-emscripten
+success cross-check / wasm32-unknown-unknown
+success cross-check / wasm32-wasip1
+success cross-check / wasm32-wasip1-threads
+success cross-check / wasm32-wasip2
+success cross-check / wasm32v1-none

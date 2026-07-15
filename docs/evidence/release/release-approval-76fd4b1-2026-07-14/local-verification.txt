@@ -1,0 +1,24 @@
+Candidate: 76fd4b1599ddc4a743a8f1ac7a86613d3c2f4135
+Worktree: clean detached worktree
+Host: Apple M1 Max, aarch64-apple-darwin
+
+PASS python3 -m unittest discover -s benches -p 'test_*.py'
+     216 tests, 1 expected skip
+PASS cargo +stable fmt --all --check
+PASS cargo +stable clippy --all-targets --all-features -- -D warnings
+PASS cargo +stable test --release --all-features
+PASS cargo +stable test --release --no-default-features
+PASS cargo +stable doc --no-deps --all-features
+PASS cargo +stable package --offline --locked
+     48 files, 2.7 MiB unpacked, 899.3 KiB compressed
+     archive bytes: 920908
+     archive SHA-256: f9e3f4d54cc5e827daab7b499b6d7ec994d40e5555942432256dd67a577870ae
+PASS cargo +stable publish --dry-run --locked
+     reached upload and intentionally aborted; nothing published
+
+PASS complete retained release validator
+     schema: tach-release-speed-evidence-v4
+     failures: 0
+     runtime boundaries: 15
+     candidate shipping SHA-256: 7f888cd0e4ed668a4ecdd6cacb1af3dbe1749ce57d2b17e86c1988103d2f5771
+     report SHA-256: db6e38d1f7df67d9f2f5486e18e7194ddccb100a1f728a5ffed319c95bf18999

@@ -9,7 +9,7 @@ objective doc: author status there, not here.
 > Objective:  `OBJ-RELEASE-0-2` — Release the proven three-timer crate  (M0 ⚪ Public truth)
 > Next:       rewrite public documents only from the admitted candidate snapshot.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: OBJ-RELEASE-0-2.M0 ⚪ (Public truth) · By: nsr · 9c8e7a3
+> Last verified: 2026-07-14 · Changed: OBJ-RELEASE-0-2.M0 ⚪ (Public truth) · By: nsr · 76fd4b1
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
