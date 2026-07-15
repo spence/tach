@@ -1,5 +1,8 @@
 # `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route
 
+> ## ✅ `OBJ-PROVE-TIMERS` EXIT — CLOSED (accepted per ADR-0004 2026-07-14, evidence SHA `d0f5da8`)
+> Every milestone row terminal with committed evidence — committed evidence.
+
 **VISION slice.** On every advertised target, each default timer reaches the fastest eligible
 reliable provider supported by the target's selection policy. Route availability and semantic
 correctness are universal target claims; speed is a named-environment measurement unless a platform

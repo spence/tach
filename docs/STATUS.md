@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-PROVE-TIMERS` — Prove the fastest eligible timer route  (M2 ✅ Release-claim closure)
-> Next:       objective has no executable milestone
+> Objective:  `OBJ-RELEASE-0-2` — Release the proven three-timer crate  (M0 ⚪ Public truth)
+> Next:       rewrite public documents only from the admitted candidate snapshot.
 > Blocked on you: nothing
-> Last verified: 2026-07-14 · Changed: Closed release-claim closure: candidate 84c73f7 passed the 15-boundary replay, 24-target provider proof, MSRV, package, all native and cross-target jobs, and byte-clean canonical PNG/SVG regeneration.; OBJ-PROVE-TIMERS.M2.G1 🟢 at evidence SHA `d0f5da8`. · By: nsr · d0f5da8
+> Last verified: 2026-07-14 · Changed: OBJ-RELEASE-0-2.M0 ⚪ (Public truth) · By: nsr · fffbd61
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -17,18 +17,18 @@ objective doc: author status there, not here.
 
 ---
 
-## Current objective — `OBJ-PROVE-TIMERS` 🚧 (Prove fastest eligible routes)
+## Current objective — `OBJ-RELEASE-0-2` 🚧 (Release the proven three-timer crate)
 
 Context: [`objectives/fastest-timers.md`](objectives/fastest-timers.md).
 
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-PROVE-TIMERS.M0` | Provider matrix and selection policy | ✅ | G1 closes candidate routes; G2 proves the production policy selects the fastest eligible complete path | inline · G1🟢 · G2🟢 |
-| `OBJ-PROVE-TIMERS.M1` | Retained runtime corroboration | ✅ | Retain one source-sealed artifact for each of 15 runtime-variable or representative native boundaries | inline · G1🟢 |
-| `OBJ-PROVE-TIMERS.M2` | Release-claim closure | ✅ | Bind shipping code, validators, charts, and public wording to the accepted evidence | inline · G1🟢 |
+| `OBJ-RELEASE-0-2.M0` | Public truth | ⚪ | Align README, benchmark report, crate metadata, and platform claims | inline · G1⚪ |
+| `OBJ-RELEASE-0-2.M1` | Release candidate | ⚪ | Verify archive, docs, MSRV, package, and publish dry run | inline · G1⚪ |
+| `OBJ-RELEASE-0-2.M2` | Owner-approved publish | ⚪ | Publish only after the complete approval packet is accepted | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-PROVE-TIMERS.M2`): G1🟢
+Gate checklist (current milestone `OBJ-RELEASE-0-2.M0`): G1⚪
 <!-- /render:board -->
 
 ---
