@@ -309,9 +309,10 @@ history; the owner chose to work in place instead of resetting.
 
 ## Suggested /goal
 
-Anchor: **the fastest honest clock on every surface we advertise.** tach promises three timer
-contracts, each reading the fastest eligible clock wherever the crate runs, with hot reads at
-inline cost, eligibility decided by documented behavior or frozen evidence — never by inferred
-requirements — and selection machinery existing only where frozen evidence proves a real choice.
-Strip everything that does not serve that promise, and keep every public claim pointing at
-evidence that describes the code as shipped. Fast, correct, cross-thread safe, never crashing.
+Anchor: tach's whole promise — the fastest honest clock for each of the three timer contracts on
+every architecture we advertise, at inline read cost, cross-thread safe where promised, never
+crashing. Drive the board to publish-readiness: eligibility rulings rest on documented behavior
+or frozen measurement, selection machinery exists only where evidence demands it, and every
+public claim describes the code as shipped, backed by fresh committed evidence. Done = every gate
+the board tracks is green or honestly dispositioned, and a complete approval packet awaits the
+owner. Publishing stays the owner's act: no publish, no tag, no force-push.
