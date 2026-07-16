@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       Author mac-x86 (row 6) and wasm/rare-arch (row 7) class-1 residual verdicts; §5.2 flip rows await ESC-AMD-FLIP-PROBE-TOOLING and windows-2022 push authorization.
+> Next:       2 of 7 freeze rows verdicted (6,7 residual). Remaining: rows 1/3/5 (AMD/c8g/FreeBSD flips) blocked on ESC-AMD-FLIP-PROBE-TOOLING; row 2 (c5n.metal thread-pmu) runnable pending go-ahead on ~$3.89/hr metal; row 4 (windows-2022) needs push authorization; Apple suspend (d) owner-coordinated.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-15 · Changed: §5.3 exclusion re-audit in provider-policy-matrix.md: dissolved the Apple W-MAC-A64 bare-CNTVCT exclusion (an inadmissible Class-3 inferred 'XNU wake correction' requirement the published Instant contract never made; bare re-admitted+selected on both M1 Max and M4 Pro per EVID-APPLE-BARE-CNTVCT), and added the class-1 citation to the O-WINDOWS raw-TSC/redundant-fence exclusion (upheld: Windows designates QPC, documents no userspace TSC invariance). Both 'ineligible' footnotes now map to an admissible class; pre-decided upheld exclusions (Windows bare TSC, QueryThreadCycleTime, coarse clocks) recorded in Closure note 6. · By: nsr · 64c6141
+> Last verified: 2026-07-15 · Changed: §5.2 freeze-table rows 6-7 verdicted as class-1 residuals. Row 6 W/O-MAC-X86: freeze on the single frozen github-macos-15-intel run at 68dc201 (speed-supplemental-macos-x86_64.json; instant=apple_mach_absolute_time, ordered=apple_commpage_lfence_rdtsc_nanotime) — no second macos-intel environment exists (Apple discontinued Intel Macs) so no same-target flip is possible; class-1 single-environment freeze. Row 7 rare Linux arches (ARM32/S390/RISCV/LOONG/POWER) + wasm/WASI: class-1 'source/codegen-proven; not performance-measured' residual, 13 families already marked so in provider-policy-matrix; no fastest claim published for them. · By: nsr · 3dfa1e3
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
