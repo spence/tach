@@ -235,13 +235,27 @@ printf "SEAL_RAN\\n"
 
     def test_aws_rejects_unsupported_alias_before_any_aws_call(self) -> None:
         source = self.source("run-speed-aws.sh")
-        guard_start = source.index("  amd|c7a)")
-        guard_end = source.index("  *)", guard_start)
+        # The cell catch-all (not the option-parsing `*)` above it) must fail
+        # fast on a genuinely unknown alias before any AWS call is made.
+        cell_case = source.index('case "$CELL" in')
+        guard_start = source.index("  *)", cell_case)
+        guard_end = source.index("esac", guard_start)
         guard = source[guard_start:guard_end]
 
-        self.assertIn("no canonical primary artifact", guard)
+        self.assertIn("unknown campaign cell", guard)
         self.assertIn("exit 2", guard)
         self.assertLess(guard_start, source.index("aws_ ec2 describe-instances"))
+
+    def test_amd_flip_probe_retains_bundle_without_canonical_compose(self) -> None:
+        source = self.source("run-speed-aws.sh")
+        # The sanctioned amd/c7a flip probe launches (no fail-fast) with an honest
+        # runner tag, mints no canonical cell, and retains the collector bundle.
+        block_start = source.index("  amd|c7a)")
+        block = source[block_start : source.index(";;", block_start)]
+        self.assertIn("is_flip_probe=1", block)
+        self.assertIn("aws-c7a", block)
+        self.assertNotIn("exit 2", block)
+        self.assertIn('if [ "${is_flip_probe:-0}" = 1 ]', source)
 
     def test_aws_transfers_the_collector_as_one_archive(self) -> None:
         source = self.source("run-speed-aws.sh")

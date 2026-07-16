@@ -48,8 +48,16 @@ case "$CELL" in
     expected_mode=musl
     ;;
   amd|c7a)
-    echo "no canonical primary artifact is declared for the AMD EC2 alias; refusing to launch" >&2
-    exit 2
+    # Sanctioned flip-probe cell (OBJ-SIMPLIFY-TIMERS §5.2): the same x86_64-gnu
+    # measured code as the frozen `inteln` cell, run on AMD Zen4 to check for a
+    # same-target selection flip. It mints no canonical primary cell; it retains
+    # the collector bundle and its Rust-emitted selection, tagged with an honest
+    # runner. Genuinely unknown aliases still fail fast in the `*)` arm below.
+    default_artifact_id="speed-probe-amd-c7a.json"
+    no_default_artifact_id="speed-probe-amd-c7a-no-default.json"
+    runner="aws-c7a"
+    expected_mode=gnu
+    is_flip_probe=1
     ;;
   *)
     echo "unknown campaign cell '$CELL'; add a canonical primary artifact before launching" >&2
@@ -330,7 +338,11 @@ retry_scp "ec2-user@$IP:tach/collector.bundle.tgz" "$BUNDLE_ARCHIVE"
 tar -xzf "$BUNDLE_ARCHIVE" -C "$RESULT_DIR"
 rm -f "$BUNDLE_ARCHIVE"
 mv "$RESULT_DIR/collector.bundle" "$BUNDLE_DIR"
-if [ "$BUILD_MODE" = no-default ]; then
+if [ "${is_flip_probe:-0}" = 1 ]; then
+  # A flip probe has no canonical primary or supplemental artifact identity; its
+  # selection lives in the retained collector bundle and is extracted locally.
+  echo "flip-probe: retained collector bundle $BUNDLE_DIR (source $SOURCE_REVISION, runner $runner); extract selection locally"
+elif [ "$BUILD_MODE" = no-default ]; then
   python3 "$SOURCE_DIR/benches/compose-supplemental-speed.py" \
     --artifact "$artifact_id" \
     --output "$COMPOSED_OUT" \
@@ -339,11 +351,12 @@ if [ "$BUILD_MODE" = no-default ]; then
     --instant-profile runtime_tournament \
     --ordered-profile runtime_tournament \
     --thread-cpu-profile runtime_tournament
+  echo "wrote $COMPOSED_OUT with retained collector bundle $BUNDLE_DIR"
 else
   python3 "$SOURCE_DIR/benches/compose-speed.py" "$COMPOSED_OUT" \
     --collector-bundle "$BUNDLE_DIR"
+  echo "wrote $COMPOSED_OUT with retained collector bundle $BUNDLE_DIR"
 fi
-echo "wrote $COMPOSED_OUT with retained collector bundle $BUNDLE_DIR"
 
 # Post-run termination is synchronous; the trap remains the failure backstop.
 aws_ ec2 terminate-instances --instance-ids "$IID" >/dev/null
