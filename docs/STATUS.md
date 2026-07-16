@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       Remaining M1 freeze rows: AMD ordered probe, metal thread-cpu probe, c8g aarch64, windows-2022, AMD FreeBSD, suspend documentation run, mini full-crate battery
+> Next:       OBJ-SIMPLIFY-TIMERS.M1 — Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated
 > Blocked on you: nothing
-> Last verified: 2026-07-15 · Changed: Re-adjudicated Apple Instant per ADR-0005 and adopted bare CNTVCT_EL0 at def4b87: public now() 0.93 ns vs quanta 3.30 ns on M1 Max (was 7.79); gates green on both feature surfaces; 216 tooling tests pass · By: nsr · def4b87
+> Last verified: 2026-07-15 · Changed: OBJ-SIMPLIFY-TIMERS.M1 🚧 (Eligibility re-adjudication and flip verification) · By: nsr · 6b93c1c
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

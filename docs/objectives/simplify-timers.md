@@ -118,6 +118,11 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Remaining M1 freeze rows: AMD ordered probe, metal thread-cpu probe, c8g aarch64, windows-2022, AMD FreeBSD, suspend documentation run, mini full-crate battery
 - Board: M0 ✅; M1 🚧 with the Apple Instant row adopted — evidence EVID-APPLE-BARE-CNTVCT
 
+### 2026-07-15 · claude · HANDOFF → executor
+- State: M0 ✅ closed with evidence; M1 🚧 — Apple Instant re-adjudicated and adopted at def4b87 (public now() 0.93 ns vs quanta 3.30 on M1 Max); all gates green on both feature surfaces; 216 tooling tests pass; publish escalation REJECTED and OBJ-RELEASE-0-2.M2 deferred
+- Next: Run plan §5.0a green baseline, then the §5.2 probe table top to bottom (AMD ordered probe first); complete the freeze table before touching src in M2
+- Traps: Plan §1.1 lists the verified traps: pushes need owner grant (escalate first); Apple scale follows the provider (1 GHz on M4); tooling accepts both Apple candidate sets; quanta now eligible on Apple; retry flaky timing tests serially; mini disk nearly full
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

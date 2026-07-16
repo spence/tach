@@ -56,6 +56,34 @@ contracts, do not weaken gates, do not make unenumerated judgment calls.
   runs and verify none remain:
   `aws ec2 describe-instances --filters Name=tag:Name,Values=tach-bench-* --query "Reservations[].Instances[?State.Name!='terminated'].[InstanceId,InstanceType,State.Name]" --output text --region us-east-2`.
 
+### 1.1 Handoff traps (verified 2026-07-15 — read every line before starting)
+
+- **Remote pushes need owner authorization.** The windows-2022 probe (§5.2) and CI verification
+  require pushing to origin. Until the owner records that grant (here or in an escalation
+  resolution), the first push is an `nsr escalate`, not a judgment call. Force-push, tags, and
+  publish remain forbidden regardless.
+- **Apple scale follows the provider.** `CNTFRQ_EL0` is 24 MHz on M1/M2 and 1 GHz on M3/M4; the
+  bare counter is NOT in the Mach tick domain on M3/M4. Never freeze the instant scale to a
+  constant or the Mach timebase (`apple_aarch64::instant_nanos_per_tick_q32` is the pattern).
+- **The tooling accepts both Apple candidate sets.** `benches/speed_evidence.py` validates frozen
+  pre-adoption artifacts (4 candidates) and post-`def4b87` collections (5, bare first).
+  `verify-target-providers.py` carries no Apple candidate-name coupling, but its first CI run
+  after the adoption is the real proof — if `provider-proof` fails, register the new route where
+  its failure message points; do not revert the adoption.
+- **quanta is now an ELIGIBLE Apple reference** (same mechanism as the adopted provider). The M3
+  claims rewrite treats it as a competitor — tach beats it 0.93 ns vs 3.30 ns on the M1 Max — not
+  as an ineligible diagnostic. The harness tag
+  `apple_bare_cntvct_omits_xnu_wake_correction_and_may_suspend_diverge` describes the dissolved
+  exclusion and must not survive the M3 rewrite.
+- **Timing-sensitive tests that fail intermittently**: rerun serially
+  (`cargo test -- --test-threads=1`) before treating the failure as real; a persistent failure is
+  a finding — never weaken or skip the test.
+- **`catalyst-mini` disk is nearly full** (~1.5 GiB free of 460 after a `reap` sweep). Anything
+  needing space on the mini (full-crate battery builds) should use a small scratch or wait for the
+  owner to clear space; `reap sweep --apply` is pre-authorized for cargo target dirs.
+- `python3 -m unittest discover -s benches -p 'test_*.py'` leaves `benches/__pycache__/` — remove
+  it before committing.
+
 ## 2. The contracts and pre-decided rulings (ADR-0005 — never reinterpret)
 
 Contracts: see ADR-0005 §Decision (Instant / OrderedInstant / ThreadCpuInstant, including the

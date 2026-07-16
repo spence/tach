@@ -64,9 +64,13 @@ comparison below passes for both operations on all six native environments.
 | Synchronization-ordered elapsed | `std` | 6/6 pass |
 | Current-thread CPU usage | Direct OS primitive; direct cached perf mapping when selected | 6/6 pass |
 
-A shorter bar can still be ineligible: for example, bare Apple and Windows counters omit
-OS-owned wake, migration, or platform-timeline guarantees required by tach's reliable wall-time
-contract. The chart keeps those diagnostics visible; the validator does not call them competitors.
+A shorter bar can still be ineligible: for example, the bare Windows counter omits OS-owned
+cross-core, hypervisor, and platform-timeline guarantees Windows documents only for QPC. The
+chart keeps those diagnostics visible; the validator does not call them competitors. (The former
+Apple bare-counter exclusion was superseded on 2026-07-15 — ADR-0005, `EVID-APPLE-BARE-CNTVCT`:
+the bare architectural counter passed the same-thread contract battery and is now Apple
+`Instant`'s selected provider; the chart above still shows the frozen `76fd4b1` campaign until
+the six-cell refresh.)
 
 The predeclared material-tie rule requires tach's point estimate and the conservative edges of
 the two 95% confidence intervals to fit within `max(1 ns, 5%)` of every eligible reference. A
@@ -159,7 +163,7 @@ comparison is unordered.
 | Linux AArch64 | Measured CNTVCT or OS monotonic route | Independently measured ordered CNTVCT or OS monotonic route | Complete inline perf capability when available; native raw syscall fallback |
 | Linux RISC-V / LoongArch | Measured architecture counter or OS monotonic route | Independently measured ordered counter or OS monotonic route † | Measured perf task-clock mmap/read or native thread-clock route |
 | Linux armv7 / s390x / powerpc64 | Measured architecture or OS monotonic route | Independently measured barrier/exception-ordered route | Measured perf task-clock mmap/read or native thread-clock route |
-| macOS x86_64 / AArch64 | Independently measured eligible XNU Mach/commpage route | Independently measured ordered XNU Mach/commpage route | `clock_gettime_nsec_np` thread clock |
+| macOS x86_64 / AArch64 | Measured bare architectural counter (Apple Silicon; ADR-0005) or eligible XNU Mach/commpage route | Independently measured ordered XNU Mach/commpage route | `clock_gettime_nsec_np` thread clock |
 | Windows x86 / x86_64 / AArch64 | Measured Windows-owned high-resolution monotonic route | Independently measured Windows-owned ordered route | `GetThreadTimes`; explicit QPC wall fallback on failure |
 | Android x86_64 / AArch64 | Measured architecture counter or OS monotonic route | Independently measured ordered counter or OS monotonic route | Measured perf task-clock mmap/read or native thread-clock route |
 | FreeBSD x86_64 | Measured kernel-eligible TSC, libc, or raw clock route | Independently measured ordered TSC or OS clock route | Measured libc or raw native thread-clock route |
