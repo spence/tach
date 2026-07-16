@@ -963,13 +963,6 @@ macro_rules! with_residual_instant_read {
       "freebsd_kernel_eligible_tsc" => {
         $callback!($($arguments)*, tach::bench::residual_exact_freebsd_tsc)
       }
-      "freebsd_at_timekeep" => {
-        $callback!($($arguments)*, tach::bench::residual_exact_freebsd_timekeep)
-      }
-      "freebsd_clock_monotonic" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic
-      ),
       "freebsd_clock_monotonic_syscall" => $callback!(
         $($arguments)*,
         tach::bench::residual_exact_freebsd_clock_monotonic_syscall
@@ -987,73 +980,9 @@ macro_rules! with_residual_ordered_read {
         $($arguments)*,
         tach::bench::residual_exact_freebsd_tsc_lfence
       ),
-      "freebsd_kernel_eligible_tsc_x86_mfence_rdtsc" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_tsc_mfence
-      ),
-      "freebsd_kernel_eligible_tsc_x86_rdtscp" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_tsc_rdtscp
-      ),
-      "freebsd_kernel_eligible_tsc_x86_cpuid_rdtsc" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_tsc_cpuid
-      ),
-      "freebsd_kernel_eligible_tsc_x86_serialize_rdtsc" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_tsc_serialize
-      ),
-      "freebsd_at_timekeep_os_owned" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_timekeep_os_owned
-      ),
-      "freebsd_clock_monotonic_x86_mfence" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_mfence
-      ),
-      "freebsd_clock_monotonic_syscall_x86_mfence" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_mfence
-      ),
-      "freebsd_clock_monotonic_x86_cpuid" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_cpuid
-      ),
       "freebsd_clock_monotonic_syscall_x86_cpuid" => $callback!(
         $($arguments)*,
         tach::bench::residual_exact_freebsd_clock_monotonic_syscall_cpuid
-      ),
-      "freebsd_clock_monotonic_x86_lfence" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_lfence
-      ),
-      "freebsd_clock_monotonic_syscall_x86_lfence" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_lfence
-      ),
-      "freebsd_clock_monotonic_x86_rdtscp_lfence" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_rdtscp
-      ),
-      "freebsd_clock_monotonic_syscall_x86_rdtscp_lfence" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_rdtscp
-      ),
-      "freebsd_clock_monotonic_os_owned" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_os_owned
-      ),
-      "freebsd_clock_monotonic_syscall_os_owned" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_os_owned
-      ),
-      "freebsd_clock_monotonic_x86_serialize" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_serialize
-      ),
-      "freebsd_clock_monotonic_syscall_x86_serialize" => $callback!(
-        $($arguments)*,
-        tach::bench::residual_exact_freebsd_clock_monotonic_syscall_serialize
       ),
       _ => panic!("unsupported residual Ordered provider: {}", $provider),
     }
@@ -1408,13 +1337,34 @@ fn bench_now(c: &mut Criterion) {
       provider
     );
   }
+  #[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd"))]
+  {
+    let selected = tach::bench::residual_selected_instant_primitive();
+    let provider = selected.provider();
+    with_residual_instant_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_wall",
+      provider
+    );
+
+    let selected = tach::bench::residual_selected_ordered_primitive();
+    let provider = selected.provider();
+    with_residual_ordered_read!(
+      provider,
+      register_selected_now,
+      g,
+      "direct_selected_ordered_wall",
+      provider
+    );
+  }
   #[cfg(all(
     feature = "bench-internal",
     any(
       all(target_arch = "riscv64", target_os = "linux"),
       all(target_arch = "loongarch64", target_os = "linux"),
       all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
-      all(target_arch = "x86_64", target_os = "freebsd"),
       all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
     ),
   ))]
@@ -1606,6 +1556,7 @@ fn bench_now(c: &mut Criterion) {
   g.finish();
   write_ordered_selection();
   write_linux_x86_wall_selection();
+  write_freebsd_wall_selection();
   write_residual_wall_selection();
   write_apple_wall_selection();
   write_windows_wall_selection();
@@ -1617,7 +1568,6 @@ fn bench_now(c: &mut Criterion) {
     all(target_arch = "riscv64", target_os = "linux"),
     all(target_arch = "loongarch64", target_os = "linux"),
     all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
-    all(target_arch = "x86_64", target_os = "freebsd"),
     all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
   ),
 ))]
@@ -1645,13 +1595,6 @@ fn write_residual_wall_selection() {
     serde_json::to_value(tach::bench::power_wall_selection_measurements())
       .expect("serialize Power wall selector probe"),
     "the measured winner is either heavyweight sync before the read or context-synchronizing SC/SCV that owns prior-read ordering",
-  );
-  #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-  let (architecture, probe, ordering) = (
-    "x86_64-freebsd",
-    serde_json::to_value(tach::bench::freebsd_wall_selection_measurements())
-      .expect("serialize FreeBSD wall selector probe"),
-    "the runtime winner among every eligible x86 barrier and the FreeBSD-owned vDSO/syscall ordering boundary precedes the wall read",
   );
   #[cfg(all(target_arch = "arm", target_os = "linux"))]
   let (architecture, probe, ordering) = (
@@ -1696,29 +1639,6 @@ fn write_residual_wall_selection() {
     "ordering": ordering,
     "probe": probe,
   });
-  #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-  let payload = {
-    let mut payload = payload;
-    let instant = tach::bench::residual_selected_instant_primitive();
-    let instant_public_exact = with_residual_instant_read!(
-      instant.provider(),
-      measure_freebsd_public_exact,
-      instant,
-      instant.nanos_per_tick_q32()
-    );
-    let ordered = tach::bench::residual_selected_ordered_primitive();
-    let ordered_public_exact = with_residual_ordered_read!(
-      ordered.provider(),
-      measure_freebsd_public_exact,
-      ordered,
-      ordered.nanos_per_tick_q32()
-    );
-    payload["public_exact_probe"] = serde_json::json!({
-      "instant": instant_public_exact,
-      "ordered": ordered_public_exact,
-    });
-    payload
-  };
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
@@ -1737,7 +1657,6 @@ fn write_residual_wall_selection() {
     all(target_arch = "riscv64", target_os = "linux"),
     all(target_arch = "loongarch64", target_os = "linux"),
     all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
-    all(target_arch = "x86_64", target_os = "freebsd"),
     all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
   ),
 )))]
@@ -1981,6 +1900,56 @@ fn write_linux_x86_wall_selection() {
 )))]
 fn write_linux_x86_wall_selection() {}
 
+#[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd"))]
+fn write_freebsd_wall_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let instant = tach::bench::residual_selected_instant_primitive();
+  let ordered = tach::bench::residual_selected_ordered_primitive();
+  let mut payload = serde_json::json!({
+    "architecture": "x86_64-freebsd",
+    "selected_provider": {
+      "instant": instant.provider(),
+      "ordered": ordered.provider(),
+    },
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{}", instant.provider()),
+      "ordered": format!("direct_selected_ordered_wall__{}", ordered.provider()),
+    },
+    "decision_rule": "Instant reads a bare RDTSC and OrderedInstant reads LFENCE+RDTSC when the kernel selected an eligible invariant TSC timecounter and, for the ordered read, LFENCE is architecturally serializing (Intel, or AMD with AMD_LFENCE_ALWAYS_SERIALIZING); otherwise both fall back to the raw CLOCK_MONOTONIC syscall, with the ordered read prefixing a CPUID barrier",
+  });
+  let instant_public_exact = with_residual_instant_read!(
+    instant.provider(),
+    measure_freebsd_public_exact,
+    instant,
+    instant.nanos_per_tick_q32()
+  );
+  let ordered_public_exact = with_residual_ordered_read!(
+    ordered.provider(),
+    measure_freebsd_public_exact,
+    ordered,
+    ordered.nanos_per_tick_q32()
+  );
+  payload["public_exact_probe"] = serde_json::json!({
+    "instant": instant_public_exact,
+    "ordered": ordered_public_exact,
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("freebsd-wall-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize FreeBSD wall selector evidence"),
+  )
+  .expect("write FreeBSD wall selector evidence");
+}
+
+#[cfg(not(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd")))]
+fn write_freebsd_wall_selection() {}
+
 #[cfg(all(
   feature = "bench-internal",
   any(
@@ -2164,13 +2133,37 @@ fn bench_elapsed(c: &mut Criterion) {
       nanos_per_tick_q32
     );
   }
+  #[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd"))]
+  {
+    let selected = tach::bench::residual_selected_instant_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_residual_instant_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+    let selected = tach::bench::residual_selected_ordered_primitive();
+    let provider = selected.provider();
+    let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
+    with_residual_ordered_read!(
+      provider,
+      register_selected_elapsed,
+      g,
+      "direct_selected_ordered_wall",
+      provider,
+      nanos_per_tick_q32
+    );
+  }
   #[cfg(all(
     feature = "bench-internal",
     any(
       all(target_arch = "riscv64", target_os = "linux"),
       all(target_arch = "loongarch64", target_os = "linux"),
       all(target_arch = "powerpc64", target_os = "linux", target_env = "gnu"),
-      all(target_arch = "x86_64", target_os = "freebsd"),
       all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")),
     ),
   ))]

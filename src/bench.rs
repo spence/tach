@@ -1106,34 +1106,6 @@ pub fn residual_selected_ordered_primitive() -> ExactWallProvider {
   ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
 }
 
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-#[doc(hidden)]
-pub fn residual_instant_candidate_primitives() -> Vec<ExactWallProvider> {
-  let (primitives, count) = crate::arch::freebsd_x86_64::bench_instant_candidate_primitives();
-  primitives
-    .into_iter()
-    .take(count)
-    .map(|primitive| {
-      let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
-    })
-    .collect()
-}
-
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-#[doc(hidden)]
-pub fn residual_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
-  let (primitives, count) = crate::arch::freebsd_x86_64::bench_ordered_candidate_primitives();
-  primitives
-    .into_iter()
-    .take(count)
-    .map(|primitive| {
-      let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
-    })
-    .collect()
-}
-
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 macro_rules! expose_linux_clock_exact_read {
   ($name:ident, $source:ident) => {
@@ -1638,12 +1610,6 @@ macro_rules! expose_freebsd_exact_read {
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 expose_freebsd_exact_read!(residual_exact_freebsd_tsc, bench_exact_tsc);
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(residual_exact_freebsd_timekeep, bench_exact_timekeep);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(residual_exact_freebsd_timekeep_os_owned, bench_exact_timekeep_os_owned);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(residual_exact_freebsd_clock_monotonic, bench_exact_clock_monotonic);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 expose_freebsd_exact_read!(
   residual_exact_freebsd_clock_monotonic_syscall,
   bench_exact_clock_monotonic_syscall
@@ -1651,72 +1617,9 @@ expose_freebsd_exact_read!(
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 expose_freebsd_exact_read!(residual_exact_freebsd_tsc_lfence, bench_exact_tsc_lfence_rdtsc);
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(residual_exact_freebsd_tsc_mfence, bench_exact_tsc_mfence_rdtsc);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(residual_exact_freebsd_tsc_rdtscp, bench_exact_tsc_rdtscp);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(residual_exact_freebsd_tsc_cpuid, bench_exact_tsc_cpuid_rdtsc);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(residual_exact_freebsd_tsc_serialize, bench_exact_tsc_serialize_rdtsc);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_mfence,
-  bench_exact_clock_monotonic_mfence
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_syscall_mfence,
-  bench_exact_clock_monotonic_syscall_mfence
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_cpuid,
-  bench_exact_clock_monotonic_cpuid
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
 expose_freebsd_exact_read!(
   residual_exact_freebsd_clock_monotonic_syscall_cpuid,
   bench_exact_clock_monotonic_syscall_cpuid
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_lfence,
-  bench_exact_clock_monotonic_lfence
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_syscall_lfence,
-  bench_exact_clock_monotonic_syscall_lfence
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_rdtscp,
-  bench_exact_clock_monotonic_rdtscp
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_syscall_rdtscp,
-  bench_exact_clock_monotonic_syscall_rdtscp
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_os_owned,
-  bench_exact_clock_monotonic_os_owned
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_syscall_os_owned,
-  bench_exact_clock_monotonic_syscall_os_owned
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_serialize,
-  bench_exact_clock_monotonic_serialize
-);
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-expose_freebsd_exact_read!(
-  residual_exact_freebsd_clock_monotonic_syscall_serialize,
-  bench_exact_clock_monotonic_syscall_serialize
 );
 
 #[cfg(any(
@@ -2117,7 +2020,6 @@ pub fn freebsd_wall_selected_provider() -> &'static str {
 #[cfg(any(
   all(target_arch = "riscv64", target_os = "linux"),
   all(target_arch = "loongarch64", target_os = "linux"),
-  all(target_arch = "x86_64", target_os = "freebsd"),
 ))]
 #[doc(hidden)]
 #[derive(Serialize, Clone, Debug)]
@@ -2182,7 +2084,6 @@ pub struct ThreeWayWallDomainMeasurements {
 #[cfg(any(
   all(target_arch = "riscv64", target_os = "linux"),
   all(target_arch = "loongarch64", target_os = "linux"),
-  all(target_arch = "x86_64", target_os = "freebsd"),
 ))]
 #[doc(hidden)]
 #[derive(Serialize, Clone, Debug)]
@@ -2217,55 +2118,6 @@ pub struct RiscvWallDomainMeasurements {
 pub struct RiscvWallSelectionMeasurements {
   pub instant: RiscvWallDomainMeasurements,
   pub ordered: RiscvWallDomainMeasurements,
-}
-
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-#[doc(hidden)]
-#[derive(Serialize, Clone, Debug)]
-pub struct FreeBsdWallSelectionMeasurements {
-  pub instant: ThreeWayWallDomainMeasurements,
-  pub ordered: ThreeWayWallDomainMeasurements,
-  pub ordered_os_barrier: &'static str,
-  pub ordered_bare_syscall_os_owned_eligible: bool,
-  pub ordered_bare_syscall_os_owned_basis: &'static str,
-  pub ordered_fast_barrier_candidate: &'static str,
-  pub ordered_fast_barrier_batches_ns: [u64; 9],
-  pub ordered_baseline_barrier: &'static str,
-  pub ordered_baseline_batches_ns: [u64; 9],
-  pub ordered_barrier_allowance_ns: u64,
-  pub ordered_barrier_decisive_wins: usize,
-  pub ordered_clock_fast_barrier_candidate: &'static str,
-  pub ordered_clock_fast_batches_ns: [u64; 9],
-  pub ordered_clock_baseline_batches_ns: [u64; 9],
-  pub ordered_clock_barrier_allowance_ns: u64,
-  pub ordered_clock_barrier_decisive_wins: usize,
-  pub ordered_syscall_fast_barrier_candidate: &'static str,
-  pub ordered_syscall_fast_batches_ns: [u64; 9],
-  pub ordered_syscall_baseline_batches_ns: [u64; 9],
-  pub ordered_syscall_barrier_allowance_ns: u64,
-  pub ordered_syscall_barrier_decisive_wins: usize,
-  pub ordered_barrier_candidate_count: usize,
-  pub ordered_barrier_candidate_names: [&'static str; 6],
-  pub ordered_syscall_barrier_candidate_count: usize,
-  pub ordered_syscall_barrier_candidate_names: [&'static str; 6],
-  pub ordered_clock_barrier_candidate_batches_ns: [[u64; 9]; 6],
-  pub ordered_clock_barrier_candidate_medians_ns: [u64; 6],
-  pub ordered_clock_barrier_decision_count: usize,
-  pub ordered_clock_barrier_challengers: [&'static str; 5],
-  pub ordered_clock_barrier_incumbents: [&'static str; 5],
-  pub ordered_clock_barrier_winners: [&'static str; 5],
-  pub ordered_clock_barrier_allowances_ns: [u64; 5],
-  pub ordered_clock_barrier_tournament_decisive_wins: [usize; 5],
-  pub ordered_clock_barrier_challenger_selected: [bool; 5],
-  pub ordered_syscall_barrier_candidate_batches_ns: [[u64; 9]; 6],
-  pub ordered_syscall_barrier_candidate_medians_ns: [u64; 6],
-  pub ordered_syscall_barrier_decision_count: usize,
-  pub ordered_syscall_barrier_challengers: [&'static str; 5],
-  pub ordered_syscall_barrier_incumbents: [&'static str; 5],
-  pub ordered_syscall_barrier_winners: [&'static str; 5],
-  pub ordered_syscall_barrier_allowances_ns: [u64; 5],
-  pub ordered_syscall_barrier_tournament_decisive_wins: [usize; 5],
-  pub ordered_syscall_barrier_challenger_selected: [bool; 5],
 }
 
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
@@ -2696,124 +2548,6 @@ pub fn loongarch64_wall_selected_providers() -> [&'static str; 2] {
     crate::arch::loongarch64::bench_instant_provider().name(),
     crate::arch::loongarch64::bench_ordered_provider().name(),
   ]
-}
-
-#[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
-#[doc(hidden)]
-pub fn freebsd_wall_selection_measurements() -> FreeBsdWallSelectionMeasurements {
-  fn domain(
-    evidence: crate::arch::freebsd_x86_64::ProbeEvidence,
-  ) -> ThreeWayWallDomainMeasurements {
-    ThreeWayWallDomainMeasurements {
-      candidate_count: evidence.candidate_count,
-      direct_eligible: evidence.tsc_eligible,
-      clock_raw_available: false,
-      syscall_raw_available: false,
-      vdso_available: false,
-      vdso_raw_available: false,
-      clock_boottime_available: false,
-      syscall_boottime_available: false,
-      vdso_boottime_available: false,
-      timekeep_available: evidence.timekeep_available,
-      selected_provider: evidence.selected_provider_name,
-      reads_per_batch: evidence.reads_per_batch,
-      direct_batches_ns: evidence.direct_batches_ns,
-      clock_batches_ns: evidence.clock_batches_ns,
-      syscall_batches_ns: evidence.syscall_batches_ns,
-      clock_raw_batches_ns: [0; 9],
-      syscall_raw_batches_ns: [0; 9],
-      vdso_batches_ns: [0; 9],
-      vdso_raw_batches_ns: [0; 9],
-      clock_boottime_batches_ns: [0; 9],
-      syscall_boottime_batches_ns: [0; 9],
-      vdso_boottime_batches_ns: [0; 9],
-      timekeep_batches_ns: evidence.timekeep_batches_ns,
-      direct_median_ns: evidence.direct_median_ns,
-      clock_median_ns: evidence.clock_median_ns,
-      syscall_median_ns: evidence.syscall_median_ns,
-      clock_raw_median_ns: 0,
-      syscall_raw_median_ns: 0,
-      vdso_median_ns: 0,
-      vdso_raw_median_ns: 0,
-      clock_boottime_median_ns: 0,
-      syscall_boottime_median_ns: 0,
-      vdso_boottime_median_ns: 0,
-      timekeep_median_ns: evidence.timekeep_median_ns,
-      fallback_allowance_ns: evidence.fallback_allowance_ns,
-      fallback_decisive_wins: evidence.fallback_decisive_wins,
-      clock_raw_allowance_ns: 0,
-      clock_raw_decisive_wins: 0,
-      syscall_raw_allowance_ns: 0,
-      syscall_raw_decisive_wins: 0,
-      vdso_allowance_ns: 0,
-      vdso_decisive_wins: 0,
-      vdso_raw_allowance_ns: 0,
-      vdso_raw_decisive_wins: 0,
-      clock_boottime_allowance_ns: 0,
-      clock_boottime_decisive_wins: 0,
-      syscall_boottime_allowance_ns: 0,
-      syscall_boottime_decisive_wins: 0,
-      vdso_boottime_allowance_ns: 0,
-      vdso_boottime_decisive_wins: 0,
-      timekeep_allowance_ns: evidence.timekeep_allowance_ns,
-      timekeep_decisive_wins: evidence.timekeep_decisive_wins,
-      direct_allowance_ns: evidence.direct_allowance_ns,
-      direct_decisive_wins: evidence.direct_decisive_wins,
-      required_decisive_wins: evidence.required_decisive_wins,
-    }
-  }
-  let instant = crate::arch::freebsd_x86_64::bench_instant_evidence();
-  let ordered = crate::arch::freebsd_x86_64::bench_ordered_evidence();
-  FreeBsdWallSelectionMeasurements {
-    instant: domain(instant),
-    ordered: domain(ordered),
-    ordered_os_barrier: ordered.ordered_os_barrier,
-    ordered_bare_syscall_os_owned_eligible: ordered.ordered_bare_syscall_os_owned_eligible,
-    ordered_bare_syscall_os_owned_basis: ordered.ordered_bare_syscall_os_owned_basis,
-    ordered_fast_barrier_candidate: ordered.ordered_fast_barrier_candidate,
-    ordered_fast_barrier_batches_ns: ordered.ordered_fast_barrier_batches_ns,
-    ordered_baseline_barrier: ordered.ordered_baseline_barrier,
-    ordered_baseline_batches_ns: ordered.ordered_mfence_batches_ns,
-    ordered_barrier_allowance_ns: ordered.ordered_barrier_allowance_ns,
-    ordered_barrier_decisive_wins: ordered.ordered_barrier_decisive_wins,
-    ordered_clock_fast_barrier_candidate: ordered.ordered_clock_fast_barrier_candidate,
-    ordered_clock_fast_batches_ns: ordered.ordered_clock_fast_batches_ns,
-    ordered_clock_baseline_batches_ns: ordered.ordered_clock_baseline_batches_ns,
-    ordered_clock_barrier_allowance_ns: ordered.ordered_clock_barrier_allowance_ns,
-    ordered_clock_barrier_decisive_wins: ordered.ordered_clock_barrier_decisive_wins,
-    ordered_syscall_fast_barrier_candidate: ordered.ordered_syscall_fast_barrier_candidate,
-    ordered_syscall_fast_batches_ns: ordered.ordered_syscall_fast_batches_ns,
-    ordered_syscall_baseline_batches_ns: ordered.ordered_syscall_baseline_batches_ns,
-    ordered_syscall_barrier_allowance_ns: ordered.ordered_syscall_barrier_allowance_ns,
-    ordered_syscall_barrier_decisive_wins: ordered.ordered_syscall_barrier_decisive_wins,
-    ordered_barrier_candidate_count: ordered.ordered_barrier_candidate_count,
-    ordered_barrier_candidate_names: ordered.ordered_barrier_candidate_names,
-    ordered_syscall_barrier_candidate_count: ordered.ordered_syscall_barrier_candidate_count,
-    ordered_syscall_barrier_candidate_names: ordered.ordered_syscall_barrier_candidate_names,
-    ordered_clock_barrier_candidate_batches_ns: ordered.ordered_clock_barrier_candidate_batches_ns,
-    ordered_clock_barrier_candidate_medians_ns: ordered.ordered_clock_barrier_candidate_medians_ns,
-    ordered_clock_barrier_decision_count: ordered.ordered_clock_barrier_decision_count,
-    ordered_clock_barrier_challengers: ordered.ordered_clock_barrier_challengers,
-    ordered_clock_barrier_incumbents: ordered.ordered_clock_barrier_incumbents,
-    ordered_clock_barrier_winners: ordered.ordered_clock_barrier_winners,
-    ordered_clock_barrier_allowances_ns: ordered.ordered_clock_barrier_allowances_ns,
-    ordered_clock_barrier_tournament_decisive_wins: ordered
-      .ordered_clock_barrier_tournament_decisive_wins,
-    ordered_clock_barrier_challenger_selected: ordered.ordered_clock_barrier_challenger_selected,
-    ordered_syscall_barrier_candidate_batches_ns: ordered
-      .ordered_syscall_barrier_candidate_batches_ns,
-    ordered_syscall_barrier_candidate_medians_ns: ordered
-      .ordered_syscall_barrier_candidate_medians_ns,
-    ordered_syscall_barrier_decision_count: ordered.ordered_syscall_barrier_decision_count,
-    ordered_syscall_barrier_challengers: ordered.ordered_syscall_barrier_challengers,
-    ordered_syscall_barrier_incumbents: ordered.ordered_syscall_barrier_incumbents,
-    ordered_syscall_barrier_winners: ordered.ordered_syscall_barrier_winners,
-    ordered_syscall_barrier_allowances_ns: ordered.ordered_syscall_barrier_allowances_ns,
-    ordered_syscall_barrier_tournament_decisive_wins: ordered
-      .ordered_syscall_barrier_tournament_decisive_wins,
-    ordered_syscall_barrier_challenger_selected: ordered
-      .ordered_syscall_barrier_challenger_selected,
-  }
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "freebsd"))]
