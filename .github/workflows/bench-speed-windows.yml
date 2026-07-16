@@ -11,6 +11,7 @@ on:
         options:
           - release-missing
           - windows-x86_64
+          - windows-2022-x86_64
           - macos-x86_64
           - all
 
@@ -60,6 +61,46 @@ jobs:
         with:
           name: tach-speed-windows-2025-${{ env.TACH_FREEZE_SHA }}
           path: hosted-speed-windows-2025-x86_64
+          if-no-files-found: warn
+          retention-days: 90
+
+  windows-2022-flip-cell:
+    name: Windows 2022 flip cell
+    if: ${{ inputs.boundary == 'windows-x86_64' || inputs.boundary == 'windows-2022-x86_64' || inputs.boundary == 'all' }}
+    runs-on: windows-2022
+    env:
+      CARGO_TARGET_DIR: target/windows-2022-x86_64
+      TACH_BENCH_EVIDENCE: "1"
+      TACH_BENCH_SOURCE_REVISION: ${{ github.sha }}
+      TACH_BENCH_RUNNER: github-windows-2022-x86_64
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.TACH_FREEZE_SHA }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --locked --release --tests --features bench-internal
+      - name: Run source-sealed flip benchmark
+        shell: bash
+        run: |
+          python benches/seal-speed-source.py "$CARGO_TARGET_DIR/criterion" -- \
+            cargo bench --locked --bench instant --features bench-internal -- \
+              --warm-up-time 1 --measurement-time 3
+      - name: Retain Windows 2022 flip-cell collector bundle
+        shell: bash
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "$TACH_FREEZE_SHA"
+          output_dir=hosted-speed-windows-2022-x86_64
+          bundle="$output_dir/speed-windows-2022.collector.bundle"
+          mkdir -p "$output_dir"
+          python benches/collect-speed-bundle.py "$CARGO_TARGET_DIR/criterion" "$bundle"
+      - name: Upload immutable Windows 2022 flip cell
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: tach-speed-windows-2022-${{ env.TACH_FREEZE_SHA }}
+          path: hosted-speed-windows-2022-x86_64
           if-no-files-found: warn
           retention-days: 90
 
