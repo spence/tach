@@ -1160,7 +1160,16 @@ def validate_apple_wall_selector(
         expected_providers.append(absolute_direct)
       expected_providers.append("apple_mach_absolute_time")
       expected_providers.append("apple_mach_continuous_time")
+      # Sources from def4b87 onward push the bare architectural counter first
+      # for the instant domain in commpage modes 1 and 3 (ADR-0005,
+      # EVID-APPLE-BARE-CNTVCT); frozen pre-adoption artifacts lack it. Accept
+      # exactly these two candidate sets and validate against whichever the
+      # artifact declares.
       declared = candidates.get(domain)
+      if domain == "instant" and mode in (1, 3):
+        with_bare = ["apple_bare_cntvct", *expected_providers]
+        if declared == [f"{direct_prefix}__{provider}" for provider in with_bare]:
+          expected_providers = with_bare
       expected_rows = [f"{direct_prefix}__{provider}" for provider in expected_providers]
       if declared != expected_rows:
         failures.append(f"{context}: Apple aarch64 {domain} candidate set is incomplete")
