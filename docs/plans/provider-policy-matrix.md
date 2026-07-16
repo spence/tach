@@ -1,7 +1,10 @@
 # Provider policy matrix
 
 Status: COMPLETE v0.2, 2026-07-14 — `OBJ-PROVE-TIMERS.M0.G2` 🟢 at evidence SHA
-`9a3c48f`. Read [`../STATUS.md`](../STATUS.md),
+`9a3c48f`; RE-AUDITED v0.3, 2026-07-15 under ADR-0005 for `OBJ-SIMPLIFY-TIMERS.M1` — the Apple
+`Instant` wake-correction exclusion dissolved as an inadmissible Class-3 inferred contract and bare
+`CNTVCT_EL0` was re-admitted and selected (`def4b87`, `EVID-APPLE-BARE-CNTVCT`); see Closure note 6.
+Read [`../STATUS.md`](../STATUS.md),
 [`../README.md`](../README.md), and
 [`../objectives/prove-timers.md`](../objectives/prove-timers.md) first.
 
@@ -68,10 +71,10 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 | `O-FREEBSD-X86` | every FreeBSD wall candidate with eligible x86 or OS-owned ordering | measured independently from `Instant` | native selector chose LFENCE+TSC; public 22.37/42.92 ns beats `std` at 31.41/65.36 ns; static 20.65/39.89 ns route is a diagnostic lower bound |
 | `W-MAC-X86` | XNU Mach absolute-time path; invariant TSC only after XNU-compatible eligibility and scale checks | measured | native Intel corroboration passes at `68dc201`; selected invariant TSC beats every eligible wall reference |
 | `O-MAC-X86` | Mach system path; XNU commpage LFENCE+RDTSC nanotime | measured independently from `Instant` | native Intel corroboration passes at `68dc201`; the public route beats every eligible wall reference and its paired exact-route probe passes |
-| `W-MAC-A64` | XNU-approved architectural counter | fixed | retained native run passes; bare quanta path is ineligible because it omits XNU wake correction |
-| `O-MAC-A64` | eligible ordered architectural counter forms | measured | retained native run passes |
+| `W-MAC-A64` | bare `CNTVCT_EL0`; XNU Mach absolute/continuous timelines | measured → fixed (M2) | Re-audited under ADR-0005: the wake-correction exclusion was an inadmissible Class-3 inferred contract and dissolved. Bare `CNTVCT_EL0` re-admitted (`def4b87`) and selected over the XNU routes on both M1 Max and M4 Pro with no flip — 0 violations in ~2.8e9 paired reads, wall-rate 0.99997, bare read 0.33/0.44 ns vs XNU 5.4/3.8 ns; public `now()` 0.93 ns beats eligible reference quanta 3.30 ns (`EVID-APPLE-BARE-CNTVCT`). Whole-system suspend is platform-defined and documented (ADR-0005); its measurement (§5.1 item d, owner-coordinated) is still pending. |
+| `O-MAC-A64` | eligible ordered architectural counter forms (barriered `isb`+`CNTVCT`) | measured | Unchanged by the re-audit: an unbarriered bare read is never synchronization-ordered (ADR-0005), so bare `CNTVCT_EL0` is not an ordered candidate; the barriered bare form measured ~2× slower than the selected self-synchronizing route on both machines (`EVID-APPLE-BARE-CNTVCT`), so the prior ordered pick stands. |
 | `W-WINDOWS` | QPC and available precise interrupt-time APIs | measured | native Windows x86_64 corroboration passes at `68dc201`; selected QPC is faster than `std` for both public wall APIs |
-| `O-WINDOWS` | the same Windows-owned APIs through their opaque call boundaries; raw TSC/CNTVCT and redundant pre-call fences are ineligible | measured independently from `Instant` | 24-target optimized codegen closes at `5a2eb05`; focused proof found zero inversions for bare QPC in 945,307,669 reads, and native Windows x86_64 corroboration passes at `68dc201` |
+| `O-WINDOWS` | the same Windows-owned APIs through their opaque call boundaries; raw TSC/CNTVCT and redundant pre-call fences are ineligible (class 1: Windows documents no userspace TSC invariance and designates QPC as the monotonic source — ADR-0005, upheld) | measured independently from `Instant` | 24-target optimized codegen closes at `5a2eb05`; focused proof found zero inversions for bare QPC in 945,307,669 reads, and native Windows x86_64 corroboration passes at `68dc201` |
 | `W-JS` | guarded `performance.now()`; Node `process.hrtime.bigint()` | measured at module initialization | Node and browser-negative boundaries retained |
 | `O-JS` | worker-comparable epoch-correlated performance clock or synchronized Node timeline | measured at module initialization | Node and browser-negative boundaries retained |
 | `W-EMSCRIPTEN` | guarded `performance.now()`; Node `process.hrtime.bigint()` import | measured at module initialization | Node host boundary retained |
@@ -109,6 +112,17 @@ runtime capability decides whether the preferred mechanism exists, but does not 
    zero unknown policies.
 5. `OBJ-PROVE-TIMERS.M0.G2` is admitted by
    [`EVID-PROVIDER-POLICY-2026-07-14`](../evidence/timers/provider-policy-closure-2026-07-14/README.md).
+6. Re-audit (`OBJ-SIMPLIFY-TIMERS.M1`, 2026-07-15, ADR-0005). Every "ineligible" footnote was
+   re-checked against the two admissible evidence classes. `W-MAC-A64`: the bare-`CNTVCT_EL0`
+   exclusion cited neither class — it was a Class-3 inferred "must apply XNU wake correction"
+   requirement the published `Instant` contract never made — so it dissolved into candidacy, and
+   bare `CNTVCT_EL0` was re-admitted and selected on two environments (`EVID-APPLE-BARE-CNTVCT`).
+   `O-WINDOWS`: the raw-TSC/redundant-fence exclusion is upheld under class 1 (Windows designates
+   QPC as the monotonic source and documents no userspace TSC invariance). Windows bare TSC,
+   `QueryThreadCycleTime`, and deliberately coarsened clocks stay excluded under class 1 (ADR-0005).
+   Open before the family verdicts are final: the Apple suspend/wake semantic measurement (§5.1
+   item d) and the enumerated same-target second-environment flip probes (`OBJ-SIMPLIFY-TIMERS.M1`
+   §5.2), one of which is blocked on `ESC-AMD-FLIP-PROBE-TOOLING`.
 
 ## Verification
 

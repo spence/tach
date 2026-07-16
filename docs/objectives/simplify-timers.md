@@ -123,6 +123,17 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Run plan §5.0a green baseline, then the §5.2 probe table top to bottom (AMD ordered probe first); complete the freeze table before touching src in M2
 - Traps: Plan §1.1 lists the verified traps: pushes need owner grant (escalate first); Apple scale follows the provider (1 GHz on M4); tooling accepts both Apple candidate sets; quanta now eligible on Apple; retry flaky timing tests serially; mini disk nearly full
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Ran §5.0a green baseline on catalyst (M1 Max) at 64c6141: fmt + clippy(default) + clippy(no-default) + test(no-default) + check-benches + doc all green; full default test suite green serially (36/36 lib incl elapsed_tracks_std_within_5_percent, plus all integration and doctests). src=42,269 lines (plan expected ~42,162).
+- Found: elapsed_tracks_std_within_5_percent is ~3% intermittent under concurrent load (1/30 serial). Both failures coincide with std overshooting to ~110ms for a 100ms sleep: a preemption in the std::now()/tach::now() bracket, NOT a scale bug (tach absolute reads 102-105ms are correct; an M1 24MHz mis-scale would be orders of magnitude off). Per plan §1.1 an intermittent timing failure reran serially is not treated as a real §5.0a failure.
+- Next: §5.2 same-target flip probes, starting with AMD c7a.large x86_64. Note: benches/run-speed-aws.sh refuses the amd/c7a cell (no canonical artifact declared) — resolve probe mechanics before launch.
+
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: §5.3 exclusion re-audit in provider-policy-matrix.md: dissolved the Apple W-MAC-A64 bare-CNTVCT exclusion (an inadmissible Class-3 inferred 'XNU wake correction' requirement the published Instant contract never made; bare re-admitted+selected on both M1 Max and M4 Pro per EVID-APPLE-BARE-CNTVCT), and added the class-1 citation to the O-WINDOWS raw-TSC/redundant-fence exclusion (upheld: Windows designates QPC, documents no userspace TSC invariance). Both 'ineligible' footnotes now map to an admissible class; pre-decided upheld exclusions (Windows bare TSC, QueryThreadCycleTime, coarse clocks) recorded in Closure note 6.
+- Found: The matrix carried exactly two 'ineligible' footnotes — Apple (dissolved) and Windows (upheld class-1); the other 70 cells already carry class-1/class-2/measured verdicts from OBJ-PROVE-TIMERS. Family verdicts stay provisional until the Apple §5.1(d) suspend measurement and the §5.2 same-target flip probes land.
+- Next: Author mac-x86 (row 6) and wasm/rare-arch (row 7) class-1 residual verdicts; §5.2 flip rows await ESC-AMD-FLIP-PROBE-TOOLING and windows-2022 push authorization.
+- Blocked/unsure: rows 1/3/5 gated on ESC-AMD-FLIP-PROBE-TOOLING; row 4 needs push authorization; Apple suspend (d) is owner-coordinated
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

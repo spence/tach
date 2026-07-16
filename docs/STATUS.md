@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       OBJ-SIMPLIFY-TIMERS.M1 — Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated
-> Blocked on you: nothing
-> Last verified: 2026-07-15 · Changed: OBJ-SIMPLIFY-TIMERS.M1 🚧 (Eligibility re-adjudication and flip verification) · By: nsr · 6b93c1c
+> Next:       Author mac-x86 (row 6) and wasm/rare-arch (row 7) class-1 residual verdicts; §5.2 flip rows await ESC-AMD-FLIP-PROBE-TOOLING and windows-2022 push authorization.
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
+> Last verified: 2026-07-15 · Changed: §5.3 exclusion re-audit in provider-policy-matrix.md: dissolved the Apple W-MAC-A64 bare-CNTVCT exclusion (an inadmissible Class-3 inferred 'XNU wake correction' requirement the published Instant contract never made; bare re-admitted+selected on both M1 Max and M4 Pro per EVID-APPLE-BARE-CNTVCT), and added the class-1 citation to the O-WINDOWS raw-TSC/redundant-fence exclusion (upheld: Windows designates QPC, documents no userspace TSC invariance). Both 'ineligible' footnotes now map to an admissible class; pre-decided upheld exclusions (Windows bare TSC, QueryThreadCycleTime, coarse clocks) recorded in Closure note 6. · By: nsr · 64c6141
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
