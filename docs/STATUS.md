@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       All remaining §5.2 rows are owner-gated: 1/2/3/5 on the flip-probe tooling decision (ESC-AMD-FLIP-PROBE-TOOLING), 4 on push authorization; Apple suspend (d) on an owner window. Unblocked M1 work is exhausted pending those decisions.
+> Next:       The (d) run now needs only an owner-coordinated sleep window on catalyst: cargo bench --bench apple_suspend_probe --features bench-internal -- --sleep-secs 90 --repeat 5, sleeping the machine when prompted (x5). All remaining M1 work is owner-gated: flip-probe tooling (rows 1/2/3/5), windows-2022 push auth (row 4), the suspend window (d), and the mac-x86 TSC-vs-mach_absolute reconciliation.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-15 · Changed: Verified row 2 (T-LINUX-X86, c5n.metal) is ALSO tooling-blocked: benches/run-thread-pmu-aws.sh is aarch64-only (arm64 AMI, ships aarch64-thread-pmu.c with pmccntr_el0 asm) and no x86 thread-pmu probe exists in benches/probes/. So all four §5.2 probe rows (1 AMD c7a, 2 c5n.metal x86, 3 c8g, 5 FreeBSD c7a) are gated by the same plan/tooling mismatch — the named scripts do not support the enumerated non-canonical instances. Broadened the ESC-AMD-FLIP-PROBE-TOOLING scope note. · By: nsr · 7f4b081
+> Last verified: 2026-07-15 · Changed: Built and dry-run-validated the §5.1(d) Apple suspend/wake probe (benches/apple_suspend_probe.rs, 33e52eb; gated required-features=bench-internal + cfg aarch64-macos so it never touches other platforms). Dry-run on catalyst: bare calibrates to 24.00 MHz (= CNTFRQ_EL0 on M1 Max), all five clocks agree at ~3010ms for a 3s wait, no divergence without suspend. STANDARD GATE surfaces (fmt, clippy default/no-default/bench-internal, check --benches) all green — the probe is additive and gated. · By: nsr · 33e52eb
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

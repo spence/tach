@@ -146,6 +146,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: All remaining §5.2 rows are owner-gated: 1/2/3/5 on the flip-probe tooling decision (ESC-AMD-FLIP-PROBE-TOOLING), 4 on push authorization; Apple suspend (d) on an owner window. Unblocked M1 work is exhausted pending those decisions.
 - Blocked/unsure: rows 1/2/3/5 flip-probe tooling (ESC); row 4 push auth; Apple suspend (d) owner window; plus the mac-x86 TSC-vs-mach_absolute reconciliation
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Built and dry-run-validated the §5.1(d) Apple suspend/wake probe (benches/apple_suspend_probe.rs, 33e52eb; gated required-features=bench-internal + cfg aarch64-macos so it never touches other platforms). Dry-run on catalyst: bare calibrates to 24.00 MHz (= CNTFRQ_EL0 on M1 Max), all five clocks agree at ~3010ms for a 3s wait, no divergence without suspend. STANDARD GATE surfaces (fmt, clippy default/no-default/bench-internal, check --benches) all green — the probe is additive and gated.
+- Found: The probe asserts bare CNTVCT never steps backward and RECORDS (not judges) whether its elapsed tracks wall/mach_continuous (includes sleep) or std-uptime/mach_absolute (excludes sleep) across a real suspend — that measurement becomes ADR-0005's documented Apple suspend semantic and closes the last open piece of the flagship Apple Instant claim.
+- Next: The (d) run now needs only an owner-coordinated sleep window on catalyst: cargo bench --bench apple_suspend_probe --features bench-internal -- --sleep-secs 90 --repeat 5, sleeping the machine when prompted (x5). All remaining M1 work is owner-gated: flip-probe tooling (rows 1/2/3/5), windows-2022 push auth (row 4), the suspend window (d), and the mac-x86 TSC-vs-mach_absolute reconciliation.
+- Blocked/unsure: flip-probe tooling (ESC-AMD-FLIP-PROBE-TOOLING); row 4 push auth; suspend (d) owner window (probe now staged); mac-x86 reconciliation
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the
