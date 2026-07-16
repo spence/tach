@@ -140,6 +140,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: 2 of 7 freeze rows verdicted (6,7 residual). Remaining: rows 1/3/5 (AMD/c8g/FreeBSD flips) blocked on ESC-AMD-FLIP-PROBE-TOOLING; row 2 (c5n.metal thread-pmu) runnable pending go-ahead on ~$3.89/hr metal; row 4 (windows-2022) needs push authorization; Apple suspend (d) owner-coordinated.
 - Blocked/unsure: rows 1/3/4/5 gated on owner decisions (ESC-AMD-FLIP-PROBE-TOOLING, push auth); Apple suspend (d) owner-coordinated
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Verified row 2 (T-LINUX-X86, c5n.metal) is ALSO tooling-blocked: benches/run-thread-pmu-aws.sh is aarch64-only (arm64 AMI, ships aarch64-thread-pmu.c with pmccntr_el0 asm) and no x86 thread-pmu probe exists in benches/probes/. So all four §5.2 probe rows (1 AMD c7a, 2 c5n.metal x86, 3 c8g, 5 FreeBSD c7a) are gated by the same plan/tooling mismatch — the named scripts do not support the enumerated non-canonical instances. Broadened the ESC-AMD-FLIP-PROBE-TOOLING scope note.
+- Found: mac-x86 (row 6) discrepancy is real, not terminological: apple_x86_64.rs runs an Instant tournament between INSTANT_PROVIDER_TSC and INSTANT_PROVIDER_MACH_ABSOLUTE_TIME (line 372); the retained real-Intel-hardware run (github-macos-15-intel, 68dc201) selected apple_mach_absolute_time, but provider-policy-matrix W-MAC-X86 claims 'selected invariant TSC'. Either TSC failed its XNU eligibility gate on that hardware (making the matrix claim unsupported) or a separate real-Intel-Mac run exists; needs reconciliation before the mac-x86 claim is defensible. Flagged, not edited.
+- Next: All remaining §5.2 rows are owner-gated: 1/2/3/5 on the flip-probe tooling decision (ESC-AMD-FLIP-PROBE-TOOLING), 4 on push authorization; Apple suspend (d) on an owner window. Unblocked M1 work is exhausted pending those decisions.
+- Blocked/unsure: rows 1/2/3/5 flip-probe tooling (ESC); row 4 push auth; Apple suspend (d) owner window; plus the mac-x86 TSC-vs-mach_absolute reconciliation
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

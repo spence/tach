@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       2 of 7 freeze rows verdicted (6,7 residual). Remaining: rows 1/3/5 (AMD/c8g/FreeBSD flips) blocked on ESC-AMD-FLIP-PROBE-TOOLING; row 2 (c5n.metal thread-pmu) runnable pending go-ahead on ~$3.89/hr metal; row 4 (windows-2022) needs push authorization; Apple suspend (d) owner-coordinated.
+> Next:       All remaining §5.2 rows are owner-gated: 1/2/3/5 on the flip-probe tooling decision (ESC-AMD-FLIP-PROBE-TOOLING), 4 on push authorization; Apple suspend (d) on an owner window. Unblocked M1 work is exhausted pending those decisions.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-15 · Changed: §5.2 freeze-table rows 6-7 verdicted as class-1 residuals. Row 6 W/O-MAC-X86: freeze on the single frozen github-macos-15-intel run at 68dc201 (speed-supplemental-macos-x86_64.json; instant=apple_mach_absolute_time, ordered=apple_commpage_lfence_rdtsc_nanotime) — no second macos-intel environment exists (Apple discontinued Intel Macs) so no same-target flip is possible; class-1 single-environment freeze. Row 7 rare Linux arches (ARM32/S390/RISCV/LOONG/POWER) + wasm/WASI: class-1 'source/codegen-proven; not performance-measured' residual, 13 families already marked so in provider-policy-matrix; no fastest claim published for them. · By: nsr · 3dfa1e3
+> Last verified: 2026-07-15 · Changed: Verified row 2 (T-LINUX-X86, c5n.metal) is ALSO tooling-blocked: benches/run-thread-pmu-aws.sh is aarch64-only (arm64 AMI, ships aarch64-thread-pmu.c with pmccntr_el0 asm) and no x86 thread-pmu probe exists in benches/probes/. So all four §5.2 probe rows (1 AMD c7a, 2 c5n.metal x86, 3 c8g, 5 FreeBSD c7a) are gated by the same plan/tooling mismatch — the named scripts do not support the enumerated non-canonical instances. Broadened the ESC-AMD-FLIP-PROBE-TOOLING scope note. · By: nsr · 7f4b081
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
