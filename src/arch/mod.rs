@@ -35,7 +35,10 @@ pub mod freebsd_x86_64;
 pub mod linux_aarch64_wall;
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 pub mod linux_clock_wall;
-#[cfg(all(any(target_os = "android", target_os = "linux"), not(target_arch = "aarch64")))]
+#[cfg(all(
+  any(target_os = "android", target_os = "linux"),
+  not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64"))
+))]
 pub(crate) mod linux_vdso;
 #[cfg(all(
   any(target_os = "android", target_os = "linux"),

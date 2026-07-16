@@ -350,71 +350,13 @@ macro_rules! with_linux_x86_instant_read {
       "linux_kernel_eligible_tsc" => {
         $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc)
       }
-      "linux_clock_monotonic_libc" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic)
-      }
-      "linux_clock_monotonic_raw_libc" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw)
-      }
-      "linux_clock_boottime_libc" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime)
-      }
-      "linux_clock_monotonic_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic)
-      }
-      "linux_clock_monotonic_raw_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw)
-      }
-      "linux_clock_boottime_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_vdso_time64_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_vdso_time64_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_vdso_time64_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime)
-      }
       #[cfg(target_pointer_width = "64")]
       "linux_clock_monotonic_syscall_x86_64" => {
         $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic)
       }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_raw_syscall_x86_64" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_boottime_syscall_x86_64" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime)
-      }
       #[cfg(target_pointer_width = "32")]
       "linux_clock_monotonic_syscall_i686_time32" => {
         $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time32" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time32" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time64" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time64" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time64" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime)
       }
       _ => panic!("unsupported selected Linux x86 Instant provider: {}", $provider),
     }
@@ -432,413 +374,13 @@ macro_rules! with_linux_x86_ordered_read {
       "linux_kernel_eligible_tsc_x86_lfence_rdtsc" => {
         $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_lfence)
       }
-      "linux_kernel_eligible_tsc_x86_mfence_rdtsc" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_mfence)
-      }
-      "linux_kernel_eligible_tsc_x86_rdtscp" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_rdtscp)
-      }
-      "linux_kernel_eligible_tsc_x86_cpuid_rdtsc" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_cpuid)
-      }
-      "linux_kernel_eligible_tsc_x86_serialize_rdtsc" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_tsc_serialize)
-      }
-      "linux_clock_monotonic_libc_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_lfence)
-      }
-      "linux_clock_monotonic_libc_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_os_owned)
-      }
-      "linux_clock_monotonic_libc_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_rdtscp)
-      }
-      "linux_clock_monotonic_libc_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_mfence)
-      }
-      "linux_clock_monotonic_libc_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_cpuid)
-      }
-      "linux_clock_monotonic_libc_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_monotonic_serialize)
-      }
-      "linux_clock_monotonic_raw_libc_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_lfence)
-      }
-      "linux_clock_monotonic_raw_libc_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_os_owned)
-      }
-      "linux_clock_monotonic_raw_libc_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_rdtscp)
-      }
-      "linux_clock_monotonic_raw_libc_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_mfence)
-      }
-      "linux_clock_monotonic_raw_libc_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_cpuid)
-      }
-      "linux_clock_monotonic_raw_libc_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_raw_serialize)
-      }
-      "linux_clock_monotonic_vdso_direct_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_os_owned)
-      }
-      "linux_clock_monotonic_vdso_direct_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_lfence)
-      }
-      "linux_clock_monotonic_vdso_direct_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_rdtscp)
-      }
-      "linux_clock_monotonic_vdso_direct_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_mfence)
-      }
-      "linux_clock_monotonic_vdso_direct_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_cpuid)
-      }
-      "linux_clock_monotonic_vdso_direct_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_monotonic_serialize)
-      }
-      "linux_clock_monotonic_raw_vdso_direct_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_os_owned)
-      }
-      "linux_clock_monotonic_raw_vdso_direct_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_lfence)
-      }
-      "linux_clock_monotonic_raw_vdso_direct_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_rdtscp)
-      }
-      "linux_clock_monotonic_raw_vdso_direct_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_mfence)
-      }
-      "linux_clock_monotonic_raw_vdso_direct_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_cpuid)
-      }
-      "linux_clock_monotonic_raw_vdso_direct_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_raw_serialize)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_syscall_x86_64_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_lfence)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_syscall_x86_64_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_os_owned)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_syscall_x86_64_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_rdtscp)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_syscall_x86_64_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_mfence)
-      }
       #[cfg(target_pointer_width = "64")]
       "linux_clock_monotonic_syscall_x86_64_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_cpuid)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_syscall_x86_64_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_monotonic_serialize)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_raw_syscall_x86_64_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_lfence)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_raw_syscall_x86_64_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_os_owned)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_raw_syscall_x86_64_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_rdtscp)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_raw_syscall_x86_64_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_mfence)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_raw_syscall_x86_64_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_cpuid)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_monotonic_raw_syscall_x86_64_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_raw_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time32_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time32_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time32_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time32_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_mfence)
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall_monotonic_cpuid)
       }
       #[cfg(target_pointer_width = "32")]
       "linux_clock_monotonic_syscall_i686_time32_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time32_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_monotonic_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time32_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time32_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time32_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time32_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time32_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time32_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_raw_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time64_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time64_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time64_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time64_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time64_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_syscall_i686_time64_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_monotonic_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time64_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time64_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time64_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time64_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time64_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_syscall_i686_time64_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_raw_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_vdso_time64_direct_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_vdso_time64_direct_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_vdso_time64_direct_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_vdso_time64_direct_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_vdso_time64_direct_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_vdso_time64_direct_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_monotonic_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_vdso_time64_direct_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_vdso_time64_direct_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_vdso_time64_direct_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_vdso_time64_direct_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_vdso_time64_direct_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_monotonic_raw_vdso_time64_direct_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_raw_serialize)
-      }
-      "linux_clock_boottime_libc_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_os_owned)
-      }
-      "linux_clock_boottime_libc_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_lfence)
-      }
-      "linux_clock_boottime_libc_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_rdtscp)
-      }
-      "linux_clock_boottime_libc_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_mfence)
-      }
-      "linux_clock_boottime_libc_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_cpuid)
-      }
-      "linux_clock_boottime_libc_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_libc_boottime_serialize)
-      }
-      "linux_clock_boottime_vdso_direct_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_os_owned)
-      }
-      "linux_clock_boottime_vdso_direct_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_lfence)
-      }
-      "linux_clock_boottime_vdso_direct_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_rdtscp)
-      }
-      "linux_clock_boottime_vdso_direct_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_mfence)
-      }
-      "linux_clock_boottime_vdso_direct_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_cpuid)
-      }
-      "linux_clock_boottime_vdso_direct_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_boottime_serialize)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_boottime_syscall_x86_64_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_os_owned)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_boottime_syscall_x86_64_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_lfence)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_boottime_syscall_x86_64_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_rdtscp)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_boottime_syscall_x86_64_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_mfence)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_boottime_syscall_x86_64_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_cpuid)
-      }
-      #[cfg(target_pointer_width = "64")]
-      "linux_clock_boottime_syscall_x86_64_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time32_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time32_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time32_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time32_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time32_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time32_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time32_boottime_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time64_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time64_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time64_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time64_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time64_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_syscall_i686_time64_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_time64_boottime_serialize)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_vdso_time64_direct_os_owned" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_os_owned)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_vdso_time64_direct_x86_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_lfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_vdso_time64_direct_x86_rdtscp_lfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_rdtscp)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_vdso_time64_direct_x86_mfence" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_mfence)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_vdso_time64_direct_x86_cpuid" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_cpuid)
-      }
-      #[cfg(target_pointer_width = "32")]
-      "linux_clock_boottime_vdso_time64_direct_x86_serialize" => {
-        $callback!($($arguments)*, tach::bench::linux_x86_exact_vdso_time64_boottime_serialize)
+        $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall_monotonic_cpuid)
       }
       _ => panic!("unsupported selected Linux x86 Ordered provider: {}", $provider),
     }
@@ -1778,20 +1320,6 @@ fn bench_now(c: &mut Criterion) {
     any(target_arch = "x86_64", target_arch = "x86"),
   ))]
   {
-    for candidate in tach::bench::linux_x86_instant_candidate_primitives() {
-      let provider = candidate.provider();
-      with_linux_x86_instant_read!(provider, register_selected_now, g, "direct_wall", provider);
-    }
-    for candidate in tach::bench::linux_x86_ordered_candidate_primitives() {
-      let provider = candidate.provider();
-      with_linux_x86_ordered_read!(
-        provider,
-        register_selected_now,
-        g,
-        "direct_ordered_wall",
-        provider
-      );
-    }
     let selected = tach::bench::linux_x86_selected_instant_primitive();
     let provider = selected.provider();
     with_linux_x86_instant_read!(
@@ -2400,14 +1928,6 @@ fn write_linux_x86_wall_selection() {
   use std::fs;
   use std::path::PathBuf;
 
-  let instant_candidates: Vec<_> = tach::bench::linux_x86_instant_candidate_primitives()
-    .iter()
-    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
-    .collect();
-  let ordered_candidates: Vec<_> = tach::bench::linux_x86_ordered_candidate_primitives()
-    .iter()
-    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
-    .collect();
   let instant_selected = tach::bench::linux_x86_selected_instant_primitive();
   let ordered_selected = tach::bench::linux_x86_selected_ordered_primitive();
   let mut payload = serde_json::json!({
@@ -2419,12 +1939,7 @@ fn write_linux_x86_wall_selection() {
       "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
       "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
     },
-    "eligible_direct_candidates": {
-      "instant": instant_candidates,
-      "ordered": ordered_candidates,
-    },
-    "decision_rule": "each contract independently tournaments every eligible complete clock-id, entry-ABI, ordering-barrier, and direct-TSC path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
-    "probe": tach::bench::linux_x86_wall_selection_measurements(),
+    "decision_rule": "Instant reads a bare RDTSC and OrderedInstant reads LFENCE+RDTSC when the kernel exposes an eligible invariant TSC and, for the ordered read, LFENCE is architecturally serializing (Intel, or AMD with AMD_LFENCE_ALWAYS_SERIALIZING); otherwise both fall back to the raw CLOCK_MONOTONIC syscall, with the ordered read prefixing a CPUID barrier",
     "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke TSC access after direct-provider selection",
   });
   let instant_provider = instant_selected.provider();
@@ -2589,30 +2104,6 @@ fn bench_elapsed(c: &mut Criterion) {
     any(target_arch = "x86_64", target_arch = "x86"),
   ))]
   {
-    for candidate in tach::bench::linux_x86_instant_candidate_primitives() {
-      let provider = candidate.provider();
-      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
-      with_linux_x86_instant_read!(
-        provider,
-        register_selected_elapsed,
-        g,
-        "direct_wall",
-        provider,
-        nanos_per_tick_q32
-      );
-    }
-    for candidate in tach::bench::linux_x86_ordered_candidate_primitives() {
-      let provider = candidate.provider();
-      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
-      with_linux_x86_ordered_read!(
-        provider,
-        register_selected_elapsed,
-        g,
-        "direct_ordered_wall",
-        provider,
-        nanos_per_tick_q32
-      );
-    }
     let selected = tach::bench::linux_x86_selected_instant_primitive();
     let provider = selected.provider();
     let nanos_per_tick_q32 = selected.nanos_per_tick_q32();
