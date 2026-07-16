@@ -1067,6 +1067,69 @@ exact_bench_reader!(bench_exact_acntvct_continuous, acntvct_continuous_time);
 mod tests {
   use super::*;
 
+  // ESC-APPLE-ORDERED-SELECTION probe: does each candidate ordered provider honor
+  // the OrderedInstant happens-before contract on this hardware? Each thread
+  // Acquire-loads the max published raw tick, reads the candidate, and counts a
+  // violation if its read is < the observed tick. Same-provider raw ticks share
+  // one monotonic domain, so the comparison is valid. Bare CNTVCT is the negative
+  // control (unbarriered → must show violations, proving the harness detects
+  // failures); isb+cntvct is the positive control (must show 0). This decides
+  // whether a cheaper-than-isb provider (mach_absolute / self-sync ACNTVCT) is an
+  // eligible ordered pick (~5 ns) or whether only the barriered route (~10 ns) is
+  // correct. Run: cargo test --lib ordered_candidate_happens_before_survey -- --nocapture
+  #[test]
+  #[ignore = "cross-thread stress survey; run explicitly for the Apple ordered ruling"]
+  fn ordered_candidate_happens_before_survey() {
+    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as O};
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+    use std::vec::Vec;
+
+    type OrderedReader = fn() -> u64;
+    let candidates: [(&str, OrderedReader); 4] = [
+      ("bare_cntvct        (unbarriered control)", bare_cntvct),
+      ("mach_absolute      (current runtime pick)", mach_absolute),
+      ("acntvct_absolute   (self-sync register)", acntvct_absolute_time),
+      ("isb+cntvct         (barriered control)", cntvct_ordered_absolute_time),
+    ];
+    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(16);
+    std::eprintln!("SURVEY threads={threads}, 2s/candidate");
+    for (name, reader) in candidates {
+      let published = Arc::new(AtomicU64::new(0));
+      let stop = Arc::new(AtomicBool::new(false));
+      let gate = Arc::new(Barrier::new(threads + 1));
+      let handles: Vec<_> = (0..threads)
+        .map(|_| {
+          let published = Arc::clone(&published);
+          let stop = Arc::clone(&stop);
+          let gate = Arc::clone(&gate);
+          thread::spawn(move || {
+            let (mut violations, mut reads) = (0_u64, 0_u64);
+            gate.wait();
+            while !stop.load(O::Relaxed) {
+              let observed = published.load(O::Acquire);
+              let now = reader();
+              reads += 1;
+              if now < observed {
+                violations += 1;
+              }
+              published.fetch_max(now, O::Release);
+            }
+            (violations, reads)
+          })
+        })
+        .collect();
+      gate.wait();
+      thread::sleep(std::time::Duration::from_millis(2000));
+      stop.store(true, O::Relaxed);
+      let (v, r) = handles
+        .into_iter()
+        .map(|h| h.join().unwrap())
+        .fold((0_u64, 0_u64), |(av, ar), (v, r)| (av + v, ar + r));
+      std::eprintln!("SURVEY {name}: {v} violations / {r} reads");
+    }
+  }
+
   #[test]
   fn candidate_sets_are_complete_and_unique() {
     for mode in [
