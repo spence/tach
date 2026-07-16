@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       OBJ-SIMPLIFY-TIMERS.M1 — Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated
+> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
+> Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-16 · Changed: All 72 target/timer cells carry a §5.2 freeze verdict with committed evidence or a documented class-1 residual. Row 4 (W/O-WINDOWS) closes the table: windows-2025 and windows-2022 both select windows_qpc / windows_qpc_call_boundary at 524b74a — no same-target flip (EVID-WINDOWS-FLIP). Rows 1/3/5 no-flip -> fixed (EVID-AMD-FLIP-LINUX-X86, EVID-GRAVITON4-FLIP-LINUX-A64, EVID-AMD-FLIP-FREEBSD-X86); row 2 capability gate (EVID-THREAD-CPU-X86); rows 6/7 class-1 residuals; Apple Instant/OrderedInstant re-adjudicated with correctness+speed on both local machines (EVID-APPLE-BARE-CNTVCT).; OBJ-SIMPLIFY-TIMERS.M1.G1 🟢 at evidence SHA `524b74a9f802729216a7cc785b7a28a416dfc20d`. · By: nsr · 524b74a
+> Last verified: 2026-07-16 · Changed: All 72 target/timer cells carry a §5.2 freeze verdict with committed evidence or a documented class-1 residual. Row 4 (W/O-WINDOWS) closes the table: windows-2025 and windows-2022 both select windows_qpc / windows_qpc_call_boundary at 524b74a — no same-target flip (EVID-WINDOWS-FLIP). Rows 1/3/5 no-flip -> fixed (EVID-AMD-FLIP-LINUX-X86, EVID-GRAVITON4-FLIP-LINUX-A64, EVID-AMD-FLIP-FREEBSD-X86); row 2 capability gate (EVID-THREAD-CPU-X86); rows 6/7 class-1 residuals; Apple Instant/OrderedInstant re-adjudicated with correctness+speed on both local machines (EVID-APPLE-BARE-CNTVCT).; OBJ-SIMPLIFY-TIMERS.M1.G1 🟢 at evidence SHA `524b74a9f802729216a7cc785b7a28a416dfc20d`. · By: nsr · 10d0e59
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -27,11 +27,11 @@ policy [`decisions/0005…`](decisions/0005-timer-contracts-eligibility-evidence
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
 | `OBJ-SIMPLIFY-TIMERS.M0` | Honest contracts and selection policy | ✅ | ADR records the three contracts, evidence classes, and selection rule; base lands on main; plan in place | inline · G1🟢 |
-| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | 🚧 | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1🟢 |
-| `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | ⚪ | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | ✅ | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1🟢 |
+| `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M1`): G1🟢
+Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M2`): G1⚪
 <!-- /render:board -->
 
 ---
