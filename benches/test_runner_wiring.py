@@ -246,15 +246,16 @@ printf "SEAL_RAN\\n"
         self.assertIn("exit 2", guard)
         self.assertLess(guard_start, source.index("aws_ ec2 describe-instances"))
 
-    def test_amd_flip_probe_retains_bundle_without_canonical_compose(self) -> None:
+    def test_flip_probe_cells_retain_bundle_without_canonical_compose(self) -> None:
         source = self.source("run-speed-aws.sh")
-        # The sanctioned amd/c7a flip probe launches (no fail-fast) with an honest
-        # runner tag, mints no canonical cell, and retains the collector bundle.
-        block_start = source.index("  amd|c7a)")
-        block = source[block_start : source.index(";;", block_start)]
-        self.assertIn("is_flip_probe=1", block)
-        self.assertIn("aws-c7a", block)
-        self.assertNotIn("exit 2", block)
+        # The sanctioned flip-probe cells launch (no fail-fast) with an honest
+        # runner tag, mint no canonical cell, and retain the collector bundle.
+        for marker, runner in (("  amd|c7a)", "aws-c7a"), ("  c8g)", "aws-c8g")):
+            start = source.index(marker)
+            block = source[start : source.index(";;", start)]
+            self.assertIn("is_flip_probe=1", block)
+            self.assertIn(runner, block)
+            self.assertNotIn("exit 2", block)
         self.assertIn('if [ "${is_flip_probe:-0}" = 1 ]', source)
 
     def test_aws_transfers_the_collector_as_one_archive(self) -> None:

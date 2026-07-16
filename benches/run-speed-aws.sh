@@ -59,6 +59,15 @@ case "$CELL" in
     expected_mode=gnu
     is_flip_probe=1
     ;;
+  c8g)
+    # Sanctioned flip-probe cell: the same aarch64-gnu measured code as the
+    # frozen `c7g` cell, run on Graviton 4 to check for a same-target flip.
+    default_artifact_id="speed-probe-c8g.json"
+    no_default_artifact_id="speed-probe-c8g-no-default.json"
+    runner="aws-c8g"
+    expected_mode=gnu
+    is_flip_probe=1
+    ;;
   *)
     echo "unknown campaign cell '$CELL'; add a canonical primary artifact before launching" >&2
     exit 2
