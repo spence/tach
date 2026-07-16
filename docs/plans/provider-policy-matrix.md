@@ -53,8 +53,8 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 
 | Family | Eligible candidates | Production policy | Current verdict |
 |---|---|---|---|
-| `W-LINUX-X86` | kernel-eligible invariant TSC; `MONOTONIC`, `MONOTONIC_RAW`, and `BOOTTIME` through libc, direct versioned vDSO, and exact raw ABI | measured | implemented; c7i proves a host where the OS path beats an exposed hardware route |
-| `O-LINUX-X86` | every eligible wall candidate compounded with eligible CPUID, LFENCE, MFENCE, RDTSCP, SERIALIZE, or OS-owned exception ordering | measured independently from `Instant` | implemented; public/exact parity passed retained c7i evidence |
+| `W-LINUX-X86` | kernel-eligible invariant TSC; `MONOTONIC`, `MONOTONIC_RAW`, and `BOOTTIME` through libc, direct versioned vDSO, and exact raw ABI | measured → fixed (M2) | c7i (Intel) and c7a (AMD Zen4) both select `linux_kernel_eligible_tsc` — no same-target flip (`EVID-AMD-FLIP-LINUX-X86-2026-07-15`), so §5.2 freezes this family to a compile-time pick in M2 |
+| `O-LINUX-X86` | every eligible wall candidate compounded with eligible CPUID, LFENCE, MFENCE, RDTSCP, SERIALIZE, or OS-owned exception ordering | measured → fixed (M2) | public/exact parity passed retained c7i evidence; c7i and c7a both select `linux_kernel_eligible_tsc_x86_lfence_rdtsc` — no flip (`EVID-AMD-FLIP-LINUX-X86-2026-07-15`) → fixed in M2 |
 | `W-LINUX-A64` | eligible CNTVCT; `MONOTONIC`, `MONOTONIC_RAW`, and `BOOTTIME` through libc, direct vDSO, and raw syscall | measured | implemented; trapped/emulated counter cost is included |
 | `O-LINUX-A64` | ISB+CNTVCT or CNTVCTSS when eligible; ordered forms of every Linux clock candidate | measured independently from `Instant` | implemented |
 | `W-LINUX-ARM32` | surviving direct-vDSO-backed CNTVCT; libc/direct-vDSO/time32/time64 syscall forms of the three Linux clocks | measured | source/codegen closed; native performance corroboration absent |

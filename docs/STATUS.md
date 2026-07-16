@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       The (d) run now needs only an owner-coordinated sleep window on catalyst: cargo bench --bench apple_suspend_probe --features bench-internal -- --sleep-secs 90 --repeat 5, sleeping the machine when prompted (x5). All remaining M1 work is owner-gated: flip-probe tooling (rows 1/2/3/5), windows-2022 push auth (row 4), the suspend window (d), and the mac-x86 TSC-vs-mach_absolute reconciliation.
+> Next:       Run c8g aarch64 flip (vs frozen c7g) and FreeBSD c7a flip; c5n.metal thread-cpu still needs an x86 probe (no x86 thread-pmu exists); windows-2022 needs push auth; Apple suspend (d) needs an owner sleep window.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-15 · Changed: Built and dry-run-validated the §5.1(d) Apple suspend/wake probe (benches/apple_suspend_probe.rs, 33e52eb; gated required-features=bench-internal + cfg aarch64-macos so it never touches other platforms). Dry-run on catalyst: bare calibrates to 24.00 MHz (= CNTFRQ_EL0 on M1 Max), all five clocks agree at ~3010ms for a 3s wait, no divergence without suspend. STANDARD GATE surfaces (fmt, clippy default/no-default/bench-internal, check --benches) all green — the probe is additive and gated. · By: nsr · 33e52eb
+> Last verified: 2026-07-15 · Changed: Ran the AMD c7a flip probe (freeze row 1, W/O-LINUX-X86) via the sanctioned flip-probe path (0777bf0). c7a (AMD Zen4) selects the identical winners as frozen c7i (Intel): Instant=linux_kernel_eligible_tsc, OrderedInstant=linux_kernel_eligible_tsc_x86_lfence_rdtsc. NO same-target flip -> the family freezes to a fixed cfg pick in M2. Instance i-037b374adb6dcc442 self-terminated (verified terminated, no orphan). Evidence EVID-AMD-FLIP-LINUX-X86-2026-07-15 (580K: attestation, raw bench log, extracted comparison; 29MB criterion tree not committed per §7.1). provider-policy-matrix W/O-LINUX-X86 updated to measured->fixed(M2). · By: nsr · a838754
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

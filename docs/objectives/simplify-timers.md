@@ -152,6 +152,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: The (d) run now needs only an owner-coordinated sleep window on catalyst: cargo bench --bench apple_suspend_probe --features bench-internal -- --sleep-secs 90 --repeat 5, sleeping the machine when prompted (x5). All remaining M1 work is owner-gated: flip-probe tooling (rows 1/2/3/5), windows-2022 push auth (row 4), the suspend window (d), and the mac-x86 TSC-vs-mach_absolute reconciliation.
 - Blocked/unsure: flip-probe tooling (ESC-AMD-FLIP-PROBE-TOOLING); row 4 push auth; suspend (d) owner window (probe now staged); mac-x86 reconciliation
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Ran the AMD c7a flip probe (freeze row 1, W/O-LINUX-X86) via the sanctioned flip-probe path (0777bf0). c7a (AMD Zen4) selects the identical winners as frozen c7i (Intel): Instant=linux_kernel_eligible_tsc, OrderedInstant=linux_kernel_eligible_tsc_x86_lfence_rdtsc. NO same-target flip -> the family freezes to a fixed cfg pick in M2. Instance i-037b374adb6dcc442 self-terminated (verified terminated, no orphan). Evidence EVID-AMD-FLIP-LINUX-X86-2026-07-15 (580K: attestation, raw bench log, extracted comparison; 29MB criterion tree not committed per §7.1). provider-policy-matrix W/O-LINUX-X86 updated to measured->fixed(M2).
+- Found: 3 of 7 freeze rows now verdicted (row 1 fixed via AMD probe; rows 6-7 class-1 residual). The flip-probe path works end-to-end and self-terminates cleanly; c8g (aarch64) and FreeBSD c7a reuse it.
+- Next: Run c8g aarch64 flip (vs frozen c7g) and FreeBSD c7a flip; c5n.metal thread-cpu still needs an x86 probe (no x86 thread-pmu exists); windows-2022 needs push auth; Apple suspend (d) needs an owner sleep window.
+- Blocked/unsure: row 2 needs an x86 thread-pmu probe; row 4 push auth; Apple suspend (d) owner window; mac-x86 reconciliation
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

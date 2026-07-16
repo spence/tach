@@ -1,0 +1,26 @@
+{
+  "probe": "W/O-LINUX-X86 same-target flip (Intel c7i vs AMD c7a)",
+  "c7a_amd_zen4": {
+    "instant": "linux_kernel_eligible_tsc",
+    "ordered": "linux_kernel_eligible_tsc_x86_lfence_rdtsc"
+  },
+  "c7i_intel_frozen": {
+    "instant": "linux_kernel_eligible_tsc",
+    "ordered": "linux_kernel_eligible_tsc_x86_lfence_rdtsc"
+  },
+  "flip": {
+    "instant": false,
+    "ordered": false
+  },
+  "provenance": {
+    "runner": "aws-c7a",
+    "target": {
+      "arch": "x86_64",
+      "env": "gnu",
+      "os": "linux"
+    },
+    "source_revision": "a83875421932c9422036dab27382e2be00bb0313",
+    "instance": "c7a.large"
+  },
+  "verdict": "SAME winners on both microarchitectures -> no flip -> W/O-LINUX-X86 freezes fixed"
+}
