@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       Row 2 fully de-risked and recommended (accept tournament); row 4 ESC-WINDOWS-2022-PUSH; ESC-AMD-FLIP-PROBE-TOOLING ratification; Apple suspend (d) window. All owner-gated.
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-THREAD-PMU-X86-PROBE, ESC-WINDOWS-2022-PUSH
-> Last verified: 2026-07-15 · Changed: De-risked freeze row 2 (T-LINUX-X86) via code investigation rather than declining it. Established tach's Linux thread-CPU inline path uses PERF_COUNT_SW_TASK_CLOCK + CAP_USER_TIME (task-clock via mmap time_mult/shift + a TSC read), NOT the cap_user_rdpmc hardware-cycles path — so the plan's 'cap_user_rdpmc metal' premise for row 2 is imprecise. The correct x86 probe is a bounded ~40-line task (read_task_clock verbatim + swap cntvct->rdtsc vs syscall CLOCK_THREAD_CPUTIME_ID with the busy-interval self-check), dropping the Graviton3-hardcoded rdpmc diagnostic entirely. Captured the precise recipe in ESC-THREAD-PMU-X86-PROBE. · By: nsr · a7c8bec
+> Next:       M1.G1 closes when row 4 runs (ESC-WINDOWS-2022-PUSH) or is dispositioned. Also owner-gated: ESC-AMD-FLIP-PROBE-TOOLING ratification, Apple suspend (d) window, mac-x86 already resolved.
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-WINDOWS-2022-PUSH
+> Last verified: 2026-07-15 · Changed: Ran freeze row 2 (T-LINUX-X86 thread-CPU) end-to-end. Built + arch-generalized the x86 thread-pmu probe (7e99554) reproducing tach's actual inline path (PERF_COUNT_SW_TASK_CLOCK via cap_user_time, not cap_user_rdpmc), ran both branches: c7i.large Nitro (cap_user_time absent, caps=0x2 -> syscall 230.58 ns by necessity) and c5n.metal bare metal (cap_user_time present, caps=0x1a; perf task-clock mmap 22.25 ns vs syscall 728.71 ns, ~33x faster, self-check-correct over a 50 ms busy interval). Both instances self-terminated, no orphan. Evidence EVID-THREAD-CPU-X86. · By: nsr · 7e99554
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

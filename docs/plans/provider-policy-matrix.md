@@ -86,7 +86,7 @@ runtime capability decides whether the preferred mechanism exists, but does not 
 
 | Family | Eligible candidates | Production policy | Current verdict |
 |---|---|---|---|
-| `T-LINUX-X86` | perf task-clock mmap, persistent perf read, selected libc/raw `CLOCK_THREAD_CPUTIME_ID` | measured per OS thread | implemented; c7i demonstrates capability does not determine profitability |
+| `T-LINUX-X86` | perf task-clock mmap via `cap_user_time`; persistent perf read; selected libc/raw `CLOCK_THREAD_CPUTIME_ID` | availability-preferred capability gate, with benchmark-only profitability audit | c5n.metal (cap present): perf mmap 22.25 ns vs raw syscall 728.71 ns — ~33× faster and self-check-correct; c7i Nitro (cap absent): syscall by necessity; no same-target flip (`EVID-THREAD-CPU-X86`) → capability gate in M2 |
 | `T-LINUX-A64` | perf task-clock mmap when the complete handshake succeeds; raw thread-clock syscall fallback | availability-preferred, with benchmark-only profitability audit | one frozen binary showed perf 3–4.5× faster on c6g/c7g/c8g/t4g with no flip; any future audit loss reopens runtime selection |
 | `T-LINUX-A64-ANDROID` | perf task-clock mmap/read and native thread clock | measured per OS thread | source/codegen closed; native performance corroboration absent |
 | `T-LINUX-ARM32` / `T-LINUX-RISCV` | perf task-clock mmap/read and native thread clock | measured per OS thread | source/codegen closed; native performance corroboration absent |

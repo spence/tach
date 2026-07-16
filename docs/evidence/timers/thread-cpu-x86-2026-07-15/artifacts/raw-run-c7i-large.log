@@ -1,0 +1,6 @@
+kernel.perf_event_paranoid = -1
+Linux ip-172-31-36-253.us-east-2.compute.internal 6.12.94-123.180.amzn2023.x86_64 #1 SMP PREEMPT_DYNAMIC Thu Jul  9 21:10:41 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+model name	: Intel(R) Xeon(R) Platinum 8488C
+task page: index=0 caps=0x2 shift=0 mult=0 mask=0
+perf task-clock mmap readable (cap_user_time): no
+syscall CLOCK_THREAD_CPUTIME_ID  median 230.583 ns/read batches 944468 829060 992865 782165 955481 1046773 950669 815074 904421

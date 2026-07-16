@@ -188,6 +188,13 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Row 2 fully de-risked and recommended (accept tournament); row 4 ESC-WINDOWS-2022-PUSH; ESC-AMD-FLIP-PROBE-TOOLING ratification; Apple suspend (d) window. All owner-gated.
 - Blocked/unsure: row 2 ESC-THREAD-PMU-X86-PROBE (de-risked, recommend accept-tournament); row 4 ESC-WINDOWS-2022-PUSH; suspend (d) owner window
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Ran freeze row 2 (T-LINUX-X86 thread-CPU) end-to-end. Built + arch-generalized the x86 thread-pmu probe (7e99554) reproducing tach's actual inline path (PERF_COUNT_SW_TASK_CLOCK via cap_user_time, not cap_user_rdpmc), ran both branches: c7i.large Nitro (cap_user_time absent, caps=0x2 -> syscall 230.58 ns by necessity) and c5n.metal bare metal (cap_user_time present, caps=0x1a; perf task-clock mmap 22.25 ns vs syscall 728.71 ns, ~33x faster, self-check-correct over a 50 ms busy interval). Both instances self-terminated, no orphan. Evidence EVID-THREAD-CPU-X86.
+- Found: Row 2 verdict = availability-preferred capability gate, NOT a measured tournament: perf-mmap when cap_user_time is exposed (bare metal), raw CLOCK_THREAD_CPUTIME_ID syscall when absent (Nitro VMs); no speed flip (perf wins by 33x whenever available), mirroring T-LINUX-A64. Corrected the matrix's imprecise 'capability does not determine profitability' note -- the Nitro capability is ABSENT (caps=0x2), not present-but-unprofitable. 6 of 7 freeze rows now verdicted; only row 4 (windows-2022) remains.
+- Next: M1.G1 closes when row 4 runs (ESC-WINDOWS-2022-PUSH) or is dispositioned. Also owner-gated: ESC-AMD-FLIP-PROBE-TOOLING ratification, Apple suspend (d) window, mac-x86 already resolved.
+- Blocked/unsure: row 4 ESC-WINDOWS-2022-PUSH (push auth); ESC-AMD-FLIP-PROBE-TOOLING ratification; Apple suspend (d) owner window
+- Board: M1 freeze row 2 verdicted: capability gate (perf-mmap 33x faster on metal, cap absent on Nitro), EVID-THREAD-CPU-X86; 6/7 rows done, row 4 owner-blocked
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

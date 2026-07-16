@@ -1,0 +1,46 @@
+{
+  "topic": "T-LINUX-X86 thread-CPU route freeze (OBJ-SIMPLIFY-TIMERS M1.G1 row 2)",
+  "tach_path_under_test": "src/arch/thread_cpu_linux_inline.rs — PERF_COUNT_SW_TASK_CLOCK read via the perf mmap page using CAP_USER_TIME (time_mult/time_shift + a raw TSC read), with the raw CLOCK_THREAD_CPUTIME_ID syscall as fallback",
+  "probe_source_sha": "7e99554",
+  "probe": "benches/probes/x86-thread-pmu.c",
+  "runner": "benches/run-thread-pmu-aws.sh",
+  "verdict": "capability-gate",
+  "verdict_detail": "Selection is gated on the runtime host capability cap_user_time. When present (bare metal), the inline perf task-clock mmap read is available and ~33x faster than the syscall and self-check-correct, so it is availability-preferred. When absent (Nitro VMs) the raw CLOCK_THREAD_CPUTIME_ID syscall is used by necessity. No same-target speed flip: perf wins whenever the capability is present; the syscall is used only when it is not.",
+  "flip": false,
+  "environments": [
+    {
+      "role": "capability-absent branch (VM)",
+      "instance_type": "c7i.large",
+      "substrate": "AWS Nitro VM",
+      "cpu": "Intel Xeon Platinum 8488C (Sapphire Rapids)",
+      "kernel": "6.12.94-123.180.amzn2023.x86_64",
+      "mmap_capabilities_hex": "0x2",
+      "cap_user_time": false,
+      "perf_task_clock_mmap_readable": false,
+      "perf_task_clock_mmap_ns_per_read": null,
+      "syscall_clock_thread_cputime_id_ns_per_read": 230.583,
+      "selected_route": "raw CLOCK_THREAD_CPUTIME_ID syscall (perf mmap unavailable)",
+      "instance_id": "i-0f9afc459ce324a60",
+      "termination": "terminated"
+    },
+    {
+      "role": "capability-present branch (bare metal)",
+      "instance_type": "c5n.metal",
+      "substrate": "AWS bare metal",
+      "cpu": "Intel Xeon Platinum 8124M @ 3.00GHz (Skylake)",
+      "kernel": "6.12.94-123.180.amzn2023.x86_64",
+      "mmap_capabilities_hex": "0x1a",
+      "cap_user_time": true,
+      "perf_task_clock_mmap_readable": true,
+      "perf_task_clock_mmap_ns_per_read": 22.252,
+      "syscall_clock_thread_cputime_id_ns_per_read": 728.706,
+      "perf_speedup_over_syscall": 32.75,
+      "selfcheck_syscall_delta_ns": 50010106,
+      "selfcheck_task_delta_ns": 50010667,
+      "selfcheck_correct": true,
+      "selected_route": "perf task-clock mmap (availability-preferred, ~33x faster and self-check-correct)",
+      "instance_id": "i-06e9ffb26640dd05c",
+      "termination": "terminated"
+    }
+  ]
+}

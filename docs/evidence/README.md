@@ -24,4 +24,5 @@ dated package; do not silently rewrite a verdict.
 | `EVID-ROUTE-CONTRACT-6685B22` | 🟢 | [`timers/route-contract-2026-07-14/README.md`](timers/route-contract-2026-07-14/README.md) |
 | `EVID-RUNTIME-ARTIFACT-BINDINGS-CD598B9` | 🟡 | [`timers/runtime-artifact-bindings-2026-07-14/README.md`](timers/runtime-artifact-bindings-2026-07-14/README.md) |
 | `EVID-TARGET-ROUTE-CLASSIFICATION-463FAA0` | 🟢 | [`timers/target-route-classification-2026-07-14/README.md`](timers/target-route-classification-2026-07-14/README.md) |
+| `EVID-THREAD-CPU-X86` |  | [`timers/thread-cpu-x86-2026-07-15/README.md`](timers/thread-cpu-x86-2026-07-15/README.md) |
 <!-- /render:evid-index -->
