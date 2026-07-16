@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
-> Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
+> Next:       Continue §6 step-1: relocate the thread_cpu 5 tests to an UNGATED tests/ file, then triage instant.rs/background.rs/bench.rs, keeping arch-internal unit tests in place. Then §6 step-2: convert families to frozen verdicts one-per-commit (delete tournament machinery where no flip is frozen), inline parity max(1ns,5%).
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-16 · Changed: All 72 target/timer cells carry a §5.2 freeze verdict with committed evidence or a documented class-1 residual. Row 4 (W/O-WINDOWS) closes the table: windows-2025 and windows-2022 both select windows_qpc / windows_qpc_call_boundary at 524b74a — no same-target flip (EVID-WINDOWS-FLIP). Rows 1/3/5 no-flip -> fixed (EVID-AMD-FLIP-LINUX-X86, EVID-GRAVITON4-FLIP-LINUX-A64, EVID-AMD-FLIP-FREEBSD-X86); row 2 capability gate (EVID-THREAD-CPU-X86); rows 6/7 class-1 residuals; Apple Instant/OrderedInstant re-adjudicated with correctness+speed on both local machines (EVID-APPLE-BARE-CNTVCT).; OBJ-SIMPLIFY-TIMERS.M1.G1 🟢 at evidence SHA `524b74a9f802729216a7cc785b7a28a416dfc20d`. · By: nsr · 10d0e59
+> Last verified: 2026-07-16 · Changed: Began M2 §6 step-1 (test relocation): moved the 17 public-API tests from src/lib.rs to tests/instant.rs (47ee6d6), keeping the one internal test (cpuid_15h, reaches crate::arch). Verified fmt, clippy --all-targets, and the suite on default + --no-default-features; counts reconcile (src 172->155, +17). · By: nsr · 47ee6d6
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

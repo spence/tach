@@ -206,6 +206,13 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Did: All 72 target/timer cells carry a §5.2 freeze verdict with committed evidence or a documented class-1 residual. Row 4 (W/O-WINDOWS) closes the table: windows-2025 and windows-2022 both select windows_qpc / windows_qpc_call_boundary at 524b74a — no same-target flip (EVID-WINDOWS-FLIP). Rows 1/3/5 no-flip -> fixed (EVID-AMD-FLIP-LINUX-X86, EVID-GRAVITON4-FLIP-LINUX-A64, EVID-AMD-FLIP-FREEBSD-X86); row 2 capability gate (EVID-THREAD-CPU-X86); rows 6/7 class-1 residuals; Apple Instant/OrderedInstant re-adjudicated with correctness+speed on both local machines (EVID-APPLE-BARE-CNTVCT).; OBJ-SIMPLIFY-TIMERS.M1.G1 🟢 at evidence SHA `524b74a9f802729216a7cc785b7a28a416dfc20d`.
 - Board: OBJ-SIMPLIFY-TIMERS.M1 G1 🟢 — evidence EVID-WINDOWS-FLIP.
 
+### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M2`
+- Did: Began M2 §6 step-1 (test relocation): moved the 17 public-API tests from src/lib.rs to tests/instant.rs (47ee6d6), keeping the one internal test (cpuid_15h, reaches crate::arch). Verified fmt, clippy --all-targets, and the suite on default + --no-default-features; counts reconcile (src 172->155, +17).
+- Found: M2 relocation is cfg-gating-sensitive and NOT fully gate-caught. Triaged src/thread_cpu.rs: 5 tests (monotonic, arithmetic, provider-reporting, js-domains, read-gap) are pure public API; cross_domain_durations_fail_closed uses pub(crate) encode_wall_ticks + private from_nanos so it STAYS. BUT the existing tests/thread_cpu.rs is #![cfg(any(linux,macos,windows))]-gated, while those 5 tests run all-platform (cfg-gated inner asserts) — appending them there would silently drop FreeBSD/wasm coverage, which neither the compiler nor the test gate catches. So each relocation needs per-test cfg + target-file analysis; the arch modules' tests are mostly internal (use super::* on non-public items) and stay.
+- Next: Continue §6 step-1: relocate the thread_cpu 5 tests to an UNGATED tests/ file, then triage instant.rs/background.rs/bench.rs, keeping arch-internal unit tests in place. Then §6 step-2: convert families to frozen verdicts one-per-commit (delete tournament machinery where no flip is frozen), inline parity max(1ns,5%).
+- Blocked/unsure: none — M2 is actionable; the remaining relocation + family conversions are a multi-session refactor
+- Board: M2 in progress: lib.rs public-API tests relocated to tests/instant.rs (47ee6d6); relocation is cfg-gating-sensitive per the thread_cpu triage
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the
