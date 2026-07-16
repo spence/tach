@@ -1,0 +1,26 @@
+{
+  "probe": "W/O-LINUX-A64 same-target flip (Graviton3 c7g vs Graviton4 c8g)",
+  "c8g_graviton4": {
+    "instant": "aarch64_cntvct",
+    "ordered": "aarch64_isb_cntvct"
+  },
+  "c7g_graviton3_frozen": {
+    "instant": "aarch64_cntvct",
+    "ordered": "aarch64_isb_cntvct"
+  },
+  "flip": {
+    "instant": false,
+    "ordered": false
+  },
+  "provenance": {
+    "runner": "aws-c8g",
+    "target": {
+      "arch": "aarch64",
+      "env": "gnu",
+      "os": "linux"
+    },
+    "source_revision": "5bcd67ea6d5376d9c5ac1eb86ec0fad8a9f03d20",
+    "instance": "c8g.large"
+  },
+  "verdict": "SAME winners on both Graviton generations -> no flip -> W/O-LINUX-A64 freezes fixed"
+}

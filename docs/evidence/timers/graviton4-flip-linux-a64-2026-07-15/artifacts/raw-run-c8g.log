@@ -1,0 +1,1188 @@
+creating ephemeral keypair tach-speed-62953-1784178112
+launching c8g.large (arm64, ami ami-0b18bd762aa8a2514) — self-terminates on exit
+instance i-0479da2f95ef1c0ef
+ip 3.144.126.166
+Warning: Permanently added '3.144.126.166' (ED25519) to the list of known hosts.
+=== running sealed speed bench on instance (mode=gnu) ===
+kernel.perf_event_paranoid = -1
+kernel.perf_user_access = 1
+=== setup system packages ===
+Waiting for process with pid 2599 to finish.
+Amazon Linux 2023 Kernel Livepatch repository   540 kB/s |  53 kB     00:00    
+Package python3-3.9.25-1.amzn2023.0.7.aarch64 is already installed.
+Dependencies resolved.
+================================================================================
+ Package             Arch     Version                        Repository    Size
+================================================================================
+Installing:
+ gcc                 aarch64  11.5.0-5.amzn2023.0.5          amazonlinux   31 M
+Installing dependencies:
+ annobin-docs        noarch   12.69-1.amzn2023.0.1           amazonlinux   93 k
+ annobin-plugin-gcc  aarch64  12.69-1.amzn2023.0.1           amazonlinux  973 k
+ cpp                 aarch64  11.5.0-5.amzn2023.0.5          amazonlinux   10 M
+ gc                  aarch64  8.0.4-5.amzn2023.0.2           amazonlinux  102 k
+ gcc-plugin-annobin  aarch64  11.5.0-5.amzn2023.0.5          amazonlinux   37 k
+ glibc-devel         aarch64  2.34-231.amzn2023.0.4          amazonlinux  448 k
+ guile22             aarch64  2.2.7-2.amzn2023.0.3           amazonlinux  6.4 M
+ kernel6.12-headers  aarch64  1:6.12.94-123.180.amzn2023     amazonlinux  1.4 M
+ libmpc              aarch64  1.2.1-2.amzn2023.0.2           amazonlinux   63 k
+ libtool-ltdl        aarch64  2.4.7-1.amzn2023.0.3           amazonlinux   38 k
+ libxcrypt-devel     aarch64  4.4.33-7.amzn2023              amazonlinux   32 k
+ make                aarch64  1:4.3-5.amzn2023.0.2           amazonlinux  530 k
+
+Transaction Summary
+================================================================================
+Install  13 Packages
+
+Total download size: 51 M
+Installed size: 169 M
+Downloading Packages:
+(1/13): annobin-docs-12.69-1.amzn2023.0.1.noarc 3.1 MB/s |  93 kB     00:00    
+(2/13): annobin-plugin-gcc-12.69-1.amzn2023.0.1  24 MB/s | 973 kB     00:00    
+(3/13): gc-8.0.4-5.amzn2023.0.2.aarch64.rpm     3.9 MB/s | 102 kB     00:00    
+(4/13): gcc-plugin-annobin-11.5.0-5.amzn2023.0. 1.4 MB/s |  37 kB     00:00    
+(5/13): glibc-devel-2.34-231.amzn2023.0.4.aarch  22 MB/s | 448 kB     00:00    
+(6/13): cpp-11.5.0-5.amzn2023.0.5.aarch64.rpm    74 MB/s |  10 MB     00:00    
+(7/13): guile22-2.2.7-2.amzn2023.0.3.aarch64.rp  79 MB/s | 6.4 MB     00:00    
+(8/13): kernel6.12-headers-6.12.94-123.180.amzn  21 MB/s | 1.4 MB     00:00    
+(9/13): libmpc-1.2.1-2.amzn2023.0.2.aarch64.rpm 2.4 MB/s |  63 kB     00:00    
+(10/13): libtool-ltdl-2.4.7-1.amzn2023.0.3.aarc 1.5 MB/s |  38 kB     00:00    
+(11/13): libxcrypt-devel-4.4.33-7.amzn2023.aarc 1.2 MB/s |  32 kB     00:00    
+(12/13): make-4.3-5.amzn2023.0.2.aarch64.rpm     24 MB/s | 530 kB     00:00    
+(13/13): gcc-11.5.0-5.amzn2023.0.5.aarch64.rpm   81 MB/s |  31 MB     00:00    
+--------------------------------------------------------------------------------
+Total                                           113 MB/s |  51 MB     00:00     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                        1/1 
+  Installing       : libmpc-1.2.1-2.amzn2023.0.2.aarch64                   1/13 
+  Installing       : cpp-11.5.0-5.amzn2023.0.5.aarch64                     2/13 
+  Installing       : libtool-ltdl-2.4.7-1.amzn2023.0.3.aarch64             3/13 
+  Installing       : kernel6.12-headers-1:6.12.94-123.180.amzn2023.aarc    4/13 
+  Installing       : libxcrypt-devel-4.4.33-7.amzn2023.aarch64             5/13 
+  Installing       : glibc-devel-2.34-231.amzn2023.0.4.aarch64             6/13 
+  Installing       : gc-8.0.4-5.amzn2023.0.2.aarch64                       7/13 
+  Installing       : guile22-2.2.7-2.amzn2023.0.3.aarch64                  8/13 
+  Installing       : make-1:4.3-5.amzn2023.0.2.aarch64                     9/13 
+  Installing       : gcc-11.5.0-5.amzn2023.0.5.aarch64                    10/13 
+  Running scriptlet: gcc-11.5.0-5.amzn2023.0.5.aarch64                    10/13 
+  Installing       : annobin-docs-12.69-1.amzn2023.0.1.noarch             11/13 
+  Installing       : annobin-plugin-gcc-12.69-1.amzn2023.0.1.aarch64      12/13 
+  Running scriptlet: annobin-plugin-gcc-12.69-1.amzn2023.0.1.aarch64      12/13 
+  Installing       : gcc-plugin-annobin-11.5.0-5.amzn2023.0.5.aarch64     13/13 
+  Running scriptlet: gcc-plugin-annobin-11.5.0-5.amzn2023.0.5.aarch64     13/13 
+  Verifying        : annobin-docs-12.69-1.amzn2023.0.1.noarch              1/13 
+  Verifying        : annobin-plugin-gcc-12.69-1.amzn2023.0.1.aarch64       2/13 
+  Verifying        : cpp-11.5.0-5.amzn2023.0.5.aarch64                     3/13 
+  Verifying        : gc-8.0.4-5.amzn2023.0.2.aarch64                       4/13 
+  Verifying        : gcc-11.5.0-5.amzn2023.0.5.aarch64                     5/13 
+  Verifying        : gcc-plugin-annobin-11.5.0-5.amzn2023.0.5.aarch64      6/13 
+  Verifying        : glibc-devel-2.34-231.amzn2023.0.4.aarch64             7/13 
+  Verifying        : guile22-2.2.7-2.amzn2023.0.3.aarch64                  8/13 
+  Verifying        : kernel6.12-headers-1:6.12.94-123.180.amzn2023.aarc    9/13 
+  Verifying        : libmpc-1.2.1-2.amzn2023.0.2.aarch64                  10/13 
+  Verifying        : libtool-ltdl-2.4.7-1.amzn2023.0.3.aarch64            11/13 
+  Verifying        : libxcrypt-devel-4.4.33-7.amzn2023.aarch64            12/13 
+  Verifying        : make-1:4.3-5.amzn2023.0.2.aarch64                    13/13 
+
+Installed:
+  annobin-docs-12.69-1.amzn2023.0.1.noarch                                      
+  annobin-plugin-gcc-12.69-1.amzn2023.0.1.aarch64                               
+  cpp-11.5.0-5.amzn2023.0.5.aarch64                                             
+  gc-8.0.4-5.amzn2023.0.2.aarch64                                               
+  gcc-11.5.0-5.amzn2023.0.5.aarch64                                             
+  gcc-plugin-annobin-11.5.0-5.amzn2023.0.5.aarch64                              
+  glibc-devel-2.34-231.amzn2023.0.4.aarch64                                     
+  guile22-2.2.7-2.amzn2023.0.3.aarch64                                          
+  kernel6.12-headers-1:6.12.94-123.180.amzn2023.aarch64                         
+  libmpc-1.2.1-2.amzn2023.0.2.aarch64                                           
+  libtool-ltdl-2.4.7-1.amzn2023.0.3.aarch64                                     
+  libxcrypt-devel-4.4.33-7.amzn2023.aarch64                                     
+  make-1:4.3-5.amzn2023.0.2.aarch64                                             
+
+Complete!
+=== setup Rust toolchain ===
+info: downloading installer
+warn: It looks like you have an existing rustup settings file at:
+warn: /home/ec2-user/.rustup/settings.toml
+warn: Rustup will install the default toolchain as specified in the settings file,
+warn: instead of the one inferred from the default host triple.
+info: profile set to minimal
+info: default host triple is aarch64-unknown-linux-gnu
+info: syncing channel updates for stable-aarch64-unknown-linux-gnu
+info: latest update on 2026-07-09 for version 1.97.0 (2d8144b78 2026-07-07)
+info: downloading 3 components
+
+info: default toolchain set to stable-aarch64-unknown-linux-gnu
+  stable-aarch64-unknown-linux-gnu installed - rustc 1.97.0 (2d8144b78 2026-07-07)
+
+
+Rust is installed now. Great!
+
+To get started you may need to restart your current shell.
+This would reload your PATH environment variable to include
+Cargo's bin directory ($HOME/.cargo/bin).
+
+To configure your current shell, you need to source
+the corresponding env file under $HOME/.cargo.
+
+This is usually done by running one of the following (note the leading DOT):
+. "$HOME/.cargo/env"            # For sh/bash/zsh/ash/dash/pdksh
+source "$HOME/.cargo/env.fish"  # For fish
+source "~/.cargo/env.nu"  # For nushell
+source "$HOME/.cargo/env.tcsh"  # For tcsh
+. "$HOME/.cargo/env.ps1"        # For pwsh
+source "$HOME/.cargo/env.xsh"   # For xonsh
+=== gate cargo-test command: <cargo> <test> <--locked> <--release> <--tests> <--features> <bench-internal> ===
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded ciborium v0.2.2
+  Downloaded clap_lex v1.1.0
+  Downloaded alloca v0.4.0
+  Downloaded ciborium-io v0.2.2
+  Downloaded ciborium-ll v0.2.2
+  Downloaded cfg-if v1.0.4
+  Downloaded cast v0.3.0
+  Downloaded core_affinity v0.8.3
+  Downloaded anstyle v1.0.14
+  Downloaded crossbeam-deque v0.8.6
+  Downloaded either v1.15.0
+  Downloaded page_size v0.6.0
+  Downloaded plotters-svg v0.3.7
+  Downloaded same-file v1.0.6
+  Downloaded ctor v0.1.26
+  Downloaded small_ctor v0.1.2
+  Downloaded num_cpus v1.17.0
+  Downloaded itoa v1.0.17
+  Downloaded plotters-backend v0.3.7
+  Downloaded autocfg v1.5.0
+  Downloaded criterion-plot v0.8.2
+  Downloaded anes v0.1.6
+  Downloaded crossbeam-epoch v0.9.18
+  Downloaded walkdir v2.5.0
+  Downloaded oorandom v11.1.5
+  Downloaded web-time v1.1.0
+  Downloaded shlex v2.0.1
+  Downloaded zmij v1.0.21
+  Downloaded fastant v0.1.11
+  Downloaded tinytemplate v1.2.1
+  Downloaded quote v1.0.45
+  Downloaded quanta v0.12.6
+  Downloaded once_cell v1.21.4
+  Downloaded crossbeam-utils v0.8.21
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded clap v4.6.0
+  Downloaded unicode-ident v1.0.24
+  Downloaded num-traits v0.2.19
+  Downloaded proc-macro2 v1.0.106
+  Downloaded serde_derive v1.0.228
+  Downloaded half v2.7.1
+  Downloaded rayon-core v1.13.0
+  Downloaded serde_core v1.0.228
+  Downloaded serde v1.0.228
+  Downloaded cc v1.2.67
+  Downloaded zerocopy-derive v0.8.42
+  Downloaded criterion v0.8.2
+  Downloaded memchr v2.8.0
+  Downloaded minstant v0.1.7
+  Downloaded regex v1.12.3
+  Downloaded itertools v0.13.0
+  Downloaded plotters v0.3.7
+  Downloaded serde_json v1.0.149
+  Downloaded aho-corasick v1.1.4
+  Downloaded clap_builder v4.6.0
+  Downloaded rayon v1.11.0
+  Downloaded syn v1.0.109
+  Downloaded syn v2.0.117
+  Downloaded zerocopy v0.8.42
+  Downloaded regex-syntax v0.8.10
+  Downloaded regex-automata v0.4.14
+  Downloaded libc v0.2.183
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.45
+   Compiling serde_core v1.0.228
+   Compiling crossbeam-utils v0.8.21
+   Compiling libc v0.2.183
+   Compiling syn v2.0.117
+   Compiling zerocopy v0.8.42
+   Compiling serde v1.0.228
+   Compiling zerocopy-derive v0.8.42
+   Compiling serde_derive v1.0.228
+   Compiling shlex v2.0.1
+   Compiling autocfg v1.5.0
+   Compiling find-msvc-tools v0.1.9
+   Compiling zmij v1.0.21
+   Compiling syn v1.0.109
+   Compiling cc v1.2.67
+   Compiling num-traits v0.2.19
+   Compiling crossbeam-epoch v0.9.18
+   Compiling either v1.15.0
+   Compiling rayon-core v1.13.0
+   Compiling serde_json v1.0.149
+   Compiling cfg-if v1.0.4
+   Compiling crossbeam-deque v0.8.6
+   Compiling alloca v0.4.0
+   Compiling half v2.7.1
+   Compiling regex-syntax v0.8.10
+   Compiling itoa v1.0.17
+   Compiling memchr v2.8.0
+   Compiling ciborium-io v0.2.2
+   Compiling anstyle v1.0.14
+   Compiling web-time v1.1.0
+   Compiling clap_lex v1.1.0
+   Compiling plotters-backend v0.3.7
+   Compiling plotters-svg v0.3.7
+   Compiling clap_builder v4.6.0
+   Compiling ciborium-ll v0.2.2
+   Compiling regex-automata v0.4.14
+   Compiling ctor v0.1.26
+   Compiling itertools v0.13.0
+   Compiling num_cpus v1.17.0
+   Compiling small_ctor v0.1.2
+   Compiling same-file v1.0.6
+   Compiling cast v0.3.0
+   Compiling walkdir v2.5.0
+   Compiling criterion-plot v0.8.2
+   Compiling fastant v0.1.11
+   Compiling core_affinity v0.8.3
+   Compiling rayon v1.11.0
+   Compiling plotters v0.3.7
+   Compiling tinytemplate v1.2.1
+   Compiling minstant v0.1.7
+   Compiling regex v1.12.3
+   Compiling ciborium v0.2.2
+   Compiling clap v4.6.0
+   Compiling page_size v0.6.0
+   Compiling anes v0.1.6
+   Compiling oorandom v11.1.5
+   Compiling once_cell v1.21.4
+   Compiling criterion v0.8.2
+   Compiling quanta v0.12.6
+   Compiling tach v0.2.0 (/home/ec2-user/tach)
+    Finished `release` profile [optimized] target(s) in 36.73s
+     Running unittests src/lib.rs (target/release/deps/tach-83ce58113ad9ac48)
+
+running 73 tests
+test arch::fallback::monotonic::tests::clock_failure_has_a_total_value ... ok
+test arch::linux_aarch64_wall::instant_read_cost_only_marks_guaranteed_userspace_paths_inline ... ok
+test arch::linux_aarch64_wall::tests::candidate_sets_are_complete_unique_and_permission_safe ... ok
+test arch::linux_aarch64_wall::tests::legacy_inference_requires_exact_unsupported_status_and_pre_6_12_release ... ok
+test arch::linux_aarch64_wall::tests::parses_real_kernel_release_prefixes_strictly ... ok
+test arch::linux_aarch64_wall::tests::pr_get_tsc_result_overrides_android_or_vendor_base_release ... ok
+test arch::linux_aarch64_wall::tests::initial_sigsegv_mode_never_executes_a_counter_read ... ok
+test arch::linux_aarch64_wall::tests::selection_requires_a_repeatable_material_win ... ok
+test arch::linux_aarch64_wall::tests::tournament_order_is_deterministic_and_ties_keep_the_incumbent ... ok
+test arch::linux_vdso::tests::documented_platform_symbol_has_a_version ... ok
+test arch::linux_vdso::tests::elf_and_gnu_hashes_match_reference_vectors ... ok
+test arch::linux_vdso::tests::gapped_multi_load_gnu_image_resolves_versioned_clock_symbols ... ok
+test arch::linux_vdso::tests::gapped_multi_load_sysv_image_resolves_versioned_clock_symbols ... ok
+test arch::linux_vdso::tests::load_ranges_merge_when_a_later_segment_bridges_them ... ok
+test arch::linux_vdso::tests::native_elf_layouts_match_the_linux_abi ... ok
+test arch::linux_vdso::tests::rejects_header_or_dynamic_segments_outside_declared_readable_loads ... ok
+test arch::linux_vdso::tests::rejects_unterminated_dynamic_table_and_overflowing_load ... ok
+test arch::linux_vdso::tests::truncated_hash_and_version_tables_fail_closed_during_lookup ... ok
+test arch::tests::forked_child_recovers_parent_owned_selection ... ok
+test arch::tests::inherited_owner_before_state_claim_is_recoverable ... ok
+test arch::tests::inherited_process_selection_is_recoverable ... ok
+test arch::tests::mach_timebase_scale_preserves_the_documented_ratio ... ok
+test arch::tests::power_timebase_scale_preserves_the_exact_512_mhz_ratio ... ok
+test arch::tests::qpc_frequency_scale_is_fixed_point_without_read_time_division ... ok
+test arch::tests::same_domain_reentry_does_not_poison_the_measured_winner ... ok
+test arch::tests::same_thread_reentry_forces_one_numeric_domain ... ok
+test arch::tests::scale_is_never_the_uninitialized_sentinel ... ok
+test arch::thread_cpu::linux_inline::tests::available_perf_task_clock_matches_native_thread_cpu_semantics ... ok
+test arch::thread_cpu::linux_inline::tests::commit_never_reenables_a_path_that_failed_after_measurement ... ok
+test arch::thread_cpu::linux_inline::tests::counter_permission_gate_requires_complete_conversion_metadata ... ok
+test arch::thread_cpu::linux_inline::tests::event_epoch_alignment_makes_degradation_step_forward ... ok
+test arch::thread_cpu::linux_inline::tests::failure_fallback_keeps_the_measured_fastest_remaining_path ... ok
+test arch::thread_cpu::linux_inline::tests::full_width_counter_has_no_practical_read_gap ... ok
+test arch::thread_cpu::linux_inline::tests::inherited_perf_mapping_is_reinitialized_after_fork ... ok
+test arch::thread_cpu::linux_inline::tests::initial_counter_denial_never_executes_the_architectural_counter ... ok
+test arch::thread_cpu::linux_inline::tests::metadata_prefix_matches_linux_uapi_offsets ... ok
+test arch::thread_cpu::linux_inline::tests::native_fallback_is_biased_to_the_last_perf_sample ... ok
+test arch::thread_cpu::linux_inline::tests::nested_signal_fork_cannot_invalidate_an_interrupted_provider_frame ... ok
+test arch::thread_cpu::linux_inline::tests::selection_requires_a_repeatable_material_win ... ok
+test arch::thread_cpu::linux_inline::tests::short_counter_extension_owns_wraps_and_retries_stale_nested_reads ... ok
+test arch::thread_cpu::linux_inline::tests::short_counter_metadata_requires_a_power_of_two_window ... ok
+test arch::thread_cpu::linux_inline::tests::task_clock_conversion_extends_a_short_counter ... ok
+test arch::thread_cpu::linux_inline::tests::task_clock_conversion_rejects_ineligible_metadata ... ok
+test arch::thread_cpu::linux_inline::tests::task_clock_conversion_uses_enabled_plus_uapi_delta ... ok
+test arch::thread_cpu::native_64_availability_never_selects_a_failed_candidate ... ok
+test arch::thread_cpu::native_64_selection_requires_a_repeatable_material_win ... ok
+test bench::exact_wall_harness_tests::exact_wall_harnesses_keep_static_readers_and_provider_scales ... ok
+test bench::exact_wall_harness_tests::exact_wall_provider_carries_the_conversion_for_its_own_tick_domain ... ok
+test instant::tests::conversion_helpers_keep_tick_scales_independent ... ok
+test arch::linux_aarch64_wall::tests::selected_providers_survive_fork ... ok
+test tests::elapsed_saturates_when_self_is_in_the_future ... ok
+test tests::elapsed_tracks_std_within_5_percent ... ok
+test tests::instant_add_duration_advances_time ... ok
+test tests::instant_checked_duration_since_returns_none_when_earlier_is_later ... ok
+test tests::instant_duration_since_saturates_when_earlier_is_later ... ok
+test tests::instant_is_send_sync ... ok
+test tests::instant_sub_duration_and_add_assign ... ok
+test tests::instant_sub_instant_returns_elapsed ... ok
+test tests::now_advances ... ok
+test tests::ordered_elapsed_after_sleep ... ok
+test tests::ordered_elapsed_unordered_after_sleep ... ok
+test tests::elapsed_after_sleep ... ok
+test tests::ordered_instant_arithmetic_mirrors_instant ... ok
+test tests::ordered_now_advances ... ok
+test tests::ordered_honors_happens_before ... ok
+test tests::recalibrate_does_not_perturb_elapsed ... ok
+test thread_cpu::tests::cross_domain_durations_fail_closed ... ok
+test thread_cpu::tests::duration_arithmetic_is_exact_in_nanoseconds ... ok
+test thread_cpu::tests::javascript_provider_domains_are_explicit ... ok
+test thread_cpu::tests::samples_are_monotonic_on_the_current_thread ... ok
+test thread_cpu::tests::selected_provider_is_reported_truthfully ... ok
+test thread_cpu::tests::selected_read_gap_is_positive_when_present ... ok
+test tests::recalibrate_is_safe_to_call_repeatedly ... ok
+
+test result: ok. 73 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.51s
+
+
+running 4 tests
+     Running tests/thread_cpu.rs (target/release/deps/thread_cpu-7fe9af540f15143e)
+test thread_cpu_time_advances_during_work ... ok
+test selected_provider_tracks_native_thread_cpu_time ... ok
+test thread_cpu_time_freezes_during_sleep ... ok
+test thread_cpu_timelines_are_independent ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+
+running 2 tests
+     Running tests/thread_cpu_init.rs (target/release/deps/thread_cpu_init-fd086a1a5441cdb0)
+test linux_signal_reentry::signal_reentry_cannot_poison_or_reverse_first_read_selection ... ok
+test concurrent_first_reads_never_fail ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+=== gate cargo-test status: 0 ===
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.45
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.183
+   Compiling syn v2.0.117
+   Compiling crossbeam-utils v0.8.21
+   Compiling zerocopy v0.8.42
+   Compiling serde v1.0.228
+   Compiling serde_derive v1.0.228
+   Compiling zerocopy-derive v0.8.42
+   Compiling autocfg v1.5.0
+   Compiling find-msvc-tools v0.1.9
+   Compiling syn v1.0.109
+   Compiling zmij v1.0.21
+   Compiling shlex v2.0.1
+   Compiling cc v1.2.67
+   Compiling num-traits v0.2.19
+   Compiling crossbeam-epoch v0.9.18
+   Compiling cfg-if v1.0.4
+   Compiling either v1.15.0
+   Compiling rayon-core v1.13.0
+   Compiling serde_json v1.0.149
+   Compiling crossbeam-deque v0.8.6
+   Compiling alloca v0.4.0
+   Compiling half v2.7.1
+   Compiling ciborium-io v0.2.2
+   Compiling anstyle v1.0.14
+   Compiling plotters-backend v0.3.7
+   Compiling clap_lex v1.1.0
+   Compiling web-time v1.1.0
+   Compiling memchr v2.8.0
+   Compiling regex-syntax v0.8.10
+   Compiling itoa v1.0.17
+   Compiling regex-automata v0.4.14
+   Compiling plotters-svg v0.3.7
+   Compiling clap_builder v4.6.0
+   Compiling ciborium-ll v0.2.2
+   Compiling ctor v0.1.26
+   Compiling itertools v0.13.0
+   Compiling num_cpus v1.17.0
+   Compiling small_ctor v0.1.2
+   Compiling same-file v1.0.6
+   Compiling cast v0.3.0
+   Compiling criterion-plot v0.8.2
+   Compiling walkdir v2.5.0
+   Compiling fastant v0.1.11
+   Compiling core_affinity v0.8.3
+   Compiling rayon v1.11.0
+   Compiling plotters v0.3.7
+   Compiling minstant v0.1.7
+   Compiling ciborium v0.2.2
+   Compiling clap v4.6.0
+   Compiling regex v1.12.3
+   Compiling tinytemplate v1.2.1
+   Compiling page_size v0.6.0
+   Compiling once_cell v1.21.4
+   Compiling oorandom v11.1.5
+   Compiling anes v0.1.6
+   Compiling quanta v0.12.6
+   Compiling criterion v0.8.2
+   Compiling tach v0.2.0 (/home/ec2-user/tach)
+    Finished `bench` profile [optimized] target(s) in 38.65s
+     Running benches/instant.rs (.tach-speed-target/release/deps/instant-065d7ab04fe3fc4e)
+Gnuplot not found, using plotters backend
+Benchmarking Instant::now()/tach
+Benchmarking Instant::now()/tach: Warming up for 1.0000 s
+Benchmarking Instant::now()/tach: Collecting 100 samples in estimated 3.0000 s (243M iterations)
+Benchmarking Instant::now()/tach: Analyzing
+Instant::now()/tach     time:   [12.168 ns 12.170 ns 12.172 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/tach_ordered
+Benchmarking Instant::now()/tach_ordered: Warming up for 1.0000 s
+Benchmarking Instant::now()/tach_ordered: Collecting 100 samples in estimated 3.0001 s (45M iterations)
+Benchmarking Instant::now()/tach_ordered: Analyzing
+Instant::now()/tach_ordered
+                        time:   [23.321 ns 23.322 ns 23.323 ns]
+Found 19 outliers among 100 measurements (19.00%)
+  5 (5.00%) low severe
+  6 (6.00%) low mild
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic: Collecting 100 samples in estimated 3.0002 s (86M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic: Analyzing
+Instant::now()/direct_wall__linux_clock_monotonic
+                        time:   [34.896 ns 34.955 ns 35.015 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw: Collecting 100 samples in estimated 3.0001 s (87M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw: Analyzing
+Instant::now()/direct_wall__linux_clock_monotonic_raw
+                        time:   [34.646 ns 34.686 ns 34.725 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) low mild
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime: Collecting 100 samples in estimated 3.0001 s (86M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime: Analyzing
+Instant::now()/direct_wall__linux_clock_boottime
+                        time:   [34.898 ns 34.962 ns 35.028 ns]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_vdso_direct
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_vdso_direct: Collecting 100 samples in estimated 3.0001 s (88M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_vdso_direct: Analyzing
+Instant::now()/direct_wall__linux_clock_monotonic_vdso_direct
+                        time:   [34.102 ns 34.117 ns 34.133 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  1 (1.00%) high mild
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_vdso_direct
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_vdso_direct: Collecting 100 samples in estimated 3.0001 s (88M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_vdso_direct: Analyzing
+Instant::now()/direct_wall__linux_clock_monotonic_raw_vdso_direct
+                        time:   [34.041 ns 34.062 ns 34.083 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_vdso_direct
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_vdso_direct: Collecting 100 samples in estimated 3.0001 s (88M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_vdso_direct: Analyzing
+Instant::now()/direct_wall__linux_clock_boottime_vdso_direct
+                        time:   [34.101 ns 34.118 ns 34.134 ns]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_syscall
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_syscall: Collecting 100 samples in estimated 3.0005 s (23M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_syscall: Analyzing
+Instant::now()/direct_wall__linux_clock_monotonic_syscall
+                        time:   [132.64 ns 132.76 ns 132.88 ns]
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_syscall
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_syscall: Collecting 100 samples in estimated 3.0006 s (23M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_monotonic_raw_syscall: Analyzing
+Instant::now()/direct_wall__linux_clock_monotonic_raw_syscall
+                        time:   [133.45 ns 133.46 ns 133.47 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) low severe
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_syscall
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_syscall: Collecting 100 samples in estimated 3.0007 s (23M iterations)
+Benchmarking Instant::now()/direct_wall__linux_clock_boottime_syscall: Analyzing
+Instant::now()/direct_wall__linux_clock_boottime_syscall
+                        time:   [133.13 ns 133.13 ns 133.15 ns]
+Found 16 outliers among 100 measurements (16.00%)
+  2 (2.00%) low severe
+  2 (2.00%) low mild
+  7 (7.00%) high mild
+  5 (5.00%) high severe
+Benchmarking Instant::now()/direct_wall__aarch64_cntvct
+Benchmarking Instant::now()/direct_wall__aarch64_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__aarch64_cntvct: Collecting 100 samples in estimated 3.0000 s (246M iterations)
+Benchmarking Instant::now()/direct_wall__aarch64_cntvct: Analyzing
+Instant::now()/direct_wall__aarch64_cntvct
+                        time:   [12.171 ns 12.172 ns 12.173 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic: Collecting 100 samples in estimated 3.0000 s (86M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_monotonic
+                        time:   [34.881 ns 34.949 ns 35.022 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw: Collecting 100 samples in estimated 3.0001 s (86M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw
+                        time:   [34.595 ns 34.637 ns 34.682 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) low mild
+  1 (1.00%) high mild
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime: Collecting 100 samples in estimated 3.0001 s (86M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_boottime
+                        time:   [34.936 ns 35.009 ns 35.083 ns]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_syscall
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_syscall: Collecting 100 samples in estimated 3.0001 s (23M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_syscall: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_monotonic_syscall
+                        time:   [132.64 ns 132.75 ns 132.86 ns]
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_syscall
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_syscall: Collecting 100 samples in estimated 3.0006 s (22M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_syscall: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_syscall
+                        time:   [133.45 ns 133.46 ns 133.47 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  4 (4.00%) low mild
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_syscall
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_syscall: Collecting 100 samples in estimated 3.0001 s (23M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_syscall: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_boottime_syscall
+                        time:   [133.28 ns 133.28 ns 133.29 ns]
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_vdso_direct
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_vdso_direct: Collecting 100 samples in estimated 3.0001 s (88M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_vdso_direct: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_monotonic_vdso_direct
+                        time:   [34.086 ns 34.102 ns 34.118 ns]
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  3 (3.00%) high mild
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct: Collecting 100 samples in estimated 3.0002 s (88M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct
+                        time:   [34.034 ns 34.057 ns 34.080 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_vdso_direct
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_vdso_direct: Collecting 100 samples in estimated 3.0001 s (88M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__linux_clock_boottime_vdso_direct: Analyzing
+Instant::now()/direct_ordered_wall__linux_clock_boottime_vdso_direct
+                        time:   [34.104 ns 34.120 ns 34.136 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__aarch64_isb_cntvct
+Benchmarking Instant::now()/direct_ordered_wall__aarch64_isb_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__aarch64_isb_cntvct: Collecting 100 samples in estimated 3.0001 s (130M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__aarch64_isb_cntvct: Analyzing
+Instant::now()/direct_ordered_wall__aarch64_isb_cntvct
+                        time:   [23.016 ns 23.018 ns 23.019 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now()/direct_ordered__aarch64_isb_cntvct
+Benchmarking Instant::now()/direct_ordered__aarch64_isb_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered__aarch64_isb_cntvct: Collecting 100 samples in estimated 3.0001 s (130M iterations)
+Benchmarking Instant::now()/direct_ordered__aarch64_isb_cntvct: Analyzing
+Instant::now()/direct_ordered__aarch64_isb_cntvct
+                        time:   [23.021 ns 23.022 ns 23.024 ns]
+Found 18 outliers among 100 measurements (18.00%)
+  2 (2.00%) low severe
+  3 (3.00%) low mild
+  4 (4.00%) high mild
+  9 (9.00%) high severe
+Benchmarking Instant::now()/direct_selected_wall__aarch64_cntvct
+Benchmarking Instant::now()/direct_selected_wall__aarch64_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_selected_wall__aarch64_cntvct: Collecting 100 samples in estimated 3.0000 s (246M iterations)
+Benchmarking Instant::now()/direct_selected_wall__aarch64_cntvct: Analyzing
+Instant::now()/direct_selected_wall__aarch64_cntvct
+                        time:   [12.179 ns 12.179 ns 12.179 ns]
+Found 15 outliers among 100 measurements (15.00%)
+  2 (2.00%) low severe
+  2 (2.00%) low mild
+  6 (6.00%) high mild
+  5 (5.00%) high severe
+Benchmarking Instant::now()/direct_selected_ordered_wall__aarch64_isb_cntvct
+Benchmarking Instant::now()/direct_selected_ordered_wall__aarch64_isb_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_selected_ordered_wall__aarch64_isb_cntvct: Collecting 100 samples in estimated 3.0000 s (130M iterations)
+Benchmarking Instant::now()/direct_selected_ordered_wall__aarch64_isb_cntvct: Analyzing
+Instant::now()/direct_selected_ordered_wall__aarch64_isb_cntvct
+                        time:   [23.014 ns 23.016 ns 23.018 ns]
+Found 20 outliers among 100 measurements (20.00%)
+  15 (15.00%) low mild
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now()/quanta
+Benchmarking Instant::now()/quanta: Warming up for 1.0000 s
+Benchmarking Instant::now()/quanta: Collecting 100 samples in estimated 3.0000 s (245M iterations)
+Benchmarking Instant::now()/quanta: Analyzing
+Instant::now()/quanta   time:   [12.247 ns 12.249 ns 12.250 ns]
+Found 22 outliers among 100 measurements (22.00%)
+  12 (12.00%) low severe
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now()/fastant
+Benchmarking Instant::now()/fastant: Warming up for 1.0000 s
+Benchmarking Instant::now()/fastant: Collecting 100 samples in estimated 3.0001 s (71M iterations)
+Benchmarking Instant::now()/fastant: Analyzing
+Instant::now()/fastant  time:   [42.163 ns 42.183 ns 42.202 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low severe
+  6 (6.00%) low mild
+  3 (3.00%) high mild
+Benchmarking Instant::now()/minstant
+Benchmarking Instant::now()/minstant: Warming up for 1.0000 s
+Benchmarking Instant::now()/minstant: Collecting 100 samples in estimated 3.0001 s (71M iterations)
+Benchmarking Instant::now()/minstant: Analyzing
+Instant::now()/minstant time:   [42.225 ns 42.241 ns 42.257 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  5 (5.00%) low mild
+  4 (4.00%) high mild
+Benchmarking Instant::now()/std
+Benchmarking Instant::now()/std: Warming up for 1.0000 s
+Benchmarking Instant::now()/std: Collecting 100 samples in estimated 3.0002 s (89M iterations)
+Benchmarking Instant::now()/std: Analyzing
+Instant::now()/std      time:   [33.462 ns 33.506 ns 33.550 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking Instant::now() + elapsed()/tach
+Benchmarking Instant::now() + elapsed()/tach: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/tach: Collecting 100 samples in estimated 3.0001 s (123M iterations)
+Benchmarking Instant::now() + elapsed()/tach: Analyzing
+Instant::now() + elapsed()/tach
+                        time:   [24.353 ns 24.356 ns 24.358 ns]
+Benchmarking Instant::now() + elapsed()/tach_ordered
+Benchmarking Instant::now() + elapsed()/tach_ordered: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/tach_ordered: Collecting 100 samples in estimated 3.0001 s (66M iterations)
+Benchmarking Instant::now() + elapsed()/tach_ordered: Analyzing
+Instant::now() + elapsed()/tach_ordered
+                        time:   [45.188 ns 45.219 ns 45.249 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) low mild
+  1 (1.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic: Collecting 100 samples in estimated 3.0002 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_monotonic
+                        time:   [68.869 ns 68.923 ns 68.975 ns]
+Found 6 outliers among 100 measurements (6.00%)
+  5 (5.00%) low mild
+  1 (1.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw: Collecting 100 samples in estimated 3.0002 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw
+                        time:   [68.504 ns 68.542 ns 68.582 ns]
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime: Collecting 100 samples in estimated 3.0003 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_boottime
+                        time:   [68.625 ns 68.669 ns 68.712 ns]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) low mild
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_vdso_direct
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_vdso_direct: Collecting 100 samples in estimated 3.0001 s (45M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_vdso_direct: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_vdso_direct
+                        time:   [66.942 ns 66.984 ns 67.028 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) low mild
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_vdso_direct
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_vdso_direct: Collecting 100 samples in estimated 3.0003 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_vdso_direct: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_vdso_direct
+                        time:   [67.360 ns 67.405 ns 67.449 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_vdso_direct
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_vdso_direct: Collecting 100 samples in estimated 3.0001 s (45M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_vdso_direct: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_boottime_vdso_direct
+                        time:   [66.685 ns 66.744 ns 66.798 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) low severe
+  3 (3.00%) low mild
+  3 (3.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_syscall
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_syscall: Collecting 100 samples in estimated 3.0006 s (11M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_syscall: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_syscall
+                        time:   [263.88 ns 264.05 ns 264.23 ns]
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_syscall
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_syscall: Collecting 100 samples in estimated 3.0011 s (11M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_syscall: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_monotonic_raw_syscall
+                        time:   [265.40 ns 265.42 ns 265.45 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  3 (3.00%) low mild
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_syscall
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_syscall: Collecting 100 samples in estimated 3.0013 s (11M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__linux_clock_boottime_syscall: Analyzing
+Instant::now() + elapsed()/direct_wall__linux_clock_boottime_syscall
+                        time:   [265.50 ns 265.52 ns 265.54 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  3 (3.00%) low severe
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  5 (5.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_wall__aarch64_cntvct
+Benchmarking Instant::now() + elapsed()/direct_wall__aarch64_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__aarch64_cntvct: Collecting 100 samples in estimated 3.0000 s (123M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__aarch64_cntvct: Analyzing
+Instant::now() + elapsed()/direct_wall__aarch64_cntvct
+                        time:   [24.354 ns 24.354 ns 24.355 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  2 (2.00%) low severe
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic: Collecting 100 samples in estimated 3.0003 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic
+                        time:   [68.926 ns 68.977 ns 69.032 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw: Collecting 100 samples in estimated 3.0002 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw
+                        time:   [68.529 ns 68.566 ns 68.606 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime: Collecting 100 samples in estimated 3.0003 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime
+                        time:   [68.630 ns 68.679 ns 68.726 ns]
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_syscall
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_syscall: Collecting 100 samples in estimated 3.0010 s (11M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_syscall: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_syscall
+                        time:   [264.42 ns 264.59 ns 264.75 ns]
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_syscall
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_syscall: Collecting 100 samples in estimated 3.0000 s (11M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_syscall: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_syscall
+                        time:   [265.39 ns 265.41 ns 265.43 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low severe
+  6 (6.00%) low mild
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_syscall
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_syscall: Collecting 100 samples in estimated 3.0011 s (11M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_syscall: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_syscall
+                        time:   [265.48 ns 265.49 ns 265.50 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  3 (3.00%) low severe
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_vdso_direct
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_vdso_direct: Collecting 100 samples in estimated 3.0001 s (45M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_vdso_direct: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_vdso_direct
+                        time:   [66.913 ns 66.950 ns 66.987 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct: Collecting 100 samples in estimated 3.0003 s (44M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_monotonic_raw_vdso_direct
+                        time:   [67.430 ns 67.473 ns 67.515 ns]
+Found 7 outliers among 100 measurements (7.00%)
+  2 (2.00%) low severe
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_vdso_direct
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_vdso_direct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_vdso_direct: Collecting 100 samples in estimated 3.0003 s (45M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_vdso_direct: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__linux_clock_boottime_vdso_direct
+                        time:   [66.800 ns 66.844 ns 66.889 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  4 (4.00%) low mild
+  5 (5.00%) high mild
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__aarch64_isb_cntvct
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__aarch64_isb_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__aarch64_isb_cntvct: Collecting 100 samples in estimated 3.0002 s (66M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__aarch64_isb_cntvct: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__aarch64_isb_cntvct
+                        time:   [45.259 ns 45.260 ns 45.261 ns]
+Found 18 outliers among 100 measurements (18.00%)
+  6 (6.00%) low severe
+  5 (5.00%) low mild
+  5 (5.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__aarch64_cntvct
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__aarch64_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__aarch64_cntvct: Collecting 100 samples in estimated 3.0000 s (123M iterations)
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__aarch64_cntvct: Analyzing
+Instant::now() + elapsed()/direct_selected_wall__aarch64_cntvct
+                        time:   [24.338 ns 24.341 ns 24.345 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__aarch64_isb_cntvct
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__aarch64_isb_cntvct: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__aarch64_isb_cntvct: Collecting 100 samples in estimated 3.0002 s (66M iterations)
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__aarch64_isb_cntvct: Analyzing
+Instant::now() + elapsed()/direct_selected_ordered_wall__aarch64_isb_cntvct
+                        time:   [45.244 ns 45.248 ns 45.251 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  9 (9.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now() + elapsed()/quanta
+Benchmarking Instant::now() + elapsed()/quanta: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/quanta: Collecting 100 samples in estimated 3.0001 s (122M iterations)
+Benchmarking Instant::now() + elapsed()/quanta: Analyzing
+Instant::now() + elapsed()/quanta
+                        time:   [24.518 ns 24.519 ns 24.519 ns]
+Found 14 outliers among 100 measurements (14.00%)
+  2 (2.00%) low severe
+  3 (3.00%) low mild
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/fastant
+Benchmarking Instant::now() + elapsed()/fastant: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/fastant: Collecting 100 samples in estimated 3.0004 s (34M iterations)
+Benchmarking Instant::now() + elapsed()/fastant: Analyzing
+Instant::now() + elapsed()/fastant
+                        time:   [87.869 ns 87.894 ns 87.921 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+Benchmarking Instant::now() + elapsed()/minstant
+Benchmarking Instant::now() + elapsed()/minstant: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/minstant: Collecting 100 samples in estimated 3.0003 s (34M iterations)
+Benchmarking Instant::now() + elapsed()/minstant: Analyzing
+Instant::now() + elapsed()/minstant
+                        time:   [87.962 ns 87.990 ns 88.018 ns]
+Found 7 outliers among 100 measurements (7.00%)
+  3 (3.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/std
+Benchmarking Instant::now() + elapsed()/std: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/std: Collecting 100 samples in estimated 3.0004 s (42M iterations)
+Benchmarking Instant::now() + elapsed()/std: Analyzing
+Instant::now() + elapsed()/std
+                        time:   [71.393 ns 71.427 ns 71.459 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__linux_perf_mmap__inline
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__linux_perf_mmap__inline: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__linux_perf_mmap__inline: Collecting 100 samples in estimated 3.0002 s (54M iterations)
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__linux_perf_mmap__inline: Analyzing
+ThreadCpuInstant::now()/tach_thread_cpu__linux_perf_mmap__inline
+                        time:   [55.903 ns 55.939 ns 55.972 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) low mild
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__inline_syscall_clock_thread_cputime_id
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__inline_syscall_clock_thread_cputime_id: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__inline_syscall_clock_thread_cputime_id: Collecting 100 samples in estimated 3.0001 s (16M iterations)
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__inline_syscall_clock_thread_cputime_id: Analyzing
+ThreadCpuInstant::now()/native_thread_cpu__inline_syscall_clock_thread_cputime_id
+                        time:   [188.00 ns 188.08 ns 188.17 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Collecting 100 samples in estimated 3.0002 s (52M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Analyzing
+ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb
+                        time:   [57.336 ns 57.347 ns 57.359 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_read__raw_read_svc
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_read__raw_read_svc: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_read__raw_read_svc: Collecting 100 samples in estimated 3.0008 s (10M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_read__raw_read_svc: Analyzing
+ThreadCpuInstant::now()/direct_thread_cpu__linux_perf_read__raw_read_svc
+                        time:   [298.59 ns 298.65 ns 298.70 ns]
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Collecting 100 samples in estimated 3.0001 s (53M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Analyzing
+ThreadCpuInstant::now()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb
+                        time:   [56.394 ns 56.406 ns 56.420 ns]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) low mild
+  4 (4.00%) high mild
+Benchmarking ThreadCpuInstant::now()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime: Collecting 100 samples in estimated 3.0006 s (16M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime
+                        time:   [189.71 ns 189.79 ns 189.86 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime: Collecting 100 samples in estimated 3.0007 s (16M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime
+                        time:   [192.65 ns 192.69 ns 192.74 ns]
+Found 11 outliers among 100 measurements (11.00%)
+  3 (3.00%) low severe
+  6 (6.00%) low mild
+  2 (2.00%) high mild
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime: Collecting 100 samples in estimated 3.0001 s (16M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime
+                        time:   [187.41 ns 187.44 ns 187.48 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__linux_perf_mmap__inline
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__linux_perf_mmap__inline: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__linux_perf_mmap__inline: Collecting 100 samples in estimated 3.0002 s (27M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__linux_perf_mmap__inline: Analyzing
+ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__linux_perf_mmap__inline
+                        time:   [112.10 ns 112.14 ns 112.18 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__inline_syscall_clock_thread_cputime_id
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__inline_syscall_clock_thread_cputime_id: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__inline_syscall_clock_thread_cputime_id: Collecting 100 samples in estimated 3.0015 s (7.9M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__inline_syscall_clock_thread_cputime_id: Analyzing
+ThreadCpuInstant::now() + elapsed()/native_thread_cpu__inline_syscall_clock_thread_cputime_id
+                        time:   [379.49 ns 379.57 ns 379.67 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Collecting 100 samples in estimated 3.0004 s (26M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb
+                        time:   [115.45 ns 115.65 ns 115.91 ns]
+Found 16 outliers among 100 measurements (16.00%)
+  16 (16.00%) high severe
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_read__raw_read_svc
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_read__raw_read_svc: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_read__raw_read_svc: Collecting 100 samples in estimated 3.0011 s (5.0M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_read__raw_read_svc: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_perf_read__raw_read_svc
+                        time:   [595.17 ns 595.25 ns 595.33 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_...
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_...: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_...: Collecting 100 samples in estimated 3.0004 s (27M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_...: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_...
+                        time:   [112.90 ns 112.96 ns 113.03 ns]
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thre...
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thre...: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thre...: Collecting 100 samples in estimated 3.0018 s (7.9M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thre...: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thre...
+                        time:   [380.91 ns 380.97 ns 381.04 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  2 (2.00%) low severe
+  4 (4.00%) low mild
+  4 (4.00%) high mild
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime: Collecting 100 samples in estimated 3.0010 s (7.7M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime
+                        time:   [388.33 ns 388.57 ns 388.81 ns]
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputim...
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputim...: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputim...: Collecting 100 samples in estimated 3.0002 s (7.9M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputim...: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputim...
+                        time:   [371.87 ns 372.20 ns 372.63 ns]
+
+Benchmarking elapsed() only/tach::Instant
+Benchmarking elapsed() only/tach::Instant: Warming up for 1.0000 s
+Benchmarking elapsed() only/tach::Instant: Collecting 100 samples in estimated 3.0001 s (246M iterations)
+Benchmarking elapsed() only/tach::Instant: Analyzing
+elapsed() only/tach::Instant
+                        time:   [12.178 ns 12.178 ns 12.178 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  5 (5.00%) high mild
+  3 (3.00%) high severe
+Benchmarking elapsed() only/tach::OrderedInstant
+Benchmarking elapsed() only/tach::OrderedInstant: Warming up for 1.0000 s
+Benchmarking elapsed() only/tach::OrderedInstant: Collecting 100 samples in estimated 3.0001 s (106M iterations)
+Benchmarking elapsed() only/tach::OrderedInstant: Analyzing
+elapsed() only/tach::OrderedInstant
+                        time:   [29.060 ns 29.085 ns 29.111 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  4 (4.00%) high mild
+Benchmarking elapsed() only/tach::ThreadCpuInstant
+Benchmarking elapsed() only/tach::ThreadCpuInstant: Warming up for 1.0000 s
+Benchmarking elapsed() only/tach::ThreadCpuInstant: Collecting 100 samples in estimated 3.0001 s (53M iterations)
+Benchmarking elapsed() only/tach::ThreadCpuInstant: Analyzing
+elapsed() only/tach::ThreadCpuInstant
+                        time:   [56.428 ns 56.447 ns 56.466 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  5 (5.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking elapsed() only/std::time::Instant
+Benchmarking elapsed() only/std::time::Instant: Warming up for 1.0000 s
+Benchmarking elapsed() only/std::time::Instant: Collecting 100 samples in estimated 3.0000 s (76M iterations)
+Benchmarking elapsed() only/std::time::Instant: Analyzing
+elapsed() only/std::time::Instant
+                        time:   [40.132 ns 40.295 ns 40.469 ns]
+
+Benchmarking Ordered Instant::now()/tach::OrderedInstant
+Benchmarking Ordered Instant::now()/tach::OrderedInstant: Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/tach::OrderedInstant: Collecting 100 samples in estimated 3.0000 s (129M iterations)
+Benchmarking Ordered Instant::now()/tach::OrderedInstant: Analyzing
+Ordered Instant::now()/tach::OrderedInstant
+                        time:   [23.317 ns 23.318 ns 23.318 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed)
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed): Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed): Collecting 100 samples in estimated 3.0001 s (66M iterations)
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed): Analyzing
+Ordered Instant::now()/tach::OrderedInstant (now + elapsed)
+                        time:   [45.232 ns 45.255 ns 45.278 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  1 (1.00%) high severe
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference)
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference): Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference): Collecting 100 samples in estimated 3.0000 s (246M iterations)
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference): Analyzing
+Ordered Instant::now()/tach::Instant (unordered reference)
+                        time:   [12.176 ns 12.177 ns 12.177 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  4 (4.00%) low mild
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking Ordered Instant::now()/std::time::Instant
+Benchmarking Ordered Instant::now()/std::time::Instant: Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/std::time::Instant: Collecting 100 samples in estimated 3.0000 s (89M iterations)
+Benchmarking Ordered Instant::now()/std::time::Instant: Analyzing
+Ordered Instant::now()/std::time::Instant
+                        time:   [33.480 ns 33.517 ns 33.556 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed)
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed): Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed): Collecting 100 samples in estimated 3.0003 s (42M iterations)
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed): Analyzing
+Ordered Instant::now()/std::time::Instant (now + elapsed)
+                        time:   [71.349 ns 71.387 ns 71.425 ns]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) low mild
+
+/home/ec2-user/tach/.tach-speed-target/criterion/tach-speed-source-seal.json
+/home/ec2-user/tach/collector.bundle/tach-speed-collector.json
+flip-probe: retained collector bundle /var/folders/bv/pqh0lff537n_0w6y2w6ngm1m0000gn/T/tach-speed-c8g.XXXXXX.MpZEvcLz6l/speed-probe-c8g.collector.bundle (source 5bcd67ea6d5376d9c5ac1eb86ec0fad8a9f03d20, runner aws-c8g); extract selection locally
+terminated i-0479da2f95ef1c0ef

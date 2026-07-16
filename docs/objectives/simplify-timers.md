@@ -158,6 +158,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Run c8g aarch64 flip (vs frozen c7g) and FreeBSD c7a flip; c5n.metal thread-cpu still needs an x86 probe (no x86 thread-pmu exists); windows-2022 needs push auth; Apple suspend (d) needs an owner sleep window.
 - Blocked/unsure: row 2 needs an x86 thread-pmu probe; row 4 push auth; Apple suspend (d) owner window; mac-x86 reconciliation
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Ran the c8g Graviton4 flip probe (freeze row 3, W/O-LINUX-A64) via the flip-probe path. c8g selects the identical winners as frozen c7g Graviton3: Instant=aarch64_cntvct, OrderedInstant=aarch64_isb_cntvct. NO flip -> freezes fixed in M2. Instance i-0479da2f95ef1c0ef self-terminated (verified). Evidence EVID-GRAVITON4-FLIP-LINUX-A64 (320K). Matrix W/O-LINUX-A64 -> measured->fixed(M2).
+- Found: 4 of 7 freeze rows now verdicted: rows 1 (x86) and 3 (aarch64) both no-flip via cheap AWS probes; rows 6-7 class-1 residual. The two big Linux families are settled fixed.
+- Next: Row 5 FreeBSD c7a (runnable; small runner-tag tweak for honest provenance first), row 2 c5n.metal (needs an x86 thread-pmu probe), row 4 windows-2022 (push auth), Apple suspend (d) (owner window).
+- Blocked/unsure: row 2 needs x86 thread-pmu probe; row 4 push auth; suspend (d) owner window; mac-x86 reconciliation
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

@@ -13,6 +13,7 @@ dated package; do not silently rewrite a verdict.
 | `EVID-RELEASE-APPROVAL-76FD4B1` | 🟢 | [`release/release-approval-76fd4b1-2026-07-14/README.md`](release/release-approval-76fd4b1-2026-07-14/README.md) |
 | `EVID-AMD-FLIP-LINUX-X86-2026-07-15` |  | [`timers/amd-flip-linux-x86-2026-07-15-2026-07-15/README.md`](timers/amd-flip-linux-x86-2026-07-15-2026-07-15/README.md) |
 | `EVID-APPLE-BARE-CNTVCT` |  | [`timers/apple-bare-cntvct-2026-07-15/README.md`](timers/apple-bare-cntvct-2026-07-15/README.md) |
+| `EVID-GRAVITON4-FLIP-LINUX-A64` |  | [`timers/graviton4-flip-linux-a64-2026-07-15/README.md`](timers/graviton4-flip-linux-a64-2026-07-15/README.md) |
 | `EVID-LINUX-PRIMARY-SPEED` | 🟡 | [`timers/primary-linux-2026-07-13/README.md`](timers/primary-linux-2026-07-13/README.md) |
 | `EVID-PROVIDER-POLICY-2026-07-14` | 🟢 | [`timers/provider-policy-closure-2026-07-14/README.md`](timers/provider-policy-closure-2026-07-14/README.md) |
 | `EVID-TARGET-PROVIDER-CEB69C1` | 🟢 | [`timers/provider-proof-ceb69c1-2026-07-14/README.md`](timers/provider-proof-ceb69c1-2026-07-14/README.md) |
