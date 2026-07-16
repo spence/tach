@@ -195,6 +195,13 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Blocked/unsure: row 4 ESC-WINDOWS-2022-PUSH (push auth); ESC-AMD-FLIP-PROBE-TOOLING ratification; Apple suspend (d) owner window
 - Board: M1 freeze row 2 verdicted: capability gate (perf-mmap 33x faster on metal, cap absent on Nitro), EVID-THREAD-CPU-X86; 6/7 rows done, row 4 owner-blocked
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Responded to the publish-readiness pressure by verifying the M1->M2 boundary rather than asserting it. (1) Full 72-cell audit of provider-policy-matrix: all 70 non-windows cells carry a freeze verdict + evidence/residual; ONLY W-WINDOWS + O-WINDOWS lack their §5.2 flip determination (row 4). (2) Confirmed M2 is plan-gated: line 206 closes M1.G1 on all-72-cells-verdicted, §6 M2 follows, and the handoff says 'complete the freeze table before touching src in M2' — test relocation and family conversion both touch src. (3) Parked M1.G1 on the owner (ESC-M1-FREEZE-CLOSURE) and de-risked the windows push (real 3-way tournament; windows-2022 runner available ~through 2028).
+- Found: Windows is the SOLE M1.G1 blocker, verified cell-by-cell (not assumed). Starting M2 early (even the freeze-independent test relocation) would violate the explicit 'freeze table first' constraint, so it is escalate-not-judge territory per the objective rule. No executor path to publish-readiness exists without the owner's windows-2022 push, which unblocks M1.G1 -> M2 -> M3 -> approval packet.
+- Next: Owner grants the windows-2022 push -> I edit bench-speed-windows.yml for the windows-2022 runner, dispatch, compare to frozen windows-2025, record row-4 verdict, close M1.G1; then M2 (§6) begins with the complete table.
+- Blocked/unsure: M1.G1 -> M2 -> M3 all gated on ESC-WINDOWS-2022-PUSH (the one unblock); ESC-AMD-FLIP-PROBE-TOOLING ratification and Apple suspend (d) are parallel, non-M1.G1-closure items
+- Board: 72-cell audit: windows is the sole M1.G1 blocker; M2 plan-gated behind M1.G1 (freeze-table-first); parked on ESC-WINDOWS-2022-PUSH
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

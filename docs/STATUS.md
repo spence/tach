@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       M1.G1 closes when row 4 runs (ESC-WINDOWS-2022-PUSH) or is dispositioned. Also owner-gated: ESC-AMD-FLIP-PROBE-TOOLING ratification, Apple suspend (d) window, mac-x86 already resolved.
+> Next:       Owner grants the windows-2022 push -> I edit bench-speed-windows.yml for the windows-2022 runner, dispatch, compare to frozen windows-2025, record row-4 verdict, close M1.G1; then M2 (§6) begins with the complete table.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-M1-FREEZE-CLOSURE, ESC-WINDOWS-2022-PUSH
-> Last verified: 2026-07-15 · Changed: Ran freeze row 2 (T-LINUX-X86 thread-CPU) end-to-end. Built + arch-generalized the x86 thread-pmu probe (7e99554) reproducing tach's actual inline path (PERF_COUNT_SW_TASK_CLOCK via cap_user_time, not cap_user_rdpmc), ran both branches: c7i.large Nitro (cap_user_time absent, caps=0x2 -> syscall 230.58 ns by necessity) and c5n.metal bare metal (cap_user_time present, caps=0x1a; perf task-clock mmap 22.25 ns vs syscall 728.71 ns, ~33x faster, self-check-correct over a 50 ms busy interval). Both instances self-terminated, no orphan. Evidence EVID-THREAD-CPU-X86. · By: nsr · a2f52ff
+> Last verified: 2026-07-15 · Changed: Responded to the publish-readiness pressure by verifying the M1->M2 boundary rather than asserting it. (1) Full 72-cell audit of provider-policy-matrix: all 70 non-windows cells carry a freeze verdict + evidence/residual; ONLY W-WINDOWS + O-WINDOWS lack their §5.2 flip determination (row 4). (2) Confirmed M2 is plan-gated: line 206 closes M1.G1 on all-72-cells-verdicted, §6 M2 follows, and the handoff says 'complete the freeze table before touching src in M2' — test relocation and family conversion both touch src. (3) Parked M1.G1 on the owner (ESC-M1-FREEZE-CLOSURE) and de-risked the windows push (real 3-way tournament; windows-2022 runner available ~through 2028). · By: nsr · eaa16d2
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
