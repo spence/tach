@@ -1,0 +1,18 @@
+START HEAD=1e7ec88 machine=catalyst-M1Max Thu Jul 16 13:32:19 PDT 2026
+   Compiling tach v0.2.0 (/Users/spencer/src/tach)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.69s
+     Running unittests src/lib.rs (target/debug/deps/tach-cfc0138e7d6a5ab5)
+
+running 1 test
+SURVEY threads=10, 30s/candidate
+SURVEY bare_cntvct        (unbarriered control): 50353599 violations / 467657313 reads
+test arch::apple_aarch64::tests::ordered_candidate_happens_before_survey has been running for over 60 seconds
+SURVEY mach_absolute      (current runtime pick): 0 violations / 439206333 reads
+SURVEY acntvct_absolute   (self-sync register): 0 violations / 440358205 reads
+SURVEY isb+cntvct         (barriered control): 0 violations / 424415506 reads
+test arch::apple_aarch64::tests::ordered_candidate_happens_before_survey ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 120.02s
+
+SURVEY_EXIT=0
+DONE
