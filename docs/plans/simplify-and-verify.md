@@ -141,6 +141,17 @@ Decision table (mechanical):
   evidence (the exclusion becomes legitimate); rewrite the public claim with §7.3 template B.
 - Mixed or unclear → `nsr escalate`; continue elsewhere.
 
+**Executed 2026-07-15** (`EVID-APPLE-BARE-CNTVCT`): (a)–(c) plus speed passed on both machines —
+0 violations in ~2.8e9 paired reads, wall rate 0.99997, bare read 0.33/0.44 ns vs 5.4/3.8 ns for
+the prior route. Bare `CNTVCT_EL0` is adopted as an `Instant`-only candidate and the live
+tournament selects it: public `Instant::now()` 0.93 ns (was 7.79), roundtrip 2.27 ns (was 15.47),
+vs quanta 3.30/7.22 in the same run; inline parity holds. `OrderedInstant` is unchanged —
+`isb+cntvct` measured ~2× slower than the selected self-synchronizing route on both machines.
+Critical implementation fact: the bare counter is its own tick domain (`CNTFRQ_EL0` = 24 MHz on
+M1/M2 but **1 GHz on M3/M4**) — the instant scale follows the selected provider and must never be
+frozen to the Mach timebase or a constant. Remaining from this section: the item (d) suspend
+documentation run (owner-coordinated) and the full-crate battery on `catalyst-mini`.
+
 ### 5.2 Same-target flip runs (new evidence; cheap; enumerated)
 
 | Family | Frozen env #1 | New env #2 | Recipe | Branch on outcome |

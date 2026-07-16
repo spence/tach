@@ -26,7 +26,7 @@ authority. The closure is owner-accepted; nothing closes by assertion.
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
 | `OBJ-SIMPLIFY-TIMERS.M0` | Honest contracts and selection policy | ✅ | ADR records the three contracts, evidence classes, and selection rule; base lands on main; plan in place | inline · G1🟢 |
-| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | 🟣 | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | 🚧 | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | ⚪ | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 
@@ -111,6 +111,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 ### 2026-07-15 · claude · `OBJ-SIMPLIFY-TIMERS.M0`
 - Did: ADR-0005 accepted, plan simplify-and-verify landed, publish escalation rejected by owner, main fast-forwarded to working tip; OBJ-SIMPLIFY-TIMERS.M0.G1 🟢 at evidence SHA `0ab9614`.
 - Board: OBJ-SIMPLIFY-TIMERS.M0 G1 🟢 — evidence docs/plans/simplify-and-verify.md.
+
+### 2026-07-15 · claude · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Re-adjudicated Apple Instant per ADR-0005 and adopted bare CNTVCT_EL0 at def4b87: public now() 0.93 ns vs quanta 3.30 ns on M1 Max (was 7.79); gates green on both feature surfaces; 216 tooling tests pass
+- Found: CNTFRQ_EL0 is 24 MHz on M1/M2 but 1 GHz on M3/M4, so the instant scale must follow the selected provider; OrderedInstant keeps the self-sync route (isb+cntvct ~2x slower); evidence EVID-APPLE-BARE-CNTVCT
+- Next: Remaining M1 freeze rows: AMD ordered probe, metal thread-cpu probe, c8g aarch64, windows-2022, AMD FreeBSD, suspend documentation run, mini full-crate battery
+- Board: M0 ✅; M1 🚧 with the Apple Instant row adopted — evidence EVID-APPLE-BARE-CNTVCT
 
 ## /goal
 

@@ -1,0 +1,16 @@
+Filtered criterion run on catalyst (M1 Max), post-adoption working tree (parent 037f49c),
+cargo bench --bench instant --features bench-quanta -- --warm-up-time 1 --measurement-time 2
+
+Instant::now()/tach                                          925.59 ps   (was 7.79 ns at 76fd4b1)
+Instant::now()/direct_wall__apple_bare_cntvct                346.69 ps
+Instant::now()/direct_selected_wall__apple_bare_cntvct       345.38 ps   (selector picked the bare counter)
+Instant::now()/direct_wall__apple_continuous_hw_acntvct_base 7.5269 ns   (prior winner, unchanged)
+Instant::now()/direct_selected_ordered_wall__apple_continuous_hw_acntvct_base 7.4706 ns (ordered unchanged)
+Instant::now()/quanta                                        3.3027 ns
+
+Instant::now() + elapsed()/tach                              2.2741 ns   (was 15.47 ns at 76fd4b1)
+Instant::now() + elapsed()/direct_wall__apple_bare_cntvct    1.3031 ns
+Instant::now() + elapsed()/direct_selected_wall__apple_bare_cntvct 1.3158 ns
+Instant::now() + elapsed()/quanta                            7.2213 ns
+
+Inline parity: public-vs-exact +0.58 ns (now) and +0.97 ns (roundtrip) — inside max(1 ns, 5%).

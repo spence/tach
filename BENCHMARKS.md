@@ -48,10 +48,15 @@ The audited references are `quanta 0.12.6`, `fastant 0.1.11`, `minstant 0.1.7`, 
 | GitHub Windows 2025 | **27.17 / 58.00** | 12.37 / 24.77 † | 45.51 / 104.50 | 45.49 / 104.40 | 41.24 / 85.42 |
 | AWS FreeBSD | **13.91 / 28.79** | 15.89 / 35.48 | 39.49 / 89.51 | 39.52 / 89.42 | 31.31 / 65.43 |
 
-† On Apple, quanta's bare counter omits XNU's wake correction and can diverge across suspend. On
-Windows, a process cannot establish the cross-core, hypervisor, migration, and platform-counter
-properties Windows owns through QueryPerformanceCounter. Those readings are useful lower bounds,
-not eligible reliable wall-timeline implementations.
+† Superseded for Apple on 2026-07-15 (ADR-0005, `EVID-APPLE-BARE-CNTVCT`): the wake-correction
+requirement was not part of the published `Instant` contract, and the bare counter passed the
+same-thread monotonic/wall-rate battery on M1 Max and M4 Pro (0 violations in ~2.8e9 paired
+reads). tach's Apple `Instant` now selects the bare architectural counter (post-adoption public
+read 0.93 ns vs quanta 3.30 ns on the same M1 Max); the table above still shows the frozen
+`76fd4b1` campaign and is refreshed in the six-cell re-measurement. On Windows the exclusion
+stands: a process cannot establish the cross-core, hypervisor, migration, and platform-counter
+properties Windows owns through QueryPerformanceCounter, and Windows documents no userspace TSC
+invariance.
 
 These are tight-loop throughput measurements. Independent architectural reads can overlap on an
 out-of-order core; the results are not dependency-chained instruction latency.

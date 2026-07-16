@@ -1,0 +1,13 @@
+host: user_timebase_mode=3 cont_hwclock=1
+domain: mach_absolute=14053320285838 mach_continuous=14053320285838 bare_cntvct=14053320285838 (bare-cont delta 0)
+domain: d(mach)/d(bare) over 500ms = 1.000000
+mono bare_cntvct: 500000000 pairs, 0 violations (worst backstep 0 ticks), 0.64 ns/read
+mono-threads bare_cntvct: 8x60000000 pairs, 0 violations
+mono bare_acntvct: 250000000 pairs, 0 violations (worst backstep 0 ticks), 4.61 ns/read
+rate bare_cntvct: worst ratio vs std over 20x100ms = 0.99997
+cost bare_cntvct: 0.33 ns/read
+cost bare_acntvct: 5.06 ns/read
+cost isb_cntvct: 10.22 ns/read
+cost continuous_route(acntvct+base): 5.38 ns/read
+cost mach_absolute_time: 5.71 ns/read
+TOTAL_VIOLATIONS=0
