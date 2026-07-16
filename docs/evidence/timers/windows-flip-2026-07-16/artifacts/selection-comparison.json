@@ -1,0 +1,32 @@
+{
+  "topic": "W/O-WINDOWS same-target flip check (OBJ-SIMPLIFY-TIMERS M1.G1 row 4)",
+  "source_revision": "524b74a9f802729216a7cc785b7a28a416dfc20d",
+  "target": "x86_64-pc-windows-msvc",
+  "verdict": "no-flip",
+  "flip": false,
+  "verdict_detail": "The Windows Instant/OrderedInstant runtime tournament (QPC vs the precise interrupt-time APIs InterruptTimePrecise / UnbiasedInterruptTimePrecise) selects the identical providers on the windows-2022 and windows-2025 GitHub-hosted runners at the same source revision. No frozen same-target flip, so the family freezes to a compile-time QPC pick in M2 (plan Section 5.2: same winner -> freeze QPC fixed).",
+  "workflow_run": "29479941016",
+  "environments": [
+    {
+      "role": "env #1 (frozen baseline runner)",
+      "runner": "github-windows-2025-x86_64",
+      "substrate": "GitHub-hosted windows-2025",
+      "source_revision": "524b74a9f802729216a7cc785b7a28a416dfc20d",
+      "instant": "windows_qpc",
+      "ordered": "windows_qpc_call_boundary"
+    },
+    {
+      "role": "env #2 (second runner)",
+      "runner": "github-windows-2022-x86_64",
+      "substrate": "GitHub-hosted windows-2022",
+      "source_revision": "524b74a9f802729216a7cc785b7a28a416dfc20d",
+      "instant": "windows_qpc",
+      "ordered": "windows_qpc_call_boundary"
+    }
+  ],
+  "notes": [
+    "Both cells were dispatched in a single workflow run at the same SHA, so this is a same-source two-environment comparison (not cross-revision).",
+    "The windows-2022 cell also validated the CI test-robustness fix at 524b74a: five sleep-based elapsed tests previously failed on a loaded windows-2022 runner that overslept 5-10 ms sleeps to ~400 ms while tach stayed correct (elapsed_tracks_std_within_5_percent passed). SLEEP_ELAPSED_MAX_MS made those bounds robust.",
+    "The windows-2025 canonical cell's compose-speed.py step failed on numeric-cell validation against its frozen registry; that is orthogonal to the categorical provider selection compared here (its collector bundle uploaded via always() and its selection is identical)."
+  ]
+}

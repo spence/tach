@@ -26,7 +26,7 @@ authority. The closure is owner-accepted; nothing closes by assertion.
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
 | `OBJ-SIMPLIFY-TIMERS.M0` | Honest contracts and selection policy | ✅ | ADR records the three contracts, evidence classes, and selection rule; base lands on main; plan in place | inline · G1🟢 |
-| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | 🚧 | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | 🚧 | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | ⚪ | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 
@@ -201,6 +201,10 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Owner grants the windows-2022 push -> I edit bench-speed-windows.yml for the windows-2022 runner, dispatch, compare to frozen windows-2025, record row-4 verdict, close M1.G1; then M2 (§6) begins with the complete table.
 - Blocked/unsure: M1.G1 -> M2 -> M3 all gated on ESC-WINDOWS-2022-PUSH (the one unblock); ESC-AMD-FLIP-PROBE-TOOLING ratification and Apple suspend (d) are parallel, non-M1.G1-closure items
 - Board: 72-cell audit: windows is the sole M1.G1 blocker; M2 plan-gated behind M1.G1 (freeze-table-first); parked on ESC-WINDOWS-2022-PUSH
+
+### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: All 72 target/timer cells carry a §5.2 freeze verdict with committed evidence or a documented class-1 residual. Row 4 (W/O-WINDOWS) closes the table: windows-2025 and windows-2022 both select windows_qpc / windows_qpc_call_boundary at 524b74a — no same-target flip (EVID-WINDOWS-FLIP). Rows 1/3/5 no-flip -> fixed (EVID-AMD-FLIP-LINUX-X86, EVID-GRAVITON4-FLIP-LINUX-A64, EVID-AMD-FLIP-FREEBSD-X86); row 2 capability gate (EVID-THREAD-CPU-X86); rows 6/7 class-1 residuals; Apple Instant/OrderedInstant re-adjudicated with correctness+speed on both local machines (EVID-APPLE-BARE-CNTVCT).; OBJ-SIMPLIFY-TIMERS.M1.G1 🟢 at evidence SHA `524b74a9f802729216a7cc785b7a28a416dfc20d`.
+- Board: OBJ-SIMPLIFY-TIMERS.M1 G1 🟢 — evidence EVID-WINDOWS-FLIP.
 
 ## /goal
 
