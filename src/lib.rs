@@ -153,6 +153,13 @@ mod tests {
   use super::*;
   use std::time::Duration;
 
+  // Upper bound for sleep-based elapsed checks: a garbage guard, not a precision
+  // bound. Hosted CI oversleeps short sleeps heavily (a 10 ms sleep measured
+  // ~400 ms on a loaded windows-2022 runner), so a tight bound flakes without any
+  // clock defect. Precision is covered by `elapsed_tracks_std_within_5_percent`
+  // and overflow-to-garbage by `elapsed_saturates_when_self_is_in_the_future`.
+  const SLEEP_ELAPSED_MAX_MS: u128 = 60_000;
+
   #[test]
   fn instant_is_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
@@ -176,7 +183,7 @@ mod tests {
     std::thread::sleep(Duration::from_millis(10));
     let elapsed = start.elapsed();
     assert!(elapsed.as_millis() >= 9, "elapsed too short: {elapsed:?}");
-    assert!(elapsed.as_millis() < 200, "elapsed too long: {elapsed:?}");
+    assert!(elapsed.as_millis() < SLEEP_ELAPSED_MAX_MS, "elapsed too long: {elapsed:?}");
   }
 
   #[test]
@@ -195,7 +202,7 @@ mod tests {
     std::thread::sleep(Duration::from_millis(10));
     let elapsed = start.elapsed();
     assert!(elapsed.as_millis() >= 9, "ordered elapsed too short: {elapsed:?}");
-    assert!(elapsed.as_millis() < 200, "ordered elapsed too long: {elapsed:?}");
+    assert!(elapsed.as_millis() < SLEEP_ELAPSED_MAX_MS, "ordered elapsed too long: {elapsed:?}");
   }
 
   // Pairing OrderedInstant start with elapsed_unordered() end: end timestamp
@@ -207,7 +214,7 @@ mod tests {
     std::thread::sleep(Duration::from_millis(10));
     let elapsed = start.elapsed_unordered();
     assert!(elapsed.as_millis() >= 9, "elapsed_unordered too short: {elapsed:?}");
-    assert!(elapsed.as_millis() < 200, "elapsed_unordered too long: {elapsed:?}");
+    assert!(elapsed.as_millis() < SLEEP_ELAPSED_MAX_MS, "elapsed_unordered too long: {elapsed:?}");
   }
 
   #[test]
@@ -246,7 +253,10 @@ mod tests {
     std::thread::sleep(Duration::from_millis(5));
     let b = Instant::now();
     let diff: Duration = b - a;
-    assert!(diff.as_millis() >= 4 && diff.as_millis() < 200, "unexpected diff: {diff:?}");
+    assert!(
+      diff.as_millis() >= 4 && diff.as_millis() < SLEEP_ELAPSED_MAX_MS,
+      "unexpected diff: {diff:?}"
+    );
   }
 
   #[test]
@@ -280,7 +290,7 @@ mod tests {
     std::thread::sleep(Duration::from_millis(5));
     let b = OrderedInstant::now();
     let diff: Duration = b - a;
-    assert!(diff.as_millis() >= 4 && diff.as_millis() < 200, "diff: {diff:?}");
+    assert!(diff.as_millis() >= 4 && diff.as_millis() < SLEEP_ELAPSED_MAX_MS, "diff: {diff:?}");
     assert_eq!(a.duration_since(b), Duration::ZERO);
     assert!(b.checked_duration_since(a).is_some());
 
