@@ -107,7 +107,7 @@ ip="$(aws_ ec2 describe-instances --instance-ids "$instance_id" \
   --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)"
 echo "instance $instance_id at $ip"
 
-ssh_options=(-o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "$key_path")
+ssh_options=(-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i "$key_path")
 for _ in $(seq 1 60); do
   if ssh "${ssh_options[@]}" "ec2-user@$ip" true 2>/dev/null; then
     break
