@@ -176,6 +176,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: M1.G1 closes when: (a) owner grants the windows-2022 push (ESC-WINDOWS-2022-PUSH) so row 4 runs, and (b) owner confirms the row-2 disposition (accept the retained tournament, or authorize building+validating an x86 thread-pmu probe on a cheap c7i VM before the metal run in a focused session). Apple suspend (d) + mac-x86 reconciliation also owner-gated.
 - Blocked/unsure: row 2 needs new x86 thread-pmu tooling (deferred); row 4 ESC-WINDOWS-2022-PUSH; suspend (d) owner window; mac-x86 reconciliation
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Resolved the mac-x86 (row 6) claim-vs-evidence discrepancy WITH evidence. The frozen github-macos-15-intel run (speed-supplemental-macos-x86_64.json, 68dc201) has tsc_eligible=false, tsc_eligibility_basis=ineligible_cpuid_missing_invariant_tsc_or_rdtscp (the virtualized CI runner's CPUID omits invariant TSC/RDTSCP), so tach selects apple_mach_absolute_time. Corrected the provider-policy-matrix W-MAC-X86 verdict, which wrongly claimed 'selected invariant TSC' — unsupported by any retained evidence; no bare-metal Intel Mac is available. O-MAC-X86 ordered claim stands (selected apple_commpage_lfence_rdtsc_nanotime, which IS supported).
+- Found: The prior 'selected invariant TSC on Intel' claim was aspirational: the bare-TSC wall path is source/codegen-proven but was never performance-selected on retained evidence. Exactly the claim-vs-code honesty this objective enforces. Row 6 verdict is now precise (class-1 residual: selects mach_absolute; bare-TSC eligible-in-principle, unmeasured).
+- Next: M1.G1 gated only on rows 2 (ESC-THREAD-PMU-X86-PROBE) and 4 (ESC-WINDOWS-2022-PUSH); the mac-x86 finding is resolved and no longer open.
+- Blocked/unsure: row 2 ESC-THREAD-PMU-X86-PROBE; row 4 ESC-WINDOWS-2022-PUSH; suspend (d) owner window
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       M1.G1 closes when: (a) owner grants the windows-2022 push (ESC-WINDOWS-2022-PUSH) so row 4 runs, and (b) owner confirms the row-2 disposition (accept the retained tournament, or authorize building+validating an x86 thread-pmu probe on a cheap c7i VM before the metal run in a focused session). Apple suspend (d) + mac-x86 reconciliation also owner-gated.
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-WINDOWS-2022-PUSH
-> Last verified: 2026-07-15 · Changed: Assessed freeze row 2 (T-LINUX-X86, c5n.metal thread-cpu). It requires a NEW x86 thread-pmu probe: benches/probes/aarch64-thread-pmu.c is 361 lines of arch-specific perf-mmap seqlock + rdpmc(pmccntr_el0) C, untestable on macOS; adapting it to x86 rdpmc and running it blind on $3.89/hr metal is high-risk. Did NOT build it blind (derisked-leverage judgment). Filed ESC-WINDOWS-2022-PUSH for row 4 (needs origin push authorization). · By: nsr · 1704a7b
+> Next:       M1.G1 gated only on rows 2 (ESC-THREAD-PMU-X86-PROBE) and 4 (ESC-WINDOWS-2022-PUSH); the mac-x86 finding is resolved and no longer open.
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-THREAD-PMU-X86-PROBE, ESC-WINDOWS-2022-PUSH
+> Last verified: 2026-07-15 · Changed: Resolved the mac-x86 (row 6) claim-vs-evidence discrepancy WITH evidence. The frozen github-macos-15-intel run (speed-supplemental-macos-x86_64.json, 68dc201) has tsc_eligible=false, tsc_eligibility_basis=ineligible_cpuid_missing_invariant_tsc_or_rdtscp (the virtualized CI runner's CPUID omits invariant TSC/RDTSCP), so tach selects apple_mach_absolute_time. Corrected the provider-policy-matrix W-MAC-X86 verdict, which wrongly claimed 'selected invariant TSC' — unsupported by any retained evidence; no bare-metal Intel Mac is available. O-MAC-X86 ordered claim stands (selected apple_commpage_lfence_rdtsc_nanotime, which IS supported). · By: nsr · 99abab9
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
