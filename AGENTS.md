@@ -24,7 +24,8 @@ cross-thread safe, and do not make a wall fallback sound like CPU accounting.
 
 ### Mission
 
-- Give Rust users the fastest honest elapsed-time timer for each documented timing contract.
+- Give Rust users the fastest honest timer for each of the three instant types across all major
+  server and desktop architectures, including the supported WASM runtimes.
 - Keep those timers reliable across every advertised platform and architecture.
 - Make performance and correctness claims reproducible instead of rhetorical.
 
