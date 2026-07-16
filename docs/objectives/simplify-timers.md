@@ -170,6 +170,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Only 2 rows remain: row 2 c5n.metal thread-cpu (needs a new x86 thread-pmu probe; the C is untestable locally so recommend building+running together or accepting as residual) and row 4 windows-2022 (push auth). Plus Apple suspend (d) owner window and mac-x86 reconciliation.
 - Blocked/unsure: row 2 needs an x86 thread-pmu probe; row 4 push auth; suspend (d) owner window; mac-x86 reconciliation
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Assessed freeze row 2 (T-LINUX-X86, c5n.metal thread-cpu). It requires a NEW x86 thread-pmu probe: benches/probes/aarch64-thread-pmu.c is 361 lines of arch-specific perf-mmap seqlock + rdpmc(pmccntr_el0) C, untestable on macOS; adapting it to x86 rdpmc and running it blind on $3.89/hr metal is high-risk. Did NOT build it blind (derisked-leverage judgment). Filed ESC-WINDOWS-2022-PUSH for row 4 (needs origin push authorization).
+- Found: M1 freeze table: 5 of 7 rows verdicted with evidence (rows 1/3/5 no-flip->fixed; rows 6-7 class-1 residual). Row 2 disposition: T-LINUX-X86 RETAINS its runtime tournament (the conservative, correct-either-way default; the c5n.metal probe would only decide whether to SIMPLIFY it to a capability policy — not required for correctness). Row 4 owner-gated on push.
+- Next: M1.G1 closes when: (a) owner grants the windows-2022 push (ESC-WINDOWS-2022-PUSH) so row 4 runs, and (b) owner confirms the row-2 disposition (accept the retained tournament, or authorize building+validating an x86 thread-pmu probe on a cheap c7i VM before the metal run in a focused session). Apple suspend (d) + mac-x86 reconciliation also owner-gated.
+- Blocked/unsure: row 2 needs new x86 thread-pmu tooling (deferred); row 4 ESC-WINDOWS-2022-PUSH; suspend (d) owner window; mac-x86 reconciliation
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

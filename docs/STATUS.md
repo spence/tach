@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       Only 2 rows remain: row 2 c5n.metal thread-cpu (needs a new x86 thread-pmu probe; the C is untestable locally so recommend building+running together or accepting as residual) and row 4 windows-2022 (push auth). Plus Apple suspend (d) owner window and mac-x86 reconciliation.
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-15 · Changed: Ran the FreeBSD c7a flip probe (freeze row 5, W/O-FREEBSD-X86) after fixing a keepalive flake in run-speed-freebsd-aws.sh (11b4cf2). c7a-FreeBSD selects the identical winners as frozen c7i-FreeBSD: Instant=freebsd_kernel_eligible_tsc, OrderedInstant=freebsd_kernel_eligible_tsc_x86_lfence_rdtsc. NO flip -> freezes fixed in M2. Instance self-terminated (verified no orphan). Evidence EVID-AMD-FLIP-FREEBSD-X86 (268K; true instances recorded since the runner tag is the generic aws-freebsd-default). Matrix W/O-FREEBSD-X86 -> measured->fixed(M2). · By: nsr · 11b4cf2
+> Next:       M1.G1 closes when: (a) owner grants the windows-2022 push (ESC-WINDOWS-2022-PUSH) so row 4 runs, and (b) owner confirms the row-2 disposition (accept the retained tournament, or authorize building+validating an x86 thread-pmu probe on a cheap c7i VM before the metal run in a focused session). Apple suspend (d) + mac-x86 reconciliation also owner-gated.
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-WINDOWS-2022-PUSH
+> Last verified: 2026-07-15 · Changed: Assessed freeze row 2 (T-LINUX-X86, c5n.metal thread-cpu). It requires a NEW x86 thread-pmu probe: benches/probes/aarch64-thread-pmu.c is 361 lines of arch-specific perf-mmap seqlock + rdpmc(pmccntr_el0) C, untestable on macOS; adapting it to x86 rdpmc and running it blind on $3.89/hr metal is high-risk. Did NOT build it blind (derisked-leverage judgment). Filed ESC-WINDOWS-2022-PUSH for row 4 (needs origin push authorization). · By: nsr · 1704a7b
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
