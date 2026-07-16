@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M0 🚧 Honest contracts and selection policy)
-> Next:       land the contracts/policy ADR and PLAN-SIMPLIFY-AND-VERIFY, fast-forward main, close
+> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🟣 Eligibility re-adjudication and flip verification)
+> Next:       OBJ-SIMPLIFY-TIMERS.M1 — Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated
 > Blocked on you: nothing
-> Last verified: 2026-07-15 · Changed: minted this objective; rejected ESC-PUBLISH-TACH-0-2-0-76FD4B1 as the owner's explicit · By: nsr · 60b82eb
+> Last verified: 2026-07-15 · Changed: ADR-0005 accepted, plan simplify-and-verify landed, publish escalation rejected by owner, main fast-forwarded to working tip; OBJ-SIMPLIFY-TIMERS.M0.G1 🟢 at evidence SHA `0ab9614`. · By: nsr · 0ab9614
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -26,12 +26,12 @@ policy [`decisions/0005…`](decisions/0005-timer-contracts-eligibility-evidence
 <!-- render:board -->
 | ID | Milestone | Status | Description | Context |
 |---|---|---|---|---|
-| `OBJ-SIMPLIFY-TIMERS.M0` | Honest contracts and selection policy | 🚧 | ADR records the three contracts, evidence classes, and selection rule; base lands on main; plan in place | inline · G1⚪ |
-| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | ⚪ | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M0` | Honest contracts and selection policy | ✅ | ADR records the three contracts, evidence classes, and selection rule; base lands on main; plan in place | inline · G1🟢 |
+| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | 🟣 | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | ⚪ | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M0`): G1⚪
+Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M1`): G1⚪
 <!-- /render:board -->
 
 ---
