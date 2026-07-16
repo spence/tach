@@ -1093,7 +1093,9 @@ mod tests {
       ("isb+cntvct         (barriered control)", cntvct_ordered_absolute_time),
     ];
     let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(16);
-    std::eprintln!("SURVEY threads={threads}, 2s/candidate");
+    let secs: u64 =
+      std::env::var("TACH_SURVEY_SECS").ok().and_then(|s| s.parse().ok()).unwrap_or(2);
+    std::eprintln!("SURVEY threads={threads}, {secs}s/candidate");
     for (name, reader) in candidates {
       let published = Arc::new(AtomicU64::new(0));
       let stop = Arc::new(AtomicBool::new(false));
@@ -1120,7 +1122,7 @@ mod tests {
         })
         .collect();
       gate.wait();
-      thread::sleep(std::time::Duration::from_millis(2000));
+      thread::sleep(std::time::Duration::from_secs(secs));
       stop.store(true, O::Relaxed);
       let (v, r) = handles
         .into_iter()
