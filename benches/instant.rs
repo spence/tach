@@ -1476,78 +1476,15 @@ fn bench_now(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    macro_rules! register_windows_now {
-      ($prefix:literal, $provider:expr, $read:path) => {{
-        let _ = g
-          .bench_function(format!("{}__{}", $prefix, $provider), |b| b.iter(|| black_box($read())));
-      }};
-    }
-    for provider in tach::bench::windows_wall_candidate_providers() {
-      match provider {
-        "windows_query_interrupt_time_precise" => register_windows_now!(
-          "direct_wall",
-          provider,
-          tach::bench::windows_interrupt_time_precise_ticks
-        ),
-        "windows_query_unbiased_interrupt_time_precise" => register_windows_now!(
-          "direct_wall",
-          provider,
-          tach::bench::windows_unbiased_interrupt_time_precise_ticks
-        ),
-        _ => register_windows_now!("direct_wall", provider, tach::bench::windows_qpc_ticks),
-      }
-    }
+    // Both wall contracts are the frozen fixed pick: QueryPerformanceCounter.
     let instant_provider = tach::bench::windows_wall_selected_provider();
-    match instant_provider {
-      "windows_query_interrupt_time_precise" => register_windows_now!(
-        "direct_selected_wall",
-        instant_provider,
-        tach::bench::windows_interrupt_time_precise_ticks
-      ),
-      "windows_query_unbiased_interrupt_time_precise" => register_windows_now!(
-        "direct_selected_wall",
-        instant_provider,
-        tach::bench::windows_unbiased_interrupt_time_precise_ticks
-      ),
-      _ => register_windows_now!(
-        "direct_selected_wall",
-        instant_provider,
-        tach::bench::windows_qpc_ticks
-      ),
-    }
-    for provider in tach::bench::windows_ordered_wall_candidate_providers() {
-      match provider {
-        "windows_query_interrupt_time_precise_call_boundary" => register_windows_now!(
-          "direct_ordered_wall",
-          provider,
-          tach::bench::windows_interrupt_time_precise_ticks
-        ),
-        "windows_query_unbiased_interrupt_time_precise_call_boundary" => register_windows_now!(
-          "direct_ordered_wall",
-          provider,
-          tach::bench::windows_unbiased_interrupt_time_precise_ticks
-        ),
-        _ => register_windows_now!("direct_ordered_wall", provider, tach::bench::windows_qpc_ticks),
-      }
-    }
+    g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
+      b.iter(|| black_box(tach::bench::windows_qpc_ticks()));
+    });
     let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
-    match ordered_provider {
-      "windows_query_interrupt_time_precise_call_boundary" => register_windows_now!(
-        "direct_selected_ordered_wall",
-        ordered_provider,
-        tach::bench::windows_interrupt_time_precise_ticks
-      ),
-      "windows_query_unbiased_interrupt_time_precise_call_boundary" => register_windows_now!(
-        "direct_selected_ordered_wall",
-        ordered_provider,
-        tach::bench::windows_unbiased_interrupt_time_precise_ticks
-      ),
-      _ => register_windows_now!(
-        "direct_selected_ordered_wall",
-        ordered_provider,
-        tach::bench::windows_qpc_ticks
-      ),
-    }
+    g.bench_function(format!("direct_selected_ordered_wall__{ordered_provider}"), |b| {
+      b.iter(|| black_box(tach::bench::windows_qpc_ticks()));
+    });
   }
   g.bench_function("quanta", |b| b.iter(|| black_box(quanta::Instant::now())));
   g.bench_function("fastant", |b| b.iter(|| black_box(fastant::Instant::now())));
@@ -1763,37 +1700,46 @@ fn write_windows_wall_selection() {
 
   let instant_provider = tach::bench::windows_wall_selected_provider();
   let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
-  let probe = tach::bench::windows_wall_selection_measurements();
-  let instant_candidates: Vec<_> = tach::bench::windows_wall_candidate_providers()
-    .into_iter()
-    .map(|provider| format!("direct_wall__{provider}"))
-    .collect();
-  let ordered_candidates: Vec<_> = tach::bench::windows_ordered_wall_candidate_providers()
-    .into_iter()
-    .map(|provider| format!("direct_ordered_wall__{provider}"))
-    .collect();
-  #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-  let ineligible_direct_candidates = serde_json::json!({
-    "windows_raw_tsc": {
-      "contracts": ["instant", "ordered"],
-      "eligibility": "ineligible",
-      "reason": "CPUID invariance and local measurement cannot prove Windows cross-core synchronization, platform-counter substitution, hypervisor bias, or live-migration continuity",
-      "authority": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
-    }
+  let architecture = if cfg!(target_arch = "x86_64") {
+    "x86_64-windows"
+  } else if cfg!(target_arch = "x86") {
+    "x86-windows"
+  } else {
+    "aarch64-windows"
+  };
+  // Both wall contracts read QueryPerformanceCounter and scale by
+  // QueryPerformanceFrequency, so they share one fixed-point scale.
+  let scale = tach::bench::windows_qpc_nanos_per_tick_q32();
+  let instant_public_exact = serde_json::json!({
+    "now": measure_wall_public_exact(|| Instant::now(), || tach::bench::windows_qpc_ticks()),
+    "elapsed": measure_wall_public_exact(
+      || {
+        let start = Instant::now();
+        start.elapsed()
+      },
+      || {
+        let start = tach::bench::windows_qpc_ticks();
+        let elapsed = tach::bench::windows_qpc_ticks().saturating_sub(start);
+        tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+      },
+    ),
   });
-  #[cfg(target_arch = "aarch64")]
-  let ineligible_direct_candidates = serde_json::json!({
-    "windows_raw_cntvct_el0": {
-      "contracts": ["instant", "ordered"],
-      "eligibility": "ineligible",
-      "reason": "Windows may back QPC with a proprietary platform counter or the Arm Generic Timer and does not document CNTVCT_EL0 as an always-readable user-mode wall-clock ABI",
-      "authority": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
-    }
+  let ordered_public_exact = serde_json::json!({
+    "now": measure_wall_public_exact(|| OrderedInstant::now(), || tach::bench::windows_qpc_ticks()),
+    "elapsed": measure_wall_public_exact(
+      || {
+        let start = OrderedInstant::now();
+        start.elapsed()
+      },
+      || {
+        let start = tach::bench::windows_qpc_ticks();
+        let elapsed = tach::bench::windows_qpc_ticks().saturating_sub(start);
+        tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+      },
+    ),
   });
-  #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
-  let ineligible_direct_candidates = serde_json::json!({});
   let payload = serde_json::json!({
-    "selection_kind": "runtime_tournament",
+    "architecture": architecture,
     "selected_provider": {
       "instant": instant_provider,
       "ordered": ordered_provider,
@@ -1802,13 +1748,7 @@ fn write_windows_wall_selection() {
       "instant": format!("direct_selected_wall__{instant_provider}"),
       "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
     },
-    "eligible_direct_candidates": {
-      "instant": instant_candidates,
-      "ordered": ordered_candidates,
-    },
-    "ineligible_direct_candidates": ineligible_direct_candidates,
-    "decision_rule": "Instant and OrderedInstant independently measure the complete call path of every available Windows-owned high-resolution monotonic source and retain the incumbent unless a challenger wins materially in at least eight of nine batches",
-    "probe": probe,
+    "decision_rule": "Instant and OrderedInstant both read QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock on every supported Windows target, scaled by QueryPerformanceFrequency. Windows owns the cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity of its backing source, so a raw TSC/CNTVCT read is ineligible and the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. OrderedInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.",
     "ordering_contract": {
       "basis": "the opaque Windows API call boundary prevents compiler motion across the read, and the Windows-owned timeline orders events across processors without a separate raw-counter fence",
       "authority": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
@@ -1821,6 +1761,10 @@ fn write_windows_wall_selection() {
         "std_violations": 0_u64,
         "std_reads": 1_185_012_196_u64,
       },
+    },
+    "public_exact_probe": {
+      "instant": instant_public_exact,
+      "ordered": ordered_public_exact,
     },
   });
   let target = std::env::var_os("CARGO_TARGET_DIR")
@@ -2332,106 +2276,23 @@ fn bench_elapsed(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    macro_rules! register_windows_elapsed {
-      ($prefix:literal, $provider:expr, $read:path, $convert:path) => {{
-        let _ = g.bench_function(format!("{}__{}", $prefix, $provider), |b| {
-          b.iter(|| {
-            let start = $read();
-            black_box($convert($read().saturating_sub(start)))
-          });
-        });
-      }};
-    }
-    for provider in tach::bench::windows_wall_candidate_providers() {
-      match provider {
-        "windows_query_interrupt_time_precise" => register_windows_elapsed!(
-          "direct_wall",
-          provider,
-          tach::bench::windows_interrupt_time_precise_ticks,
-          tach::bench::windows_precise_delta_to_duration
-        ),
-        "windows_query_unbiased_interrupt_time_precise" => register_windows_elapsed!(
-          "direct_wall",
-          provider,
-          tach::bench::windows_unbiased_interrupt_time_precise_ticks,
-          tach::bench::windows_precise_delta_to_duration
-        ),
-        _ => register_windows_elapsed!(
-          "direct_wall",
-          provider,
-          tach::bench::windows_qpc_ticks,
-          tach::bench::windows_qpc_delta_to_duration
-        ),
-      }
-    }
+    // Both wall contracts are the frozen fixed pick: QueryPerformanceCounter.
     let instant_provider = tach::bench::windows_wall_selected_provider();
-    match instant_provider {
-      "windows_query_interrupt_time_precise" => register_windows_elapsed!(
-        "direct_selected_wall",
-        instant_provider,
-        tach::bench::windows_interrupt_time_precise_ticks,
-        tach::bench::windows_precise_delta_to_duration
-      ),
-      "windows_query_unbiased_interrupt_time_precise" => register_windows_elapsed!(
-        "direct_selected_wall",
-        instant_provider,
-        tach::bench::windows_unbiased_interrupt_time_precise_ticks,
-        tach::bench::windows_precise_delta_to_duration
-      ),
-      _ => register_windows_elapsed!(
-        "direct_selected_wall",
-        instant_provider,
-        tach::bench::windows_qpc_ticks,
-        tach::bench::windows_qpc_delta_to_duration
-      ),
-    }
-    for provider in tach::bench::windows_ordered_wall_candidate_providers() {
-      match provider {
-        "windows_query_interrupt_time_precise_call_boundary" => register_windows_elapsed!(
-          "direct_ordered_wall",
-          provider,
-          tach::bench::windows_interrupt_time_precise_ticks,
-          tach::bench::windows_precise_delta_to_duration
-        ),
-        "windows_query_unbiased_interrupt_time_precise_call_boundary" => {
-          register_windows_elapsed!(
-            "direct_ordered_wall",
-            provider,
-            tach::bench::windows_unbiased_interrupt_time_precise_ticks,
-            tach::bench::windows_precise_delta_to_duration
-          )
-        }
-        _ => register_windows_elapsed!(
-          "direct_ordered_wall",
-          provider,
-          tach::bench::windows_qpc_ticks,
-          tach::bench::windows_qpc_delta_to_duration
-        ),
-      }
-    }
+    g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
+      b.iter(|| {
+        let start = tach::bench::windows_qpc_ticks();
+        let elapsed = tach::bench::windows_qpc_ticks().saturating_sub(start);
+        black_box(tach::bench::windows_qpc_delta_to_duration(elapsed))
+      });
+    });
     let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
-    match ordered_provider {
-      "windows_query_interrupt_time_precise_call_boundary" => register_windows_elapsed!(
-        "direct_selected_ordered_wall",
-        ordered_provider,
-        tach::bench::windows_interrupt_time_precise_ticks,
-        tach::bench::windows_precise_delta_to_duration
-      ),
-      "windows_query_unbiased_interrupt_time_precise_call_boundary" => {
-        register_windows_elapsed!(
-          "direct_selected_ordered_wall",
-          ordered_provider,
-          tach::bench::windows_unbiased_interrupt_time_precise_ticks,
-          tach::bench::windows_precise_delta_to_duration
-        )
-      }
-      _ => register_windows_elapsed!(
-        "direct_selected_ordered_wall",
-        ordered_provider,
-        tach::bench::windows_qpc_ticks,
-        tach::bench::windows_qpc_delta_to_duration
-      ),
-    }
+    g.bench_function(format!("direct_selected_ordered_wall__{ordered_provider}"), |b| {
+      b.iter(|| {
+        let start = tach::bench::windows_qpc_ticks();
+        let elapsed = tach::bench::windows_qpc_ticks().saturating_sub(start);
+        black_box(tach::bench::windows_qpc_delta_to_duration(elapsed))
+      });
+    });
   }
   g.bench_function("quanta", |b| {
     b.iter(|| {
