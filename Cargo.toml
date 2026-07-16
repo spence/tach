@@ -96,6 +96,11 @@ name = "instant"
 harness = false
 
 [[bench]]
+name = "apple_suspend_probe"
+harness = false
+required-features = ["bench-internal"]
+
+[[bench]]
 name = "skew"
 harness = false
 required-features = ["bench-quanta"]
