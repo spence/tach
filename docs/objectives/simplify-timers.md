@@ -1,0 +1,117 @@
+# `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks
+
+**VISION slice.** Every advertised target receives the fastest eligible reliable timer for its
+timing contract.
+
+Owner direction (2026-07-15): the prior campaign inflated the `Instant` contract on Apple to
+exclude a faster clock — "fastest eligible" became circular, so every eligibility ruling and every
+runtime-selection decision must be re-derived from honest contracts and frozen evidence. There is
+**no publish authorization** until the owner can confirm the fastest timer per instant type per
+advertised architecture. Runtime selection survives only where a frozen same-target flip justifies
+it. The executor follows [`PLAN-SIMPLIFY-AND-VERIFY`](../plans/simplify-and-verify.md) without
+inventing new contracts or making unenumerated decisions — anything outside the plan's branches is
+an `nsr escalate`, not a judgment call.
+
+Read [`../STATUS.md`](../STATUS.md) and [`../README.md`](../README.md) first. The milestone table
+below is the current-status surface; the `## Working Log` is the append-only audit + trajectory
+home. **Definition of Done:** every milestone row below is terminal: either every gate passed with
+committed evidence, or every non-green gate has a recorded disposition under its named Fallback and
+authority. The closure is owner-accepted; nothing closes by assertion.
+
+- **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ⛔️ blocked · ✅ completed · ⚫️ out of scope
+- **Checks (gates):** 🟢 passed · 🟡 warnings · 🔴 failed · ⚪ declared, not yet run
+
+## Milestones
+
+| ID | Milestone | Status | Description | Context |
+|---|---|---|---|---|
+| `OBJ-SIMPLIFY-TIMERS.M0` | Honest contracts and selection policy | 🚧 | ADR records the three contracts, evidence classes, and selection rule; base lands on main; plan in place | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | ⚪ | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | ⚪ | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
+
+---
+
+## `OBJ-SIMPLIFY-TIMERS.M0` — Honest contracts and selection policy
+
+**Description.** The normative timer contracts (including the suspend stance), the eligibility
+evidence classes, and the selection rule are ratified as an ADR; the working tree lands on `main`;
+the execution plan is complete and prescriptive enough for a less-capable executor.
+
+### Gate `OBJ-SIMPLIFY-TIMERS.M0.G1` — Contracts, evidence classes, and policy ADR ratified
+Pass: the contracts/policy ADR exists and is Accepted; `docs/plans/simplify-and-verify.md` is
+complete with the freeze table, environment matrix, and per-phase commands; `main` is
+fast-forwarded to the working tip; `nsr render` then `nsr check` pass.
+- **Fallback.** escalate to user. Never weaken the gate.
+
+---
+
+## `OBJ-SIMPLIFY-TIMERS.M1` — Eligibility re-adjudication and flip verification
+
+**Description.** Reuse retained evidence first, then run only the missing probes: the Apple
+bare-counter re-adjudication on the two local machines, and the enumerated same-target
+second-environment runs. Every one of the 72 target/timer cells ends with a freeze verdict —
+fixed pick, capability gate, or measured (flip frozen) — or an explicitly documented residual.
+
+### Gate `OBJ-SIMPLIFY-TIMERS.M1.G1` — Freeze table complete with frozen evidence per family
+Pass: every family row in the plan's freeze table carries a verdict plus retained evidence under
+`docs/evidence/` bound to a source SHA, or a documented class-1 residual; the Apple `Instant` and
+`OrderedInstant` re-adjudication has correctness and speed results from both local machines.
+- **Fallback.** an environment that cannot be provisioned gets a recorded residual and a class-1
+  documentation freeze; a flip outcome the plan does not already branch on → escalate to user.
+  Never weaken the gate.
+
+---
+
+## `OBJ-SIMPLIFY-TIMERS.M2` — Fixed-pick conversion with inline parity
+
+**Description.** Convert each family to its frozen verdict: compile-time `cfg` picks plus
+capability gates; delete tournament machinery everywhere no flip is frozen; relocate embedded test
+modules; hold the inline-performance constraint.
+
+### Gate `OBJ-SIMPLIFY-TIMERS.M2.G1` — Code matches freeze table on both feature surfaces with inline parity
+Pass: fmt, clippy `-D warnings`, and tests pass on default and `--no-default-features`; a grep for
+the tournament/selector symbols returns hits only inside families the freeze table retains as
+measured; paired public/exact probes stay within `max(1 ns, 5%)` for every converted family
+runnable locally or in CI; relocated test counts reconcile with the pre-move total.
+- **Fallback.** revert the failing family's conversion, keep its prior mechanism, retain the
+  failure as evidence, and continue with the remaining families. Never weaken the gate.
+
+---
+
+## `OBJ-SIMPLIFY-TIMERS.M3` — Apparatus diet and truthful claims
+
+**Description.** Delete the release-forensics validators, tooling self-tests, and sealed bundles
+from the live tree (the archive branch retains them); slim CI to the retained jobs; rewrite README
+and BENCHMARKS so every claim traces to evidence that still exists, including fresh six-cell
+numbers measured on the converted tree.
+
+### Gate `OBJ-SIMPLIFY-TIMERS.M3.G1` — Slim apparatus and claims tracing to live evidence
+Pass: the plan's deletion list is gone from the live tree and reachable on the archive branch; no
+workflow references a deleted path; README/BENCHMARKS contain no claim referencing deleted
+provenance and carry the fresh six-cell numbers; the plan's consistency greps return empty.
+- **Fallback.** restore the specific provenance from the archive branch or correct the claim;
+  never leave a public claim pointing at nothing. Never weaken the gate.
+
+---
+
+## Working Log (append-only audit + trajectory)
+
+### 2026-07-15 · claude · `OBJ-SIMPLIFY-TIMERS.M0` direction reset
+- Did: minted this objective; rejected ESC-PUBLISH-TACH-0-2-0-76FD4B1 as the owner's explicit
+  ruling; updated the AGENTS.md mission to the all-architecture three-instant wording at 60b82eb.
+- Found: no frozen two-environment same-target selection flip exists anywhere in retained
+  evidence; the Apple `Instant` bare-counter exclusion rested on an inferred contract (owner-
+  endorsed critique), so the Apple fastest claim is not presently defensible.
+- Next: land the contracts/policy ADR and PLAN-SIMPLIFY-AND-VERIFY, fast-forward main, close
+  M0.G1.
+- Blocked/unsure: none.
+- Board: M0 🚧 with G1⚪; M1–M3 ⚪.
+
+## /goal
+
+Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the
+fastest eligible reliable timer for its timing contract.* — by cleanly exiting every milestone
+gate. Done = each milestone is terminal either by passing every gate with committed evidence, or
+by recording every non-green gate's disposition under its named Fallback and authority; no gate
+weakened, no milestone closed by assertion.

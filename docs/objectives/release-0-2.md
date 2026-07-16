@@ -11,7 +11,7 @@ decision; the objective records everything needed to make that decision safely.
 |---|---|---|---|---|
 | `OBJ-RELEASE-0-2.M0` | Public truth | ✅ | Align README, benchmark report, crate metadata, and platform claims | inline · G1🟢 |
 | `OBJ-RELEASE-0-2.M1` | Release candidate | ✅ | Verify archive, docs, MSRV, package, and publish dry run | inline · G1🟢 |
-| `OBJ-RELEASE-0-2.M2` | Owner-approved publish | 🚧 | Publish only after the complete approval packet is accepted | inline · G1⚪ |
+| `OBJ-RELEASE-0-2.M2` | Owner-approved publish | ⛔️ | Publish only after the complete approval packet is accepted | inline · G1⚪ |
 
 ---
 
@@ -49,6 +49,8 @@ must derive from the admitted snapshot rather than a mutable worktree path.
 ## `OBJ-RELEASE-0-2.M2` — Owner-approved publish
 
 **Description.** Present the candidate SHA, final README, evidence report, chart, archive list,
+
+Blocked-on: `OBJ-SIMPLIFY-TIMERS` — owner re-approves publish only after fresh fastest-per-target evidence from the converted tree
 and dry-run result. Publishing is intentionally outside unattended authority.
 
 ### Gate `OBJ-RELEASE-0-2.M2.G1` — explicit owner approval is recorded
@@ -72,6 +74,11 @@ tag and crate publication succeed and a fresh consumer verifies the published cr
 ### 2026-07-14 · spence · `OBJ-RELEASE-0-2.M1`
 - Did: Verified candidate 76fd4b1 through the 15-boundary replay, 24-target proof, 27-job CI matrix, package, docs, MSRV, and publish dry run.; OBJ-RELEASE-0-2.M1.G1 🟢 at evidence SHA `1e830ba`.
 - Board: OBJ-RELEASE-0-2.M1 G1 🟢 — evidence EVID-RELEASE-APPROVAL-76FD4B1.
+
+### 2026-07-15 · spence · `OBJ-RELEASE-0-2.M2`
+- Did: deferred OBJ-RELEASE-0-2.M2 on OBJ-SIMPLIFY-TIMERS — return: owner re-approves publish only after fresh fastest-per-target evidence from the converted tree
+- Next: work `OBJ-SIMPLIFY-TIMERS`; return: owner re-approves publish only after fresh fastest-per-target evidence from the converted tree
+- Board: OBJ-RELEASE-0-2.M2 → ⛔️ blocked-on OBJ-SIMPLIFY-TIMERS.
 
 ## /goal
 

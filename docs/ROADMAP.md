@@ -10,8 +10,9 @@ milestone table owns its live state.
 
 | # | ID | Objective | VISION slice | Unblocks | Context |
 |---|---|---|---|---|---|
-| 3 | `OBJ-RELEASE-0-2` | Align the product story and build a release candidate | Users can choose and ship tach from one clear, verified release story | Explicit owner approval to publish 0.2.0 | [objective](objectives/release-0-2.md) |
-| 4 | `OBJ-PROCESS-INSTANT` | Add planned 0.3 ergonomics without contract drift | Future timer ergonomics extend these contracts without weakening them | A separately scoped post-release capability | [objective](objectives/process-instant.md) |
+| 3 | `OBJ-SIMPLIFY-TIMERS` | Simplify to verified fastest per-target clocks | Every advertised target receives the fastest eligible reliable timer for its timing contract | Defensible fastest claims; reopens the release decision | [objective](objectives/simplify-timers.md) |
+| 4 | `OBJ-RELEASE-0-2` | Align the product story and build a release candidate (M2 deferred on `OBJ-SIMPLIFY-TIMERS`) | Users can choose and ship tach from one clear, verified release story | Explicit owner approval to publish 0.2.0 | [objective](objectives/release-0-2.md) |
+| 5 | `OBJ-PROCESS-INSTANT` | Add planned 0.3 ergonomics without contract drift | Future timer ergonomics extend these contracts without weakening them | A separately scoped post-release capability | [objective](objectives/process-instant.md) |
 
 ## Past objectives
 
