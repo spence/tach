@@ -7,6 +7,10 @@ profile="${AWS_PROFILE:-tach}"
 instance_type="${INSTANCE_TYPE:-c7g.large}"
 security_group="${TACH_AWS_SECURITY_GROUP_ID:-sg-05e99abafa54936d3}"
 output="${OUTPUT:-/tmp/tach-thread-pmu-${instance_type//./-}.txt}"
+case "$instance_type" in
+  c7g*|c8g*|t4g*|c6g*|m7g*|m6g*|r7g*|r8g*) probe_arch=arm64; probe_file=aarch64-thread-pmu.c ;;
+  *) probe_arch=x86_64; probe_file=x86-thread-pmu.c ;;
+esac
 key_name="tach-thread-pmu-$$-$(date +%s)"
 key_path="$(mktemp -t tach-thread-pmu-key.XXXXXX).pem"
 instance_id=
@@ -35,7 +39,7 @@ if [[ -n "$orphans" ]]; then
 fi
 
 ami="$(aws_ec2 describe-images --owners amazon \
-  --filters 'Name=name,Values=al2023-ami-2023.*-kernel-6.12-arm64' \
+  --filters "Name=name,Values=al2023-ami-2023.*-kernel-6.12-${probe_arch}" \
             'Name=state,Values=available' \
   --query 'reverse(sort_by(Images,&CreationDate))[0].ImageId' --output text)"
 
@@ -58,8 +62,8 @@ aws_ec2 wait instance-running --instance-ids "$instance_id"
 ip="$(aws_ec2 describe-instances --instance-ids "$instance_id" \
   --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)"
 
-ssh_args=(-o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "$key_path")
-for _ in $(seq 1 50); do
+ssh_args=(-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i "$key_path")
+for _ in $(seq 1 120); do
   if ssh "${ssh_args[@]}" "ec2-user@$ip" true 2>/dev/null; then
     break
   fi
@@ -67,16 +71,16 @@ for _ in $(seq 1 50); do
 done
 
 scp "${ssh_args[@]}" \
-  "$repo_root/benches/probes/aarch64-thread-pmu.c" \
+  "$repo_root/benches/probes/${probe_file}" \
   "ec2-user@$ip:/tmp/probe.c"
 ssh "${ssh_args[@]}" "ec2-user@$ip" \
   'set -e
    sudo sysctl -w kernel.perf_event_paranoid=-1
-   sudo sysctl -w kernel.perf_user_access=1
+   sudo sysctl -w kernel.perf_user_access=1 2>/dev/null || true
    sudo dnf install -y gcc >/dev/null
    gcc -O3 -std=gnu11 -Wall -Wextra -Werror /tmp/probe.c -o /tmp/probe
    uname -a
-   grep -m1 -E "CPU implementer|CPU part" /proc/cpuinfo || true
+   grep -m1 -E "CPU implementer|CPU part|model name" /proc/cpuinfo || true
    /tmp/probe' | tee "$output"
 
 aws_ec2 terminate-instances --instance-ids "$instance_id" >/dev/null
