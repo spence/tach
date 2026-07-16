@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       Row 5 FreeBSD c7a (runnable; small runner-tag tweak for honest provenance first), row 2 c5n.metal (needs an x86 thread-pmu probe), row 4 windows-2022 (push auth), Apple suspend (d) (owner window).
+> Next:       Only 2 rows remain: row 2 c5n.metal thread-cpu (needs a new x86 thread-pmu probe; the C is untestable locally so recommend building+running together or accepting as residual) and row 4 windows-2022 (push auth). Plus Apple suspend (d) owner window and mac-x86 reconciliation.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-15 · Changed: Ran the c8g Graviton4 flip probe (freeze row 3, W/O-LINUX-A64) via the flip-probe path. c8g selects the identical winners as frozen c7g Graviton3: Instant=aarch64_cntvct, OrderedInstant=aarch64_isb_cntvct. NO flip -> freezes fixed in M2. Instance i-0479da2f95ef1c0ef self-terminated (verified). Evidence EVID-GRAVITON4-FLIP-LINUX-A64 (320K). Matrix W/O-LINUX-A64 -> measured->fixed(M2). · By: nsr · 5bcd67e
+> Last verified: 2026-07-15 · Changed: Ran the FreeBSD c7a flip probe (freeze row 5, W/O-FREEBSD-X86) after fixing a keepalive flake in run-speed-freebsd-aws.sh (11b4cf2). c7a-FreeBSD selects the identical winners as frozen c7i-FreeBSD: Instant=freebsd_kernel_eligible_tsc, OrderedInstant=freebsd_kernel_eligible_tsc_x86_lfence_rdtsc. NO flip -> freezes fixed in M2. Instance self-terminated (verified no orphan). Evidence EVID-AMD-FLIP-FREEBSD-X86 (268K; true instances recorded since the runner tag is the generic aws-freebsd-default). Matrix W/O-FREEBSD-X86 -> measured->fixed(M2). · By: nsr · 11b4cf2
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

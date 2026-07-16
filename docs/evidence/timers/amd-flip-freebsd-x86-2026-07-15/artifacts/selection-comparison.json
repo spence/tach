@@ -1,0 +1,28 @@
+{
+  "probe": "W/O-FREEBSD-X86 same-target flip (Intel c7i vs AMD c7a, FreeBSD 15)",
+  "c7a_amd_freebsd": {
+    "instant": "freebsd_kernel_eligible_tsc",
+    "ordered": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+  },
+  "c7i_intel_freebsd_frozen": {
+    "instant": "freebsd_kernel_eligible_tsc",
+    "ordered": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+  },
+  "flip": {
+    "instant": false,
+    "ordered": false
+  },
+  "provenance": {
+    "runner": "aws-freebsd-default",
+    "note": "runner tag is the generic aws-freebsd-default (pre-existing script convention); the true instances are recorded here",
+    "this_run_instance": "c7a.large (AMD Zen4)",
+    "frozen_env1_instance": "c7i.large (Intel)",
+    "target": {
+      "arch": "x86_64",
+      "env": "",
+      "os": "freebsd"
+    },
+    "source_revision": "11b4cf25d8762e62cafe00bececd8b2610445e41"
+  },
+  "verdict": "SAME winners on both microarchitectures -> no flip -> W/O-FREEBSD-X86 freezes fixed"
+}

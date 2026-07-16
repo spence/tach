@@ -1,0 +1,1013 @@
+creating ephemeral keypair tach-speed-freebsd-17989-1784179235
+launching c7a.large (FreeBSD 15.0, ami ami-0c6909572a0eae663)
+instance i-06b4b28adfd2a86db at 18.191.81.190
+Installing pkg-2.7.5...
+Extracting pkg-2.7.5: .......... done
+Bootstrapping pkg from pkg+https://pkg.FreeBSD.org/FreeBSD:15:amd64/quarterly, please wait...
+Verifying signature with trusted certificate pkg.freebsd.org.2013102301... done
+Updating FreeBSD-ports repository catalogue...
+Fetching meta.conf: . done
+Fetching data: .......... done
+Processing entries: .......... done
+FreeBSD-ports repository update completed. 37821 packages processed.
+Updating FreeBSD-ports-kmods repository catalogue...
+Fetching meta.conf: . done
+Fetching data: ..... done
+Processing entries: .......... done
+FreeBSD-ports-kmods repository update completed. 240 packages processed.
+Updating FreeBSD-base repository catalogue...
+Fetching meta.conf: . done
+Fetching data: .......... done
+Processing entries: .......... done
+FreeBSD-base repository update completed. 496 packages processed.
+All repositories are up to date.
+Updating database digests format: . done
+The following 11 package(s) will be affected (of 0 checked):
+
+New packages to be INSTALLED:
+	brotli: 1.2.0,1 [FreeBSD-ports]
+	curl: 8.21.0 [FreeBSD-ports]
+	expat: 2.8.2 [FreeBSD-ports]
+	libidn2: 2.3.8 [FreeBSD-ports]
+	liblz4: 1.10.0_2,1 [FreeBSD-ports]
+	libnghttp2: 1.69.0 [FreeBSD-ports]
+	libpsl: 0.22.0 [FreeBSD-ports]
+	libssh2: 1.11.1_1,3 [FreeBSD-ports]
+	libunistring: 1.4.2 [FreeBSD-ports]
+	zstd: 1.5.7_2 [FreeBSD-ports]
+
+Installed packages to be UPGRADED:
+	python311: 3.11.13_1 -> 3.11.15_4 [FreeBSD-ports]
+
+Number of packages to be installed: 10
+Number of packages to be upgraded: 1
+
+The process will require 16 MiB more space.
+31 MiB to be downloaded.
+[ 1/11] Fetching libidn2-2.3.8: .......... done
+[ 2/11] Fetching libnghttp2-1.69.0: .......... done
+[ 3/11] Fetching zstd-1.5.7_2: .......... done
+[ 4/11] Fetching brotli-1.2.0,1: .......... done
+[ 5/11] Fetching python311-3.11.15_4: .......... done
+[ 6/11] Fetching liblz4-1.10.0_2,1: .......... done
+[ 7/11] Fetching libunistring-1.4.2: .......... done
+[ 8/11] Fetching libssh2-1.11.1_1,3: .......... done
+[ 9/11] Fetching expat-2.8.2: .......... done
+[10/11] Fetching libpsl-0.22.0: ......... done
+[11/11] Fetching curl-8.21.0: .......... done
+Checking integrity... done (0 conflicting)
+[ 1/11] Installing brotli-1.2.0,1...
+[ 1/11] Extracting brotli-1.2.0,1: .......... done
+[ 2/11] Installing expat-2.8.2...
+[ 2/11] Extracting expat-2.8.2: .......... done
+[ 3/11] Installing liblz4-1.10.0_2,1...
+[ 3/11] Extracting liblz4-1.10.0_2,1: .......... done
+[ 4/11] Installing libnghttp2-1.69.0...
+[ 4/11] Extracting libnghttp2-1.69.0: .......... done
+[ 5/11] Installing libssh2-1.11.1_1,3...
+[ 5/11] Extracting libssh2-1.11.1_1,3: .......... done
+[ 6/11] Installing libunistring-1.4.2...
+[ 6/11] Extracting libunistring-1.4.2: .......... done
+[ 7/11] Installing libidn2-2.3.8...
+[ 7/11] Extracting libidn2-2.3.8: .......... done
+[ 8/11] Installing libpsl-0.22.0...
+[ 8/11] Extracting libpsl-0.22.0: .......... done
+[ 9/11] Upgrading python311 from 3.11.13_1 to 3.11.15_4...
+[ 9/11] Extracting python311-3.11.15_4: .......... done
+[10/11] Installing zstd-1.5.7_2...
+[10/11] Extracting zstd-1.5.7_2: .......... done
+[11/11] Installing curl-8.21.0...
+[11/11] Extracting curl-8.21.0: .......... done
+info: downloading installer
+warn: It looks like you have an existing rustup settings file at:
+warn: /home/ec2-user/.rustup/settings.toml
+warn: Rustup will install the default toolchain as specified in the settings file,
+warn: instead of the one inferred from the default host triple.
+info: profile set to minimal
+info: default host triple is x86_64-unknown-freebsd
+info: syncing channel updates for stable-x86_64-unknown-freebsd
+info: latest update on 2026-07-09 for version 1.97.0 (2d8144b78 2026-07-07)
+info: downloading 3 components
+info: default toolchain set to stable-x86_64-unknown-freebsd
+
+  stable-x86_64-unknown-freebsd installed - rustc 1.97.0 (2d8144b78 2026-07-07)
+
+
+Rust is installed now. Great!
+
+To get started you may need to restart your current shell.
+This would reload your PATH environment variable to include
+Cargo's bin directory ($HOME/.cargo/bin).
+
+To configure your current shell, you need to source
+the corresponding env file under $HOME/.cargo.
+
+This is usually done by running one of the following (note the leading DOT):
+. "$HOME/.cargo/env"            # For sh/bash/zsh/ash/dash/pdksh
+source "$HOME/.cargo/env.fish"  # For fish
+source "~/.cargo/env.nu"  # For nushell
+source "$HOME/.cargo/env.tcsh"  # For tcsh
+. "$HOME/.cargo/env.ps1"        # For pwsh
+source "$HOME/.cargo/env.xsh"   # For xonsh
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded alloca v0.4.0
+  Downloaded clap_lex v1.1.0
+  Downloaded same-file v1.0.6
+  Downloaded cfg-if v1.0.4
+  Downloaded cast v0.3.0
+  Downloaded ciborium-io v0.2.2
+  Downloaded small_ctor v0.1.2
+  Downloaded plotters-backend v0.3.7
+  Downloaded itoa v1.0.17
+  Downloaded core_affinity v0.8.3
+  Downloaded ctor v0.1.26
+  Downloaded page_size v0.6.0
+  Downloaded plotters-svg v0.3.7
+  Downloaded ciborium-ll v0.2.2
+  Downloaded num_cpus v1.17.0
+  Downloaded walkdir v2.5.0
+  Downloaded crossbeam-deque v0.8.6
+  Downloaded autocfg v1.5.0
+  Downloaded web-time v1.1.0
+  Downloaded anes v0.1.6
+  Downloaded criterion-plot v0.8.2
+  Downloaded shlex v2.0.1
+  Downloaded zmij v1.0.21
+  Downloaded either v1.15.0
+  Downloaded tinytemplate v1.2.1
+  Downloaded quote v1.0.45
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded quanta v0.12.6
+  Downloaded anstyle v1.0.14
+  Downloaded bitflags v2.11.1
+  Downloaded ciborium v0.2.2
+  Downloaded crossbeam-utils v0.8.21
+  Downloaded crossbeam-epoch v0.9.18
+  Downloaded once_cell v1.21.4
+  Downloaded fastant v0.1.11
+  Downloaded half v2.7.1
+  Downloaded oorandom v11.1.5
+  Downloaded serde_derive v1.0.228
+  Downloaded serde_core v1.0.228
+  Downloaded unicode-ident v1.0.24
+  Downloaded proc-macro2 v1.0.106
+  Downloaded clap v4.6.0
+  Downloaded num-traits v0.2.19
+  Downloaded rayon-core v1.13.0
+  Downloaded serde v1.0.228
+  Downloaded zerocopy-derive v0.8.42
+  Downloaded memchr v2.8.0
+  Downloaded cc v1.2.67
+  Downloaded aho-corasick v1.1.4
+  Downloaded raw-cpuid v11.6.0
+  Downloaded criterion v0.8.2
+  Downloaded minstant v0.1.7
+  Downloaded itertools v0.13.0
+  Downloaded plotters v0.3.7
+  Downloaded regex v1.12.3
+  Downloaded clap_builder v4.6.0
+  Downloaded serde_json v1.0.149
+  Downloaded rayon v1.11.0
+  Downloaded syn v1.0.109
+  Downloaded zerocopy v0.8.42
+  Downloaded syn v2.0.117
+  Downloaded regex-syntax v0.8.10
+  Downloaded regex-automata v0.4.14
+  Downloaded libc v0.2.183
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.45
+   Compiling unicode-ident v1.0.24
+   Compiling libc v0.2.183
+   Compiling crossbeam-utils v0.8.21
+   Compiling serde_core v1.0.228
+   Compiling syn v2.0.117
+   Compiling serde v1.0.228
+   Compiling zerocopy v0.8.42
+   Compiling zerocopy-derive v0.8.42
+   Compiling serde_derive v1.0.228
+   Compiling find-msvc-tools v0.1.9
+   Compiling syn v1.0.109
+   Compiling autocfg v1.5.0
+   Compiling shlex v2.0.1
+   Compiling zmij v1.0.21
+   Compiling cc v1.2.67
+   Compiling num-traits v0.2.19
+   Compiling crossbeam-epoch v0.9.18
+   Compiling either v1.15.0
+   Compiling rayon-core v1.13.0
+   Compiling cfg-if v1.0.4
+   Compiling serde_json v1.0.149
+   Compiling crossbeam-deque v0.8.6
+   Compiling half v2.7.1
+   Compiling alloca v0.4.0
+   Compiling ciborium-io v0.2.2
+   Compiling regex-syntax v0.8.10
+   Compiling plotters-backend v0.3.7
+   Compiling web-time v1.1.0
+   Compiling itoa v1.0.17
+   Compiling memchr v2.8.0
+   Compiling anstyle v1.0.14
+   Compiling clap_lex v1.1.0
+   Compiling clap_builder v4.6.0
+   Compiling regex-automata v0.4.14
+   Compiling plotters-svg v0.3.7
+   Compiling ciborium-ll v0.2.2
+   Compiling ctor v0.1.26
+   Compiling itertools v0.13.0
+   Compiling num_cpus v1.17.0
+   Compiling same-file v1.0.6
+   Compiling cast v0.3.0
+   Compiling bitflags v2.11.1
+   Compiling small_ctor v0.1.2
+   Compiling raw-cpuid v11.6.0
+   Compiling fastant v0.1.11
+   Compiling criterion-plot v0.8.2
+   Compiling walkdir v2.5.0
+   Compiling core_affinity v0.8.3
+   Compiling rayon v1.11.0
+   Compiling minstant v0.1.7
+   Compiling plotters v0.3.7
+   Compiling tinytemplate v1.2.1
+   Compiling ciborium v0.2.2
+   Compiling regex v1.12.3
+   Compiling clap v4.6.0
+   Compiling page_size v0.6.0
+   Compiling oorandom v11.1.5
+   Compiling once_cell v1.21.4
+   Compiling anes v0.1.6
+   Compiling criterion v0.8.2
+   Compiling quanta v0.12.6
+   Compiling tach v0.2.0 (/home/ec2-user/tach)
+    Finished `release` profile [optimized] target(s) in 46.84s
+     Running unittests src/lib.rs (target/release/deps/tach-5291e75360eba146)
+
+running 61 tests
+test arch::fallback::monotonic::tests::clock_failure_has_a_total_value ... ok
+test arch::freebsd_x86_64::instant_read_cost_only_marks_guaranteed_userspace_paths_inline ... ok
+test arch::freebsd_x86_64::packed_hot_state_keeps_provider_and_scale_together ... ok
+test arch::freebsd_x86_64::tests::bare_syscall_os_owned_is_removed_without_an_entry_ordering_contract ... ok
+test arch::freebsd_x86_64::tests::every_current_amd64_timekeep_algorithm_is_distinct_and_supported ... ok
+test arch::freebsd_x86_64::tests::every_ordered_barrier_maps_to_distinct_libc_and_syscall_providers ... ok
+test arch::freebsd_x86_64::tests::exact_clock_aliases_are_structural_duplicates ... ok
+test arch::freebsd_x86_64::tests::fixed_point_conversions_match_freebsd_formulas ... ok
+test arch::freebsd_x86_64::tests::kernel_selected_nonnegative_tsc_quality_is_eligible ... ok
+test arch::freebsd_x86_64::tests::live_feature_candidates_are_present_without_vendor_shortcuts ... ok
+test arch::freebsd_x86_64::tests::materiality_requires_eight_repeatable_wins ... ok
+test arch::freebsd_x86_64::tests::public_timekeep_layout_matches_freebsd_amd64_v1 ... ok
+test arch::freebsd_x86_64::timekeep_retirement_keeps_the_measured_ordered_route ... ok
+test arch::freebsd_x86_64::timekeep_retirement_updates_the_selected_read_cost ... ok
+test arch::tests::forked_child_recovers_parent_owned_selection ... ok
+test arch::tests::inherited_owner_before_state_claim_is_recoverable ... ok
+test arch::tests::inherited_process_selection_is_recoverable ... ok
+test arch::tests::mach_timebase_scale_preserves_the_documented_ratio ... ok
+test arch::tests::power_timebase_scale_preserves_the_exact_512_mhz_ratio ... ok
+test arch::tests::qpc_frequency_scale_is_fixed_point_without_read_time_division ... ok
+test arch::tests::same_domain_reentry_does_not_poison_the_measured_winner ... ok
+test arch::tests::same_thread_reentry_forces_one_numeric_domain ... ok
+test arch::tests::scale_is_never_the_uninitialized_sentinel ... ok
+test arch::thread_cpu::native_64_availability_never_selects_a_failed_candidate ... ok
+test arch::thread_cpu::native_64_selection_requires_a_repeatable_material_win ... ok
+test arch::x86_64::tests::amd_lfence_uses_the_architectural_serializing_capability ... ok
+test arch::x86_64::tests::amd_mfence_and_rdtscp_are_capability_gated ... ok
+test arch::x86_64::tests::intel_sse2_makes_both_fast_reads_eligible ... ok
+test arch::x86_64::tests::selection_requires_a_repeatable_material_win ... ok
+test arch::x86_64::tests::selector_compares_each_fast_read_with_the_best_material_incumbent ... ok
+test arch::x86_64::tests::selector_keeps_cpuid_unless_a_fast_path_materially_wins ... ok
+test arch::x86_64::tests::serialize_is_gated_only_by_its_architectural_feature_bit ... ok
+test arch::x86_64::tests::unknown_vendors_only_use_vendor_neutral_rdtscp ... ok
+test bench::exact_wall_harness_tests::exact_wall_harnesses_keep_static_readers_and_provider_scales ... ok
+test bench::exact_wall_harness_tests::exact_wall_provider_carries_the_conversion_for_its_own_tick_domain ... ok
+test instant::tests::conversion_helpers_keep_tick_scales_independent ... ok
+test tests::cpuid_15h_returns_something_or_none ... ok
+test tests::elapsed_after_sleep ... ok
+test tests::elapsed_saturates_when_self_is_in_the_future ... ok
+test arch::freebsd_x86_64::tests::live_timekeep_protocol_is_same_domain_and_monotonic_when_available ... ok
+test tests::instant_add_duration_advances_time ... ok
+test tests::instant_checked_duration_since_returns_none_when_earlier_is_later ... ok
+test tests::instant_duration_since_saturates_when_earlier_is_later ... ok
+test tests::instant_is_send_sync ... ok
+test tests::instant_sub_duration_and_add_assign ... ok
+test tests::instant_sub_instant_returns_elapsed ... ok
+test tests::now_advances ... ok
+test tests::ordered_elapsed_after_sleep ... ok
+test tests::ordered_elapsed_unordered_after_sleep ... ok
+test tests::elapsed_tracks_std_within_5_percent ... ok
+test tests::ordered_instant_arithmetic_mirrors_instant ... ok
+test tests::ordered_now_advances ... ok
+test tests::recalibrate_does_not_perturb_elapsed ... ok
+test tests::recalibrate_is_safe_to_call_repeatedly ... ok
+test thread_cpu::tests::cross_domain_durations_fail_closed ... ok
+test thread_cpu::tests::duration_arithmetic_is_exact_in_nanoseconds ... ok
+test thread_cpu::tests::javascript_provider_domains_are_explicit ... ok
+test thread_cpu::tests::samples_are_monotonic_on_the_current_thread ... ok
+test thread_cpu::tests::selected_provider_is_reported_truthfully ... ok
+test thread_cpu::tests::selected_read_gap_is_positive_when_present ... ok
+test tests::ordered_honors_happens_before ... ok
+
+test result: ok. 61 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+
+     Running tests/thread_cpu.rs (target/release/deps/thread_cpu-de503b6016c1f5bf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/thread_cpu_init.rs (target/release/deps/thread_cpu_init-753cdfa0a4768e77)
+
+running 1 test
+test concurrent_first_reads_never_fail ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.45
+   Compiling unicode-ident v1.0.24
+   Compiling crossbeam-utils v0.8.21
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.183
+   Compiling syn v2.0.117
+   Compiling zerocopy v0.8.42
+   Compiling serde v1.0.228
+   Compiling serde_derive v1.0.228
+   Compiling zerocopy-derive v0.8.42
+   Compiling zmij v1.0.21
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v2.0.1
+   Compiling autocfg v1.5.0
+   Compiling syn v1.0.109
+   Compiling num-traits v0.2.19
+   Compiling cc v1.2.67
+   Compiling crossbeam-epoch v0.9.18
+   Compiling cfg-if v1.0.4
+   Compiling serde_json v1.0.149
+   Compiling either v1.15.0
+   Compiling rayon-core v1.13.0
+   Compiling crossbeam-deque v0.8.6
+   Compiling alloca v0.4.0
+   Compiling half v2.7.1
+   Compiling memchr v2.8.0
+   Compiling plotters-backend v0.3.7
+   Compiling regex-syntax v0.8.10
+   Compiling web-time v1.1.0
+   Compiling ciborium-io v0.2.2
+   Compiling clap_lex v1.1.0
+   Compiling itoa v1.0.17
+   Compiling anstyle v1.0.14
+   Compiling regex-automata v0.4.14
+   Compiling clap_builder v4.6.0
+   Compiling ciborium-ll v0.2.2
+   Compiling plotters-svg v0.3.7
+   Compiling ctor v0.1.26
+   Compiling itertools v0.13.0
+   Compiling num_cpus v1.17.0
+   Compiling small_ctor v0.1.2
+   Compiling cast v0.3.0
+   Compiling bitflags v2.11.1
+   Compiling same-file v1.0.6
+   Compiling walkdir v2.5.0
+   Compiling raw-cpuid v11.6.0
+   Compiling criterion-plot v0.8.2
+   Compiling fastant v0.1.11
+   Compiling core_affinity v0.8.3
+   Compiling rayon v1.11.0
+   Compiling plotters v0.3.7
+   Compiling minstant v0.1.7
+   Compiling ciborium v0.2.2
+   Compiling tinytemplate v1.2.1
+   Compiling clap v4.6.0
+   Compiling regex v1.12.3
+   Compiling page_size v0.6.0
+   Compiling oorandom v11.1.5
+   Compiling once_cell v1.21.4
+   Compiling anes v0.1.6
+   Compiling quanta v0.12.6
+   Compiling criterion v0.8.2
+   Compiling tach v0.2.0 (/home/ec2-user/tach)
+    Finished `bench` profile [optimized] target(s) in 56.30s
+     Running benches/instant.rs (.tach-speed-target/release/deps/instant-4588573f4dca85c0)
+Gnuplot not found, using plotters backend
+Benchmarking Instant::now()/tach
+Benchmarking Instant::now()/tach: Warming up for 1.0000 s
+Benchmarking Instant::now()/tach: Collecting 100 samples in estimated 3.0000 s (315M iterations)
+Benchmarking Instant::now()/tach: Analyzing
+Instant::now()/tach     time:   [9.4855 ns 9.4870 ns 9.4888 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now()/tach_ordered
+Benchmarking Instant::now()/tach_ordered: Warming up for 1.0000 s
+Benchmarking Instant::now()/tach_ordered: Collecting 100 samples in estimated 3.0000 s (160M iterations)
+Benchmarking Instant::now()/tach_ordered: Analyzing
+Instant::now()/tach_ordered
+                        time:   [16.805 ns 16.806 ns 16.807 ns]
+Found 11 outliers among 100 measurements (11.00%)
+  3 (3.00%) low severe
+  2 (2.00%) low mild
+  5 (5.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now()/direct_ordered__x86_cpuid_rdtsc
+Benchmarking Instant::now()/direct_ordered__x86_cpuid_rdtsc: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered__x86_cpuid_rdtsc: Collecting 100 samples in estimated 3.0036 s (3.5M iterations)
+Benchmarking Instant::now()/direct_ordered__x86_cpuid_rdtsc: Analyzing
+Instant::now()/direct_ordered__x86_cpuid_rdtsc
+                        time:   [869.49 ns 869.76 ns 870.13 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
+Benchmarking Instant::now()/direct_ordered__x86_lfence_rdtsc
+Benchmarking Instant::now()/direct_ordered__x86_lfence_rdtsc: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered__x86_lfence_rdtsc: Collecting 100 samples in estimated 3.0000 s (181M iterations)
+Benchmarking Instant::now()/direct_ordered__x86_lfence_rdtsc: Analyzing
+Instant::now()/direct_ordered__x86_lfence_rdtsc
+                        time:   [16.530 ns 16.531 ns 16.532 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now()/direct_ordered__x86_mfence_rdtsc
+Benchmarking Instant::now()/direct_ordered__x86_mfence_rdtsc: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered__x86_mfence_rdtsc: Collecting 100 samples in estimated 3.0001 s (109M iterations)
+Benchmarking Instant::now()/direct_ordered__x86_mfence_rdtsc: Analyzing
+Instant::now()/direct_ordered__x86_mfence_rdtsc
+                        time:   [27.652 ns 27.669 ns 27.702 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now()/direct_ordered__x86_rdtscp
+Benchmarking Instant::now()/direct_ordered__x86_rdtscp: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered__x86_rdtscp: Collecting 100 samples in estimated 3.0001 s (165M iterations)
+Benchmarking Instant::now()/direct_ordered__x86_rdtscp: Analyzing
+Instant::now()/direct_ordered__x86_rdtscp
+                        time:   [18.163 ns 18.174 ns 18.193 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low severe
+  3 (3.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic: Collecting 100 samples in estimated 3.0001 s (113M iterations)
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic: Analyzing
+Instant::now()/direct_wall__freebsd_clock_monotonic
+                        time:   [26.566 ns 26.577 ns 26.597 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  2 (2.00%) low severe
+  3 (3.00%) low mild
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic_syscall
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic_syscall: Collecting 100 samples in estimated 3.0004 s (32M iterations)
+Benchmarking Instant::now()/direct_wall__freebsd_clock_monotonic_syscall: Analyzing
+Instant::now()/direct_wall__freebsd_clock_monotonic_syscall
+                        time:   [93.890 ns 93.922 ns 93.963 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  2 (2.00%) low mild
+  5 (5.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/direct_wall__freebsd_at_timekeep
+Benchmarking Instant::now()/direct_wall__freebsd_at_timekeep: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__freebsd_at_timekeep: Collecting 100 samples in estimated 3.0001 s (114M iterations)
+Benchmarking Instant::now()/direct_wall__freebsd_at_timekeep: Analyzing
+Instant::now()/direct_wall__freebsd_at_timekeep
+                        time:   [26.290 ns 26.292 ns 26.294 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) low severe
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now()/direct_wall__freebsd_kernel_eligible_tsc
+Benchmarking Instant::now()/direct_wall__freebsd_kernel_eligible_tsc: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_wall__freebsd_kernel_eligible_tsc: Collecting 100 samples in estimated 3.0000 s (316M iterations)
+Benchmarking Instant::now()/direct_wall__freebsd_kernel_eligible_tsc: Analyzing
+Instant::now()/direct_wall__freebsd_kernel_eligible_tsc
+                        time:   [9.4846 ns 9.4857 ns 9.4871 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) low severe
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_at_timekeep_os_owned
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_at_timekeep_os_owned: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_at_timekeep_os_owned: Collecting 100 samples in estimated 3.0001 s (114M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_at_timekeep_os_owned: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_at_timekeep_os_owned
+                        time:   [26.293 ns 26.295 ns 26.298 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low severe
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Collecting 100 samples in estimated 3.0000 s (181M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc
+                        time:   [16.532 ns 16.533 ns 16.534 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) low severe
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid: Collecting 100 samples in estimated 3.0045 s (3.4M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid
+                        time:   [892.53 ns 893.17 ns 894.23 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence: Collecting 100 samples in estimated 3.0001 s (83M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence
+                        time:   [36.452 ns 36.585 ns 36.751 ns]
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence: Collecting 100 samples in estimated 3.0000 s (64M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence
+                        time:   [46.704 ns 46.797 ns 46.908 ns]
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence: Collecting 100 samples in estimated 3.0002 s (56M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence
+                        time:   [54.412 ns 54.616 ns 54.855 ns]
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid: Collecting 100 samples in estimated 3.0042 s (3.1M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid
+                        time:   [991.13 ns 997.57 ns 1.0043 µs]
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence: Collecting 100 samples in estimated 3.0002 s (30M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence
+                        time:   [99.693 ns 99.713 ns 99.733 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence: Collecting 100 samples in estimated 3.0001 s (27M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence
+                        time:   [110.84 ns 110.86 ns 110.88 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  10 (10.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence: Collecting 100 samples in estimated 3.0004 s (23M iterations)
+Benchmarking Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence: Analyzing
+Instant::now()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence
+                        time:   [143.44 ns 148.70 ns 154.13 ns]
+Benchmarking Instant::now()/direct_selected_wall__freebsd_kernel_eligible_tsc
+Benchmarking Instant::now()/direct_selected_wall__freebsd_kernel_eligible_tsc: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_selected_wall__freebsd_kernel_eligible_tsc: Collecting 100 samples in estimated 3.0000 s (316M iterations)
+Benchmarking Instant::now()/direct_selected_wall__freebsd_kernel_eligible_tsc: Analyzing
+Instant::now()/direct_selected_wall__freebsd_kernel_eligible_tsc
+                        time:   [9.4873 ns 9.4932 ns 9.5036 ns]
+Found 14 outliers among 100 measurements (14.00%)
+  2 (2.00%) low severe
+  4 (4.00%) low mild
+  1 (1.00%) high mild
+  7 (7.00%) high severe
+Benchmarking Instant::now()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc
+Benchmarking Instant::now()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Warming up for 1.0000 s
+Benchmarking Instant::now()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Collecting 100 samples in estimated 3.0000 s (181M iterations)
+Benchmarking Instant::now()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Analyzing
+Instant::now()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc
+                        time:   [16.534 ns 16.545 ns 16.563 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now()/quanta
+Benchmarking Instant::now()/quanta: Warming up for 1.0000 s
+Benchmarking Instant::now()/quanta: Collecting 100 samples in estimated 3.0000 s (316M iterations)
+Benchmarking Instant::now()/quanta: Analyzing
+Instant::now()/quanta   time:   [9.4892 ns 9.4908 ns 9.4929 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) low severe
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/fastant
+Benchmarking Instant::now()/fastant: Warming up for 1.0000 s
+Benchmarking Instant::now()/fastant: Collecting 100 samples in estimated 3.0001 s (78M iterations)
+Benchmarking Instant::now()/fastant: Analyzing
+Instant::now()/fastant  time:   [38.345 ns 38.382 ns 38.423 ns]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking Instant::now()/minstant
+Benchmarking Instant::now()/minstant: Warming up for 1.0000 s
+Benchmarking Instant::now()/minstant: Collecting 100 samples in estimated 3.0001 s (78M iterations)
+Benchmarking Instant::now()/minstant: Analyzing
+Instant::now()/minstant time:   [38.338 ns 38.375 ns 38.418 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now()/std
+Benchmarking Instant::now()/std: Warming up for 1.0000 s
+Benchmarking Instant::now()/std: Collecting 100 samples in estimated 3.0001 s (112M iterations)
+Benchmarking Instant::now()/std: Analyzing
+Instant::now()/std      time:   [26.834 ns 26.836 ns 26.838 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+
+Benchmarking Instant::now() + elapsed()/tach
+Benchmarking Instant::now() + elapsed()/tach: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/tach: Collecting 100 samples in estimated 3.0001 s (158M iterations)
+Benchmarking Instant::now() + elapsed()/tach: Analyzing
+Instant::now() + elapsed()/tach
+                        time:   [18.971 ns 18.972 ns 18.974 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  2 (2.00%) low severe
+  3 (3.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/tach_ordered
+Benchmarking Instant::now() + elapsed()/tach_ordered: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/tach_ordered: Collecting 100 samples in estimated 3.0000 s (82M iterations)
+Benchmarking Instant::now() + elapsed()/tach_ordered: Analyzing
+Instant::now() + elapsed()/tach_ordered
+                        time:   [36.597 ns 36.600 ns 36.604 ns]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) low severe
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic: Collecting 100 samples in estimated 3.0002 s (56M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic: Analyzing
+Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic
+                        time:   [53.406 ns 53.437 ns 53.500 ns]
+Found 11 outliers among 100 measurements (11.00%)
+  3 (3.00%) low severe
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic_syscall
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic_syscall: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic_syscall: Collecting 100 samples in estimated 3.0001 s (16M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic_syscall: Analyzing
+Instant::now() + elapsed()/direct_wall__freebsd_clock_monotonic_syscall
+                        time:   [189.75 ns 189.88 ns 190.10 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  5 (5.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_at_timekeep
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_at_timekeep: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_at_timekeep: Collecting 100 samples in estimated 3.0000 s (57M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_at_timekeep: Analyzing
+Instant::now() + elapsed()/direct_wall__freebsd_at_timekeep
+                        time:   [52.842 ns 52.870 ns 52.914 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  3 (3.00%) low severe
+  5 (5.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_kernel_eligible_tsc
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_kernel_eligible_tsc: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_kernel_eligible_tsc: Collecting 100 samples in estimated 3.0001 s (158M iterations)
+Benchmarking Instant::now() + elapsed()/direct_wall__freebsd_kernel_eligible_tsc: Analyzing
+Instant::now() + elapsed()/direct_wall__freebsd_kernel_eligible_tsc
+                        time:   [18.977 ns 18.980 ns 18.984 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  3 (3.00%) low severe
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_at_timekeep_os_owned
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_at_timekeep_os_owned: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_at_timekeep_os_owned: Collecting 100 samples in estimated 3.0001 s (57M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_at_timekeep_os_owned: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_at_timekeep_os_owned
+                        time:   [52.594 ns 52.598 ns 52.603 ns]
+Found 17 outliers among 100 measurements (17.00%)
+  3 (3.00%) low severe
+  2 (2.00%) low mild
+  8 (8.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Collecting 100 samples in estimated 3.0000 s (84M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc
+                        time:   [35.772 ns 35.774 ns 35.776 ns]
+Found 12 outliers among 100 measurements (12.00%)
+  3 (3.00%) low severe
+  3 (3.00%) low mild
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid: Collecting 100 samples in estimated 3.0068 s (1.7M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_cpuid
+                        time:   [1.7859 µs 1.7864 µs 1.7868 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence: Collecting 100 samples in estimated 3.0002 s (41M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_lfence
+                        time:   [74.794 ns 75.147 ns 75.461 ns]
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence: Collecting 100 samples in estimated 3.0003 s (32M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_mfence
+                        time:   [94.507 ns 94.849 ns 95.203 ns]
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence: Collecting 100 samples in estimated 3.0004 s (28M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_x86_rdtscp_lfence
+                        time:   [110.85 ns 111.09 ns 111.30 ns]
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid: Collecting 100 samples in estimated 3.0073 s (1.5M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_cpuid
+                        time:   [1.9573 µs 1.9585 µs 1.9604 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence: Collecting 100 samples in estimated 3.0003 s (12M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_lfence
+                        time:   [223.26 ns 233.50 ns 243.98 ns]
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence: Collecting 100 samples in estimated 3.0007 s (14M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_mfence
+                        time:   [234.15 ns 242.34 ns 251.67 ns]
+Found 23 outliers among 100 measurements (23.00%)
+  1 (1.00%) high mild
+  22 (22.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence: Collecting 100 samples in estimated 3.0008 s (12M iterations)
+Benchmarking Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence: Analyzing
+Instant::now() + elapsed()/direct_ordered_wall__freebsd_clock_monotonic_syscall_x86_rdtscp_lfence
+                        time:   [250.86 ns 255.85 ns 261.21 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__freebsd_kernel_eligible_tsc
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__freebsd_kernel_eligible_tsc: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__freebsd_kernel_eligible_tsc: Collecting 100 samples in estimated 3.0001 s (158M iterations)
+Benchmarking Instant::now() + elapsed()/direct_selected_wall__freebsd_kernel_eligible_tsc: Analyzing
+Instant::now() + elapsed()/direct_selected_wall__freebsd_kernel_eligible_tsc
+                        time:   [18.975 ns 18.976 ns 18.978 ns]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) low severe
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdts...
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdts...: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdts...: Collecting 100 samples in estimated 3.0000 s (84M iterations)
+Benchmarking Instant::now() + elapsed()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdts...: Analyzing
+Instant::now() + elapsed()/direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdts...
+                        time:   [35.771 ns 35.773 ns 35.776 ns]
+Found 11 outliers among 100 measurements (11.00%)
+  3 (3.00%) low severe
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Instant::now() + elapsed()/quanta
+Benchmarking Instant::now() + elapsed()/quanta: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/quanta: Collecting 100 samples in estimated 3.0001 s (158M iterations)
+Benchmarking Instant::now() + elapsed()/quanta: Analyzing
+Instant::now() + elapsed()/quanta
+                        time:   [18.973 ns 18.974 ns 18.976 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) low severe
+  2 (2.00%) high severe
+Benchmarking Instant::now() + elapsed()/fastant
+Benchmarking Instant::now() + elapsed()/fastant: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/fastant: Collecting 100 samples in estimated 3.0003 s (34M iterations)
+Benchmarking Instant::now() + elapsed()/fastant: Analyzing
+Instant::now() + elapsed()/fastant
+                        time:   [87.193 ns 87.250 ns 87.316 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low severe
+  4 (4.00%) low mild
+  5 (5.00%) high severe
+Benchmarking Instant::now() + elapsed()/minstant
+Benchmarking Instant::now() + elapsed()/minstant: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/minstant: Collecting 100 samples in estimated 3.0001 s (34M iterations)
+Benchmarking Instant::now() + elapsed()/minstant: Analyzing
+Instant::now() + elapsed()/minstant
+                        time:   [87.190 ns 87.274 ns 87.395 ns]
+Found 18 outliers among 100 measurements (18.00%)
+  2 (2.00%) low mild
+  14 (14.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Instant::now() + elapsed()/std
+Benchmarking Instant::now() + elapsed()/std: Warming up for 1.0000 s
+Benchmarking Instant::now() + elapsed()/std: Collecting 100 samples in estimated 3.0002 s (54M iterations)
+Benchmarking Instant::now() + elapsed()/std: Analyzing
+Instant::now() + elapsed()/std
+                        time:   [57.427 ns 57.491 ns 57.563 ns]
+
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__posix_thread_cpu_clock__system_call
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__posix_thread_cpu_clock__system_call: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__posix_thread_cpu_clock__system_call: Collecting 100 samples in estimated 3.0000 s (32M iterations)
+Benchmarking ThreadCpuInstant::now()/tach_thread_cpu__posix_thread_cpu_clock__system_call: Analyzing
+ThreadCpuInstant::now()/tach_thread_cpu__posix_thread_cpu_clock__system_call
+                        time:   [93.296 ns 93.426 ns 93.579 ns]
+Found 14 outliers among 100 measurements (14.00%)
+  5 (5.00%) high mild
+  9 (9.00%) high severe
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__clock_gettime_clock_thread_cputime_id
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__clock_gettime_clock_thread_cputime_id: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__clock_gettime_clock_thread_cputime_id: Collecting 100 samples in estimated 3.0004 s (32M iterations)
+Benchmarking ThreadCpuInstant::now()/native_thread_cpu__clock_gettime_clock_thread_cputime_id: Analyzing
+ThreadCpuInstant::now()/native_thread_cpu__clock_gettime_clock_thread_cputime_id
+                        time:   [93.219 ns 93.355 ns 93.506 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Collecting 100 samples in estimated 3.0002 s (32M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime
+                        time:   [93.151 ns 93.243 ns 93.339 ns]
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime: Collecting 100 samples in estimated 3.0004 s (33M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputime
+                        time:   [90.876 ns 91.066 ns 91.279 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Collecting 100 samples in estimated 3.0000 s (32M iterations)
+Benchmarking ThreadCpuInstant::now()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime
+                        time:   [93.208 ns 93.366 ns 93.535 ns]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__posix_thread_cpu_clock__system_call
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__posix_thread_cpu_clock__system_call: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__posix_thread_cpu_clock__system_call: Collecting 100 samples in estimated 3.0008 s (16M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__posix_thread_cpu_clock__system_call: Analyzing
+ThreadCpuInstant::now() + elapsed()/tach_thread_cpu__posix_thread_cpu_clock__system_call
+                        time:   [188.04 ns 188.26 ns 188.55 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  7 (7.00%) low mild
+  3 (3.00%) high severe
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__clock_gettime_clock_thread_cputime_id
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__clock_gettime_clock_thread_cputime_id: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__clock_gettime_clock_thread_cputime_id: Collecting 100 samples in estimated 3.0008 s (16M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/native_thread_cpu__clock_gettime_clock_thread_cputime_id: Analyzing
+ThreadCpuInstant::now() + elapsed()/native_thread_cpu__clock_gettime_clock_thread_cputime_id
+                        time:   [186.66 ns 186.93 ns 187.23 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Collecting 100 samples in estimated 3.0002 s (16M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_libc_clock_thread_cputime
+                        time:   [187.90 ns 188.15 ns 188.42 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  1 (1.00%) low severe
+  10 (10.00%) low mild
+  2 (2.00%) high severe
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputi...
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputi...: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputi...: Collecting 100 samples in estimated 3.0007 s (14M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputi...: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_thread_cpu__freebsd_x86_64_raw_syscall_clock_thread_cputi...
+                        time:   [187.87 ns 190.94 ns 194.83 ns]
+Found 21 outliers among 100 measurements (21.00%)
+  3 (3.00%) high mild
+  18 (18.00%) high severe
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cpu...
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cpu...: Warming up for 1.0000 s
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cpu...: Collecting 100 samples in estimated 3.0009 s (16M iterations)
+Benchmarking ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cpu...: Analyzing
+ThreadCpuInstant::now() + elapsed()/direct_selected_thread_cpu__freebsd_x86_64_libc_clock_thread_cpu...
+                        time:   [188.17 ns 188.36 ns 188.55 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  10 (10.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking elapsed() only/tach::Instant
+Benchmarking elapsed() only/tach::Instant: Warming up for 1.0000 s
+Benchmarking elapsed() only/tach::Instant: Collecting 100 samples in estimated 3.0000 s (316M iterations)
+Benchmarking elapsed() only/tach::Instant: Analyzing
+elapsed() only/tach::Instant
+                        time:   [9.4873 ns 9.4882 ns 9.4890 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  4 (4.00%) high severe
+Benchmarking elapsed() only/tach::OrderedInstant
+Benchmarking elapsed() only/tach::OrderedInstant: Warming up for 1.0000 s
+Benchmarking elapsed() only/tach::OrderedInstant: Collecting 100 samples in estimated 3.0001 s (149M iterations)
+Benchmarking elapsed() only/tach::OrderedInstant: Analyzing
+elapsed() only/tach::OrderedInstant
+                        time:   [21.956 ns 21.958 ns 21.961 ns]
+Found 15 outliers among 100 measurements (15.00%)
+  3 (3.00%) low mild
+  7 (7.00%) high mild
+  5 (5.00%) high severe
+Benchmarking elapsed() only/tach::ThreadCpuInstant
+Benchmarking elapsed() only/tach::ThreadCpuInstant: Warming up for 1.0000 s
+Benchmarking elapsed() only/tach::ThreadCpuInstant: Collecting 100 samples in estimated 3.0002 s (32M iterations)
+Benchmarking elapsed() only/tach::ThreadCpuInstant: Analyzing
+elapsed() only/tach::ThreadCpuInstant
+                        time:   [93.938 ns 94.074 ns 94.248 ns]
+Found 18 outliers among 100 measurements (18.00%)
+  3 (3.00%) low severe
+  6 (6.00%) low mild
+  3 (3.00%) high mild
+  6 (6.00%) high severe
+Benchmarking elapsed() only/std::time::Instant
+Benchmarking elapsed() only/std::time::Instant: Warming up for 1.0000 s
+Benchmarking elapsed() only/std::time::Instant: Collecting 100 samples in estimated 3.0001 s (102M iterations)
+Benchmarking elapsed() only/std::time::Instant: Analyzing
+elapsed() only/std::time::Instant
+                        time:   [29.951 ns 30.105 ns 30.242 ns]
+
+Benchmarking Ordered Instant::now()/tach::OrderedInstant
+Benchmarking Ordered Instant::now()/tach::OrderedInstant: Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/tach::OrderedInstant: Collecting 100 samples in estimated 3.0000 s (179M iterations)
+Benchmarking Ordered Instant::now()/tach::OrderedInstant: Analyzing
+Ordered Instant::now()/tach::OrderedInstant
+                        time:   [16.802 ns 16.804 ns 16.805 ns]
+Found 14 outliers among 100 measurements (14.00%)
+  3 (3.00%) low severe
+  2 (2.00%) low mild
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed)
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed): Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed): Collecting 100 samples in estimated 3.0002 s (82M iterations)
+Benchmarking Ordered Instant::now()/tach::OrderedInstant (now + elapsed): Analyzing
+Ordered Instant::now()/tach::OrderedInstant (now + elapsed)
+                        time:   [36.587 ns 36.590 ns 36.594 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference)
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference): Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference): Collecting 100 samples in estimated 3.0000 s (316M iterations)
+Benchmarking Ordered Instant::now()/tach::Instant (unordered reference): Analyzing
+Ordered Instant::now()/tach::Instant (unordered reference)
+                        time:   [9.4868 ns 9.4884 ns 9.4906 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) low severe
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Ordered Instant::now()/std::time::Instant
+Benchmarking Ordered Instant::now()/std::time::Instant: Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/std::time::Instant: Collecting 100 samples in estimated 3.0001 s (112M iterations)
+Benchmarking Ordered Instant::now()/std::time::Instant: Analyzing
+Ordered Instant::now()/std::time::Instant
+                        time:   [26.841 ns 26.858 ns 26.886 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed)
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed): Warming up for 1.0000 s
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed): Collecting 100 samples in estimated 3.0001 s (54M iterations)
+Benchmarking Ordered Instant::now()/std::time::Instant (now + elapsed): Analyzing
+Ordered Instant::now()/std::time::Instant (now + elapsed)
+                        time:   [57.420 ns 57.470 ns 57.521 ns]
+
+/home/ec2-user/tach/.tach-speed-target/criterion/tach-speed-source-seal.json
+/home/ec2-user/tach/collector.bundle/tach-speed-collector.json
+wrote /var/folders/bv/pqh0lff537n_0w6y2w6ngm1m0000gn/T/tach-speed-freebsd.XXXXXX.f3jcCWCpDl/speed-supplemental-freebsd-x86_64.json with retained collector bundle /var/folders/bv/pqh0lff537n_0w6y2w6ngm1m0000gn/T/tach-speed-freebsd.XXXXXX.f3jcCWCpDl/speed-supplemental-freebsd-x86_64.collector.bundle

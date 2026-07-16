@@ -164,6 +164,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Row 5 FreeBSD c7a (runnable; small runner-tag tweak for honest provenance first), row 2 c5n.metal (needs an x86 thread-pmu probe), row 4 windows-2022 (push auth), Apple suspend (d) (owner window).
 - Blocked/unsure: row 2 needs x86 thread-pmu probe; row 4 push auth; suspend (d) owner window; mac-x86 reconciliation
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: Ran the FreeBSD c7a flip probe (freeze row 5, W/O-FREEBSD-X86) after fixing a keepalive flake in run-speed-freebsd-aws.sh (11b4cf2). c7a-FreeBSD selects the identical winners as frozen c7i-FreeBSD: Instant=freebsd_kernel_eligible_tsc, OrderedInstant=freebsd_kernel_eligible_tsc_x86_lfence_rdtsc. NO flip -> freezes fixed in M2. Instance self-terminated (verified no orphan). Evidence EVID-AMD-FLIP-FREEBSD-X86 (268K; true instances recorded since the runner tag is the generic aws-freebsd-default). Matrix W/O-FREEBSD-X86 -> measured->fixed(M2).
+- Found: 5 of 7 freeze rows now verdicted (rows 1/3/5 all no-flip -> fixed; rows 6-7 class-1 residual). Three microarchitecture pairs checked (Intel<->AMD x86, Graviton3<->Graviton4 aarch64, Intel<->AMD FreeBSD) — zero flips, exactly as ADR-0005's no-frozen-flip finding predicted.
+- Next: Only 2 rows remain: row 2 c5n.metal thread-cpu (needs a new x86 thread-pmu probe; the C is untestable locally so recommend building+running together or accepting as residual) and row 4 windows-2022 (push auth). Plus Apple suspend (d) owner window and mac-x86 reconciliation.
+- Blocked/unsure: row 2 needs an x86 thread-pmu probe; row 4 push auth; suspend (d) owner window; mac-x86 reconciliation
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the
