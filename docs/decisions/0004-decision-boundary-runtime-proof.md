@@ -1,9 +1,10 @@
 # 0004 — Runtime proof follows decision boundaries
 
-- Status: Accepted
+- Status: Accepted — narrowed by ADR-0005 (2026-07-15): a production measured tournament now
+  requires a frozen same-target two-environment flip; the audit and evidence invariants stand.
 - Date: 2026-07-14
 - Source: owner ruling and executed correction
-- Related: ADR-0001; ADR-0002; `OBJ-PROVE-TIMERS`; commit `d0fa731`
+- Related: ADR-0001; ADR-0002; ADR-0005; `OBJ-PROVE-TIMERS`; commit `d0fa731`
 
 ## Decision
 

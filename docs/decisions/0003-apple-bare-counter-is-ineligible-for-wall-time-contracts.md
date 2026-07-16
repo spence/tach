@@ -1,9 +1,11 @@
 # 0003 — Apple bare counter is ineligible for wall-time contracts
 
-- Status: Accepted
+- Status: Accepted — superseded in part by ADR-0005 (2026-07-15): bare `CNTVCT_EL0` re-enters
+  `Instant` candidacy under the honest-contract evidence classes; the ordering requirement below
+  stands unchanged.
 - Date: 2026-07-12
 - Source: executed ruling
-- Related: ADR-0001; `OBJ-FASTEST-TIMERS`; `OBJ-PROVE-TIMERS`; commit `2e14e50`
+- Related: ADR-0001; ADR-0005; `OBJ-FASTEST-TIMERS`; `OBJ-PROVE-TIMERS`; commit `2e14e50`
 - Provenance: INV-APPLE-BARE-CNTVCT
 
 ## Decision
