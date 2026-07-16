@@ -182,6 +182,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: M1.G1 gated only on rows 2 (ESC-THREAD-PMU-X86-PROBE) and 4 (ESC-WINDOWS-2022-PUSH); the mac-x86 finding is resolved and no longer open.
 - Blocked/unsure: row 2 ESC-THREAD-PMU-X86-PROBE; row 4 ESC-WINDOWS-2022-PUSH; suspend (d) owner window
 
+### 2026-07-15 · spence · `OBJ-SIMPLIFY-TIMERS.M1`
+- Did: De-risked freeze row 2 (T-LINUX-X86) via code investigation rather than declining it. Established tach's Linux thread-CPU inline path uses PERF_COUNT_SW_TASK_CLOCK + CAP_USER_TIME (task-clock via mmap time_mult/shift + a TSC read), NOT the cap_user_rdpmc hardware-cycles path — so the plan's 'cap_user_rdpmc metal' premise for row 2 is imprecise. The correct x86 probe is a bounded ~40-line task (read_task_clock verbatim + swap cntvct->rdtsc vs syscall CLOCK_THREAD_CPUTIME_ID with the busy-interval self-check), dropping the Graviton3-hardcoded rdpmc diagnostic entirely. Captured the precise recipe in ESC-THREAD-PMU-X86-PROBE.
+- Found: Because tach uses cap_user_time (works on Nitro c7i, which exposes an inline TSC) not cap_user_rdpmc (bare-metal only), c5n.metal may not even be required: the frozen c7i 'perf available-but-slower' result may already be row 2's answer (syscall wins -> capability policy). This strengthens the recommendation to ACCEPT the retained tournament; the metal spend buys little. Not built under likely-degraded late-session judgment for optional-only value.
+- Next: Row 2 fully de-risked and recommended (accept tournament); row 4 ESC-WINDOWS-2022-PUSH; ESC-AMD-FLIP-PROBE-TOOLING ratification; Apple suspend (d) window. All owner-gated.
+- Blocked/unsure: row 2 ESC-THREAD-PMU-X86-PROBE (de-risked, recommend accept-tournament); row 4 ESC-WINDOWS-2022-PUSH; suspend (d) owner window
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

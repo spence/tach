@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M1 🚧 Eligibility re-adjudication and flip verification)
-> Next:       M1.G1 gated only on rows 2 (ESC-THREAD-PMU-X86-PROBE) and 4 (ESC-WINDOWS-2022-PUSH); the mac-x86 finding is resolved and no longer open.
+> Next:       Row 2 fully de-risked and recommended (accept tournament); row 4 ESC-WINDOWS-2022-PUSH; ESC-AMD-FLIP-PROBE-TOOLING ratification; Apple suspend (d) window. All owner-gated.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-THREAD-PMU-X86-PROBE, ESC-WINDOWS-2022-PUSH
-> Last verified: 2026-07-15 · Changed: Resolved the mac-x86 (row 6) claim-vs-evidence discrepancy WITH evidence. The frozen github-macos-15-intel run (speed-supplemental-macos-x86_64.json, 68dc201) has tsc_eligible=false, tsc_eligibility_basis=ineligible_cpuid_missing_invariant_tsc_or_rdtscp (the virtualized CI runner's CPUID omits invariant TSC/RDTSCP), so tach selects apple_mach_absolute_time. Corrected the provider-policy-matrix W-MAC-X86 verdict, which wrongly claimed 'selected invariant TSC' — unsupported by any retained evidence; no bare-metal Intel Mac is available. O-MAC-X86 ordered claim stands (selected apple_commpage_lfence_rdtsc_nanotime, which IS supported). · By: nsr · 99abab9
+> Last verified: 2026-07-15 · Changed: De-risked freeze row 2 (T-LINUX-X86) via code investigation rather than declining it. Established tach's Linux thread-CPU inline path uses PERF_COUNT_SW_TASK_CLOCK + CAP_USER_TIME (task-clock via mmap time_mult/shift + a TSC read), NOT the cap_user_rdpmc hardware-cycles path — so the plan's 'cap_user_rdpmc metal' premise for row 2 is imprecise. The correct x86 probe is a bounded ~40-line task (read_task_clock verbatim + swap cntvct->rdtsc vs syscall CLOCK_THREAD_CPUTIME_ID with the busy-interval self-check), dropping the Graviton3-hardcoded rdpmc diagnostic entirely. Captured the precise recipe in ESC-THREAD-PMU-X86-PROBE. · By: nsr · a7c8bec
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
