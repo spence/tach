@@ -510,8 +510,9 @@ pub(crate) fn scale_from_ratio(nanos_numerator: u64, ticks_denominator: u64) -> 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[inline]
 fn read_local_nanos_per_tick_q32() -> u64 {
-  let (numer, denom) = fallback::mach_timebase();
-  scale_from_ratio(u64::from(numer), u64::from(denom))
+  // The bare-counter provider lives in the `CNTFRQ_EL0` tick domain (1 GHz on
+  // M3/M4), not Mach-timebase ticks, so the instant scale follows selection.
+  apple_aarch64::instant_nanos_per_tick_q32()
 }
 
 #[cfg(all(target_os = "macos", target_arch = "x86_64"))]

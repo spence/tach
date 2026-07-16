@@ -5,6 +5,15 @@
 //! timebase ratio and are valid `Instant`-style wall clocks. Tach measures the
 //! complete post-selection read path for both contracts independently and
 //! retains a challenger only when it wins materially and repeatably.
+//!
+//! `Instant` additionally admits the bare architectural counter (ADR-0005):
+//! plain `CNTVCT_EL0` satisfies the same-thread monotonic wall-rate contract
+//! (frozen at 0 violations across ~2.8e9 paired reads on M1 Max and M4 Pro)
+//! at a fraction of the XNU protocol cost. It is its own tick domain scaled
+//! by `CNTFRQ_EL0` — 24 MHz on M1/M2, 1 GHz on M3/M4 — and on Apple Silicon
+//! it advances through system sleep exactly like both Mach timelines. An
+//! unbarriered read is never synchronization-ordered, so `OrderedInstant`
+//! never sees this candidate.
 
 use core::arch::asm;
 use core::hint::{black_box, spin_loop};
@@ -21,7 +30,8 @@ const PROVIDER_MACH_CONTINUOUS: usize = 5;
 const PROVIDER_CONTINUOUS_CNTVCT: usize = 6;
 const PROVIDER_CONTINUOUS_CNTVCTSS: usize = 7;
 const PROVIDER_CONTINUOUS_ACNTVCT: usize = 8;
-const MAX_PROVIDER: usize = PROVIDER_CONTINUOUS_ACNTVCT;
+const PROVIDER_BARE_CNTVCT: usize = 9;
+const MAX_PROVIDER: usize = PROVIDER_BARE_CNTVCT;
 const SELECTING_TAG: usize = 1 << (usize::BITS - 1);
 
 const COMM_PAGE_BASE: usize = 0x0000_000f_ffff_c000;
@@ -36,7 +46,7 @@ const USER_TIMEBASE_SPEC: u8 = 1;
 const USER_TIMEBASE_NOSPEC: u8 = 2;
 const USER_TIMEBASE_NOSPEC_APPLE: u8 = 3;
 
-const MAX_CANDIDATES: usize = 4;
+const MAX_CANDIDATES: usize = 5;
 const PROBE_BATCHES: usize = 9;
 const PROBE_READS: u64 = 4096;
 const PROBE_WARMUP_READS: u64 = 1024;
@@ -179,6 +189,9 @@ pub(crate) struct SelectionEvidence {
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
   let provider = INSTANT_SELECTOR.state.load(Ordering::Relaxed);
+  if provider == PROVIDER_BARE_CNTVCT {
+    return bare_cntvct();
+  }
   if provider == PROVIDER_CONTINUOUS_ACNTVCT {
     return acntvct_continuous_time();
   }
@@ -327,7 +340,7 @@ fn selected_provider<const ORDERED: bool>(selector: &Selector) -> usize {
 fn select_provider<const ORDERED: bool>(selector: &Selector) -> SelectionRun {
   let mode = user_timebase_mode();
   let continuous_hwclock = continuous_hwclock_available();
-  let candidates = candidates(mode, continuous_hwclock);
+  let candidates = candidates(mode, continuous_hwclock, ORDERED);
   let mut samples = [[0; PROBE_BATCHES]; MAX_CANDIDATES];
 
   for provider in candidates.as_slice() {
@@ -392,11 +405,19 @@ fn probe_dispatched_ticks<const ORDERED: bool>(selector: &Selector) -> u64 {
   if ORDERED { read_ordered_provider(provider) } else { read_instant_provider(provider) }
 }
 
-fn candidates(mode: u8, continuous_hwclock: bool) -> CandidateList {
+fn candidates(mode: u8, continuous_hwclock: bool, ordered: bool) -> CandidateList {
   let mut candidates = CandidateList::new();
-  // The direct continuous protocol has one commpage load, while the direct
-  // absolute protocol needs two loads and a retry check. Start with the
-  // structurally cheaper eligible route so a measured tie retains it.
+  // Structurally cheapest eligible route first so a measured tie retains it:
+  // the bare counter has zero commpage loads, the direct continuous protocol
+  // one load, the direct absolute protocol two loads and a retry check.
+  //
+  // The bare counter is `Instant`-only (ADR-0005): an unbarriered read is
+  // never synchronization-ordered. Mode 2 hardware (non-Apple CNTVCTSS
+  // guidance) has no retained bare-read evidence and keeps the designated
+  // registers.
+  if !ordered && (mode == USER_TIMEBASE_SPEC || mode == USER_TIMEBASE_NOSPEC_APPLE) {
+    candidates.push(PROVIDER_BARE_CNTVCT);
+  }
   if continuous_hwclock {
     candidates.push(continuous_direct_provider(mode));
   }
@@ -429,6 +450,7 @@ const fn continuous_direct_provider(mode: u8) -> usize {
 #[allow(clippy::inline_always)]
 fn read_instant_provider(provider: usize) -> u64 {
   match provider {
+    PROVIDER_BARE_CNTVCT => bare_cntvct(),
     PROVIDER_ABSOLUTE_CNTVCT => cntvct_absolute_time(),
     PROVIDER_ABSOLUTE_CNTVCTSS => cntvctss_absolute_time(),
     PROVIDER_ABSOLUTE_ACNTVCT => acntvct_absolute_time(),
@@ -538,6 +560,50 @@ fn mach_absolute() -> u64 {
 fn mach_continuous() -> u64 {
   // SAFETY: `mach_continuous_time` takes no arguments and returns an exact Mach tick value.
   unsafe { mach_continuous_time() }
+}
+
+#[inline(always)]
+#[allow(clippy::inline_always)]
+fn bare_cntvct() -> u64 {
+  let counter: u64;
+  // SAFETY: `mrs cntvct_el0` reads the architectural virtual counter and touches
+  // no memory or stack. Unordered by contract: `Instant` samples carry no
+  // synchronization edge, and same-thread monotonicity of the bare read is
+  // frozen at 0 violations across ~2.8e9 paired reads (M1 Max, M4 Pro).
+  unsafe {
+    asm!("mrs {}, cntvct_el0", out(reg) counter, options(nostack, nomem, preserves_flags));
+  }
+  counter
+}
+
+#[inline]
+fn cntfrq() -> u64 {
+  let frequency: u64;
+  // SAFETY: `mrs cntfrq_el0` reads the architectural counter-frequency register
+  // and touches no memory or stack. Bits [31:0] carry the rate in Hz.
+  unsafe {
+    asm!("mrs {}, cntfrq_el0", out(reg) frequency, options(nostack, nomem, preserves_flags));
+  }
+  frequency & 0xffff_ffff
+}
+
+#[inline]
+fn mach_nanos_per_tick_q32() -> u64 {
+  let (numer, denom) = super::fallback::mach_timebase();
+  crate::arch::scale_from_ratio(u64::from(numer), u64::from(denom))
+}
+
+// The bare counter is its own tick domain: `CNTFRQ_EL0` reports 24 MHz on
+// M1/M2 and 1 GHz on M3/M4, while every XNU protocol route stays in
+// Mach-timebase ticks. The instant scale therefore follows the selected
+// provider; forcing selection here is safe because a scale is only needed
+// after some `now()` produced a sample.
+pub(crate) fn instant_nanos_per_tick_q32() -> u64 {
+  if selected_provider::<false>(&INSTANT_SELECTOR) == PROVIDER_BARE_CNTVCT {
+    crate::arch::scale_from_ratio(1_000_000_000, cntfrq())
+  } else {
+    mach_nanos_per_tick_q32()
+  }
 }
 
 #[inline(always)]
@@ -842,6 +908,7 @@ const fn provider_name<const ORDERED: bool>(provider: usize) -> &'static str {
     PROVIDER_CONTINUOUS_CNTVCT => "apple_continuous_hw_cntvct_base",
     PROVIDER_CONTINUOUS_CNTVCTSS => "apple_continuous_hw_cntvctss_base",
     PROVIDER_CONTINUOUS_ACNTVCT => "apple_continuous_hw_acntvct_base",
+    PROVIDER_BARE_CNTVCT => "apple_bare_cntvct",
     _ => "unavailable",
   }
 }
@@ -880,8 +947,7 @@ pub(crate) struct BenchPrimitive {
 #[cfg(feature = "bench-internal")]
 #[inline]
 fn bench_nanos_per_tick_q32() -> u64 {
-  let (numer, denom) = super::fallback::mach_timebase();
-  crate::arch::scale_from_ratio(u64::from(numer), u64::from(denom))
+  mach_nanos_per_tick_q32()
 }
 
 #[cfg(feature = "bench-internal")]
@@ -900,7 +966,7 @@ pub(crate) fn bench_selected_ordered_primitive() -> BenchPrimitive {
 #[allow(dead_code)] // The benchmark harness iterates the complete candidate set.
 pub(crate) fn bench_instant_candidate_primitives()
 -> ([Option<BenchPrimitive>; MAX_CANDIDATES], usize) {
-  let candidate_list = candidates(user_timebase_mode(), continuous_hwclock_available());
+  let candidate_list = candidates(user_timebase_mode(), continuous_hwclock_available(), false);
   let mut primitives = [None; MAX_CANDIDATES];
   for (slot, provider) in primitives.iter_mut().zip(candidate_list.as_slice()) {
     *slot = Some(instant_bench_primitive(*provider));
@@ -912,7 +978,7 @@ pub(crate) fn bench_instant_candidate_primitives()
 #[allow(dead_code)] // The benchmark harness iterates the complete candidate set.
 pub(crate) fn bench_ordered_candidate_primitives()
 -> ([Option<BenchPrimitive>; MAX_CANDIDATES], usize) {
-  let candidate_list = candidates(user_timebase_mode(), continuous_hwclock_available());
+  let candidate_list = candidates(user_timebase_mode(), continuous_hwclock_available(), true);
   let mut primitives = [None; MAX_CANDIDATES];
   for (slot, provider) in primitives.iter_mut().zip(candidate_list.as_slice()) {
     *slot = Some(ordered_bench_primitive(*provider));
@@ -923,7 +989,8 @@ pub(crate) fn bench_ordered_candidate_primitives()
 #[cfg(feature = "bench-internal")]
 fn instant_bench_primitive(provider: usize) -> BenchPrimitive {
   let read = match provider {
-    PROVIDER_ABSOLUTE_CNTVCT => cntvct_absolute_time as fn() -> u64,
+    PROVIDER_BARE_CNTVCT => bare_cntvct as fn() -> u64,
+    PROVIDER_ABSOLUTE_CNTVCT => cntvct_absolute_time,
     PROVIDER_ABSOLUTE_CNTVCTSS => cntvctss_absolute_time,
     PROVIDER_ABSOLUTE_ACNTVCT => acntvct_absolute_time,
     PROVIDER_MACH_CONTINUOUS => mach_continuous,
@@ -935,7 +1002,11 @@ fn instant_bench_primitive(provider: usize) -> BenchPrimitive {
   BenchPrimitive {
     name: provider_name::<false>(provider),
     read,
-    nanos_per_tick_q32: bench_nanos_per_tick_q32(),
+    nanos_per_tick_q32: if provider == PROVIDER_BARE_CNTVCT {
+      crate::arch::scale_from_ratio(1_000_000_000, cntfrq())
+    } else {
+      bench_nanos_per_tick_q32()
+    },
   }
 }
 
@@ -969,6 +1040,8 @@ macro_rules! exact_bench_reader {
   };
 }
 
+#[cfg(feature = "bench-internal")]
+exact_bench_reader!(bench_exact_bare_cntvct, bare_cntvct);
 #[cfg(feature = "bench-internal")]
 exact_bench_reader!(bench_exact_mach_absolute, mach_absolute);
 #[cfg(feature = "bench-internal")]
@@ -1004,21 +1077,52 @@ mod tests {
       u8::MAX,
     ] {
       for continuous in [false, true] {
-        let list = candidates(mode, continuous);
-        assert!(list.as_slice().contains(&PROVIDER_MACH_ABSOLUTE));
-        assert!(list.as_slice().contains(&PROVIDER_MACH_CONTINUOUS));
-        if continuous {
-          assert_eq!(list.as_slice()[0], continuous_direct_provider(mode));
-        }
-        assert_eq!(
-          list.as_slice().iter().filter(|provider| is_continuous(**provider)).count(),
-          if continuous { 2 } else { 1 }
-        );
-        for (index, provider) in list.as_slice().iter().enumerate() {
-          assert!(!list.as_slice()[index + 1..].contains(provider));
+        for ordered in [false, true] {
+          let list = candidates(mode, continuous, ordered);
+          assert!(list.as_slice().contains(&PROVIDER_MACH_ABSOLUTE));
+          assert!(list.as_slice().contains(&PROVIDER_MACH_CONTINUOUS));
+          let bare_eligible =
+            !ordered && (mode == USER_TIMEBASE_SPEC || mode == USER_TIMEBASE_NOSPEC_APPLE);
+          assert_eq!(list.as_slice().contains(&PROVIDER_BARE_CNTVCT), bare_eligible);
+          if bare_eligible {
+            assert_eq!(list.as_slice()[0], PROVIDER_BARE_CNTVCT);
+          }
+          if continuous {
+            let first_protocol = usize::from(bare_eligible);
+            assert_eq!(list.as_slice()[first_protocol], continuous_direct_provider(mode));
+          }
+          assert_eq!(
+            list.as_slice().iter().filter(|provider| is_continuous(**provider)).count(),
+            if continuous { 2 } else { 1 }
+          );
+          for (index, provider) in list.as_slice().iter().enumerate() {
+            assert!(!list.as_slice()[index + 1..].contains(provider));
+          }
         }
       }
     }
+  }
+
+  #[test]
+  fn bare_counter_is_instant_only_and_scaled_by_cntfrq() {
+    if selected_provider::<false>(&INSTANT_SELECTOR) == PROVIDER_BARE_CNTVCT {
+      let hz = cntfrq();
+      assert!(hz >= 1_000_000, "implausible cntfrq: {hz}");
+      assert_eq!(instant_nanos_per_tick_q32(), crate::arch::scale_from_ratio(1_000_000_000, hz));
+      let mut previous = bare_cntvct();
+      for _ in 0..100_000 {
+        let current = bare_cntvct();
+        assert!(current >= previous, "bare counter moved backward on one thread");
+        previous = current;
+      }
+    } else {
+      assert_eq!(instant_nanos_per_tick_q32(), mach_nanos_per_tick_q32());
+    }
+    assert!(
+      !candidates(user_timebase_mode(), continuous_hwclock_available(), true)
+        .as_slice()
+        .contains(&PROVIDER_BARE_CNTVCT)
+    );
   }
 
   #[test]

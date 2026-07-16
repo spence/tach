@@ -778,6 +778,8 @@ macro_rules! expose_apple_aarch64_exact_read {
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+expose_apple_aarch64_exact_read!(apple_aarch64_exact_bare_cntvct, bench_exact_bare_cntvct);
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 expose_apple_aarch64_exact_read!(apple_aarch64_exact_mach_absolute, bench_exact_mach_absolute);
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 expose_apple_aarch64_exact_read!(apple_aarch64_exact_mach_continuous, bench_exact_mach_continuous);
@@ -4719,7 +4721,7 @@ pub struct AppleAarch64WallSelectionMeasurements {
   pub continuous_hwclock: bool,
   pub reads_per_batch: u64,
   pub candidate_count: usize,
-  pub candidates: [AppleAarch64WallCandidateMeasurements; 4],
+  pub candidates: [AppleAarch64WallCandidateMeasurements; 5],
   pub required_decisive_wins: usize,
   pub equivalence_floor_ticks_per_batch: u64,
   pub equivalence_relative_denominator: u64,

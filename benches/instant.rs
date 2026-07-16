@@ -1632,6 +1632,9 @@ macro_rules! with_apple_aarch64_instant_read {
       "apple_continuous_hw_acntvct_base" => {
         $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_continuous)
       }
+      "apple_bare_cntvct" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_bare_cntvct)
+      }
       _ => $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_absolute),
     }
   }};
