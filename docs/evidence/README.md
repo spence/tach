@@ -14,6 +14,7 @@ dated package; do not silently rewrite a verdict.
 | `EVID-AMD-FLIP-FREEBSD-X86` |  | [`timers/amd-flip-freebsd-x86-2026-07-15/README.md`](timers/amd-flip-freebsd-x86-2026-07-15/README.md) |
 | `EVID-AMD-FLIP-LINUX-X86-2026-07-15` |  | [`timers/amd-flip-linux-x86-2026-07-15-2026-07-15/README.md`](timers/amd-flip-linux-x86-2026-07-15-2026-07-15/README.md) |
 | `EVID-APPLE-BARE-CNTVCT` |  | [`timers/apple-bare-cntvct-2026-07-15/README.md`](timers/apple-bare-cntvct-2026-07-15/README.md) |
+| `EVID-APPLE-ORDERED` |  | [`timers/apple-ordered-survey-2026-07-16/README.md`](timers/apple-ordered-survey-2026-07-16/README.md) |
 | `EVID-GRAVITON4-FLIP-LINUX-A64` |  | [`timers/graviton4-flip-linux-a64-2026-07-15/README.md`](timers/graviton4-flip-linux-a64-2026-07-15/README.md) |
 | `EVID-LINUX-PRIMARY-SPEED` | 🟡 | [`timers/primary-linux-2026-07-13/README.md`](timers/primary-linux-2026-07-13/README.md) |
 | `EVID-PROVIDER-POLICY-2026-07-14` | 🟢 | [`timers/provider-policy-closure-2026-07-14/README.md`](timers/provider-policy-closure-2026-07-14/README.md) |
