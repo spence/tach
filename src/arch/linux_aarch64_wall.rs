@@ -2,176 +2,51 @@
 //!
 //! Linux normally permits EL0 reads of `CNTVCT_EL0`, but deliberately traps
 //! them when an architectural-timer erratum needs an out-of-line workaround.
-//! The arm64 trap handler emulates `CNTVCT_EL0` and `CNTVCTSS_EL0` through the
-//! kernel's workaround-aware counter reader. A thread can separately request
-//! `SIGSEGV` for counter access with `PR_SET_TSC` on kernels that implement the
-//! arm64 control, which entered upstream in Linux 6.12. Tach first checks
+//! The arm64 trap handler emulates `CNTVCT_EL0` through the kernel's
+//! workaround-aware counter reader. A thread can separately request `SIGSEGV`
+//! for counter access with `PR_SET_TSC` on kernels that implement the arm64
+//! control, which entered upstream in Linux 6.12. Tach first checks
 //! `PR_GET_TSC`. When an older kernel reports that option unsupported, a
 //! strictly parsed pre-6.12 `uname` release proves that the per-thread denial
 //! control does not exist. A successful query remains authoritative regardless
 //! of the reported release, so Android and vendor backports are handled as
 //! feature probes rather than guessed from their base version. New-enough,
-//! malformed, or unavailable releases fail closed. Tach then measures the exact
-//! branched hot paths so a trapped read cannot win merely because the ISA
-//! advertises it.
+//! malformed, or unavailable releases fail closed.
 //!
-//! `Instant` and `OrderedInstant` select independently. A bare CNTVCT read is
-//! eligible for local monotonic samples because the register contract orders
-//! CNTVCT/CNTVCTSS reads with one another. It is not ordered with surrounding
-//! work. Ordered reads use either `isb; mrs cntvct_el0` or the architecturally
-//! self-synchronizing `CNTVCTSS_EL0`. Linux CLOCK_MONOTONIC,
-//! CLOCK_MONOTONIC_RAW, and CLOCK_BOOTTIME remain eligible in both domains: their arm64 vDSO
-//! counter accessors use the same ordered timer primitives, and their fallback
-//! syscalls are context-synchronizing exceptions. The libc/vDSO and explicit
-//! syscall forms compete separately because virtualization and kernel/vDSO
-//! configuration can reverse their usual ordering.
-//!
-//! FEAT_SB is intentionally not a candidate. SB constrains side-channel-
-//! observable speculative effects; it is not an instruction-completion
-//! barrier and cannot prove that a counter sample occurred after a prior
-//! Acquire observation.
+//! When counter reads are eligible, `Instant` reads a bare `CNTVCT_EL0` and
+//! `OrderedInstant` reads `isb; mrs cntvct_el0`, both scaled by the calibrated
+//! counter frequency. A bare CNTVCT read is eligible for local monotonic
+//! samples because the register contract orders CNTVCT reads with one another;
+//! it is not ordered with surrounding work. The ISB form additionally orders
+//! the sample after a prior Acquire observation. When counter reads are denied,
+//! both timers fall back to the explicit `CLOCK_MONOTONIC` syscall: a libc or
+//! vDSO `clock_gettime` may itself execute the denied counter instruction, so
+//! the fallback must enter the kernel through the context-synchronizing syscall
+//! exception.
 //!
 //! Counter permission is per thread while each selected wall timeline is
-//! process-wide. Initial denial safely measures only the explicit
-//! CLOCK_MONOTONIC, CLOCK_MONOTONIC_RAW, and CLOCK_BOOTTIME syscalls because a vDSO may
-//! execute the same denied counter instruction. Every reading thread must
-//! retain counter permission after a direct provider or vDSO provider is
-//! selected; explicitly disabling it is an external fault boundary.
+//! process-wide. Every reading thread must retain counter permission after a
+//! counter provider is selected; explicitly disabling it is an external fault
+//! boundary.
 
-#[cfg(feature = "bench-internal")]
-use core::cell::UnsafeCell;
-use core::hint::black_box;
-#[cfg(feature = "bench-internal")]
-use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicI32, AtomicU8, AtomicU64, Ordering};
 
 const PROVIDER_UNKNOWN: u8 = 0;
 const PROVIDER_SELECTING: u8 = 1;
 const PROVIDER_CNTVCT: u8 = 2;
-const PROVIDER_CLOCK_MONOTONIC: u8 = 3;
 const PROVIDER_ISB_CNTVCT: u8 = 4;
-const PROVIDER_CNTVCTSS: u8 = 5;
 const PROVIDER_CLOCK_MONOTONIC_SYSCALL: u8 = 6;
-const PROVIDER_CLOCK_MONOTONIC_RAW: u8 = 7;
-const PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL: u8 = 8;
-const PROVIDER_CLOCK_MONOTONIC_VDSO: u8 = 9;
-const PROVIDER_CLOCK_MONOTONIC_RAW_VDSO: u8 = 10;
-const PROVIDER_CLOCK_BOOTTIME: u8 = 11;
-const PROVIDER_CLOCK_BOOTTIME_SYSCALL: u8 = 12;
-const PROVIDER_CLOCK_BOOTTIME_VDSO: u8 = 13;
 const HOT_PROVIDER_ISB_CNTVCT_IDENTITY: u8 = 14;
-const HOT_PROVIDER_CNTVCTSS_IDENTITY: u8 = 15;
 const MAX_ORDERED_HOT_SCALE: u64 = u64::MAX >> 8;
 const IDENTITY_NANOS_PER_TICK_Q32: u64 = 1_u64 << 32;
 const REENTRANT_ORDERED_HOT_STATE: u64 =
   (IDENTITY_NANOS_PER_TICK_Q32 << 8) | PROVIDER_CLOCK_MONOTONIC_SYSCALL as u64;
-
-const MAX_INSTANT_CANDIDATES: usize = 10;
-const MAX_ORDERED_CANDIDATES: usize = 11;
-
-#[derive(Clone, Copy)]
-struct CandidateList<const N: usize> {
-  providers: [u8; N],
-  count: usize,
-}
-
-impl<const N: usize> CandidateList<N> {
-  const fn new() -> Self {
-    Self { providers: [PROVIDER_UNKNOWN; N], count: 0 }
-  }
-
-  fn push(&mut self, provider: u8) {
-    debug_assert!(self.count < N);
-    self.providers[self.count] = provider;
-    self.count += 1;
-  }
-
-  fn as_slice(&self) -> &[u8] {
-    &self.providers[..self.count]
-  }
-}
-
-fn instant_candidates(
-  counter_eligible: bool,
-  vdso_available: bool,
-  vdso_raw_available: bool,
-  vdso_boottime_available: bool,
-) -> CandidateList<MAX_INSTANT_CANDIDATES> {
-  let mut candidates = CandidateList::new();
-  if counter_eligible {
-    candidates.push(PROVIDER_CLOCK_MONOTONIC);
-    candidates.push(PROVIDER_CLOCK_MONOTONIC_RAW);
-    candidates.push(PROVIDER_CLOCK_BOOTTIME);
-    if vdso_available {
-      candidates.push(PROVIDER_CLOCK_MONOTONIC_VDSO);
-    }
-    if vdso_raw_available {
-      candidates.push(PROVIDER_CLOCK_MONOTONIC_RAW_VDSO);
-    }
-    if vdso_boottime_available {
-      candidates.push(PROVIDER_CLOCK_BOOTTIME_VDSO);
-    }
-  }
-  candidates.push(PROVIDER_CLOCK_MONOTONIC_SYSCALL);
-  candidates.push(PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL);
-  candidates.push(PROVIDER_CLOCK_BOOTTIME_SYSCALL);
-  if counter_eligible {
-    candidates.push(PROVIDER_CNTVCT);
-  }
-  candidates
-}
-
-fn ordered_candidates(
-  counter_eligible: bool,
-  cntvctss_eligible: bool,
-  vdso_available: bool,
-  vdso_raw_available: bool,
-  vdso_boottime_available: bool,
-) -> CandidateList<MAX_ORDERED_CANDIDATES> {
-  let mut candidates = CandidateList::new();
-  if counter_eligible {
-    candidates.push(PROVIDER_CLOCK_MONOTONIC);
-    candidates.push(PROVIDER_CLOCK_MONOTONIC_RAW);
-    candidates.push(PROVIDER_CLOCK_BOOTTIME);
-  }
-  candidates.push(PROVIDER_CLOCK_MONOTONIC_SYSCALL);
-  candidates.push(PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL);
-  candidates.push(PROVIDER_CLOCK_BOOTTIME_SYSCALL);
-  if counter_eligible {
-    if vdso_available {
-      candidates.push(PROVIDER_CLOCK_MONOTONIC_VDSO);
-    }
-    if vdso_raw_available {
-      candidates.push(PROVIDER_CLOCK_MONOTONIC_RAW_VDSO);
-    }
-    if vdso_boottime_available {
-      candidates.push(PROVIDER_CLOCK_BOOTTIME_VDSO);
-    }
-    candidates.push(PROVIDER_ISB_CNTVCT);
-    if cntvctss_eligible {
-      candidates.push(PROVIDER_CNTVCTSS);
-    }
-  }
-  candidates
-}
-
-const PROBE_BATCHES: usize = 9;
-const PROBE_READS: u64 = 4096;
-const PROBE_WARMUP_READS: u64 = 1024;
-const REQUIRED_DECISIVE_WINS: usize = 8;
-#[cfg(feature = "bench-internal")]
-const MAX_INSTANT_TOURNAMENT_STEPS: usize = MAX_INSTANT_CANDIDATES - 1;
-#[cfg(feature = "bench-internal")]
-const MAX_ORDERED_TOURNAMENT_STEPS: usize = MAX_ORDERED_CANDIDATES - 1;
 
 const PR_GET_TSC: libc::c_int = 25;
 #[cfg(test)]
 const PR_SET_TSC: libc::c_int = 26;
 const PR_TSC_ENABLE: libc::c_int = 1;
 const PR_TSC_SIGSEGV: libc::c_int = 2;
-
-#[cfg(feature = "bench-internal")]
-const HWCAP_SB: libc::c_ulong = 1 << 29;
 
 static INSTANT_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static INSTANT_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
@@ -180,11 +55,6 @@ static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(REENTRANT_ORDERED_HOT_STATE);
-
-// Probe readers retain the same predicted atomic-load branch as the public
-// paths while the public provider states remain SELECTING.
-static PROBE_INSTANT_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_CNTVCT);
-static PROBE_ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_ISB_CNTVCT);
 
 // Both direct domains read the same architectural counter at the same rate.
 static DIRECT_FREQUENCY: AtomicU64 = AtomicU64::new(0);
@@ -196,17 +66,6 @@ enum CounterEligibility {
   CounterReadDisabled,
 }
 
-impl CounterEligibility {
-  #[cfg(feature = "bench-internal")]
-  const fn name(self) -> &'static str {
-    match self {
-      Self::Eligible => "eligible",
-      Self::PrGetTscUnavailable => "pr_get_tsc_unavailable",
-      Self::CounterReadDisabled => "pr_get_tsc_not_enabled",
-    }
-  }
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum PermissionBasis {
   PrGetTscEnabled,
@@ -216,21 +75,6 @@ enum PermissionBasis {
   PrGetTscFailed,
   NewKernelWithoutObservablePrGetTsc,
   KernelReleaseUnknown,
-}
-
-impl PermissionBasis {
-  #[cfg(feature = "bench-internal")]
-  const fn name(self) -> &'static str {
-    match self {
-      Self::PrGetTscEnabled => "pr_get_tsc_enabled",
-      Self::LegacyKernelWithoutPrGetTsc => "legacy_kernel_without_pr_get_tsc",
-      Self::PrGetTscNotEnabled => "pr_get_tsc_not_enabled",
-      Self::PrGetTscUnknownMode => "pr_get_tsc_unknown_mode",
-      Self::PrGetTscFailed => "pr_get_tsc_failed",
-      Self::NewKernelWithoutObservablePrGetTsc => "new_kernel_without_observable_pr_get_tsc",
-      Self::KernelReleaseUnknown => "kernel_release_unknown",
-    }
-  }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -251,7 +95,6 @@ impl KernelVersion {
 struct CounterAssessment {
   eligibility: CounterEligibility,
   basis: PermissionBasis,
-  pr_get_tsc_status: libc::c_long,
   kernel_version: Option<KernelVersion>,
 }
 
@@ -261,227 +104,12 @@ impl CounterAssessment {
   }
 }
 
-#[derive(Clone, Copy, Debug)]
-struct SelectionDecision {
-  #[cfg(feature = "bench-internal")]
-  allowance: u64,
-  #[cfg(feature = "bench-internal")]
-  decisive_wins: usize,
-  challenger_selected: bool,
-}
-
-#[derive(Clone, Copy)]
-struct RankedCandidate {
-  provider: u8,
-  samples: Samples,
-}
-
-#[derive(Clone, Copy)]
-struct TournamentStage {
-  #[cfg(feature = "bench-internal")]
-  challenger: u8,
-  #[cfg(feature = "bench-internal")]
-  incumbent: u8,
-  decision: SelectionDecision,
-}
-
-fn compete(incumbent: &mut RankedCandidate, challenger: RankedCandidate) -> TournamentStage {
-  let stage = TournamentStage {
-    #[cfg(feature = "bench-internal")]
-    challenger: challenger.provider,
-    #[cfg(feature = "bench-internal")]
-    incumbent: incumbent.provider,
-    decision: evaluate_challenger(challenger.samples, incumbent.samples),
-  };
-  if stage.decision.challenger_selected {
-    *incumbent = challenger;
-  }
-  stage
-}
-
-const fn no_challenge_decision() -> SelectionDecision {
-  SelectionDecision {
-    #[cfg(feature = "bench-internal")]
-    allowance: 0,
-    #[cfg(feature = "bench-internal")]
-    decisive_wins: 0,
-    challenger_selected: false,
-  }
-}
-
-#[cfg(feature = "bench-internal")]
-fn stage_evidence(stage: TournamentStage) -> TournamentStepEvidence {
-  let winner = if stage.decision.challenger_selected { stage.challenger } else { stage.incumbent };
-  TournamentStepEvidence {
-    challenger: provider_name(stage.challenger),
-    incumbent: provider_name(stage.incumbent),
-    allowance_ns: stage.decision.allowance,
-    decisive_wins: stage.decision.decisive_wins,
-    challenger_selected: stage.decision.challenger_selected,
-    winner: provider_name(winner),
-  }
-}
-
-#[cfg(feature = "bench-internal")]
-#[derive(Clone, Copy, Debug)]
-#[allow(dead_code)] // The serializer may project a subset of complete selector evidence.
-pub(crate) struct TournamentStepEvidence {
-  pub(crate) challenger: &'static str,
-  pub(crate) incumbent: &'static str,
-  pub(crate) allowance_ns: u64,
-  pub(crate) decisive_wins: usize,
-  pub(crate) challenger_selected: bool,
-  pub(crate) winner: &'static str,
-}
-
-#[cfg(feature = "bench-internal")]
-const EMPTY_TOURNAMENT_STEP: TournamentStepEvidence = TournamentStepEvidence {
-  challenger: "not_run",
-  incumbent: "not_run",
-  allowance_ns: 0,
-  decisive_wins: 0,
-  challenger_selected: false,
-  winner: "not_run",
-};
-
-#[cfg(feature = "bench-internal")]
-#[derive(Clone, Copy, Debug)]
-#[allow(dead_code)] // The serializer may project a subset of complete selector evidence.
-pub(crate) struct InstantProbeEvidence {
-  pub(crate) eligibility: &'static str,
-  pub(crate) permission_basis: &'static str,
-  pub(crate) pr_get_tsc_status: i64,
-  pub(crate) kernel_version_known: bool,
-  pub(crate) kernel_version_major: u32,
-  pub(crate) kernel_version_minor: u32,
-  pub(crate) candidate_count: usize,
-  pub(crate) vdso_available: bool,
-  pub(crate) vdso_raw_available: bool,
-  pub(crate) vdso_boottime_available: bool,
-  pub(crate) reads_per_batch: u64,
-  pub(crate) cntvct_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) clock_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) clock_raw_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) clock_boottime_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) syscall_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) syscall_raw_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) syscall_boottime_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) vdso_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) vdso_raw_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) vdso_boottime_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) cntvct_median_ns: u64,
-  pub(crate) clock_median_ns: u64,
-  pub(crate) clock_raw_median_ns: u64,
-  pub(crate) clock_boottime_median_ns: u64,
-  pub(crate) syscall_median_ns: u64,
-  pub(crate) syscall_raw_median_ns: u64,
-  pub(crate) syscall_boottime_median_ns: u64,
-  pub(crate) vdso_median_ns: u64,
-  pub(crate) vdso_raw_median_ns: u64,
-  pub(crate) vdso_boottime_median_ns: u64,
-  pub(crate) fallback_provider: &'static str,
-  pub(crate) direct_allowance_ns: u64,
-  pub(crate) direct_decisive_wins: usize,
-  pub(crate) syscall_vs_clock_allowance_ns: u64,
-  pub(crate) syscall_vs_clock_decisive_wins: usize,
-  pub(crate) tournament_step_count: usize,
-  pub(crate) tournament_steps: [TournamentStepEvidence; MAX_INSTANT_TOURNAMENT_STEPS],
-  pub(crate) required_decisive_wins: usize,
-  pub(crate) selected_provider: &'static str,
-}
-
-#[cfg(feature = "bench-internal")]
-#[derive(Clone, Copy, Debug)]
-#[allow(dead_code)] // The serializer may project a subset of complete selector evidence.
-pub(crate) struct OrderedProbeEvidence {
-  pub(crate) eligibility: &'static str,
-  pub(crate) permission_basis: &'static str,
-  pub(crate) pr_get_tsc_status: i64,
-  pub(crate) kernel_version_known: bool,
-  pub(crate) kernel_version_major: u32,
-  pub(crate) kernel_version_minor: u32,
-  pub(crate) candidate_count: usize,
-  pub(crate) vdso_available: bool,
-  pub(crate) vdso_raw_available: bool,
-  pub(crate) vdso_boottime_available: bool,
-  pub(crate) reads_per_batch: u64,
-  pub(crate) hwcap_ecv: bool,
-  pub(crate) hwcap_sb: bool,
-  pub(crate) sb_eligibility: &'static str,
-  pub(crate) isb_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) cntvctss_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) clock_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) clock_raw_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) clock_boottime_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) syscall_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) syscall_raw_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) syscall_boottime_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) vdso_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) vdso_raw_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) vdso_boottime_batches_ns: [u64; PROBE_BATCHES],
-  pub(crate) direct_provider: &'static str,
-  pub(crate) fallback_provider: &'static str,
-  pub(crate) direct_median_ns: u64,
-  pub(crate) clock_median_ns: u64,
-  pub(crate) clock_raw_median_ns: u64,
-  pub(crate) clock_boottime_median_ns: u64,
-  pub(crate) syscall_median_ns: u64,
-  pub(crate) syscall_raw_median_ns: u64,
-  pub(crate) syscall_boottime_median_ns: u64,
-  pub(crate) vdso_median_ns: u64,
-  pub(crate) vdso_raw_median_ns: u64,
-  pub(crate) vdso_boottime_median_ns: u64,
-  pub(crate) direct_allowance_ns: u64,
-  pub(crate) direct_decisive_wins: usize,
-  pub(crate) cntvctss_vs_isb_allowance_ns: u64,
-  pub(crate) cntvctss_vs_isb_decisive_wins: usize,
-  pub(crate) syscall_vs_clock_allowance_ns: u64,
-  pub(crate) syscall_vs_clock_decisive_wins: usize,
-  pub(crate) tournament_step_count: usize,
-  pub(crate) tournament_steps: [TournamentStepEvidence; MAX_ORDERED_TOURNAMENT_STEPS],
-  pub(crate) required_decisive_wins: usize,
-  pub(crate) selected_provider: &'static str,
-}
-
-#[cfg(feature = "bench-internal")]
-struct InstantEvidenceCell(UnsafeCell<MaybeUninit<InstantProbeEvidence>>);
-
-#[cfg(feature = "bench-internal")]
-struct OrderedEvidenceCell(UnsafeCell<MaybeUninit<OrderedProbeEvidence>>);
-
-// SAFETY: only a process-selection owner writes each cell before publishing
-// the corresponding provider state with Release. Readers observe that state
-// with Acquire. A fork child that inherits SELECTING writes its private COW
-// copy only after recovering ownership.
-#[cfg(feature = "bench-internal")]
-unsafe impl Sync for InstantEvidenceCell {}
-
-// SAFETY: identical publication protocol to InstantEvidenceCell.
-#[cfg(feature = "bench-internal")]
-unsafe impl Sync for OrderedEvidenceCell {}
-
-#[cfg(feature = "bench-internal")]
-static INSTANT_EVIDENCE: InstantEvidenceCell =
-  InstantEvidenceCell(UnsafeCell::new(MaybeUninit::uninit()));
-
-#[cfg(feature = "bench-internal")]
-static ORDERED_EVIDENCE: OrderedEvidenceCell =
-  OrderedEvidenceCell(UnsafeCell::new(MaybeUninit::uninit()));
-
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
   match INSTANT_PROVIDER.load(Ordering::Relaxed) {
     PROVIDER_CNTVCT => super::aarch64::cntvct(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => clock_monotonic_raw_vdso(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso(),
     _ => ticks_after_selection(),
   }
 }
@@ -491,15 +119,7 @@ pub fn ticks() -> u64 {
 fn ticks_after_selection() -> u64 {
   match selected_instant_provider() {
     PROVIDER_CNTVCT => super::aarch64::cntvct(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime(),
-    PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso(),
-    _ => clock_monotonic_raw_vdso(),
+    _ => clock_monotonic_syscall(),
   }
 }
 
@@ -513,16 +133,7 @@ pub fn ticks_ordered() -> u64 {
 fn read_hot_ordered_provider(provider: u8) -> u64 {
   match provider {
     PROVIDER_ISB_CNTVCT | HOT_PROVIDER_ISB_CNTVCT_IDENTITY => super::aarch64::cntvct_after_isb(),
-    PROVIDER_CNTVCTSS | HOT_PROVIDER_CNTVCTSS_IDENTITY => super::aarch64::cntvctss(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic_ordered(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw_ordered(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime_ordered(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso_ordered(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => clock_monotonic_raw_vdso_ordered(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso_ordered(),
     _ => ticks_ordered_after_selection(),
   }
 }
@@ -535,7 +146,6 @@ pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
     HOT_PROVIDER_ISB_CNTVCT_IDENTITY => {
       (super::aarch64::cntvct_after_isb(), IDENTITY_NANOS_PER_TICK_Q32)
     }
-    HOT_PROVIDER_CNTVCTSS_IDENTITY => (super::aarch64::cntvctss(), IDENTITY_NANOS_PER_TICK_Q32),
     _ => ticks_ordered_with_scale_fallback(state),
   }
 }
@@ -553,7 +163,6 @@ pub(crate) fn update_ordered_hot_scale(scale: u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
   let provider = match state as u8 {
     HOT_PROVIDER_ISB_CNTVCT_IDENTITY => PROVIDER_ISB_CNTVCT,
-    HOT_PROVIDER_CNTVCTSS_IDENTITY => PROVIDER_CNTVCTSS,
     provider => provider,
   };
   publish_ordered_hot_state(provider, scale);
@@ -563,7 +172,6 @@ fn publish_ordered_hot_state(provider: u8, scale: u64) {
   debug_assert!(ordered_hot_scale_fits(scale));
   let hot_provider = match (provider, scale) {
     (PROVIDER_ISB_CNTVCT, IDENTITY_NANOS_PER_TICK_Q32) => HOT_PROVIDER_ISB_CNTVCT_IDENTITY,
-    (PROVIDER_CNTVCTSS, IDENTITY_NANOS_PER_TICK_Q32) => HOT_PROVIDER_CNTVCTSS_IDENTITY,
     _ => provider,
   };
   ORDERED_HOT_STATE.store(scale << 8 | u64::from(hot_provider), Ordering::Release);
@@ -574,16 +182,7 @@ fn publish_ordered_hot_state(provider: u8, scale: u64) {
 fn ticks_ordered_after_selection() -> u64 {
   match selected_ordered_provider() {
     PROVIDER_ISB_CNTVCT => super::aarch64::cntvct_after_isb(),
-    PROVIDER_CNTVCTSS => super::aarch64::cntvctss(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic_ordered(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw_ordered(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime_ordered(),
-    PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso_ordered(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso_ordered(),
-    _ => clock_monotonic_raw_vdso_ordered(),
+    _ => clock_monotonic_syscall(),
   }
 }
 
@@ -593,16 +192,8 @@ fn ticks_ordered_after_selection() -> u64 {
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered_unordered() -> u64 {
   match ORDERED_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_ISB_CNTVCT | PROVIDER_CNTVCTSS => super::aarch64::cntvct(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime(),
+    PROVIDER_ISB_CNTVCT => super::aarch64::cntvct(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => clock_monotonic_raw_vdso(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso(),
     _ => ticks_ordered_unordered_after_selection(),
   }
 }
@@ -611,32 +202,9 @@ pub fn ticks_ordered_unordered() -> u64 {
 #[inline(never)]
 fn ticks_ordered_unordered_after_selection() -> u64 {
   match selected_ordered_provider() {
-    PROVIDER_ISB_CNTVCT | PROVIDER_CNTVCTSS => super::aarch64::cntvct(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime(),
-    PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso(),
-    _ => clock_monotonic_raw_vdso(),
+    PROVIDER_ISB_CNTVCT => super::aarch64::cntvct(),
+    _ => clock_monotonic_syscall(),
   }
-}
-
-#[inline(always)]
-fn clock_monotonic_ordered() -> u64 {
-  // Linux's arm64 vDSO reads the architectural timer through its ordered
-  // accessor (`isb; cntvct` or CNTVCTSS). When that mode is disabled, libc
-  // enters the kernel instead. The opaque call is also a compiler barrier.
-  clock_monotonic()
-}
-
-#[inline(always)]
-fn clock_monotonic() -> u64 {
-  clock_gettime_libc_nanos(libc::CLOCK_MONOTONIC)
-    .or_else(|| clock_gettime_syscall_nanos(libc::CLOCK_MONOTONIC))
-    .unwrap_or(0)
 }
 
 #[inline(always)]
@@ -644,90 +212,6 @@ fn clock_monotonic_syscall() -> u64 {
   clock_gettime_syscall_nanos(libc::CLOCK_MONOTONIC)
     .or_else(|| clock_gettime_libc_nanos(libc::CLOCK_MONOTONIC))
     .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_monotonic_raw() -> u64 {
-  clock_gettime_libc_nanos(libc::CLOCK_MONOTONIC_RAW)
-    .or_else(|| clock_gettime_syscall_nanos(libc::CLOCK_MONOTONIC_RAW))
-    .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_monotonic_raw_ordered() -> u64 {
-  // The opaque libc call is a compiler boundary. Linux's arm64 vDSO timer
-  // accessor is ordered with surrounding work; its syscall fallback is a
-  // context-synchronizing exception.
-  clock_monotonic_raw()
-}
-
-#[inline(always)]
-fn clock_monotonic_raw_syscall() -> u64 {
-  clock_gettime_syscall_nanos(libc::CLOCK_MONOTONIC_RAW)
-    .or_else(|| clock_gettime_libc_nanos(libc::CLOCK_MONOTONIC_RAW))
-    .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_boottime() -> u64 {
-  clock_gettime_libc_nanos(libc::CLOCK_BOOTTIME)
-    .or_else(|| clock_gettime_syscall_nanos(libc::CLOCK_BOOTTIME))
-    .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_boottime_ordered() -> u64 {
-  // libc may use the arm64 vDSO's ordered counter accessor or enter through
-  // the context-synchronizing syscall exception.
-  clock_boottime()
-}
-
-#[inline(always)]
-fn clock_boottime_syscall() -> u64 {
-  clock_gettime_syscall_nanos(libc::CLOCK_BOOTTIME)
-    .or_else(|| clock_gettime_libc_nanos(libc::CLOCK_BOOTTIME))
-    .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_monotonic_vdso() -> u64 {
-  super::linux_vdso::clock_nanos(libc::CLOCK_MONOTONIC)
-    .or_else(|| clock_gettime_libc_nanos(libc::CLOCK_MONOTONIC))
-    .or_else(|| clock_gettime_syscall_nanos(libc::CLOCK_MONOTONIC))
-    .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_monotonic_vdso_ordered() -> u64 {
-  // The arm64 vDSO's kernel-owned accessor uses the ordered architectural
-  // counter primitive; its syscall fallback is context-synchronizing.
-  clock_monotonic_vdso()
-}
-
-#[inline(always)]
-fn clock_monotonic_raw_vdso() -> u64 {
-  super::linux_vdso::clock_nanos(libc::CLOCK_MONOTONIC_RAW)
-    .or_else(|| clock_gettime_libc_nanos(libc::CLOCK_MONOTONIC_RAW))
-    .or_else(|| clock_gettime_syscall_nanos(libc::CLOCK_MONOTONIC_RAW))
-    .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_monotonic_raw_vdso_ordered() -> u64 {
-  clock_monotonic_raw_vdso()
-}
-
-#[inline(always)]
-fn clock_boottime_vdso() -> u64 {
-  super::linux_vdso::clock_nanos(libc::CLOCK_BOOTTIME)
-    .or_else(|| clock_gettime_libc_nanos(libc::CLOCK_BOOTTIME))
-    .or_else(|| clock_gettime_syscall_nanos(libc::CLOCK_BOOTTIME))
-    .unwrap_or(0)
-}
-
-#[inline(always)]
-fn clock_boottime_vdso_ordered() -> u64 {
-  clock_boottime_vdso()
 }
 
 #[inline(always)]
@@ -809,10 +293,7 @@ pub(crate) fn instant_read_cost() -> crate::ThreadCpuReadCost {
 
 const fn instant_read_cost_for(provider: u8) -> crate::ThreadCpuReadCost {
   match provider {
-    PROVIDER_CNTVCT
-    | PROVIDER_CLOCK_MONOTONIC_VDSO
-    | PROVIDER_CLOCK_MONOTONIC_RAW_VDSO
-    | PROVIDER_CLOCK_BOOTTIME_VDSO => crate::ThreadCpuReadCost::Inline,
+    PROVIDER_CNTVCT => crate::ThreadCpuReadCost::Inline,
     // The libc ABI may use the vDSO or enter the kernel. Without resolving and
     // owning a userspace implementation, the conservative class is a system
     // call even when runtime measurements make this route the fastest.
@@ -824,12 +305,6 @@ const fn instant_read_cost_for(provider: u8) -> crate::ThreadCpuReadCost {
 #[test]
 fn instant_read_cost_only_marks_guaranteed_userspace_paths_inline() {
   assert_eq!(instant_read_cost_for(PROVIDER_CNTVCT), crate::ThreadCpuReadCost::Inline);
-  assert_eq!(instant_read_cost_for(PROVIDER_CLOCK_BOOTTIME_VDSO), crate::ThreadCpuReadCost::Inline,);
-  assert_eq!(instant_read_cost_for(PROVIDER_CLOCK_MONOTONIC), crate::ThreadCpuReadCost::SystemCall,);
-  assert_eq!(
-    instant_read_cost_for(PROVIDER_CLOCK_MONOTONIC_RAW),
-    crate::ThreadCpuReadCost::SystemCall,
-  );
   assert_eq!(
     instant_read_cost_for(PROVIDER_CLOCK_MONOTONIC_SYSCALL),
     crate::ThreadCpuReadCost::SystemCall,
@@ -838,7 +313,7 @@ fn instant_read_cost_only_marks_guaranteed_userspace_paths_inline() {
 
 #[inline]
 pub(crate) fn ordered_uses_cntvct() -> bool {
-  matches!(selected_ordered_provider(), PROVIDER_ISB_CNTVCT | PROVIDER_CNTVCTSS)
+  selected_ordered_provider() == PROVIDER_ISB_CNTVCT
 }
 
 #[inline]
@@ -882,11 +357,8 @@ fn selected_ordered_provider() -> u8 {
     detect_ordered_provider,
   );
   if ORDERED_PROVIDER.load(Ordering::Acquire) == provider {
-    let frequency = if matches!(provider, PROVIDER_ISB_CNTVCT | PROVIDER_CNTVCTSS) {
-      direct_frequency()
-    } else {
-      1_000_000_000
-    };
+    let frequency =
+      if provider == PROVIDER_ISB_CNTVCT { direct_frequency() } else { 1_000_000_000 };
     let scale = super::scale_from_ratio(1_000_000_000, frequency);
     assert!(ordered_hot_scale_fits(scale), "tach: selected ordered aarch64 scale is not packable");
     super::ORDERED_NANOS_PER_TICK_Q32.store(scale, Ordering::Release);
@@ -898,248 +370,21 @@ fn selected_ordered_provider() -> u8 {
 #[cold]
 #[inline(never)]
 fn detect_instant_provider() -> u8 {
-  let assessment = counter_assessment();
-  if !assessment.counter_eligible() {
-    let candidates = instant_candidates(false, false, false, false);
-    let samples = measure_instant_hot_paths(candidates.as_slice());
-    let mut winner =
-      RankedCandidate { provider: PROVIDER_CLOCK_MONOTONIC_SYSCALL, samples: samples.syscall };
-    let _raw_syscall_stage = compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-      samples: samples.syscall_raw,
-    });
-    let _boottime_syscall_stage = compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_BOOTTIME_SYSCALL,
-      samples: samples.syscall_boottime,
-    });
-    #[cfg(feature = "bench-internal")]
-    store_instant_evidence(restricted_instant_evidence(
-      assessment,
-      samples,
-      winner.provider,
-      _raw_syscall_stage,
-      _boottime_syscall_stage,
-    ));
-    return winner.provider;
+  if counter_assessment().counter_eligible() {
+    PROVIDER_CNTVCT
+  } else {
+    PROVIDER_CLOCK_MONOTONIC_SYSCALL
   }
-
-  let (vdso_available, vdso_raw_available, vdso_boottime_available) = direct_vdso_availability();
-  let candidates =
-    instant_candidates(true, vdso_available, vdso_raw_available, vdso_boottime_available);
-  let samples = measure_instant_hot_paths(candidates.as_slice());
-  let mut winner = RankedCandidate { provider: PROVIDER_CLOCK_MONOTONIC, samples: samples.clock };
-  let _raw_clock_stage = compete(&mut winner, RankedCandidate {
-    provider: PROVIDER_CLOCK_MONOTONIC_RAW,
-    samples: samples.clock_raw,
-  });
-  let _boottime_clock_stage = compete(&mut winner, RankedCandidate {
-    provider: PROVIDER_CLOCK_BOOTTIME,
-    samples: samples.clock_boottime,
-  });
-  let _vdso_stage = vdso_available.then(|| {
-    compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_VDSO,
-      samples: samples.vdso,
-    })
-  });
-  let _vdso_raw_stage = vdso_raw_available.then(|| {
-    compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_RAW_VDSO,
-      samples: samples.vdso_raw,
-    })
-  });
-  let _vdso_boottime_stage = vdso_boottime_available.then(|| {
-    compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_BOOTTIME_VDSO,
-      samples: samples.vdso_boottime,
-    })
-  });
-  let _syscall_stage = compete(&mut winner, RankedCandidate {
-    provider: PROVIDER_CLOCK_MONOTONIC_SYSCALL,
-    samples: samples.syscall,
-  });
-  let _raw_syscall_stage = compete(&mut winner, RankedCandidate {
-    provider: PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-    samples: samples.syscall_raw,
-  });
-  let _boottime_syscall_stage = compete(&mut winner, RankedCandidate {
-    provider: PROVIDER_CLOCK_BOOTTIME_SYSCALL,
-    samples: samples.syscall_boottime,
-  });
-  let _fallback_provider = winner.provider;
-  let _direct_stage =
-    compete(&mut winner, RankedCandidate { provider: PROVIDER_CNTVCT, samples: samples.cntvct });
-  let _syscall_vs_clock = evaluate_challenger(samples.syscall, samples.clock);
-  let provider = winner.provider;
-  #[cfg(feature = "bench-internal")]
-  let (tournament_steps, tournament_step_count) = {
-    let mut steps = [EMPTY_TOURNAMENT_STEP; MAX_INSTANT_TOURNAMENT_STEPS];
-    let mut count = 0;
-    steps[count] = stage_evidence(_raw_clock_stage);
-    count += 1;
-    steps[count] = stage_evidence(_boottime_clock_stage);
-    count += 1;
-    if let Some(stage) = _vdso_stage {
-      steps[count] = stage_evidence(stage);
-      count += 1;
-    }
-    if let Some(stage) = _vdso_raw_stage {
-      steps[count] = stage_evidence(stage);
-      count += 1;
-    }
-    if let Some(stage) = _vdso_boottime_stage {
-      steps[count] = stage_evidence(stage);
-      count += 1;
-    }
-    steps[count] = stage_evidence(_syscall_stage);
-    count += 1;
-    steps[count] = stage_evidence(_raw_syscall_stage);
-    count += 1;
-    steps[count] = stage_evidence(_boottime_syscall_stage);
-    count += 1;
-    steps[count] = stage_evidence(_direct_stage);
-    count += 1;
-    (steps, count)
-  };
-  #[cfg(feature = "bench-internal")]
-  store_instant_evidence(measured_instant_evidence(
-    assessment,
-    samples,
-    _fallback_provider,
-    _direct_stage.decision,
-    _syscall_vs_clock,
-    candidates.count,
-    vdso_available,
-    vdso_raw_available,
-    vdso_boottime_available,
-    tournament_step_count,
-    tournament_steps,
-    provider,
-  ));
-  provider
 }
 
 #[cold]
 #[inline(never)]
 fn detect_ordered_provider() -> u8 {
-  let assessment = counter_assessment();
-  #[cfg(feature = "bench-internal")]
-  let hwcap_sb = sb_capable();
-  if !assessment.counter_eligible() {
-    let candidates = ordered_candidates(false, false, false, false, false);
-    let samples = measure_ordered_hot_paths(candidates.as_slice());
-    let mut winner =
-      RankedCandidate { provider: PROVIDER_CLOCK_MONOTONIC_SYSCALL, samples: samples.syscall };
-    let _raw_syscall_stage = compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-      samples: samples.syscall_raw,
-    });
-    let _boottime_syscall_stage = compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_BOOTTIME_SYSCALL,
-      samples: samples.syscall_boottime,
-    });
-    #[cfg(feature = "bench-internal")]
-    store_ordered_evidence(restricted_ordered_evidence(
-      assessment,
-      hwcap_sb,
-      samples,
-      winner.provider,
-      _raw_syscall_stage,
-      _boottime_syscall_stage,
-    ));
-    return winner.provider;
-  }
-
-  let hwcap_ecv = super::aarch64::cntvctss_capable();
-  let (vdso_available, vdso_raw_available, vdso_boottime_available) = direct_vdso_availability();
-  let candidates = ordered_candidates(
-    true,
-    hwcap_ecv,
-    vdso_available,
-    vdso_raw_available,
-    vdso_boottime_available,
-  );
-  let samples = measure_ordered_hot_paths(candidates.as_slice());
-
-  let mut fallback = RankedCandidate { provider: PROVIDER_CLOCK_MONOTONIC, samples: samples.clock };
-  let _raw_clock_stage = compete(&mut fallback, RankedCandidate {
-    provider: PROVIDER_CLOCK_MONOTONIC_RAW,
-    samples: samples.clock_raw,
-  });
-  let _boottime_clock_stage = compete(&mut fallback, RankedCandidate {
-    provider: PROVIDER_CLOCK_BOOTTIME,
-    samples: samples.clock_boottime,
-  });
-  let _syscall_stage = compete(&mut fallback, RankedCandidate {
-    provider: PROVIDER_CLOCK_MONOTONIC_SYSCALL,
-    samples: samples.syscall,
-  });
-  let _raw_syscall_stage = compete(&mut fallback, RankedCandidate {
-    provider: PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-    samples: samples.syscall_raw,
-  });
-  let _boottime_syscall_stage = compete(&mut fallback, RankedCandidate {
-    provider: PROVIDER_CLOCK_BOOTTIME_SYSCALL,
-    samples: samples.syscall_boottime,
-  });
-  let _vdso_stage = vdso_available.then(|| {
-    compete(&mut fallback, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_VDSO,
-      samples: samples.vdso,
-    })
-  });
-  let _vdso_raw_stage = vdso_raw_available.then(|| {
-    compete(&mut fallback, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_RAW_VDSO,
-      samples: samples.vdso_raw,
-    })
-  });
-  let _vdso_boottime_stage = vdso_boottime_available.then(|| {
-    compete(&mut fallback, RankedCandidate {
-      provider: PROVIDER_CLOCK_BOOTTIME_VDSO,
-      samples: samples.vdso_boottime,
-    })
-  });
-  let _fallback_provider = fallback.provider;
-
-  let mut direct = RankedCandidate { provider: PROVIDER_ISB_CNTVCT, samples: samples.isb };
-  let cntvctss_stage = if hwcap_ecv {
-    Some(compete(&mut direct, RankedCandidate {
-      provider: PROVIDER_CNTVCTSS,
-      samples: samples.cntvctss,
-    }))
+  if counter_assessment().counter_eligible() {
+    PROVIDER_ISB_CNTVCT
   } else {
-    None
-  };
-  let _direct_provider = direct.provider;
-  let _final_stage = compete(&mut fallback, direct);
-  let _syscall_vs_clock = evaluate_challenger(samples.syscall, samples.clock);
-  let _cntvctss_vs_isb = cntvctss_stage.map_or_else(no_challenge_decision, |stage| stage.decision);
-  let provider = fallback.provider;
-  #[cfg(feature = "bench-internal")]
-  store_ordered_evidence(measured_ordered_evidence(
-    assessment,
-    hwcap_ecv,
-    hwcap_sb,
-    samples,
-    _direct_provider,
-    _fallback_provider,
-    _final_stage.decision,
-    _cntvctss_vs_isb,
-    _syscall_vs_clock,
-    _raw_clock_stage,
-    _boottime_clock_stage,
-    _syscall_stage,
-    _raw_syscall_stage,
-    _boottime_syscall_stage,
-    _vdso_stage,
-    _vdso_raw_stage,
-    _vdso_boottime_stage,
-    cntvctss_stage,
-    _final_stage,
-    provider,
-  ));
-  provider
+    PROVIDER_CLOCK_MONOTONIC_SYSCALL
+  }
 }
 
 fn counter_assessment() -> CounterAssessment {
@@ -1147,17 +392,6 @@ fn counter_assessment() -> CounterAssessment {
   let status = pr_get_tsc(&mut mode);
   let kernel_version = if status == 0 { None } else { running_kernel_version() };
   classify_counter_access(status, mode, kernel_version)
-}
-
-fn direct_vdso_availability() -> (bool, bool, bool) {
-  if !super::linux_vdso::install() {
-    return (false, false, false);
-  }
-  (
-    super::linux_vdso::clock_nanos(libc::CLOCK_MONOTONIC).is_some(),
-    super::linux_vdso::clock_nanos(libc::CLOCK_MONOTONIC_RAW).is_some(),
-    super::linux_vdso::clock_nanos(libc::CLOCK_BOOTTIME).is_some(),
-  )
 }
 
 /// Whether the current thread may execute architectural counter reads under
@@ -1177,7 +411,6 @@ fn classify_counter_access(
       return CounterAssessment {
         eligibility: CounterEligibility::Eligible,
         basis: PermissionBasis::PrGetTscEnabled,
-        pr_get_tsc_status: status,
         kernel_version,
       };
     }
@@ -1188,7 +421,6 @@ fn classify_counter_access(
       } else {
         PermissionBasis::PrGetTscUnknownMode
       },
-      pr_get_tsc_status: status,
       kernel_version,
     };
   }
@@ -1206,7 +438,6 @@ fn classify_counter_access(
     return CounterAssessment {
       eligibility: CounterEligibility::Eligible,
       basis: PermissionBasis::LegacyKernelWithoutPrGetTsc,
-      pr_get_tsc_status: status,
       kernel_version,
     };
   }
@@ -1218,12 +449,7 @@ fn classify_counter_access(
     }
     Some(_) => PermissionBasis::PrGetTscFailed,
   };
-  CounterAssessment {
-    eligibility: CounterEligibility::PrGetTscUnavailable,
-    basis,
-    pr_get_tsc_status: status,
-    kernel_version,
-  }
+  CounterAssessment { eligibility: CounterEligibility::PrGetTscUnavailable, basis, kernel_version }
 }
 
 fn pr_get_tsc(mode: &mut libc::c_int) -> libc::c_long {
@@ -1291,547 +517,11 @@ fn parse_release_component<const N: usize>(
 }
 
 #[cfg(feature = "bench-internal")]
-fn sb_capable() -> bool {
-  // SAFETY: getauxval has no pointer arguments and AT_HWCAP is part of the
-  // Linux userspace ABI.
-  unsafe { libc::getauxval(libc::AT_HWCAP) & HWCAP_SB != 0 }
-}
-
-#[inline(always)]
-fn probe_instant_ticks() -> u64 {
-  match PROBE_INSTANT_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_CNTVCT => super::aarch64::cntvct(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime(),
-    PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso(),
-    _ => clock_monotonic_raw_vdso(),
-  }
-}
-
-#[inline(always)]
-fn probe_ordered_ticks() -> u64 {
-  match PROBE_ORDERED_PROVIDER.load(Ordering::Relaxed) {
-    PROVIDER_ISB_CNTVCT => super::aarch64::cntvct_after_isb(),
-    PROVIDER_CNTVCTSS => super::aarch64::cntvctss(),
-    PROVIDER_CLOCK_MONOTONIC => clock_monotonic_ordered(),
-    PROVIDER_CLOCK_MONOTONIC_RAW => clock_monotonic_raw_ordered(),
-    PROVIDER_CLOCK_BOOTTIME => clock_boottime_ordered(),
-    PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => clock_monotonic_raw_syscall(),
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => clock_boottime_syscall(),
-    PROVIDER_CLOCK_MONOTONIC_VDSO => clock_monotonic_vdso_ordered(),
-    PROVIDER_CLOCK_BOOTTIME_VDSO => clock_boottime_vdso_ordered(),
-    _ => clock_monotonic_raw_vdso_ordered(),
-  }
-}
-
-type Samples = [u64; PROBE_BATCHES];
-
-#[derive(Clone, Copy)]
-struct InstantSamples {
-  cntvct: Samples,
-  clock: Samples,
-  clock_raw: Samples,
-  clock_boottime: Samples,
-  syscall: Samples,
-  syscall_raw: Samples,
-  syscall_boottime: Samples,
-  vdso: Samples,
-  vdso_raw: Samples,
-  vdso_boottime: Samples,
-}
-
-impl InstantSamples {
-  const fn empty() -> Self {
-    Self {
-      cntvct: [0; PROBE_BATCHES],
-      clock: [0; PROBE_BATCHES],
-      clock_raw: [0; PROBE_BATCHES],
-      clock_boottime: [0; PROBE_BATCHES],
-      syscall: [0; PROBE_BATCHES],
-      syscall_raw: [0; PROBE_BATCHES],
-      syscall_boottime: [0; PROBE_BATCHES],
-      vdso: [0; PROBE_BATCHES],
-      vdso_raw: [0; PROBE_BATCHES],
-      vdso_boottime: [0; PROBE_BATCHES],
-    }
-  }
-
-  fn set(&mut self, provider: u8, sample: usize, value: u64) {
-    match provider {
-      PROVIDER_CNTVCT => self.cntvct[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC => self.clock[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_RAW => self.clock_raw[sample] = value,
-      PROVIDER_CLOCK_BOOTTIME => self.clock_boottime[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_SYSCALL => self.syscall[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => self.syscall_raw[sample] = value,
-      PROVIDER_CLOCK_BOOTTIME_SYSCALL => self.syscall_boottime[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_VDSO => self.vdso[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => self.vdso_raw[sample] = value,
-      PROVIDER_CLOCK_BOOTTIME_VDSO => self.vdso_boottime[sample] = value,
-      _ => unreachable!("invalid Instant provider"),
-    }
-  }
-}
-
-#[derive(Clone, Copy)]
-struct OrderedSamples {
-  isb: Samples,
-  cntvctss: Samples,
-  clock: Samples,
-  clock_raw: Samples,
-  clock_boottime: Samples,
-  syscall: Samples,
-  syscall_raw: Samples,
-  syscall_boottime: Samples,
-  vdso: Samples,
-  vdso_raw: Samples,
-  vdso_boottime: Samples,
-}
-
-impl OrderedSamples {
-  const fn empty() -> Self {
-    Self {
-      isb: [0; PROBE_BATCHES],
-      cntvctss: [0; PROBE_BATCHES],
-      clock: [0; PROBE_BATCHES],
-      clock_raw: [0; PROBE_BATCHES],
-      clock_boottime: [0; PROBE_BATCHES],
-      syscall: [0; PROBE_BATCHES],
-      syscall_raw: [0; PROBE_BATCHES],
-      syscall_boottime: [0; PROBE_BATCHES],
-      vdso: [0; PROBE_BATCHES],
-      vdso_raw: [0; PROBE_BATCHES],
-      vdso_boottime: [0; PROBE_BATCHES],
-    }
-  }
-
-  fn set(&mut self, provider: u8, sample: usize, value: u64) {
-    match provider {
-      PROVIDER_ISB_CNTVCT => self.isb[sample] = value,
-      PROVIDER_CNTVCTSS => self.cntvctss[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC => self.clock[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_RAW => self.clock_raw[sample] = value,
-      PROVIDER_CLOCK_BOOTTIME => self.clock_boottime[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_SYSCALL => self.syscall[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => self.syscall_raw[sample] = value,
-      PROVIDER_CLOCK_BOOTTIME_SYSCALL => self.syscall_boottime[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_VDSO => self.vdso[sample] = value,
-      PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => self.vdso_raw[sample] = value,
-      PROVIDER_CLOCK_BOOTTIME_VDSO => self.vdso_boottime[sample] = value,
-      _ => unreachable!("invalid OrderedInstant provider"),
-    }
-  }
-}
-
-fn measure_instant_hot_paths(providers: &[u8]) -> InstantSamples {
-  for &provider in providers {
-    PROBE_INSTANT_PROVIDER.store(provider, Ordering::Relaxed);
-    for _ in 0..PROBE_WARMUP_READS {
-      black_box(probe_instant_ticks());
-    }
-  }
-
-  let mut samples = InstantSamples::empty();
-  for sample in 0..PROBE_BATCHES {
-    for offset in 0..providers.len() {
-      let provider = providers[(sample + offset) % providers.len()];
-      samples.set(provider, sample, measure_instant_batch(provider));
-    }
-  }
-  samples
-}
-
-fn measure_ordered_hot_paths(providers: &[u8]) -> OrderedSamples {
-  for &provider in providers {
-    PROBE_ORDERED_PROVIDER.store(provider, Ordering::Relaxed);
-    for _ in 0..PROBE_WARMUP_READS {
-      black_box(probe_ordered_ticks());
-    }
-  }
-
-  let mut samples = OrderedSamples::empty();
-  for sample in 0..PROBE_BATCHES {
-    for offset in 0..providers.len() {
-      let provider = providers[(sample + offset) % providers.len()];
-      samples.set(provider, sample, measure_ordered_batch(provider));
-    }
-  }
-  samples
-}
-
-#[inline(never)]
-fn measure_instant_batch(provider: u8) -> u64 {
-  PROBE_INSTANT_PROVIDER.store(provider, Ordering::Relaxed);
-  // The stopwatch must remain safe while counter access is denied. The two
-  // explicit syscalls are the only candidates in that state, so no vDSO read
-  // may occur even outside the measured loop.
-  let start = clock_monotonic_syscall();
-  let mut sink = 0_u64;
-  for _ in 0..PROBE_READS {
-    sink ^= probe_instant_ticks();
-  }
-  let elapsed = clock_monotonic_syscall().saturating_sub(start);
-  black_box(sink);
-  elapsed
-}
-
-#[inline(never)]
-fn measure_ordered_batch(provider: u8) -> u64 {
-  PROBE_ORDERED_PROVIDER.store(provider, Ordering::Relaxed);
-  let start = clock_monotonic_syscall();
-  let mut sink = 0_u64;
-  for _ in 0..PROBE_READS {
-    sink ^= probe_ordered_ticks();
-  }
-  let elapsed = clock_monotonic_syscall().saturating_sub(start);
-  black_box(sink);
-  elapsed
-}
-
-fn evaluate_challenger(challenger: Samples, incumbent: Samples) -> SelectionDecision {
-  let challenger_median = median(challenger);
-  let incumbent_median = median(incumbent);
-  let allowance = (incumbent_median / 20).max(PROBE_READS);
-  let decisive_wins = challenger
-    .iter()
-    .zip(incumbent)
-    .filter(|(challenger, incumbent)| (**challenger).saturating_add(allowance) < *incumbent)
-    .count();
-  SelectionDecision {
-    #[cfg(feature = "bench-internal")]
-    allowance,
-    #[cfg(feature = "bench-internal")]
-    decisive_wins,
-    challenger_selected: challenger_median.saturating_add(allowance) < incumbent_median
-      && decisive_wins >= REQUIRED_DECISIVE_WINS,
-  }
-}
-
-fn median(mut values: Samples) -> u64 {
-  values.sort_unstable();
-  values[values.len() / 2]
-}
-
-#[cfg(feature = "bench-internal")]
-fn restricted_instant_evidence(
-  assessment: CounterAssessment,
-  samples: InstantSamples,
-  provider: u8,
-  raw_syscall_stage: TournamentStage,
-  boottime_syscall_stage: TournamentStage,
-) -> InstantProbeEvidence {
-  let kernel_version = assessment.kernel_version.unwrap_or(KernelVersion { major: 0, minor: 0 });
-  let mut tournament_steps = [EMPTY_TOURNAMENT_STEP; MAX_INSTANT_TOURNAMENT_STEPS];
-  tournament_steps[0] = stage_evidence(raw_syscall_stage);
-  tournament_steps[1] = stage_evidence(boottime_syscall_stage);
-  InstantProbeEvidence {
-    eligibility: assessment.eligibility.name(),
-    permission_basis: assessment.basis.name(),
-    pr_get_tsc_status: assessment.pr_get_tsc_status,
-    kernel_version_known: assessment.kernel_version.is_some(),
-    kernel_version_major: kernel_version.major,
-    kernel_version_minor: kernel_version.minor,
-    candidate_count: 3,
-    vdso_available: false,
-    vdso_raw_available: false,
-    vdso_boottime_available: false,
-    reads_per_batch: PROBE_READS,
-    cntvct_batches_ns: [0; PROBE_BATCHES],
-    clock_batches_ns: [0; PROBE_BATCHES],
-    clock_raw_batches_ns: [0; PROBE_BATCHES],
-    clock_boottime_batches_ns: [0; PROBE_BATCHES],
-    syscall_batches_ns: samples.syscall,
-    syscall_raw_batches_ns: samples.syscall_raw,
-    syscall_boottime_batches_ns: samples.syscall_boottime,
-    vdso_batches_ns: [0; PROBE_BATCHES],
-    vdso_raw_batches_ns: [0; PROBE_BATCHES],
-    vdso_boottime_batches_ns: [0; PROBE_BATCHES],
-    cntvct_median_ns: 0,
-    clock_median_ns: 0,
-    clock_raw_median_ns: 0,
-    clock_boottime_median_ns: 0,
-    syscall_median_ns: median(samples.syscall),
-    syscall_raw_median_ns: median(samples.syscall_raw),
-    syscall_boottime_median_ns: median(samples.syscall_boottime),
-    vdso_median_ns: 0,
-    vdso_raw_median_ns: 0,
-    vdso_boottime_median_ns: 0,
-    fallback_provider: provider_name(provider),
-    direct_allowance_ns: 0,
-    direct_decisive_wins: 0,
-    syscall_vs_clock_allowance_ns: 0,
-    syscall_vs_clock_decisive_wins: 0,
-    tournament_step_count: 2,
-    tournament_steps,
-    required_decisive_wins: REQUIRED_DECISIVE_WINS,
-    selected_provider: provider_name(provider),
-  }
-}
-
-#[cfg(feature = "bench-internal")]
-fn measured_instant_evidence(
-  assessment: CounterAssessment,
-  samples: InstantSamples,
-  fallback_provider: u8,
-  direct_vs_fallback: SelectionDecision,
-  syscall_vs_clock: SelectionDecision,
-  candidate_count: usize,
-  vdso_available: bool,
-  vdso_raw_available: bool,
-  vdso_boottime_available: bool,
-  tournament_step_count: usize,
-  tournament_steps: [TournamentStepEvidence; MAX_INSTANT_TOURNAMENT_STEPS],
-  provider: u8,
-) -> InstantProbeEvidence {
-  let kernel_version = assessment.kernel_version.unwrap_or(KernelVersion { major: 0, minor: 0 });
-  InstantProbeEvidence {
-    eligibility: assessment.eligibility.name(),
-    permission_basis: assessment.basis.name(),
-    pr_get_tsc_status: assessment.pr_get_tsc_status,
-    kernel_version_known: assessment.kernel_version.is_some(),
-    kernel_version_major: kernel_version.major,
-    kernel_version_minor: kernel_version.minor,
-    candidate_count,
-    vdso_available,
-    vdso_raw_available,
-    vdso_boottime_available,
-    reads_per_batch: PROBE_READS,
-    cntvct_batches_ns: samples.cntvct,
-    clock_batches_ns: samples.clock,
-    clock_raw_batches_ns: samples.clock_raw,
-    clock_boottime_batches_ns: samples.clock_boottime,
-    syscall_batches_ns: samples.syscall,
-    syscall_raw_batches_ns: samples.syscall_raw,
-    syscall_boottime_batches_ns: samples.syscall_boottime,
-    vdso_batches_ns: samples.vdso,
-    vdso_raw_batches_ns: samples.vdso_raw,
-    vdso_boottime_batches_ns: samples.vdso_boottime,
-    cntvct_median_ns: median(samples.cntvct),
-    clock_median_ns: median(samples.clock),
-    clock_raw_median_ns: median(samples.clock_raw),
-    clock_boottime_median_ns: median(samples.clock_boottime),
-    syscall_median_ns: median(samples.syscall),
-    syscall_raw_median_ns: median(samples.syscall_raw),
-    syscall_boottime_median_ns: median(samples.syscall_boottime),
-    vdso_median_ns: median(samples.vdso),
-    vdso_raw_median_ns: median(samples.vdso_raw),
-    vdso_boottime_median_ns: median(samples.vdso_boottime),
-    fallback_provider: provider_name(fallback_provider),
-    direct_allowance_ns: direct_vs_fallback.allowance,
-    direct_decisive_wins: direct_vs_fallback.decisive_wins,
-    syscall_vs_clock_allowance_ns: syscall_vs_clock.allowance,
-    syscall_vs_clock_decisive_wins: syscall_vs_clock.decisive_wins,
-    tournament_step_count,
-    tournament_steps,
-    required_decisive_wins: REQUIRED_DECISIVE_WINS,
-    selected_provider: provider_name(provider),
-  }
-}
-
-#[cfg(feature = "bench-internal")]
-fn restricted_ordered_evidence(
-  assessment: CounterAssessment,
-  hwcap_sb: bool,
-  samples: OrderedSamples,
-  provider: u8,
-  raw_syscall_stage: TournamentStage,
-  boottime_syscall_stage: TournamentStage,
-) -> OrderedProbeEvidence {
-  let kernel_version = assessment.kernel_version.unwrap_or(KernelVersion { major: 0, minor: 0 });
-  let mut tournament_steps = [EMPTY_TOURNAMENT_STEP; MAX_ORDERED_TOURNAMENT_STEPS];
-  tournament_steps[0] = stage_evidence(raw_syscall_stage);
-  tournament_steps[1] = stage_evidence(boottime_syscall_stage);
-  OrderedProbeEvidence {
-    eligibility: assessment.eligibility.name(),
-    permission_basis: assessment.basis.name(),
-    pr_get_tsc_status: assessment.pr_get_tsc_status,
-    kernel_version_known: assessment.kernel_version.is_some(),
-    kernel_version_major: kernel_version.major,
-    kernel_version_minor: kernel_version.minor,
-    candidate_count: 3,
-    vdso_available: false,
-    vdso_raw_available: false,
-    vdso_boottime_available: false,
-    reads_per_batch: PROBE_READS,
-    hwcap_ecv: false,
-    hwcap_sb,
-    sb_eligibility: "ineligible: SB does not order architectural counter sampling",
-    isb_batches_ns: [0; PROBE_BATCHES],
-    cntvctss_batches_ns: [0; PROBE_BATCHES],
-    clock_batches_ns: [0; PROBE_BATCHES],
-    clock_raw_batches_ns: [0; PROBE_BATCHES],
-    clock_boottime_batches_ns: [0; PROBE_BATCHES],
-    syscall_batches_ns: samples.syscall,
-    syscall_raw_batches_ns: samples.syscall_raw,
-    syscall_boottime_batches_ns: samples.syscall_boottime,
-    vdso_batches_ns: [0; PROBE_BATCHES],
-    vdso_raw_batches_ns: [0; PROBE_BATCHES],
-    vdso_boottime_batches_ns: [0; PROBE_BATCHES],
-    direct_provider: provider_name(PROVIDER_ISB_CNTVCT),
-    fallback_provider: provider_name(provider),
-    direct_median_ns: 0,
-    clock_median_ns: 0,
-    clock_raw_median_ns: 0,
-    clock_boottime_median_ns: 0,
-    syscall_median_ns: median(samples.syscall),
-    syscall_raw_median_ns: median(samples.syscall_raw),
-    syscall_boottime_median_ns: median(samples.syscall_boottime),
-    vdso_median_ns: 0,
-    vdso_raw_median_ns: 0,
-    vdso_boottime_median_ns: 0,
-    direct_allowance_ns: 0,
-    direct_decisive_wins: 0,
-    cntvctss_vs_isb_allowance_ns: 0,
-    cntvctss_vs_isb_decisive_wins: 0,
-    syscall_vs_clock_allowance_ns: 0,
-    syscall_vs_clock_decisive_wins: 0,
-    tournament_step_count: 2,
-    tournament_steps,
-    required_decisive_wins: REQUIRED_DECISIVE_WINS,
-    selected_provider: provider_name(provider),
-  }
-}
-
-#[cfg(feature = "bench-internal")]
-#[allow(clippy::too_many_arguments)]
-fn measured_ordered_evidence(
-  assessment: CounterAssessment,
-  hwcap_ecv: bool,
-  hwcap_sb: bool,
-  samples: OrderedSamples,
-  direct_provider: u8,
-  fallback_provider: u8,
-  direct_vs_fallback: SelectionDecision,
-  cntvctss_vs_isb: SelectionDecision,
-  syscall_vs_clock: SelectionDecision,
-  raw_clock_stage: TournamentStage,
-  boottime_clock_stage: TournamentStage,
-  syscall_stage: TournamentStage,
-  raw_syscall_stage: TournamentStage,
-  boottime_syscall_stage: TournamentStage,
-  vdso_stage: Option<TournamentStage>,
-  vdso_raw_stage: Option<TournamentStage>,
-  vdso_boottime_stage: Option<TournamentStage>,
-  cntvctss_stage: Option<TournamentStage>,
-  final_stage: TournamentStage,
-  provider: u8,
-) -> OrderedProbeEvidence {
-  let kernel_version = assessment.kernel_version.unwrap_or(KernelVersion { major: 0, minor: 0 });
-  let mut tournament_steps = [EMPTY_TOURNAMENT_STEP; MAX_ORDERED_TOURNAMENT_STEPS];
-  tournament_steps[0] = stage_evidence(raw_clock_stage);
-  tournament_steps[1] = stage_evidence(boottime_clock_stage);
-  tournament_steps[2] = stage_evidence(syscall_stage);
-  tournament_steps[3] = stage_evidence(raw_syscall_stage);
-  tournament_steps[4] = stage_evidence(boottime_syscall_stage);
-  let mut tournament_step_count = 5;
-  if let Some(stage) = vdso_stage {
-    tournament_steps[tournament_step_count] = stage_evidence(stage);
-    tournament_step_count += 1;
-  }
-  if let Some(stage) = vdso_raw_stage {
-    tournament_steps[tournament_step_count] = stage_evidence(stage);
-    tournament_step_count += 1;
-  }
-  if let Some(stage) = vdso_boottime_stage {
-    tournament_steps[tournament_step_count] = stage_evidence(stage);
-    tournament_step_count += 1;
-  }
-  if let Some(stage) = cntvctss_stage {
-    tournament_steps[tournament_step_count] = stage_evidence(stage);
-    tournament_step_count += 1;
-  }
-  tournament_steps[tournament_step_count] = stage_evidence(final_stage);
-  tournament_step_count += 1;
-  OrderedProbeEvidence {
-    eligibility: assessment.eligibility.name(),
-    permission_basis: assessment.basis.name(),
-    pr_get_tsc_status: assessment.pr_get_tsc_status,
-    kernel_version_known: assessment.kernel_version.is_some(),
-    kernel_version_major: kernel_version.major,
-    kernel_version_minor: kernel_version.minor,
-    candidate_count: tournament_step_count + 1,
-    vdso_available: vdso_stage.is_some(),
-    vdso_raw_available: vdso_raw_stage.is_some(),
-    vdso_boottime_available: vdso_boottime_stage.is_some(),
-    reads_per_batch: PROBE_READS,
-    hwcap_ecv,
-    hwcap_sb,
-    sb_eligibility: "ineligible: SB does not order architectural counter sampling",
-    isb_batches_ns: samples.isb,
-    cntvctss_batches_ns: samples.cntvctss,
-    clock_batches_ns: samples.clock,
-    clock_raw_batches_ns: samples.clock_raw,
-    clock_boottime_batches_ns: samples.clock_boottime,
-    syscall_batches_ns: samples.syscall,
-    syscall_raw_batches_ns: samples.syscall_raw,
-    syscall_boottime_batches_ns: samples.syscall_boottime,
-    vdso_batches_ns: samples.vdso,
-    vdso_raw_batches_ns: samples.vdso_raw,
-    vdso_boottime_batches_ns: samples.vdso_boottime,
-    direct_provider: provider_name(direct_provider),
-    fallback_provider: provider_name(fallback_provider),
-    direct_median_ns: median(if direct_provider == PROVIDER_CNTVCTSS {
-      samples.cntvctss
-    } else {
-      samples.isb
-    }),
-    clock_median_ns: median(samples.clock),
-    clock_raw_median_ns: median(samples.clock_raw),
-    clock_boottime_median_ns: median(samples.clock_boottime),
-    syscall_median_ns: median(samples.syscall),
-    syscall_raw_median_ns: median(samples.syscall_raw),
-    syscall_boottime_median_ns: median(samples.syscall_boottime),
-    vdso_median_ns: median(samples.vdso),
-    vdso_raw_median_ns: median(samples.vdso_raw),
-    vdso_boottime_median_ns: median(samples.vdso_boottime),
-    direct_allowance_ns: direct_vs_fallback.allowance,
-    direct_decisive_wins: direct_vs_fallback.decisive_wins,
-    cntvctss_vs_isb_allowance_ns: cntvctss_vs_isb.allowance,
-    cntvctss_vs_isb_decisive_wins: cntvctss_vs_isb.decisive_wins,
-    syscall_vs_clock_allowance_ns: syscall_vs_clock.allowance,
-    syscall_vs_clock_decisive_wins: syscall_vs_clock.decisive_wins,
-    tournament_step_count,
-    tournament_steps,
-    required_decisive_wins: REQUIRED_DECISIVE_WINS,
-    selected_provider: provider_name(provider),
-  }
-}
-
-#[cfg(feature = "bench-internal")]
-fn store_instant_evidence(evidence: InstantProbeEvidence) {
-  // SAFETY: only the process-selection owner writes before publishing the
-  // provider state.
-  unsafe { (*INSTANT_EVIDENCE.0.get()).write(evidence) };
-}
-
-#[cfg(feature = "bench-internal")]
-fn store_ordered_evidence(evidence: OrderedProbeEvidence) {
-  // SAFETY: only the process-selection owner writes before publishing the
-  // provider state.
-  unsafe { (*ORDERED_EVIDENCE.0.get()).write(evidence) };
-}
-
-#[cfg(feature = "bench-internal")]
 const fn provider_name(provider: u8) -> &'static str {
   match provider {
     PROVIDER_CNTVCT => "aarch64_cntvct",
     PROVIDER_ISB_CNTVCT => "aarch64_isb_cntvct",
-    PROVIDER_CNTVCTSS => "aarch64_cntvctss",
-    PROVIDER_CLOCK_MONOTONIC => "linux_clock_monotonic",
-    PROVIDER_CLOCK_MONOTONIC_RAW => "linux_clock_monotonic_raw",
-    PROVIDER_CLOCK_BOOTTIME => "linux_clock_boottime",
     PROVIDER_CLOCK_MONOTONIC_SYSCALL => "linux_clock_monotonic_syscall",
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => "linux_clock_monotonic_raw_syscall",
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => "linux_clock_boottime_syscall",
-    PROVIDER_CLOCK_MONOTONIC_VDSO => "linux_clock_monotonic_vdso_direct",
-    PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => "linux_clock_monotonic_raw_vdso_direct",
-    PROVIDER_CLOCK_BOOTTIME_VDSO => "linux_clock_boottime_vdso_direct",
     _ => "unavailable",
   }
 }
@@ -1858,7 +548,7 @@ pub(crate) struct BenchPrimitive {
 #[cfg(feature = "bench-internal")]
 #[inline]
 fn bench_nanos_per_tick_q32(provider: u8) -> u64 {
-  let frequency = if matches!(provider, PROVIDER_CNTVCT | PROVIDER_ISB_CNTVCT | PROVIDER_CNTVCTSS) {
+  let frequency = if matches!(provider, PROVIDER_CNTVCT | PROVIDER_ISB_CNTVCT) {
     direct_frequency()
   } else {
     1_000_000_000
@@ -1876,16 +566,7 @@ pub(crate) fn bench_selected_instant_primitive() -> BenchPrimitive {
 fn instant_bench_primitive(provider: u8) -> BenchPrimitive {
   let read = match provider {
     PROVIDER_CNTVCT => bench_direct_cntvct as fn() -> u64,
-    PROVIDER_CLOCK_MONOTONIC => bench_direct_clock_monotonic,
-    PROVIDER_CLOCK_MONOTONIC_RAW => bench_direct_clock_monotonic_raw,
-    PROVIDER_CLOCK_BOOTTIME => bench_direct_clock_boottime,
-    PROVIDER_CLOCK_MONOTONIC_SYSCALL => bench_direct_clock_monotonic_syscall,
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => bench_direct_clock_monotonic_raw_syscall,
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => bench_direct_clock_boottime_syscall,
-    PROVIDER_CLOCK_MONOTONIC_VDSO => bench_direct_clock_monotonic_vdso,
-    PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => bench_direct_clock_monotonic_raw_vdso,
-    PROVIDER_CLOCK_BOOTTIME_VDSO => bench_direct_clock_boottime_vdso,
-    _ => bench_direct_clock_monotonic,
+    _ => bench_direct_clock_monotonic_syscall,
   };
   BenchPrimitive {
     name: provider_name(provider),
@@ -1904,62 +585,13 @@ pub(crate) fn bench_selected_ordered_primitive() -> BenchPrimitive {
 fn ordered_bench_primitive(provider: u8) -> BenchPrimitive {
   let read = match provider {
     PROVIDER_ISB_CNTVCT => bench_direct_isb_cntvct as fn() -> u64,
-    PROVIDER_CNTVCTSS => bench_direct_cntvctss,
-    PROVIDER_CLOCK_MONOTONIC => bench_direct_clock_monotonic_ordered,
-    PROVIDER_CLOCK_MONOTONIC_RAW => bench_direct_clock_monotonic_raw_ordered,
-    PROVIDER_CLOCK_BOOTTIME => bench_direct_clock_boottime_ordered,
-    PROVIDER_CLOCK_MONOTONIC_SYSCALL => bench_direct_clock_monotonic_syscall,
-    PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL => bench_direct_clock_monotonic_raw_syscall,
-    PROVIDER_CLOCK_BOOTTIME_SYSCALL => bench_direct_clock_boottime_syscall,
-    PROVIDER_CLOCK_MONOTONIC_VDSO => bench_direct_clock_monotonic_vdso_ordered,
-    PROVIDER_CLOCK_MONOTONIC_RAW_VDSO => bench_direct_clock_monotonic_raw_vdso_ordered,
-    PROVIDER_CLOCK_BOOTTIME_VDSO => bench_direct_clock_boottime_vdso_ordered,
-    _ => bench_direct_clock_monotonic_ordered,
+    _ => bench_direct_clock_monotonic_syscall,
   };
   BenchPrimitive {
     name: provider_name(provider),
     read,
     nanos_per_tick_q32: bench_nanos_per_tick_q32(provider),
   }
-}
-
-#[cfg(feature = "bench-internal")]
-#[allow(dead_code)] // The Criterion serializer consumes the complete fixed array.
-pub(crate) fn bench_instant_candidate_primitives()
--> ([Option<BenchPrimitive>; MAX_INSTANT_CANDIDATES], usize) {
-  let evidence = bench_instant_evidence();
-  let candidates = instant_candidates(
-    evidence.eligibility == CounterEligibility::Eligible.name(),
-    evidence.vdso_available,
-    evidence.vdso_raw_available,
-    evidence.vdso_boottime_available,
-  );
-  debug_assert_eq!(evidence.candidate_count, candidates.count);
-  let mut primitives = [None; MAX_INSTANT_CANDIDATES];
-  for (slot, provider) in primitives.iter_mut().zip(candidates.as_slice()) {
-    *slot = Some(instant_bench_primitive(*provider));
-  }
-  (primitives, candidates.count)
-}
-
-#[cfg(feature = "bench-internal")]
-#[allow(dead_code)] // The Criterion serializer consumes the complete fixed array.
-pub(crate) fn bench_ordered_candidate_primitives()
--> ([Option<BenchPrimitive>; MAX_ORDERED_CANDIDATES], usize) {
-  let evidence = bench_ordered_evidence();
-  let candidates = ordered_candidates(
-    evidence.eligibility == CounterEligibility::Eligible.name(),
-    evidence.hwcap_ecv,
-    evidence.vdso_available,
-    evidence.vdso_raw_available,
-    evidence.vdso_boottime_available,
-  );
-  debug_assert_eq!(evidence.candidate_count, candidates.count);
-  let mut primitives = [None; MAX_ORDERED_CANDIDATES];
-  for (slot, provider) in primitives.iter_mut().zip(candidates.as_slice()) {
-    *slot = Some(ordered_bench_primitive(*provider));
-  }
-  (primitives, candidates.count)
 }
 
 #[cfg(feature = "bench-internal")]
@@ -1981,114 +613,8 @@ pub(crate) fn bench_direct_isb_cntvct() -> u64 {
 
 #[cfg(feature = "bench-internal")]
 #[inline(always)]
-pub(crate) fn bench_direct_cntvctss() -> u64 {
-  super::aarch64::cntvctss()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic() -> u64 {
-  clock_monotonic()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_ordered() -> u64 {
-  clock_monotonic_ordered()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_raw() -> u64 {
-  clock_monotonic_raw()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_raw_ordered() -> u64 {
-  clock_monotonic_raw_ordered()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_boottime() -> u64 {
-  clock_boottime()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_boottime_ordered() -> u64 {
-  clock_boottime_ordered()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
 pub(crate) fn bench_direct_clock_monotonic_syscall() -> u64 {
   clock_monotonic_syscall()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_raw_syscall() -> u64 {
-  clock_monotonic_raw_syscall()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_boottime_syscall() -> u64 {
-  clock_boottime_syscall()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_vdso() -> u64 {
-  clock_monotonic_vdso()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_vdso_ordered() -> u64 {
-  clock_monotonic_vdso_ordered()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_raw_vdso() -> u64 {
-  clock_monotonic_raw_vdso()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_monotonic_raw_vdso_ordered() -> u64 {
-  clock_monotonic_raw_vdso_ordered()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_boottime_vdso() -> u64 {
-  clock_boottime_vdso()
-}
-
-#[cfg(feature = "bench-internal")]
-#[inline(always)]
-pub(crate) fn bench_direct_clock_boottime_vdso_ordered() -> u64 {
-  clock_boottime_vdso_ordered()
-}
-
-#[cfg(feature = "bench-internal")]
-pub(crate) fn bench_instant_evidence() -> InstantProbeEvidence {
-  let _ = selected_instant_provider();
-  // SAFETY: selected_instant_provider returns after the Copy value was
-  // written and the provider state was published with Release.
-  unsafe { (*INSTANT_EVIDENCE.0.get()).assume_init_read() }
-}
-
-#[cfg(feature = "bench-internal")]
-pub(crate) fn bench_ordered_evidence() -> OrderedProbeEvidence {
-  let _ = selected_ordered_provider();
-  // SAFETY: selected_ordered_provider returns after the Copy value was
-  // written and the provider state was published with Release.
-  unsafe { (*ORDERED_EVIDENCE.0.get()).assume_init_read() }
 }
 
 #[cfg(test)]
@@ -2174,86 +700,6 @@ mod tests {
   }
 
   #[test]
-  fn selection_requires_a_repeatable_material_win() {
-    let incumbent = [100_000; PROBE_BATCHES];
-    assert!(evaluate_challenger([90_000; PROBE_BATCHES], incumbent).challenger_selected);
-    assert!(!evaluate_challenger([96_000; PROBE_BATCHES], incumbent).challenger_selected);
-
-    let mut noisy = [90_000; PROBE_BATCHES];
-    noisy[0] = 100_000;
-    noisy[1] = 100_000;
-    assert!(!evaluate_challenger(noisy, incumbent).challenger_selected);
-  }
-
-  #[test]
-  fn candidate_sets_are_complete_unique_and_permission_safe() {
-    let instant = instant_candidates(true, true, true, true);
-    assert_eq!(instant.as_slice(), [
-      PROVIDER_CLOCK_MONOTONIC,
-      PROVIDER_CLOCK_MONOTONIC_RAW,
-      PROVIDER_CLOCK_BOOTTIME,
-      PROVIDER_CLOCK_MONOTONIC_VDSO,
-      PROVIDER_CLOCK_MONOTONIC_RAW_VDSO,
-      PROVIDER_CLOCK_BOOTTIME_VDSO,
-      PROVIDER_CLOCK_MONOTONIC_SYSCALL,
-      PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-      PROVIDER_CLOCK_BOOTTIME_SYSCALL,
-      PROVIDER_CNTVCT,
-    ]);
-    let ordered = ordered_candidates(true, true, true, true, true);
-    assert_eq!(ordered.as_slice(), [
-      PROVIDER_CLOCK_MONOTONIC,
-      PROVIDER_CLOCK_MONOTONIC_RAW,
-      PROVIDER_CLOCK_BOOTTIME,
-      PROVIDER_CLOCK_MONOTONIC_SYSCALL,
-      PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-      PROVIDER_CLOCK_BOOTTIME_SYSCALL,
-      PROVIDER_CLOCK_MONOTONIC_VDSO,
-      PROVIDER_CLOCK_MONOTONIC_RAW_VDSO,
-      PROVIDER_CLOCK_BOOTTIME_VDSO,
-      PROVIDER_ISB_CNTVCT,
-      PROVIDER_CNTVCTSS,
-    ]);
-    let denied = instant_candidates(false, false, false, false);
-    assert_eq!(denied.as_slice(), [
-      PROVIDER_CLOCK_MONOTONIC_SYSCALL,
-      PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-      PROVIDER_CLOCK_BOOTTIME_SYSCALL,
-    ]);
-
-    for candidates in [instant.as_slice(), ordered.as_slice(), denied.as_slice()] {
-      for (index, provider) in candidates.iter().enumerate() {
-        assert!(!candidates[index + 1..].contains(provider));
-      }
-    }
-    assert!(denied.as_slice().iter().all(|provider| matches!(
-      *provider,
-      PROVIDER_CLOCK_MONOTONIC_SYSCALL
-        | PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL
-        | PROVIDER_CLOCK_BOOTTIME_SYSCALL
-    )));
-  }
-
-  #[test]
-  fn tournament_order_is_deterministic_and_ties_keep_the_incumbent() {
-    let mut winner =
-      RankedCandidate { provider: PROVIDER_CLOCK_MONOTONIC, samples: [100_000; PROBE_BATCHES] };
-    let tie = compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_RAW,
-      samples: [96_000; PROBE_BATCHES],
-    });
-    assert!(!tie.decision.challenger_selected);
-    assert_eq!(winner.provider, PROVIDER_CLOCK_MONOTONIC);
-
-    let win = compete(&mut winner, RankedCandidate {
-      provider: PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL,
-      samples: [90_000; PROBE_BATCHES],
-    });
-    assert!(win.decision.challenger_selected);
-    assert_eq!(winner.provider, PROVIDER_CLOCK_MONOTONIC_RAW_SYSCALL);
-  }
-
-  #[test]
   fn selected_providers_survive_fork() {
     let instant_before = ticks();
     let ordered_before = ticks_ordered();
@@ -2291,9 +737,8 @@ mod tests {
       }
       let _ = ticks();
       let _ = ticks_ordered();
-      let denied = instant_candidates(false, false, false, false);
-      let ok = denied.as_slice().contains(&INSTANT_PROVIDER.load(Ordering::Acquire))
-        && denied.as_slice().contains(&ORDERED_PROVIDER.load(Ordering::Acquire));
+      let ok = INSTANT_PROVIDER.load(Ordering::Acquire) == PROVIDER_CLOCK_MONOTONIC_SYSCALL
+        && ORDERED_PROVIDER.load(Ordering::Acquire) == PROVIDER_CLOCK_MONOTONIC_SYSCALL;
       unsafe { libc::_exit(if ok { 0 } else { 1 }) };
     }
 

@@ -1326,34 +1326,6 @@ pub fn linux_aarch64_selected_ordered_primitive() -> ExactWallProvider {
 }
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-#[doc(hidden)]
-pub fn linux_aarch64_instant_candidate_primitives() -> Vec<ExactWallProvider> {
-  let (primitives, count) = crate::arch::linux_aarch64_wall::bench_instant_candidate_primitives();
-  primitives
-    .into_iter()
-    .take(count)
-    .map(|primitive| {
-      let primitive = primitive.expect("eligible Instant candidate must have an exact reader");
-      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
-    })
-    .collect()
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-#[doc(hidden)]
-pub fn linux_aarch64_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
-  let (primitives, count) = crate::arch::linux_aarch64_wall::bench_ordered_candidate_primitives();
-  primitives
-    .into_iter()
-    .take(count)
-    .map(|primitive| {
-      let primitive = primitive.expect("eligible Ordered candidate must have an exact reader");
-      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
-    })
-    .collect()
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 macro_rules! expose_linux_aarch64_exact_read {
   ($name:ident, $source:ident) => {
     #[doc(hidden)]
@@ -1368,75 +1340,12 @@ macro_rules! expose_linux_aarch64_exact_read {
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 expose_linux_aarch64_exact_read!(linux_aarch64_exact_cntvct, bench_direct_cntvct);
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(linux_aarch64_exact_libc_monotonic, bench_direct_clock_monotonic);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(linux_aarch64_exact_libc_raw, bench_direct_clock_monotonic_raw);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(linux_aarch64_exact_libc_boottime, bench_direct_clock_boottime);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_vdso_monotonic,
-  bench_direct_clock_monotonic_vdso
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_vdso_raw,
-  bench_direct_clock_monotonic_raw_vdso
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_vdso_boottime,
-  bench_direct_clock_boottime_vdso
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 expose_linux_aarch64_exact_read!(
   linux_aarch64_exact_syscall_monotonic,
   bench_direct_clock_monotonic_syscall
 );
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_syscall_raw,
-  bench_direct_clock_monotonic_raw_syscall
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_syscall_boottime,
-  bench_direct_clock_boottime_syscall
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
 expose_linux_aarch64_exact_read!(linux_aarch64_exact_isb_cntvct, bench_direct_isb_cntvct);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(linux_aarch64_exact_cntvctss, bench_direct_cntvctss);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_ordered_libc_monotonic,
-  bench_direct_clock_monotonic_ordered
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_ordered_libc_raw,
-  bench_direct_clock_monotonic_raw_ordered
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_ordered_libc_boottime,
-  bench_direct_clock_boottime_ordered
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_ordered_vdso_monotonic,
-  bench_direct_clock_monotonic_vdso_ordered
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_ordered_vdso_raw,
-  bench_direct_clock_monotonic_raw_vdso_ordered
-);
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-expose_linux_aarch64_exact_read!(
-  linux_aarch64_exact_ordered_vdso_boottime,
-  bench_direct_clock_boottime_vdso_ordered
-);
 
 #[cfg(all(target_os = "linux", any(target_arch = "arm", target_arch = "s390x")))]
 #[doc(hidden)]
@@ -3878,32 +3787,6 @@ impl LinuxAarch64CntvctDirect {
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
 #[doc(hidden)]
-pub struct LinuxAarch64ClockMonotonicDirect;
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-impl LinuxAarch64ClockMonotonicDirect {
-  #[doc(hidden)]
-  pub fn for_current_machine() -> Self {
-    Self
-  }
-
-  #[doc(hidden)]
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now_ticks(&self) -> u64 {
-    crate::arch::linux_aarch64_wall::bench_direct_clock_monotonic()
-  }
-
-  #[doc(hidden)]
-  #[inline(always)]
-  #[allow(clippy::inline_always)]
-  pub fn now_ordered_ticks(&self) -> u64 {
-    crate::arch::linux_aarch64_wall::bench_direct_clock_monotonic_ordered()
-  }
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-#[doc(hidden)]
 pub struct LinuxAarch64ClockMonotonicSyscallDirect;
 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
@@ -3938,234 +3821,6 @@ pub fn linux_aarch64_instant_selected_provider() -> &'static str {
 #[doc(hidden)]
 pub fn linux_aarch64_ordered_selected_provider() -> &'static str {
   crate::arch::linux_aarch64_wall::bench_ordered_provider()
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-#[doc(hidden)]
-#[derive(Serialize, Clone, Debug)]
-pub struct WallTournamentStepMeasurements {
-  pub challenger: &'static str,
-  pub incumbent: &'static str,
-  pub allowance_ns: u64,
-  pub decisive_wins: usize,
-  pub challenger_selected: bool,
-  pub winner: &'static str,
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-fn aarch64_tournament_step(
-  evidence: crate::arch::linux_aarch64_wall::TournamentStepEvidence,
-) -> WallTournamentStepMeasurements {
-  WallTournamentStepMeasurements {
-    challenger: evidence.challenger,
-    incumbent: evidence.incumbent,
-    allowance_ns: evidence.allowance_ns,
-    decisive_wins: evidence.decisive_wins,
-    challenger_selected: evidence.challenger_selected,
-    winner: evidence.winner,
-  }
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-#[doc(hidden)]
-#[derive(Serialize, Clone, Debug)]
-pub struct LinuxAarch64InstantSelectionMeasurements {
-  pub eligibility: &'static str,
-  pub permission_basis: &'static str,
-  pub pr_get_tsc_status: i64,
-  pub kernel_version_known: bool,
-  pub kernel_version_major: u32,
-  pub kernel_version_minor: u32,
-  pub reads_per_batch: u64,
-  pub candidate_count: usize,
-  pub vdso_available: bool,
-  pub vdso_raw_available: bool,
-  pub vdso_boottime_available: bool,
-  pub cntvct_batches_ns: [u64; 9],
-  pub clock_batches_ns: [u64; 9],
-  pub clock_raw_batches_ns: [u64; 9],
-  pub clock_boottime_batches_ns: [u64; 9],
-  pub syscall_batches_ns: [u64; 9],
-  pub syscall_raw_batches_ns: [u64; 9],
-  pub syscall_boottime_batches_ns: [u64; 9],
-  pub vdso_batches_ns: [u64; 9],
-  pub vdso_raw_batches_ns: [u64; 9],
-  pub vdso_boottime_batches_ns: [u64; 9],
-  pub cntvct_median_ns: u64,
-  pub clock_median_ns: u64,
-  pub clock_raw_median_ns: u64,
-  pub clock_boottime_median_ns: u64,
-  pub syscall_median_ns: u64,
-  pub syscall_raw_median_ns: u64,
-  pub syscall_boottime_median_ns: u64,
-  pub vdso_median_ns: u64,
-  pub vdso_raw_median_ns: u64,
-  pub vdso_boottime_median_ns: u64,
-  pub fallback_provider: &'static str,
-  pub direct_allowance_ns: u64,
-  pub direct_decisive_wins: usize,
-  pub syscall_vs_clock_allowance_ns: u64,
-  pub syscall_vs_clock_decisive_wins: usize,
-  pub tournament_step_count: usize,
-  pub tournament_steps: Vec<WallTournamentStepMeasurements>,
-  pub required_decisive_wins: usize,
-  pub selected_provider: &'static str,
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-#[doc(hidden)]
-pub fn linux_aarch64_instant_selection_measurements() -> LinuxAarch64InstantSelectionMeasurements {
-  let evidence = crate::arch::linux_aarch64_wall::bench_instant_evidence();
-  LinuxAarch64InstantSelectionMeasurements {
-    eligibility: evidence.eligibility,
-    permission_basis: evidence.permission_basis,
-    pr_get_tsc_status: evidence.pr_get_tsc_status,
-    kernel_version_known: evidence.kernel_version_known,
-    kernel_version_major: evidence.kernel_version_major,
-    kernel_version_minor: evidence.kernel_version_minor,
-    reads_per_batch: evidence.reads_per_batch,
-    candidate_count: evidence.candidate_count,
-    vdso_available: evidence.vdso_available,
-    vdso_raw_available: evidence.vdso_raw_available,
-    vdso_boottime_available: evidence.vdso_boottime_available,
-    cntvct_batches_ns: evidence.cntvct_batches_ns,
-    clock_batches_ns: evidence.clock_batches_ns,
-    clock_raw_batches_ns: evidence.clock_raw_batches_ns,
-    clock_boottime_batches_ns: evidence.clock_boottime_batches_ns,
-    syscall_batches_ns: evidence.syscall_batches_ns,
-    syscall_raw_batches_ns: evidence.syscall_raw_batches_ns,
-    syscall_boottime_batches_ns: evidence.syscall_boottime_batches_ns,
-    vdso_batches_ns: evidence.vdso_batches_ns,
-    vdso_raw_batches_ns: evidence.vdso_raw_batches_ns,
-    vdso_boottime_batches_ns: evidence.vdso_boottime_batches_ns,
-    cntvct_median_ns: evidence.cntvct_median_ns,
-    clock_median_ns: evidence.clock_median_ns,
-    clock_raw_median_ns: evidence.clock_raw_median_ns,
-    clock_boottime_median_ns: evidence.clock_boottime_median_ns,
-    syscall_median_ns: evidence.syscall_median_ns,
-    syscall_raw_median_ns: evidence.syscall_raw_median_ns,
-    syscall_boottime_median_ns: evidence.syscall_boottime_median_ns,
-    vdso_median_ns: evidence.vdso_median_ns,
-    vdso_raw_median_ns: evidence.vdso_raw_median_ns,
-    vdso_boottime_median_ns: evidence.vdso_boottime_median_ns,
-    fallback_provider: evidence.fallback_provider,
-    direct_allowance_ns: evidence.direct_allowance_ns,
-    direct_decisive_wins: evidence.direct_decisive_wins,
-    syscall_vs_clock_allowance_ns: evidence.syscall_vs_clock_allowance_ns,
-    syscall_vs_clock_decisive_wins: evidence.syscall_vs_clock_decisive_wins,
-    tournament_step_count: evidence.tournament_step_count,
-    tournament_steps: evidence.tournament_steps.into_iter().map(aarch64_tournament_step).collect(),
-    required_decisive_wins: evidence.required_decisive_wins,
-    selected_provider: evidence.selected_provider,
-  }
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-#[doc(hidden)]
-#[derive(Serialize, Clone, Debug)]
-pub struct LinuxAarch64OrderedSelectionMeasurements {
-  pub eligibility: &'static str,
-  pub permission_basis: &'static str,
-  pub pr_get_tsc_status: i64,
-  pub kernel_version_known: bool,
-  pub kernel_version_major: u32,
-  pub kernel_version_minor: u32,
-  pub reads_per_batch: u64,
-  pub candidate_count: usize,
-  pub vdso_available: bool,
-  pub vdso_raw_available: bool,
-  pub vdso_boottime_available: bool,
-  pub hwcap_ecv: bool,
-  pub hwcap_sb: bool,
-  pub sb_eligibility: &'static str,
-  pub isb_batches_ns: [u64; 9],
-  pub cntvctss_batches_ns: [u64; 9],
-  pub clock_batches_ns: [u64; 9],
-  pub clock_raw_batches_ns: [u64; 9],
-  pub clock_boottime_batches_ns: [u64; 9],
-  pub syscall_batches_ns: [u64; 9],
-  pub syscall_raw_batches_ns: [u64; 9],
-  pub syscall_boottime_batches_ns: [u64; 9],
-  pub vdso_batches_ns: [u64; 9],
-  pub vdso_raw_batches_ns: [u64; 9],
-  pub vdso_boottime_batches_ns: [u64; 9],
-  pub direct_provider: &'static str,
-  pub fallback_provider: &'static str,
-  pub direct_median_ns: u64,
-  pub clock_median_ns: u64,
-  pub clock_raw_median_ns: u64,
-  pub clock_boottime_median_ns: u64,
-  pub syscall_median_ns: u64,
-  pub syscall_raw_median_ns: u64,
-  pub syscall_boottime_median_ns: u64,
-  pub vdso_median_ns: u64,
-  pub vdso_raw_median_ns: u64,
-  pub vdso_boottime_median_ns: u64,
-  pub direct_allowance_ns: u64,
-  pub direct_decisive_wins: usize,
-  pub cntvctss_vs_isb_allowance_ns: u64,
-  pub cntvctss_vs_isb_decisive_wins: usize,
-  pub syscall_vs_clock_allowance_ns: u64,
-  pub syscall_vs_clock_decisive_wins: usize,
-  pub tournament_step_count: usize,
-  pub tournament_steps: Vec<WallTournamentStepMeasurements>,
-  pub required_decisive_wins: usize,
-  pub selected_provider: &'static str,
-}
-
-#[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
-#[doc(hidden)]
-pub fn linux_aarch64_ordered_selection_measurements() -> LinuxAarch64OrderedSelectionMeasurements {
-  let evidence = crate::arch::linux_aarch64_wall::bench_ordered_evidence();
-  LinuxAarch64OrderedSelectionMeasurements {
-    eligibility: evidence.eligibility,
-    permission_basis: evidence.permission_basis,
-    pr_get_tsc_status: evidence.pr_get_tsc_status,
-    kernel_version_known: evidence.kernel_version_known,
-    kernel_version_major: evidence.kernel_version_major,
-    kernel_version_minor: evidence.kernel_version_minor,
-    reads_per_batch: evidence.reads_per_batch,
-    candidate_count: evidence.candidate_count,
-    vdso_available: evidence.vdso_available,
-    vdso_raw_available: evidence.vdso_raw_available,
-    vdso_boottime_available: evidence.vdso_boottime_available,
-    hwcap_ecv: evidence.hwcap_ecv,
-    hwcap_sb: evidence.hwcap_sb,
-    sb_eligibility: evidence.sb_eligibility,
-    isb_batches_ns: evidence.isb_batches_ns,
-    cntvctss_batches_ns: evidence.cntvctss_batches_ns,
-    clock_batches_ns: evidence.clock_batches_ns,
-    clock_raw_batches_ns: evidence.clock_raw_batches_ns,
-    clock_boottime_batches_ns: evidence.clock_boottime_batches_ns,
-    syscall_batches_ns: evidence.syscall_batches_ns,
-    syscall_raw_batches_ns: evidence.syscall_raw_batches_ns,
-    syscall_boottime_batches_ns: evidence.syscall_boottime_batches_ns,
-    vdso_batches_ns: evidence.vdso_batches_ns,
-    vdso_raw_batches_ns: evidence.vdso_raw_batches_ns,
-    vdso_boottime_batches_ns: evidence.vdso_boottime_batches_ns,
-    direct_provider: evidence.direct_provider,
-    fallback_provider: evidence.fallback_provider,
-    direct_median_ns: evidence.direct_median_ns,
-    clock_median_ns: evidence.clock_median_ns,
-    clock_raw_median_ns: evidence.clock_raw_median_ns,
-    clock_boottime_median_ns: evidence.clock_boottime_median_ns,
-    syscall_median_ns: evidence.syscall_median_ns,
-    syscall_raw_median_ns: evidence.syscall_raw_median_ns,
-    syscall_boottime_median_ns: evidence.syscall_boottime_median_ns,
-    vdso_median_ns: evidence.vdso_median_ns,
-    vdso_raw_median_ns: evidence.vdso_raw_median_ns,
-    vdso_boottime_median_ns: evidence.vdso_boottime_median_ns,
-    direct_allowance_ns: evidence.direct_allowance_ns,
-    direct_decisive_wins: evidence.direct_decisive_wins,
-    cntvctss_vs_isb_allowance_ns: evidence.cntvctss_vs_isb_allowance_ns,
-    cntvctss_vs_isb_decisive_wins: evidence.cntvctss_vs_isb_decisive_wins,
-    syscall_vs_clock_allowance_ns: evidence.syscall_vs_clock_allowance_ns,
-    syscall_vs_clock_decisive_wins: evidence.syscall_vs_clock_decisive_wins,
-    tournament_step_count: evidence.tournament_step_count,
-    tournament_steps: evidence.tournament_steps.into_iter().map(aarch64_tournament_step).collect(),
-    required_decisive_wins: evidence.required_decisive_wins,
-    selected_provider: evidence.selected_provider,
-  }
 }
 
 #[cfg(all(
@@ -5151,34 +4806,7 @@ pub fn ordered_selection_measurements() -> Option<OrderedSelectionMeasurements> 
 #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux"),))]
 #[doc(hidden)]
 pub fn ordered_selection_measurements() -> Option<OrderedSelectionMeasurements> {
-  let evidence = crate::arch::linux_aarch64_wall::bench_ordered_evidence();
-  if !evidence.hwcap_ecv {
-    return None;
-  }
-  let challenger = "aarch64_cntvctss";
-  let incumbent = "aarch64_isb_cntvct";
-  let mut challenger_sorted = evidence.cntvctss_batches_ns;
-  let mut incumbent_sorted = evidence.isb_batches_ns;
-  challenger_sorted.sort_unstable();
-  incumbent_sorted.sort_unstable();
-  let challenger_selected = evidence.direct_provider == challenger;
-  Some(OrderedSelectionMeasurements {
-    challenger,
-    incumbent,
-    batch_count: evidence.cntvctss_batches_ns.len(),
-    reads_per_batch: evidence.reads_per_batch,
-    counter_hz: 1_000_000_000,
-    challenger_batches_ticks: evidence.cntvctss_batches_ns,
-    incumbent_batches_ticks: evidence.isb_batches_ns,
-    challenger_median_ticks: challenger_sorted[challenger_sorted.len() / 2],
-    incumbent_median_ticks: incumbent_sorted[incumbent_sorted.len() / 2],
-    allowance_total_ticks: evidence.cntvctss_vs_isb_allowance_ns,
-    decisive_wins: evidence.cntvctss_vs_isb_decisive_wins,
-    required_decisive_wins: evidence.required_decisive_wins,
-    challenger_selected,
-    computed_winner: if challenger_selected { challenger } else { incumbent },
-    x86_tournament: None,
-  })
+  None
 }
 
 /// A clock under test. Produces a `u64` of ns-since-anchor each `now_as_u64`

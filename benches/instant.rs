@@ -856,32 +856,8 @@ macro_rules! with_linux_aarch64_instant_read {
       "aarch64_cntvct" => {
         $callback!($($arguments)*, tach::bench::linux_aarch64_exact_cntvct)
       }
-      "linux_clock_monotonic" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_monotonic)
-      }
-      "linux_clock_monotonic_raw" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_raw)
-      }
-      "linux_clock_boottime" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_libc_boottime)
-      }
-      "linux_clock_monotonic_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_monotonic)
-      }
-      "linux_clock_monotonic_raw_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_raw)
-      }
-      "linux_clock_boottime_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_vdso_boottime)
-      }
       "linux_clock_monotonic_syscall" => {
         $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_monotonic)
-      }
-      "linux_clock_monotonic_raw_syscall" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_raw)
-      }
-      "linux_clock_boottime_syscall" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_boottime)
       }
       _ => panic!("unsupported selected Linux aarch64 Instant provider: {}", $provider),
     }
@@ -899,35 +875,8 @@ macro_rules! with_linux_aarch64_ordered_read {
       "aarch64_isb_cntvct" => {
         $callback!($($arguments)*, tach::bench::linux_aarch64_exact_isb_cntvct)
       }
-      "aarch64_cntvctss" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_cntvctss)
-      }
-      "linux_clock_monotonic" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_monotonic)
-      }
-      "linux_clock_monotonic_raw" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_raw)
-      }
-      "linux_clock_boottime" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_libc_boottime)
-      }
-      "linux_clock_monotonic_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_monotonic)
-      }
-      "linux_clock_monotonic_raw_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_raw)
-      }
-      "linux_clock_boottime_vdso_direct" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_ordered_vdso_boottime)
-      }
       "linux_clock_monotonic_syscall" => {
         $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_monotonic)
-      }
-      "linux_clock_monotonic_raw_syscall" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_raw)
-      }
-      "linux_clock_boottime_syscall" => {
-        $callback!($($arguments)*, tach::bench::linux_aarch64_exact_syscall_boottime)
       }
       _ => panic!("unsupported selected Linux aarch64 Ordered provider: {}", $provider),
     }
@@ -1902,20 +1851,6 @@ fn bench_now(c: &mut Criterion) {
     any(target_os = "android", target_os = "linux"),
   ))]
   {
-    for candidate in tach::bench::linux_aarch64_instant_candidate_primitives() {
-      let provider = candidate.provider();
-      with_linux_aarch64_instant_read!(provider, register_selected_now, g, "direct_wall", provider);
-    }
-    for candidate in tach::bench::linux_aarch64_ordered_candidate_primitives() {
-      let provider = candidate.provider();
-      with_linux_aarch64_ordered_read!(
-        provider,
-        register_selected_now,
-        g,
-        "direct_ordered_wall",
-        provider
-      );
-    }
     if let Some(direct) = OrderedAarch64IsbDirect::try_for_current_machine() {
       g.bench_function("direct_ordered__aarch64_isb_cntvct", |b| {
         b.iter(|| black_box(direct.now_ticks()));
@@ -2143,7 +2078,6 @@ fn bench_now(c: &mut Criterion) {
   g.finish();
   write_ordered_selection();
   write_linux_x86_wall_selection();
-  write_linux_aarch64_wall_selection();
   write_residual_wall_selection();
   write_apple_wall_selection();
   write_windows_wall_selection();
@@ -2534,65 +2468,6 @@ fn write_linux_x86_wall_selection() {}
 
 #[cfg(all(
   feature = "bench-internal",
-  target_arch = "aarch64",
-  any(target_os = "android", target_os = "linux"),
-))]
-fn write_linux_aarch64_wall_selection() {
-  use std::fs;
-  use std::path::PathBuf;
-
-  let instant_candidates: Vec<_> = tach::bench::linux_aarch64_instant_candidate_primitives()
-    .iter()
-    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
-    .collect();
-  let ordered_candidates: Vec<_> = tach::bench::linux_aarch64_ordered_candidate_primitives()
-    .iter()
-    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
-    .collect();
-  let instant_selected = tach::bench::linux_aarch64_selected_instant_primitive();
-  let ordered_selected = tach::bench::linux_aarch64_selected_ordered_primitive();
-  let payload = serde_json::json!({
-    "selected_provider": {
-      "instant": instant_selected.provider(),
-      "ordered": ordered_selected.provider(),
-    },
-    "selected_native_benchmark": {
-      "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
-      "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
-    },
-    "eligible_direct_candidates": {
-      "instant": instant_candidates,
-      "ordered": ordered_candidates,
-    },
-    "decision_rule": "each contract independently tournaments every eligible complete MONOTONIC, MONOTONIC_RAW, raw-syscall, and architectural-counter path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches",
-    "instant_probe": tach::bench::linux_aarch64_instant_selection_measurements(),
-    "ordered_probe": tach::bench::linux_aarch64_ordered_selection_measurements(),
-    "permission_rule": "PR_GET_TSC is authoritative when implemented, including Android/vendor backports; only exact -EINVAL plus a parsed upstream-pre-6.12 arm64 uname release infers legacy-safe counter access; newer, unknown, and other failed queries remain syscall-only",
-    "feat_sb": "ineligible: Arm SB constrains side-channel-observable speculation but does not order architectural counter sampling after a prior Acquire observation",
-    "kernel_errata": "trapped CNTVCT/CNTVCTSS reads remain eligible because arm64 emulates them with its workaround-aware counter reader; exact-path measurement determines profitability",
-    "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke counter access after direct-provider selection",
-  });
-  let target = std::env::var_os("CARGO_TARGET_DIR")
-    .map(PathBuf::from)
-    .unwrap_or_else(|| PathBuf::from("target"));
-  let directory = target.join("criterion");
-  fs::create_dir_all(&directory).expect("create criterion directory");
-  fs::write(
-    directory.join("linux-aarch64-wall-selection.json"),
-    serde_json::to_vec_pretty(&payload).expect("serialize Linux aarch64 wall selector evidence"),
-  )
-  .expect("write Linux aarch64 wall selector evidence");
-}
-
-#[cfg(not(all(
-  feature = "bench-internal",
-  target_arch = "aarch64",
-  any(target_os = "android", target_os = "linux"),
-)))]
-fn write_linux_aarch64_wall_selection() {}
-
-#[cfg(all(
-  feature = "bench-internal",
   any(
     all(
       any(target_arch = "x86_64", target_arch = "x86"),
@@ -2774,30 +2649,6 @@ fn bench_elapsed(c: &mut Criterion) {
     any(target_os = "android", target_os = "linux"),
   ))]
   {
-    for candidate in tach::bench::linux_aarch64_instant_candidate_primitives() {
-      let provider = candidate.provider();
-      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
-      with_linux_aarch64_instant_read!(
-        provider,
-        register_selected_elapsed,
-        g,
-        "direct_wall",
-        provider,
-        nanos_per_tick_q32
-      );
-    }
-    for candidate in tach::bench::linux_aarch64_ordered_candidate_primitives() {
-      let provider = candidate.provider();
-      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
-      with_linux_aarch64_ordered_read!(
-        provider,
-        register_selected_elapsed,
-        g,
-        "direct_ordered_wall",
-        provider,
-        nanos_per_tick_q32
-      );
-    }
     let selected = tach::bench::linux_aarch64_selected_instant_primitive();
     let provider = selected.provider();
     let nanos_per_tick_q32 = selected.nanos_per_tick_q32();

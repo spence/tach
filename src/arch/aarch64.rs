@@ -45,7 +45,7 @@ pub(crate) fn cntvct_after_isb() -> u64 {
   cnt
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(all(feature = "bench-internal", any(target_os = "android", target_os = "linux")))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub(crate) fn cntvctss() -> u64 {
@@ -63,7 +63,10 @@ pub(crate) fn cntvctss() -> u64 {
   cnt
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(all(
+  any(target_os = "android", target_os = "linux"),
+  any(feature = "bench-internal", feature = "thread-cpu-inline")
+))]
 pub(crate) fn cntvctss_capable() -> bool {
   const HWCAP2_ECV: libc::c_ulong = 1 << 19;
 
