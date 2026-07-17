@@ -8,8 +8,8 @@ objective doc: author status there, not here.
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M3 ⚪ Apparatus diet and truthful claims)
 > Next:       OBJ-SIMPLIFY-TIMERS.M3 — Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-FREEBSD-PARITY-MEASUREMENT
-> Last verified: 2026-07-16 · Changed: Executed M3 §7.1+§7.2 apparatus diet (a7d77ac): deleted 54 dead release-forensics/campaign files (all archive-retained on archive/pre-simplify-2026-07-15) + the claim-evidence CI job (the last red job) -> CI now FULLY GREEN (run 29556556028, 26/26). Conservative: KEPT live-referenced apparatus the plan mis-listed (speed_evidence.py<-compose-speed, lambda-speed/<-bench.rs include_str!, seal/compose collectors run by run-speed-*.sh, README chart chain); pruned dangling manifest entries. Public surface (README/lib.rs) has ZERO dangling refs to deleted files (parent-verified). · By: nsr · a7d77ac
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-FREEBSD-PARITY-MEASUREMENT, ESC-M3-CLAIMS-REMEASURE
+> Last verified: 2026-07-16 · Changed: Executed M3 §7.1+§7.2 apparatus diet (a7d77ac): deleted 54 dead release-forensics/campaign files (all archive-retained on archive/pre-simplify-2026-07-15) + the claim-evidence CI job (the last red job) -> CI now FULLY GREEN (run 29556556028, 26/26). Conservative: KEPT live-referenced apparatus the plan mis-listed (speed_evidence.py<-compose-speed, lambda-speed/<-bench.rs include_str!, seal/compose collectors run by run-speed-*.sh, README chart chain); pruned dangling manifest entries. Public surface (README/lib.rs) has ZERO dangling refs to deleted files (parent-verified). · By: nsr · 9e53c69
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
