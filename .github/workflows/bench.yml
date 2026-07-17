@@ -3,22 +3,49 @@ name: bench
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# Produces the primary Windows speed cell (speed-4-windows.json) for the four-cell
+# campaign, source-sealed to the dispatched revision. The three other primary cells
+# come from run-speed-local.sh (Apple) and run-speed-aws.sh (c7g, inteln). All four
+# must share one revision (validate_primary_speed_campaign), so dispatch this on the
+# same commit the local/AWS cells are measured at, and download speed-4-windows.json
+# from this run's artifact.
 jobs:
-  bench:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: windows-2025
-            label: windows-2025
-            arch: x86_64-pc-windows-msvc
-    runs-on: ${{ matrix.runner }}
+  windows-primary-cell:
+    name: Windows 2025 primary speed cell
+    runs-on: windows-2025
+    env:
+      CARGO_TARGET_DIR: target/windows-x86_64
+      TACH_BENCH_EVIDENCE: "1"
+      TACH_BENCH_SOURCE_REVISION: ${{ github.sha }}
+      TACH_BENCH_RUNNER: github-windows-2025-x86_64
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo bench --bench instant -- --warm-up-time 1 --measurement-time 3
-      - name: Upload criterion output
+      - run: cargo test --locked --release --tests --features bench-internal
+      - name: Run source-sealed canonical benchmark
+        shell: bash
+        run: |
+          python benches/seal-speed-source.py "$CARGO_TARGET_DIR/criterion" -- \
+            cargo bench --locked --bench instant --features bench-internal -- \
+              --warm-up-time 1 --measurement-time 3
+      - name: Collect and compose the primary Windows speed cell
+        shell: bash
+        run: |
+          source_revision="$(bash benches/require-clean-benchmark-source.sh)"
+          test "$source_revision" = "${{ github.sha }}"
+          output_dir=hosted-speed-windows-2025-x86_64
+          bundle="$output_dir/speed-4-windows.collector.bundle"
+          mkdir -p "$output_dir"
+          python benches/collect-speed-bundle.py "$CARGO_TARGET_DIR/criterion" "$bundle"
+          python benches/compose-speed.py "$output_dir/speed-4-windows.json" \
+            --collector-bundle "$bundle"
+      - name: Upload Windows primary speed cell
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: criterion-${{ matrix.label }}
-          path: target/criterion/
+          name: tach-speed-windows-2025-${{ github.sha }}
+          path: hosted-speed-windows-2025-x86_64
+          if-no-files-found: warn
