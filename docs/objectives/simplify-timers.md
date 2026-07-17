@@ -256,6 +256,14 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Did: Converted the LAST M2 family: Apple aarch64 fixed-pick (9d13fff). Instant=bare CNTVCT (modes 1/3, CNTFRQ) / cntvctss (2) / mach (0); Ordered=acntvct(3)/cntvctss(2)/isb+cntvct(1)/mach(0) per ADR-0006. arch file 1303->573L; tournament + selection evidence + continuous readers deleted. Parent-verified all 9 native gates green on aarch64-apple-darwin (fmt/check x3/clippy x2/test --lib x2/check --benches). All 5 M2 families now converted.
 - Next: Monitor CI native/macos for 9d13fff; then drive M2.G1 closure (tournament-symbol grep clean repo-wide, inline parity recorded, test-count reconcile).
 
+### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M2`
+- Did: Fixed the 24-target route proof (5b76e30): repointed every stale per-target route spec at the M2 fixed-pick routes (IR-verified), no src change, no weakening (ADD forbid-vDSO/isb guards). Parent-verified PROOF_EXIT=0 24/24 locally; CI 24-target job GREEN. All 5 M2 conversions now CI-green; CI 26/27 (only retained-release-claim-evidence red = M3 deletion). Apple inline parity PASS locally (Instant +0.642ns, Ordered +0.342ns within max(1ns,5%)).
+- Found: M2.G1: conditions 1 (gates default+no-default) + 2 (0 latency-tournament symbols all 5 families) MET; 3 (inline parity) Apple MET locally; 4 (test-count reconcile) pending. Non-Apple parity depends on whether native CI runs the parity bench (checking).
+
+### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M2`
+- Did: Verified M2.G1 test-count reconcile (condition 4 ✅): relocation preserved all tests (pre-move 172 src + 6 pre-existing tests/ = 178 total = post-relocation 150 src + 22 relocated + 6). The 29 src tests removed by the 5 conversions are ALL tournament/selection/candidate/protocol-machinery (verified by name + content: e.g. freebsd fixed_point_conversions tested the deleted Bintime/pvclock candidates; tsc_denial->initial_sigsegv_mode; selected...evidence_complete->selected_protocols_are_monotonic); the 6 added are fixed-pick coverage (SIGILL guards, LFENCE gate, survey, Apple hardening, QPC monotonic). No valid test lost.
+- Found: M2.G1 scorecard: cond 1 (gates) ✅, 2 (grep-clean) ✅, 4 (test reconcile) ✅. ONLY cond 3 (inline parity) open for the 4 non-Apple families — native CI runs cargo test not the parity bench. Path: run the parity bench in the existing native CI runners (linux-a64/x86, windows) + compute public-vs-exact like Apple; freebsd has no hosted runner -> AWS spend (confirm-first) or disposition.
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
-> Next:       Monitor CI native/macos for 9d13fff; then drive M2.G1 closure (tournament-symbol grep clean repo-wide, inline parity recorded, test-count reconcile).
+> Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-16 · Changed: Converted the LAST M2 family: Apple aarch64 fixed-pick (9d13fff). Instant=bare CNTVCT (modes 1/3, CNTFRQ) / cntvctss (2) / mach (0); Ordered=acntvct(3)/cntvctss(2)/isb+cntvct(1)/mach(0) per ADR-0006. arch file 1303->573L; tournament + selection evidence + continuous readers deleted. Parent-verified all 9 native gates green on aarch64-apple-darwin (fmt/check x3/clippy x2/test --lib x2/check --benches). All 5 M2 families now converted. · By: nsr · 9d13fff
+> Last verified: 2026-07-16 · Changed: Verified M2.G1 test-count reconcile (condition 4 ✅): relocation preserved all tests (pre-move 172 src + 6 pre-existing tests/ = 178 total = post-relocation 150 src + 22 relocated + 6). The 29 src tests removed by the 5 conversions are ALL tournament/selection/candidate/protocol-machinery (verified by name + content: e.g. freebsd fixed_point_conversions tested the deleted Bintime/pvclock candidates; tsc_denial->initial_sigsegv_mode; selected...evidence_complete->selected_protocols_are_monotonic); the 6 added are fixed-pick coverage (SIGILL guards, LFENCE gate, survey, Apple hardening, QPC monotonic). No valid test lost. · By: nsr · 5b76e30
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
