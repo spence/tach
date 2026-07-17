@@ -27,7 +27,7 @@ authority. The closure is owner-accepted; nothing closes by assertion.
 |---|---|---|---|---|
 | `OBJ-SIMPLIFY-TIMERS.M0` | Honest contracts and selection policy | ✅ | ADR records the three contracts, evidence classes, and selection rule; base lands on main; plan in place | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | ✅ | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1🟢 |
-| `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 
 ---
@@ -267,6 +267,10 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 ### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M3`
 - Did: Executed M3 §7.1+§7.2 apparatus diet (a7d77ac): deleted 54 dead release-forensics/campaign files (all archive-retained on archive/pre-simplify-2026-07-15) + the claim-evidence CI job (the last red job) -> CI now FULLY GREEN (run 29556556028, 26/26). Conservative: KEPT live-referenced apparatus the plan mis-listed (speed_evidence.py<-compose-speed, lambda-speed/<-bench.rs include_str!, seal/compose collectors run by run-speed-*.sh, README chart chain); pruned dangling manifest entries. Public surface (README/lib.rs) has ZERO dangling refs to deleted files (parent-verified).
 - Found: M3.G1 remaining = §7.3 claims rewrite (OWNER-GATED): re-measure 6 native cells [AWS+local+windows+freebsd bench SPEND], rewrite README/BENCHMARKS speed claims [owner sign-off, publishing is owner's act], update speed_evidence.py validators to fixed-pick shape, reconcile residual internal-doc refs (ORDERED-VERIFICATION.md, evidence-dir READMEs, route-coverage.toml) + the deferred .tgz bundles.
+
+### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M2`
+- Did: M2.G1 PASS: (1) fmt/clippy -D warnings/tests green default + --no-default-features (CI + local); (2) tournament/selector-symbol grep clean (0 latency-tournament symbols across all 5 converted families; retained Selector/PROVIDER_ are ADR-0005 capability gates); (3) inline parity within max(1ns,5%) for every converted family runnable locally or in CI -- Apple (local), linux-x86_64/aarch64 + windows-x86_64/aarch64 (native CI parity steps, run 29554433481), FreeBSD-x86_64 (EVID-FREEBSD-PARITY native AWS, 4/4); (4) relocated test counts reconcile (pre-move 172 src + 6 tests/ = 178 preserved; 29 conversion-deleted tests all tournament machinery, 6 fixed-pick tests added).; OBJ-SIMPLIFY-TIMERS.M2.G1 🟢 at evidence SHA `4076fe5`.
+- Board: OBJ-SIMPLIFY-TIMERS.M2 G1 🟢 — evidence docs/evidence/timers/freebsd-parity-2026-07-16/README.md.
 
 ## /goal
 
