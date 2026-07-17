@@ -36,11 +36,13 @@ const PROVIDER_SELECTING: u8 = 1;
 const PROVIDER_CNTVCT: u8 = 2;
 const PROVIDER_ISB_CNTVCT: u8 = 4;
 const PROVIDER_CLOCK_MONOTONIC_SYSCALL: u8 = 6;
-const HOT_PROVIDER_ISB_CNTVCT_IDENTITY: u8 = 14;
 const MAX_ORDERED_HOT_SCALE: u64 = u64::MAX >> 8;
-const IDENTITY_NANOS_PER_TICK_Q32: u64 = 1_u64 << 32;
-const REENTRANT_ORDERED_HOT_STATE: u64 =
-  (IDENTITY_NANOS_PER_TICK_Q32 << 8) | PROVIDER_CLOCK_MONOTONIC_SYSCALL as u64;
+// The ordered hot state packs `scale << 8 | provider`. Before selection its low
+// byte is `PROVIDER_UNKNOWN`, so both hot ordered reads miss their single
+// `PROVIDER_ISB_CNTVCT` compare and route to the cold selector; the identity
+// scale in the high bits is exact for the reentrant `CLOCK_MONOTONIC` fallback a
+// pre-selection read takes.
+const UNSELECTED_ORDERED_HOT_STATE: u64 = (1_u64 << 32) << 8;
 
 const PR_GET_TSC: libc::c_int = 25;
 #[cfg(test)]
@@ -54,7 +56,7 @@ static INSTANT_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER: AtomicU8 = AtomicU8::new(PROVIDER_UNKNOWN);
 static ORDERED_PROVIDER_OWNER_PID: AtomicI32 = AtomicI32::new(0);
 static ORDERED_PROVIDER_OWNER_TID: AtomicI32 = AtomicI32::new(0);
-static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(REENTRANT_ORDERED_HOT_STATE);
+static ORDERED_HOT_STATE: AtomicU64 = AtomicU64::new(UNSELECTED_ORDERED_HOT_STATE);
 
 // Both direct domains read the same architectural counter at the same rate.
 static DIRECT_FREQUENCY: AtomicU64 = AtomicU64::new(0);
@@ -126,13 +128,22 @@ fn ticks_after_selection() -> u64 {
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered() -> u64 {
-  read_hot_ordered_provider(ORDERED_PROVIDER.load(Ordering::Relaxed))
+  let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
+  read_hot_ordered_provider(state as u8)
 }
 
 #[inline(always)]
 fn read_hot_ordered_provider(provider: u8) -> u64 {
+  if provider == PROVIDER_ISB_CNTVCT {
+    return super::aarch64::cntvct_after_isb();
+  }
+  read_cold_ordered_provider(provider)
+}
+
+#[cold]
+#[inline(never)]
+fn read_cold_ordered_provider(provider: u8) -> u64 {
   match provider {
-    PROVIDER_ISB_CNTVCT | HOT_PROVIDER_ISB_CNTVCT_IDENTITY => super::aarch64::cntvct_after_isb(),
     PROVIDER_CLOCK_MONOTONIC_SYSCALL => clock_monotonic_syscall(),
     _ => ticks_ordered_after_selection(),
   }
@@ -142,16 +153,6 @@ fn read_hot_ordered_provider(provider: u8) -> u64 {
 #[allow(clippy::inline_always)]
 pub(crate) fn ticks_ordered_with_scale() -> (u64, u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
-  match state as u8 {
-    HOT_PROVIDER_ISB_CNTVCT_IDENTITY => {
-      (super::aarch64::cntvct_after_isb(), IDENTITY_NANOS_PER_TICK_Q32)
-    }
-    _ => ticks_ordered_with_scale_fallback(state),
-  }
-}
-
-#[inline(never)]
-fn ticks_ordered_with_scale_fallback(state: u64) -> (u64, u64) {
   (read_hot_ordered_provider(state as u8), state >> 8)
 }
 
@@ -161,20 +162,12 @@ pub(crate) const fn ordered_hot_scale_fits(scale: u64) -> bool {
 
 pub(crate) fn update_ordered_hot_scale(scale: u64) {
   let state = ORDERED_HOT_STATE.load(Ordering::Relaxed);
-  let provider = match state as u8 {
-    HOT_PROVIDER_ISB_CNTVCT_IDENTITY => PROVIDER_ISB_CNTVCT,
-    provider => provider,
-  };
-  publish_ordered_hot_state(provider, scale);
+  publish_ordered_hot_state(state as u8, scale);
 }
 
 fn publish_ordered_hot_state(provider: u8, scale: u64) {
   debug_assert!(ordered_hot_scale_fits(scale));
-  let hot_provider = match (provider, scale) {
-    (PROVIDER_ISB_CNTVCT, IDENTITY_NANOS_PER_TICK_Q32) => HOT_PROVIDER_ISB_CNTVCT_IDENTITY,
-    _ => provider,
-  };
-  ORDERED_HOT_STATE.store(scale << 8 | u64::from(hot_provider), Ordering::Release);
+  ORDERED_HOT_STATE.store(scale << 8 | u64::from(provider), Ordering::Release);
 }
 
 #[cold]
@@ -730,6 +723,7 @@ mod tests {
     if child == 0 {
       INSTANT_PROVIDER.store(PROVIDER_UNKNOWN, Ordering::Release);
       ORDERED_PROVIDER.store(PROVIDER_UNKNOWN, Ordering::Release);
+      ORDERED_HOT_STATE.store(UNSELECTED_ORDERED_HOT_STATE, Ordering::Release);
       let status = unsafe { libc::prctl(PR_SET_TSC, PR_TSC_SIGSEGV) };
       if status != 0 {
         // Upstream arm64 did not implement PR_SET_TSC before Linux 6.12.
