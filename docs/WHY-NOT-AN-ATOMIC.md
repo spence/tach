@@ -2,8 +2,8 @@
 
 `tach::OrderedInstant` makes a cross-thread guarantee — a timestamp read after an
 `Acquire`-load on another thread's published value is never smaller than that value
-— and it does so by trusting a CPU instruction barrier (`rdtscp` on x86, `isb sy`
-on aarch64). The obvious question:
+— and it does so by trusting a CPU instruction barrier (`lfence; rdtsc` on x86,
+`isb sy` on aarch64). The obvious question:
 
 > Why trust a barrier? Why not guarantee monotonicity the brute-force way — wrap
 > every read in a process-global `AtomicU64::fetch_max`, so every value returned is

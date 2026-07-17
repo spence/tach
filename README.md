@@ -101,7 +101,7 @@ operations. If a timestamp participates in a cross-thread happens-before relatio
 ### `OrderedInstant`: synchronization-ordered elapsed time
 
 `OrderedInstant::now()` reads the same elapsed-time counter behind the architecture's ordering
-primitive: RDTSCP on x86 and `isb sy` before CNTVCT_EL0 on aarch64. A sample taken after an
+primitive: `lfence; rdtsc` on x86 and `isb sy` before CNTVCT_EL0 on aarch64. A sample taken after an
 `Acquire` observation cannot be pulled in front of that observation.
 
 The load-then-now-then-check contract produced zero inversions in about 10.9 billion reads on the

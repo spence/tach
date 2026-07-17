@@ -3,7 +3,7 @@
 **Question:** does `OrderedInstant` ever go backward across threads — can a read on
 thread B, sequenced after a synchronization edge from thread A, return a value less
 than A's? `OrderedInstant` defends against this with an instruction-ordering barrier
-(`rdtscp` on x86, `isb sy` on aarch64) that pins the counter read after prior loads
+(`lfence; rdtsc` on x86, `isb sy` on aarch64) that pins the counter read after prior loads
 are globally visible. This file records that it holds, and that the fast comparison
 crates — which lack the barrier — do not.
 
@@ -15,9 +15,9 @@ Acquire-loads a value published by thread A, reads the clock, checks
 synchronization-order inversion.
 
 Two ways it's run:
-- **unpinned**, across all 6 production skewmono cells (`benches/skewmono-*.json`,
-  `synchronization_order` field) — for `tach`, `tach_ordered`, `std`, `quanta`,
-  `minstant`, `fastant`.
+- **unpinned**, across all 6 production cells — for `tach`, `tach_ordered`, `std`,
+  `quanta`, `minstant`, `fastant` (the `synchronization_order` measurement from the
+  skewmono harness, since retired in the apparatus diet).
 - **pinned** (`--mode ordered-verify`, `benches/run-ordered-verify-aws.sh`): worker
   threads bound to specific cores to *force* the cross-domain read pairs an unpinned
   scheduler might never produce — adversarial cross-socket pair, full-span (one
