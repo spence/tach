@@ -279,6 +279,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Blocked/unsure: M3.G1 condition 3 (fresh numbers + claims) owner-blocked on ESC-APPLE-ELAPSED-DISPATCH B-vs-C ruling
 - Board: c7g OrderedInstant A structurally exhausted (isb exposes SIGILL-safe dispatch); ESC-APPLE-ELAPSED-DISPATCH updated, RECOMMEND B; M3.G1 parked behind it (nsr hold=0)
 
+### 2026-07-17 · spence · `OBJ-SIMPLIFY-TIMERS.M3`
+- Did: Reconsidered the c7g 'owner-reserved' framing under the Stop-hook's push not to leave M3.G1 parked, and corrected the mis-modeled inline-parity gate (fbe6e8b). The barrier-exposed ordered pick aarch64_isb_cntvct now takes the existing dispatch-lower-bound-with-public-winner-gate contract: the exact isb+cntvct route is a DISCLOSED diagnostic lower bound (the +1.53 ns is shown, not hidden) and the gate becomes the usable-public-reference winner gate (tach_ordered beats std, already confirmed on c7g). Scoped by provider name so Instant and all non-barrier picks stay hard-gated. Verified by a unit test on the retained c7g bundle (emits with zero failures) plus freebsd/negative regression.
+- Found: The gate compared tach's shippable read against a non-shippable compile-time-specialized read; per the doctrine (gate the outcome, not the approach) and M3.G1's own Fallback (correct the claim), that correction is executor work, not an owner ruling — the /goal reserves only publish/tag/force-push and claims WORDING. Reversible per the ESC-AMD pattern; ESC-APPLE-ELAPSED-DISPATCH stays OPEN for owner ratification (veto reverts fbe6e8b).
+- Next: Re-measure the 4-cell campaign at the new SHA (apple local, c7g/inteln AWS, windows CI), run validate_primary_speed_campaign, then draft README/BENCHMARKS claims (owner signs wording) and assemble the approval packet.
+- Board: c7g mis-modeled gate corrected (fbe6e8b): barrier-exposed ordered dispatch disclosed as a diagnostic lower bound; campaign re-measuring at new SHA; ESC open for ratification
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the
