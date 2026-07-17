@@ -252,6 +252,10 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Found: mode 0 (USER_TIMEBASE_NONE) permits NO EL0 counter read, so the fixed pick must fall to mach_absolute for all three contracts there (SIGILL otherwise). Gates: Instant=bare(modes 1/3)/cntvctss(2)/mach(0); Ordered=acntvct(3)/cntvctss(2)/isb+cntvct(1)/mach(0), all mach-domain; Instant scale=CNTFRQ iff bare, else mach.
 - Next: Apply conversion diff, read correctness regions (dual-domain scale + SIGILL mode gate + fork test), run native gates, commit as one Apple-family commit, push, monitor CI native/macos; then drive M2.G1 closure.
 
+### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M2`
+- Did: Converted the LAST M2 family: Apple aarch64 fixed-pick (9d13fff). Instant=bare CNTVCT (modes 1/3, CNTFRQ) / cntvctss (2) / mach (0); Ordered=acntvct(3)/cntvctss(2)/isb+cntvct(1)/mach(0) per ADR-0006. arch file 1303->573L; tournament + selection evidence + continuous readers deleted. Parent-verified all 9 native gates green on aarch64-apple-darwin (fmt/check x3/clippy x2/test --lib x2/check --benches). All 5 M2 families now converted.
+- Next: Monitor CI native/macos for 9d13fff; then drive M2.G1 closure (tournament-symbol grep clean repo-wide, inline parity recorded, test-count reconcile).
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

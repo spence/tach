@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
-> Next:       Apply conversion diff, read correctness regions (dual-domain scale + SIGILL mode gate + fork test), run native gates, commit as one Apple-family commit, push, monitor CI native/macos; then drive M2.G1 closure.
+> Next:       Monitor CI native/macos for 9d13fff; then drive M2.G1 closure (tournament-symbol grep clean repo-wide, inline parity recorded, test-count reconcile).
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
-> Last verified: 2026-07-16 · Changed: Owner ruled ESC-APPLE-ORDERED-SELECTION -> Option A (self-synchronizing counter, mode-gated) after the two-machine happens-before survey (EVID-APPLE-ORDERED, c39fe20): bare_cntvct fires 112.7M/942.9M violations while mach/acntvct/isb each hold 0/~0.87e9. Escalation ACCEPTED. Dispatched the Apple fixed-pick conversion (worktree execution subagent). · By: nsr · 24e4204
+> Last verified: 2026-07-16 · Changed: Converted the LAST M2 family: Apple aarch64 fixed-pick (9d13fff). Instant=bare CNTVCT (modes 1/3, CNTFRQ) / cntvctss (2) / mach (0); Ordered=acntvct(3)/cntvctss(2)/isb+cntvct(1)/mach(0) per ADR-0006. arch file 1303->573L; tournament + selection evidence + continuous readers deleted. Parent-verified all 9 native gates green on aarch64-apple-darwin (fmt/check x3/clippy x2/test --lib x2/check --benches). All 5 M2 families now converted. · By: nsr · 9d13fff
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
