@@ -1031,29 +1031,11 @@ macro_rules! measure_freebsd_public_exact {
 macro_rules! with_apple_aarch64_instant_read {
   ($provider:expr, $callback:ident, $($arguments:tt)*) => {{
     match $provider {
-      "apple_commpage_cntvct_offset" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvct_absolute)
+      "apple_bare_cntvct" => {
+        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_bare_cntvct)
       }
       "apple_commpage_cntvctss_offset" => {
         $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvctss_absolute)
-      }
-      "apple_commpage_acntvct_offset" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_absolute)
-      }
-      "apple_mach_continuous_time" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_continuous)
-      }
-      "apple_continuous_hw_cntvct_base" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvct_continuous)
-      }
-      "apple_continuous_hw_cntvctss_base" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvctss_continuous)
-      }
-      "apple_continuous_hw_acntvct_base" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_continuous)
-      }
-      "apple_bare_cntvct" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_bare_cntvct)
       }
       _ => $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_absolute),
     }
@@ -1072,18 +1054,6 @@ macro_rules! with_apple_aarch64_ordered_read {
       }
       "apple_commpage_acntvct_offset" => {
         $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_absolute)
-      }
-      "apple_mach_continuous_time" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_continuous)
-      }
-      "apple_continuous_hw_isb_cntvct_base" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvct_ordered_continuous)
-      }
-      "apple_continuous_hw_cntvctss_base" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_cntvctss_continuous)
-      }
-      "apple_continuous_hw_acntvct_base" => {
-        $callback!($($arguments)*, tach::bench::apple_aarch64_exact_acntvct_continuous)
       }
       _ => $callback!($($arguments)*, tach::bench::apple_aarch64_exact_mach_absolute),
     }
@@ -1441,20 +1411,7 @@ fn bench_now(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
   {
-    for candidate in tach::bench::apple_aarch64_instant_candidate_primitives() {
-      let provider = candidate.provider();
-      with_apple_aarch64_instant_read!(provider, register_selected_now, g, "direct_wall", provider);
-    }
-    for candidate in tach::bench::apple_aarch64_ordered_candidate_primitives() {
-      let provider = candidate.provider();
-      with_apple_aarch64_ordered_read!(
-        provider,
-        register_selected_now,
-        g,
-        "direct_ordered_wall",
-        provider
-      );
-    }
+    // Both wall contracts are the frozen fixed pick for this commpage mode.
     let selected = tach::bench::apple_aarch64_selected_instant_primitive();
     let provider = selected.provider();
     with_apple_aarch64_instant_read!(
@@ -1606,78 +1563,67 @@ fn write_apple_wall_selection() {
 
   let instant_provider = tach::bench::apple_wall_selected_provider();
   let ordered_provider = tach::bench::apple_ordered_wall_selected_provider();
-  #[cfg(target_arch = "aarch64")]
-  let instant_candidates: Vec<_> = tach::bench::apple_aarch64_instant_candidate_primitives()
-    .iter()
-    .map(|candidate| format!("direct_wall__{}", candidate.provider()))
-    .collect();
-  #[cfg(target_arch = "aarch64")]
-  let ordered_candidates: Vec<_> = tach::bench::apple_aarch64_ordered_candidate_primitives()
-    .iter()
-    .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider()))
-    .collect();
-  #[cfg(target_arch = "x86_64")]
-  let mut instant_candidates = vec!["direct_wall__apple_mach_absolute_time"];
-  #[cfg(target_arch = "x86_64")]
-  let mut ordered_candidates = vec!["direct_ordered_wall__apple_mach_absolute_time"];
-  #[cfg(target_arch = "x86_64")]
-  if AppleX86TscDirect::try_for_current_machine().is_some() {
-    instant_candidates.push("direct_wall__apple_invariant_rdtsc");
-  }
-  #[cfg(target_arch = "x86_64")]
-  if AppleX86CommpageDirect::try_for_current_machine().is_some() {
-    ordered_candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
-  }
-  #[cfg(target_arch = "x86_64")]
-  let decision_rule = "each contract retains mach_absolute_time unless its eligible direct dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins";
-  #[cfg(target_arch = "x86_64")]
-  let probe = serde_json::json!({
-    "instant": tach::bench::apple_x86_instant_selection_measurements(),
-    "ordered": tach::bench::apple_x86_wall_selection_measurements(),
-  });
-  #[cfg(target_arch = "aarch64")]
-  let decision_rule = "Instant and OrderedInstant independently tournament every eligible Mach absolute, Mach continuous, and direct commpage path; a challenger wins only by > max(1 ns/read, 5%) in >=8/9 paired batches";
-  #[cfg(target_arch = "aarch64")]
-  let probe = serde_json::json!({
-    "instant": tach::bench::apple_aarch64_instant_selection_measurements(),
-    "ordered": tach::bench::apple_aarch64_ordered_selection_measurements(),
-  });
 
-  let payload = serde_json::json!({
-    "selected_provider": {
-      "instant": instant_provider,
-      "ordered": ordered_provider,
-    },
-    "eligible_direct_candidates": {
-      "instant": instant_candidates,
-      "ordered": ordered_candidates,
-    },
-    "decision_rule": decision_rule,
-    "probe": probe,
-    "selected_native_benchmark": {
-      "instant": format!("direct_selected_wall__{instant_provider}"),
-      "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
-    },
-  });
   #[cfg(target_arch = "x86_64")]
   let payload = {
-    let mut payload = payload;
+    let mut instant_candidates = vec!["direct_wall__apple_mach_absolute_time"];
+    let mut ordered_candidates = vec!["direct_ordered_wall__apple_mach_absolute_time"];
+    if AppleX86TscDirect::try_for_current_machine().is_some() {
+      instant_candidates.push("direct_wall__apple_invariant_rdtsc");
+    }
+    if AppleX86CommpageDirect::try_for_current_machine().is_some() {
+      ordered_candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
+    }
+    let decision_rule = "each contract retains mach_absolute_time unless its eligible direct dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins";
+    let probe = serde_json::json!({
+      "instant": tach::bench::apple_x86_instant_selection_measurements(),
+      "ordered": tach::bench::apple_x86_wall_selection_measurements(),
+    });
+    let mut payload = serde_json::json!({
+      "selected_provider": {
+        "instant": instant_provider,
+        "ordered": ordered_provider,
+      },
+      "eligible_direct_candidates": {
+        "instant": instant_candidates,
+        "ordered": ordered_candidates,
+      },
+      "decision_rule": decision_rule,
+      "probe": probe,
+      "selected_native_benchmark": {
+        "instant": format!("direct_selected_wall__{instant_provider}"),
+        "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
+      },
+    });
     payload["public_exact_probe"] = measure_apple_x86_public_exact();
     payload
   };
+
   #[cfg(target_arch = "aarch64")]
   let payload = {
-    let mut payload = payload;
+    // The commpage mode fixes one provider per contract; there is no tournament.
+    let decision_rule = "Instant reads bare CNTVCT_EL0 where the commpage mode permits it (SPEC/NOSPEC_APPLE), scaled by CNTFRQ_EL0, else the self-synchronizing commpage offset (NOSPEC) or mach_absolute_time (NONE). OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
     let instant_probe =
       with_apple_aarch64_instant_read!(instant_provider, measure_apple_public_exact, instant);
     let ordered_probe =
       with_apple_aarch64_ordered_read!(ordered_provider, measure_apple_public_exact, ordered);
-    payload["public_exact_probe"] = serde_json::json!({
-      "instant": instant_probe,
-      "ordered": ordered_probe,
-    });
-    payload
+    serde_json::json!({
+      "selected_provider": {
+        "instant": instant_provider,
+        "ordered": ordered_provider,
+      },
+      "selected_native_benchmark": {
+        "instant": format!("direct_selected_wall__{instant_provider}"),
+        "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
+      },
+      "decision_rule": decision_rule,
+      "public_exact_probe": {
+        "instant": instant_probe,
+        "ordered": ordered_probe,
+      },
+    })
   };
+
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
@@ -1910,62 +1856,68 @@ fn write_ordered_selection() {
   use std::fs;
   use std::path::PathBuf;
 
-  let mut candidates = Vec::new();
-  #[cfg(all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")))]
-  {
-    if OrderedX86CpuidDirect::try_for_current_machine().is_some() {
-      candidates.push("direct_ordered__x86_cpuid_rdtsc");
+  #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+  let payload = {
+    let mut candidates = Vec::new();
+    #[cfg(all(any(target_arch = "x86_64", target_arch = "x86"), not(target_os = "macos")))]
+    {
+      if OrderedX86CpuidDirect::try_for_current_machine().is_some() {
+        candidates.push("direct_ordered__x86_cpuid_rdtsc");
+      }
+      if OrderedX86LfenceDirect::try_for_current_machine().is_some() {
+        candidates.push("direct_ordered__x86_lfence_rdtsc");
+      }
+      if OrderedX86MfenceDirect::try_for_current_machine().is_some() {
+        candidates.push("direct_ordered__x86_mfence_rdtsc");
+      }
+      if OrderedX86RdtscpDirect::try_for_current_machine().is_some() {
+        candidates.push("direct_ordered__x86_rdtscp");
+      }
+      if OrderedX86SerializeDirect::try_for_current_machine().is_some() {
+        candidates.push("direct_ordered__x86_serialize_rdtsc");
+      }
     }
-    if OrderedX86LfenceDirect::try_for_current_machine().is_some() {
-      candidates.push("direct_ordered__x86_lfence_rdtsc");
+    #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
+    {
+      candidates.push("direct_ordered__aarch64_isb_cntvct");
+      if OrderedAarch64CntvctssDirect::try_for_current_machine().is_some() {
+        candidates.push("direct_ordered__aarch64_cntvctss");
+      }
     }
-    if OrderedX86MfenceDirect::try_for_current_machine().is_some() {
-      candidates.push("direct_ordered__x86_mfence_rdtsc");
+    #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+    candidates.push("direct_ordered_wall__apple_mach_absolute_time");
+    #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+    if AppleX86CommpageDirect::try_for_current_machine().is_some() {
+      candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
     }
-    if OrderedX86RdtscpDirect::try_for_current_machine().is_some() {
-      candidates.push("direct_ordered__x86_rdtscp");
-    }
-    if OrderedX86SerializeDirect::try_for_current_machine().is_some() {
-      candidates.push("direct_ordered__x86_serialize_rdtsc");
-    }
-  }
-  #[cfg(all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")))]
-  {
-    candidates.push("direct_ordered__aarch64_isb_cntvct");
-    if OrderedAarch64CntvctssDirect::try_for_current_machine().is_some() {
-      candidates.push("direct_ordered__aarch64_cntvctss");
-    }
-  }
-  #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
-  candidates.push("direct_ordered_wall__apple_mach_absolute_time");
-  #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
-  if AppleX86CommpageDirect::try_for_current_machine().is_some() {
-    candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
-  }
-  #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-  candidates.extend(
-    tach::bench::apple_aarch64_ordered_candidate_primitives()
-      .iter()
-      .map(|candidate| format!("direct_ordered_wall__{}", candidate.provider())),
-  );
+
+    let decision_rule = "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins";
+    let probe = serde_json::to_value(tach::bench::ordered_selection_measurements())
+      .expect("serialize Ordered selector evidence");
+
+    serde_json::json!({
+      "selected_provider": tach::bench::ordered_selected_provider(),
+      "eligible_direct_candidates": candidates,
+      "decision_rule": decision_rule,
+      "probe": probe,
+    })
+  };
 
   #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-  let decision_rule = "every eligible Mach absolute, Mach continuous, and direct commpage path competes by repeatable material wins";
-  #[cfg(any(not(target_os = "macos"), all(target_os = "macos", target_arch = "x86_64")))]
-  let decision_rule = "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins";
-  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-  let probe = serde_json::to_value(tach::bench::apple_aarch64_ordered_selection_measurements())
-    .expect("serialize Apple aarch64 Ordered selector evidence");
-  #[cfg(any(not(target_os = "macos"), all(target_os = "macos", target_arch = "x86_64")))]
-  let probe = serde_json::to_value(tach::bench::ordered_selection_measurements())
-    .expect("serialize Ordered selector evidence");
+  let payload = {
+    // The commpage mode fixes the OrderedInstant pick; there is no tournament.
+    let ordered_provider = tach::bench::apple_ordered_wall_selected_provider();
+    let decision_rule = "OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the commpage mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
+    let public_exact_probe =
+      with_apple_aarch64_ordered_read!(ordered_provider, measure_apple_public_exact, ordered);
+    serde_json::json!({
+      "selected_provider": ordered_provider,
+      "selected_native_benchmark": format!("direct_selected_ordered_wall__{ordered_provider}"),
+      "decision_rule": decision_rule,
+      "public_exact_probe": public_exact_probe,
+    })
+  };
 
-  let payload = serde_json::json!({
-    "selected_provider": tach::bench::ordered_selected_provider(),
-    "eligible_direct_candidates": candidates,
-    "decision_rule": decision_rule,
-    "probe": probe,
-  });
   let target = std::env::var_os("CARGO_TARGET_DIR")
     .map(PathBuf::from)
     .unwrap_or_else(|| PathBuf::from("target"));
@@ -2227,30 +2179,7 @@ fn bench_elapsed(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
   {
-    for candidate in tach::bench::apple_aarch64_instant_candidate_primitives() {
-      let provider = candidate.provider();
-      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
-      with_apple_aarch64_instant_read!(
-        provider,
-        register_selected_elapsed,
-        g,
-        "direct_wall",
-        provider,
-        nanos_per_tick_q32
-      );
-    }
-    for candidate in tach::bench::apple_aarch64_ordered_candidate_primitives() {
-      let provider = candidate.provider();
-      let nanos_per_tick_q32 = candidate.nanos_per_tick_q32();
-      with_apple_aarch64_ordered_read!(
-        provider,
-        register_selected_elapsed,
-        g,
-        "direct_ordered_wall",
-        provider,
-        nanos_per_tick_q32
-      );
-    }
+    // Both wall contracts are the frozen fixed pick for this commpage mode.
     let selected = tach::bench::apple_aarch64_selected_instant_primitive();
     let provider = selected.provider();
     let nanos_per_tick_q32 = selected.nanos_per_tick_q32();

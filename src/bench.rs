@@ -736,36 +736,6 @@ pub fn apple_aarch64_selected_ordered_primitive() -> ExactWallProvider {
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-pub fn apple_aarch64_instant_candidate_primitives() -> Vec<ExactWallProvider> {
-  let (primitives, count) = crate::arch::apple_aarch64::bench_instant_candidate_primitives();
-  primitives
-    .into_iter()
-    .take(count)
-    .map(|primitive| {
-      let primitive =
-        primitive.expect("eligible Apple Instant candidate must have an exact reader");
-      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
-    })
-    .collect()
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-pub fn apple_aarch64_ordered_candidate_primitives() -> Vec<ExactWallProvider> {
-  let (primitives, count) = crate::arch::apple_aarch64::bench_ordered_candidate_primitives();
-  primitives
-    .into_iter()
-    .take(count)
-    .map(|primitive| {
-      let primitive =
-        primitive.expect("eligible Apple Ordered candidate must have an exact reader");
-      ExactWallProvider::new(primitive.name, primitive.nanos_per_tick_q32)
-    })
-    .collect()
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 macro_rules! expose_apple_aarch64_exact_read {
   ($name:ident, $source:ident) => {
     #[doc(hidden)]
@@ -784,8 +754,6 @@ expose_apple_aarch64_exact_read!(apple_aarch64_exact_mach_absolute, bench_exact_
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 expose_apple_aarch64_exact_read!(apple_aarch64_exact_mach_continuous, bench_exact_mach_continuous);
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-expose_apple_aarch64_exact_read!(apple_aarch64_exact_cntvct_absolute, bench_exact_cntvct_absolute);
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 expose_apple_aarch64_exact_read!(
   apple_aarch64_exact_cntvct_ordered_absolute,
   bench_exact_cntvct_ordered_absolute
@@ -799,26 +767,6 @@ expose_apple_aarch64_exact_read!(
 expose_apple_aarch64_exact_read!(
   apple_aarch64_exact_acntvct_absolute,
   bench_exact_acntvct_absolute
-);
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-expose_apple_aarch64_exact_read!(
-  apple_aarch64_exact_cntvct_continuous,
-  bench_exact_cntvct_continuous
-);
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-expose_apple_aarch64_exact_read!(
-  apple_aarch64_exact_cntvct_ordered_continuous,
-  bench_exact_cntvct_ordered_continuous
-);
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-expose_apple_aarch64_exact_read!(
-  apple_aarch64_exact_cntvctss_continuous,
-  bench_exact_cntvctss_continuous
-);
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-expose_apple_aarch64_exact_read!(
-  apple_aarch64_exact_acntvct_continuous,
-  bench_exact_acntvct_continuous
 );
 
 #[cfg(all(
@@ -3361,73 +3309,6 @@ pub fn apple_wall_selected_provider() -> &'static str {
 #[doc(hidden)]
 pub fn apple_ordered_wall_selected_provider() -> &'static str {
   crate::arch::apple_aarch64::bench_provider()
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-#[derive(Serialize, Clone, Debug)]
-pub struct AppleAarch64WallCandidateMeasurements {
-  pub provider: &'static str,
-  pub batches_ticks: [u64; 9],
-  pub median_ticks: u64,
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-#[derive(Serialize, Clone, Debug)]
-pub struct AppleAarch64WallSelectionMeasurements {
-  pub ready: bool,
-  pub user_timebase_mode: u8,
-  pub continuous_hwclock: bool,
-  pub reads_per_batch: u64,
-  pub candidate_count: usize,
-  pub candidates: [AppleAarch64WallCandidateMeasurements; 5],
-  pub required_decisive_wins: usize,
-  pub equivalence_floor_ticks_per_batch: u64,
-  pub equivalence_relative_denominator: u64,
-  pub measured_winner: &'static str,
-  pub selected_provider: &'static str,
-  pub selection_basis: &'static str,
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-fn apple_aarch64_selection_measurements(
-  evidence: crate::arch::apple_aarch64::SelectionEvidence,
-) -> AppleAarch64WallSelectionMeasurements {
-  let (numer, denom) = crate::arch::fallback::mach_timebase();
-  let floor_ticks = (u128::from(evidence.reads_per_batch) * u128::from(denom))
-    .div_ceil(u128::from(numer))
-    .min(u128::from(u64::MAX)) as u64;
-  AppleAarch64WallSelectionMeasurements {
-    ready: evidence.ready,
-    user_timebase_mode: evidence.user_timebase_mode,
-    continuous_hwclock: evidence.continuous_hwclock,
-    reads_per_batch: evidence.reads_per_batch,
-    candidate_count: evidence.candidate_count,
-    candidates: evidence.candidates.map(|candidate| AppleAarch64WallCandidateMeasurements {
-      provider: candidate.name,
-      batches_ticks: candidate.batches_ticks,
-      median_ticks: candidate.median_ticks,
-    }),
-    required_decisive_wins: evidence.required_decisive_wins,
-    equivalence_floor_ticks_per_batch: floor_ticks,
-    equivalence_relative_denominator: 20,
-    measured_winner: evidence.measured_winner,
-    selected_provider: evidence.selected_provider,
-    selection_basis: evidence.selection_basis,
-  }
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-pub fn apple_aarch64_instant_selection_measurements() -> AppleAarch64WallSelectionMeasurements {
-  apple_aarch64_selection_measurements(crate::arch::apple_aarch64::bench_instant_evidence())
-}
-
-#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-#[doc(hidden)]
-pub fn apple_aarch64_ordered_selection_measurements() -> AppleAarch64WallSelectionMeasurements {
-  apple_aarch64_selection_measurements(crate::arch::apple_aarch64::bench_ordered_evidence())
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
