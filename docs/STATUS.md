@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
-> Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
+> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M3 ⚪ Apparatus diet and truthful claims)
+> Next:       Owner rules B (re-scope the primary ordered-under-barrier parity to the fastest shippable read via the existing FreeBSD diagnostic role) or C (accept c7g ordered as a documented residual). On B: tooling change is a new SHA, re-measure all 4 cells, validate_primary_speed_campaign, then the 7.3 claims draft. On C: freeze the 3 passing cells plus a documented c7g residual. Both re-scope a primary-cell gate = owner-reserved; no unilateral path. Condition 4 greps substantively clean; conditions 1-2 done.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE
-> Last verified: 2026-07-17 · Changed: OBJ-SIMPLIFY-TIMERS.M2 🚧 (Fixed-pick conversion with inline parity) · By: nsr · cc42cc2
+> Last verified: 2026-07-17 · Changed: Drove the c7g OrderedInstant::now inline-parity failure to a conclusive verdict. The frameless-hot-path A attempt (20aa53e) removed the removable overhead but the residual +1.53/+1.14 ns (9/9 decisive losses, both AWS bundles) is the SIGILL-safe dispatch load exposed by the mandatory isb barrier — structurally unremovable: cannot speculate the counter read (SIGILL on a counter-disabled thread), cannot hoist the per-call ORDERED_HOT_STATE atomic across the API boundary, cannot self-synchronize (frozen aarch64-linux ordered pick is isb+cntvct; ACNTVCT/CNTVCTSS needs FEAT_ECV the pick does not assume), cannot weaken the isb (ADR-0003). Filed and committed the verdict to ESC-APPLE-ELAPSED-DISPATCH (34a1668). · By: nsr · 34a1668
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -31,7 +31,7 @@ policy [`decisions/0005…`](decisions/0005-timer-contracts-eligibility-evidence
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M2`): G1🟢
+Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M3`): G1⚪
 <!-- /render:board -->
 
 ---
