@@ -1,0 +1,154 @@
+{
+  "architecture": "x86_64-freebsd",
+  "decision_rule": "Instant reads a bare RDTSC and OrderedInstant reads LFENCE+RDTSC when the kernel selected an eligible invariant TSC timecounter and, for the ordered read, LFENCE is architecturally serializing (Intel, or AMD with AMD_LFENCE_ALWAYS_SERIALIZING); otherwise both fall back to the raw CLOCK_MONOTONIC syscall, with the ordered read prefixing a CPUID barrier",
+  "public_exact_probe": {
+    "instant": {
+      "elapsed": {
+        "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+        "call_boundary": "symmetric dynamic FnMut boundary",
+        "equivalence_band": {
+          "floor_ns_per_read": 1,
+          "relative_denominator": 20
+        },
+        "exact_batches_ns": [
+          1247182,
+          1244402,
+          1241712,
+          1248361,
+          1247570,
+          1241752,
+          1241703,
+          1241693,
+          1241652
+        ],
+        "measurement_clock": "std::time::Instant outside the measured read loop",
+        "public_batches_ns": [
+          1241691,
+          1255021,
+          1241591,
+          1241802,
+          1241772,
+          1254501,
+          1243890,
+          1247300,
+          1248181
+        ],
+        "reads_per_batch": 65536,
+        "required_decisive_losses": 8,
+        "selection_kind": "paired_public_exact_parity"
+      },
+      "now": {
+        "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+        "call_boundary": "symmetric dynamic FnMut boundary",
+        "equivalence_band": {
+          "floor_ns_per_read": 1,
+          "relative_denominator": 20
+        },
+        "exact_batches_ns": [
+          621581,
+          621522,
+          621521,
+          621580,
+          621841,
+          621531,
+          624960,
+          621490,
+          621521
+        ],
+        "measurement_clock": "std::time::Instant outside the measured read loop",
+        "public_batches_ns": [
+          625320,
+          621430,
+          621560,
+          630012,
+          626850,
+          621620,
+          621642,
+          621691,
+          656861
+        ],
+        "reads_per_batch": 65536,
+        "required_decisive_losses": 8,
+        "selection_kind": "paired_public_exact_parity"
+      }
+    },
+    "ordered": {
+      "elapsed": {
+        "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+        "call_boundary": "symmetric dynamic FnMut boundary",
+        "equivalence_band": {
+          "floor_ns_per_read": 1,
+          "relative_denominator": 20
+        },
+        "exact_batches_ns": [
+          2590982,
+          2620083,
+          2591073,
+          2600233,
+          2587803,
+          2592823,
+          2598292,
+          2591543,
+          2597993
+        ],
+        "measurement_clock": "std::time::Instant outside the measured read loop",
+        "public_batches_ns": [
+          2629404,
+          2623533,
+          2633233,
+          2626073,
+          2625613,
+          2630743,
+          2625494,
+          2628913,
+          2623233
+        ],
+        "reads_per_batch": 65536,
+        "required_decisive_losses": 8,
+        "selection_kind": "paired_public_exact_parity"
+      },
+      "now": {
+        "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+        "call_boundary": "symmetric dynamic FnMut boundary",
+        "equivalence_band": {
+          "floor_ns_per_read": 1,
+          "relative_denominator": 20
+        },
+        "exact_batches_ns": [
+          1206452,
+          1206351,
+          1208861,
+          1206331,
+          1211652,
+          1206341,
+          1206331,
+          1217671,
+          1206361
+        ],
+        "measurement_clock": "std::time::Instant outside the measured read loop",
+        "public_batches_ns": [
+          1232511,
+          1229682,
+          1224032,
+          1223981,
+          1234031,
+          1226102,
+          1224112,
+          1224002,
+          1229591
+        ],
+        "reads_per_batch": 65536,
+        "required_decisive_losses": 8,
+        "selection_kind": "paired_public_exact_parity"
+      }
+    }
+  },
+  "selected_native_benchmark": {
+    "instant": "direct_selected_wall__freebsd_kernel_eligible_tsc",
+    "ordered": "direct_selected_ordered_wall__freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+  },
+  "selected_provider": {
+    "instant": "freebsd_kernel_eligible_tsc",
+    "ordered": "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc"
+  }
+}
