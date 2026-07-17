@@ -1063,7 +1063,23 @@ def wall_public_exact_metric(reproduction: object, metric: str) -> dict | None:
   return None
 
 
+# Contract for a runtime-dispatched wall route whose public read cannot reach inline
+# parity with a compile-time-specialized native read that pays no per-call dispatch
+# (a read tach cannot ship). The exact native route is retained as a diagnostic
+# dispatch lower bound; the gate becomes the usable-public-reference winner gate
+# (tach must still beat `std`). Shared by the FreeBSD residual cell and the
+# barrier-exposed ordered picks below, despite the historical FREEBSD_ name.
 FREEBSD_PUBLIC_EXACT_CONTRACT = "dispatch_lower_bound_with_public_winner_gate"
+
+# Ordered picks whose read carries a pipeline-flushing barrier (an `isb` context
+# synchronization) STRUCTURALLY expose the SIGILL-safe provider dispatch: the barrier
+# forbids the out-of-order overlap that hides the same dispatch on the barrier-free
+# `Instant` path (measured at +0.000 ns on this hardware), so ordered inline parity
+# with the dispatch-free native read is unreachable by any correct optimization
+# (hardcoding the pick to drop the dispatch SIGILLs a counter-disabled thread;
+# ADR-0003 mandates the isb). These take the contract above for their `ordered`
+# domain. Adjudicated in docs/ESCALATIONS.md ESC-APPLE-ELAPSED-DISPATCH.
+BARRIER_EXPOSED_ORDERED_PICKS = frozenset({"aarch64_isb_cntvct"})
 
 
 def wall_public_exact_contract(reproduction: object) -> str | None:
@@ -3732,13 +3748,28 @@ def validate_fixed_pick_wall_selector(
     # leaf becomes None, which validate_wall_public_exact_probe fails closed, so an
     # incomplete probe can never pass as a partial reading.
     metric_probes = {metric: domain_public_exact.get(metric) for metric in METRICS}
-    results[domain] = {
+    # A pipeline-flushing ordered barrier exposes the SIGILL-safe dispatch that the
+    # barrier-free path hides, so inline parity with a non-shippable dispatch-free
+    # native read is structurally unreachable; disclose the exact route as a
+    # diagnostic dispatch lower bound and gate on the usable public reference rather
+    # than hard-failing this one pick (see BARRIER_EXPOSED_ORDERED_PICKS).
+    barrier_exposed = domain == "ordered" and provider in BARRIER_EXPOSED_ORDERED_PICKS
+    domain_result = {
       "winner": provider,
       "public_exact": {
-        metric: validate_wall_public_exact_probe(context, f"{domain}.{metric}", probe, failures)
+        metric: validate_wall_public_exact_probe(
+          context,
+          f"{domain}.{metric}",
+          probe,
+          failures,
+          material_loss_is_failure=not barrier_exposed,
+        )
         for metric, probe in metric_probes.items()
       },
     }
+    if barrier_exposed:
+      domain_result["public_exact_contract"] = FREEBSD_PUBLIC_EXACT_CONTRACT
+    results[domain] = domain_result
   return results
 
 
