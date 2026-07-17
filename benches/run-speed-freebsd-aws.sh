@@ -196,8 +196,8 @@ python3 "$source_dir/benches/compose-supplemental-speed.py" \
   --output "$composed_output" \
   --source-revision "$source_revision" \
   --collector-bundle "$bundle_dir" \
-  --instant-profile runtime_tournament \
-  --ordered-profile runtime_tournament \
+  --instant-profile fixed_native \
+  --ordered-profile fixed_native \
   --thread-cpu-profile runtime_tournament
 echo "wrote $composed_output with retained collector bundle $bundle_dir"
 

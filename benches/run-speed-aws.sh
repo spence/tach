@@ -42,7 +42,11 @@ case "$CELL" in
     expected_mode=gnu
     ;;
   intelm|musl)
-    default_artifact_id="speed-3-intelm.json"
+    # musl has no primary/default speed cell: speed-3-intelm was retired in the M3
+    # simplification because musl and gnu read the same x86 TSC, so the gnu `inteln`
+    # cell carries the primary x86 comparison. musl keeps a no-default supplemental
+    # only (proves it compiles and runs); default mode errors at the guard below.
+    default_artifact_id=""
     no_default_artifact_id="speed-supplemental-linux-musl-x86_64-no-default.json"
     runner="aws-intelm"
     expected_mode=musl
@@ -78,8 +82,12 @@ if [ "$BUILD_MODE" = no-default ]; then
 else
   artifact_id="$default_artifact_id"
 fi
+if [ -z "$artifact_id" ]; then
+  echo "$CELL has no speed cell for build mode '${BUILD_MODE:-default}'; use --no-default" >&2
+  exit 2
+fi
 if [ "$expected_mode" = musl ] && [ "$USE_ALPINE" != 1 ]; then
-  echo "$CELL requires --use-docker-alpine for its musl primary identity" >&2
+  echo "$CELL requires --use-docker-alpine for its musl identity" >&2
   exit 2
 fi
 if [ "$expected_mode" = gnu ] && [ "$USE_ALPINE" = 1 ]; then
@@ -357,8 +365,8 @@ elif [ "$BUILD_MODE" = no-default ]; then
     --output "$COMPOSED_OUT" \
     --source-revision "$SOURCE_REVISION" \
     --collector-bundle "$BUNDLE_DIR" \
-    --instant-profile runtime_tournament \
-    --ordered-profile runtime_tournament \
+    --instant-profile fixed_native \
+    --ordered-profile fixed_native \
     --thread-cpu-profile runtime_tournament
   echo "wrote $COMPOSED_OUT with retained collector bundle $BUNDLE_DIR"
 else

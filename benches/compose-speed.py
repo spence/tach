@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compose one canonical primary cell from a retained observation bundle.
 
-The primary six-cell campaign accepts no caller-supplied clocks or build
+The primary four-cell campaign accepts no caller-supplied clocks or build
 identity.  The collector bundle supplies the measured rows and Rust-emitted
 attestation; the output filename selects one fixed campaign identity.
 """

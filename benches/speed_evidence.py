@@ -198,14 +198,6 @@ PRIMARY_SPEED_CELLS = {
     "criterion",
     "default",
   ),
-  "speed-3-intelm.json": (
-    3,
-    "AWS Intel (musl)",
-    "c7i.large + Alpine",
-    "x86_64-unknown-linux-musl",
-    "criterion",
-    "default",
-  ),
   "speed-4-windows.json": (
     4,
     "GitHub Windows",
@@ -213,14 +205,6 @@ PRIMARY_SPEED_CELLS = {
     "x86_64-pc-windows-msvc",
     "criterion",
     "default",
-  ),
-  "speed-5-lambda.json": (
-    5,
-    "AWS Lambda",
-    "provided.al2023 1024MB",
-    "x86_64-unknown-linux-gnu",
-    "lambda",
-    None,
   ),
 }
 EXPECTED_PRIMARY_IDENTITIES = tuple(
@@ -387,6 +371,59 @@ SUPPLEMENTAL_SELECTION_PROFILES = frozenset({
   "availability_fallback",
   "fallback_only",
 })
+
+# The frozen capability-gated wall pick per architecture family (ADR-0005 gates;
+# ADR-0006 Apple ordered self-sync). A converted fixed-pick cell must assert its
+# `selected_provider` is one of the mode-legal picks for its family; the emitted
+# JSON records the resolved provider, not the commpage/kernel mode, so each
+# contract lists every mode-legal provider. The Apple `ordered` set never admits
+# a bare unbarriered counter (`apple_bare_cntvct`): an unbarriered read is never
+# an ordered pick (ADR-0006 invariant).
+EXPECTED_WALL_PICKS = {
+  "apple": {
+    "instant": frozenset({
+      "apple_bare_cntvct",               # commpage SPEC (1) / NOSPEC_APPLE (3)
+      "apple_commpage_cntvctss_offset",  # commpage NOSPEC (2)
+      "apple_mach_absolute_time",        # commpage NONE (0)
+    }),
+    "ordered": frozenset({
+      "apple_commpage_acntvct_offset",    # NOSPEC_APPLE (3), self-synchronizing
+      "apple_commpage_cntvctss_offset",   # NOSPEC (2), self-synchronizing
+      "apple_commpage_isb_cntvct_offset", # SPEC (1), explicit isb barrier
+      "apple_mach_absolute_time",         # NONE (0), libSystem call boundary
+    }),
+  },
+  "linux-aarch64": {
+    "instant": frozenset({"aarch64_cntvct", "linux_clock_monotonic_syscall"}),
+    "ordered": frozenset({"aarch64_isb_cntvct", "linux_clock_monotonic_syscall"}),
+  },
+  "linux-x86": {
+    "instant": frozenset({
+      "linux_kernel_eligible_tsc",
+      "linux_clock_monotonic_syscall_x86_64",
+      "linux_clock_monotonic_syscall_i686_time32",
+    }),
+    "ordered": frozenset({
+      "linux_kernel_eligible_tsc_x86_lfence_rdtsc",
+      "linux_clock_monotonic_syscall_x86_64_x86_cpuid",
+      "linux_clock_monotonic_syscall_i686_time32_x86_cpuid",
+    }),
+  },
+  "windows": {
+    "instant": frozenset({"windows_qpc"}),
+    "ordered": frozenset({"windows_qpc_call_boundary"}),
+  },
+  "freebsd": {
+    "instant": frozenset({
+      "freebsd_kernel_eligible_tsc",
+      "freebsd_clock_monotonic_syscall",
+    }),
+    "ordered": frozenset({
+      "freebsd_kernel_eligible_tsc_x86_lfence_rdtsc",
+      "freebsd_clock_monotonic_syscall_x86_cpuid",
+    }),
+  },
+}
 SUPPLEMENTAL_ROUTE_ROWS = {
   "instant": ("tach", "direct_selected_wall", "instant"),
   "ordered": ("tach_ordered", "direct_selected_ordered_wall", "ordered"),
@@ -550,10 +587,6 @@ SUPPLEMENTAL_NATIVE_THREAD_CPU_IDENTITIES = {
   },
 }
 
-WINDOWS_QPC_AUTHORITY = (
-  "https://learn.microsoft.com/en-us/windows/win32/sysinfo/"
-  "acquiring-high-resolution-time-stamps"
-)
 WINDOWS_GET_THREAD_TIMES_AUTHORITY = (
   "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/"
   "nf-processthreadsapi-getthreadtimes"
@@ -803,170 +836,6 @@ def reproduce_material_decision(
   }
 
 
-def validate_windows_wall_selector(
-  context: str,
-  selection: dict,
-  failures: list[str],
-) -> dict:
-  selected = selection.get("selected_provider")
-  candidates = selection.get("eligible_direct_candidates")
-  probe = selection.get("probe")
-  if not isinstance(selected, dict) or not isinstance(candidates, dict):
-    failures.append(f"{context}: malformed Windows wall selector metadata")
-    return {}
-  if selection.get("selection_kind") != "runtime_tournament" or not isinstance(probe, dict):
-    failures.append(f"{context}: malformed Windows wall tournament")
-    return {}
-
-  exclusions = selection.get("ineligible_direct_candidates")
-  validated_exclusions = {}
-  expected_exclusions = {"windows_raw_tsc", "windows_raw_cntvct_el0"}
-  if (
-    not isinstance(exclusions, dict)
-    or len(exclusions) != 1
-    or not set(exclusions).issubset(expected_exclusions)
-  ):
-    failures.append(f"{context}: Windows wall selector lacks exact raw-counter exclusions")
-  else:
-    expected_exclusion, exclusion = next(iter(exclusions.items()))
-    if not isinstance(exclusion, dict):
-      failures.append(f"{context}: malformed Windows {expected_exclusion} exclusion")
-    else:
-      if exclusion.get("contracts") != ["instant", "ordered"]:
-        failures.append(
-          f"{context}: Windows {expected_exclusion} exclusion has wrong contracts"
-        )
-      if exclusion.get("eligibility") != "ineligible":
-        failures.append(
-          f"{context}: Windows {expected_exclusion} exclusion is not ineligible"
-        )
-      if not isinstance(exclusion.get("reason"), str) or not exclusion["reason"].strip():
-        failures.append(
-          f"{context}: Windows {expected_exclusion} exclusion lacks a reason"
-        )
-      if exclusion.get("authority") != WINDOWS_QPC_AUTHORITY:
-        failures.append(
-          f"{context}: Windows {expected_exclusion} exclusion lacks QPC authority"
-        )
-      validated_exclusions[expected_exclusion] = exclusion
-
-  reads = probe.get("reads_per_batch")
-  required = probe.get("required_decisive_wins")
-  if reads != 4_096 or required != 8:
-    failures.append(f"{context}: Windows wall decision rule changed")
-
-  domain_results = {}
-  instant_expected_names = ["windows_qpc"]
-  ordered_expected_names = ["windows_qpc_call_boundary"]
-  if probe.get("interrupt_time_precise_available") is True:
-    instant_expected_names.append("windows_query_interrupt_time_precise")
-    ordered_expected_names.append(
-      "windows_query_interrupt_time_precise_call_boundary"
-    )
-  if probe.get("unbiased_interrupt_time_precise_available") is True:
-    instant_expected_names.append("windows_query_unbiased_interrupt_time_precise")
-    ordered_expected_names.append(
-      "windows_query_unbiased_interrupt_time_precise_call_boundary"
-    )
-  expected_names = {
-    "instant": instant_expected_names,
-    "ordered": ordered_expected_names,
-  }
-  for domain, prefix in (("instant", "direct_wall"), ("ordered", "direct_ordered_wall")):
-    count = probe.get(f"{domain}_candidate_count")
-    names = probe.get(f"{domain}_candidate_names")
-    batches = probe.get(f"{domain}_candidate_batches_ns")
-    medians = probe.get(f"{domain}_candidate_medians_ns")
-    selected_name = probe.get(f"{domain}_selected_provider")
-    if (
-      type(count) is not int
-      or count < 1
-      or count > 3
-      or not isinstance(names, list)
-      or not isinstance(batches, list)
-      or not isinstance(medians, list)
-      or len(names) != count
-      or len(batches) != count
-      or len(medians) != count
-      or names != expected_names[domain]
-    ):
-      failures.append(f"{context}: malformed Windows {domain} candidate evidence")
-      continue
-
-    expected_benchmarks = [f"{prefix}__{name}" for name in names]
-    if candidates.get(domain) != expected_benchmarks:
-      failures.append(f"{context}: Windows {domain} eligible-candidate set is incomplete")
-
-    winner_index = 0
-    decisions = []
-    valid_samples = True
-    for index, sample in enumerate(batches):
-      try:
-        median = int(statistics.median(sample))
-      except (TypeError, ValueError):
-        valid_samples = False
-        break
-      if medians[index] != median:
-        valid_samples = False
-        break
-      if index == 0:
-        continue
-      try:
-        decision = reproduce_material_decision(
-          sample, batches[winner_index], reads, required
-        )
-      except (TypeError, ValueError):
-        valid_samples = False
-        break
-      decision["challenger"] = names[index]
-      decision["incumbent"] = names[winner_index]
-      decisions.append(decision)
-      if decision["selected"]:
-        winner_index = index
-    winner = names[winner_index]
-    if not valid_samples:
-      failures.append(f"{context}: malformed Windows {domain} selector samples")
-    if selected_name != winner or selected.get(domain) != winner:
-      failures.append(f"{context}: Windows {domain} selected provider does not reproduce")
-    domain_results[domain] = {"winner": winner, "decisions": decisions}
-
-  expected_availability = {
-    "interrupt_time_precise_available": (
-      "windows_query_interrupt_time_precise"
-      in probe.get("instant_candidate_names", [])
-    ),
-    "unbiased_interrupt_time_precise_available": (
-      "windows_query_unbiased_interrupt_time_precise"
-      in probe.get("instant_candidate_names", [])
-    ),
-  }
-  if any(probe.get(key) is not value for key, value in expected_availability.items()):
-    failures.append(f"{context}: Windows wall availability flags do not match candidates")
-  for eligibility_key, exclusion_key in (
-    ("raw_architectural_counter_eligible", "raw_architectural_counter_exclusion"),
-    ("coarse_clock_eligible", "coarse_clock_exclusion"),
-    ("utc_clock_eligible", "utc_clock_exclusion"),
-    ("auxiliary_counter_eligible", "auxiliary_counter_exclusion"),
-  ):
-    if probe.get(eligibility_key) is not False or not isinstance(
-      probe.get(exclusion_key), str
-    ) or not probe[exclusion_key].strip():
-      failures.append(f"{context}: Windows {eligibility_key} exclusion is incomplete")
-
-  ordering_contract = selection.get("ordering_contract")
-  if (
-    not isinstance(ordering_contract, dict)
-    or ordering_contract.get("authority") != WINDOWS_QPC_AUTHORITY
-    or not isinstance(ordering_contract.get("basis"), str)
-    or not ordering_contract["basis"].strip()
-  ):
-    failures.append(f"{context}: Windows Ordered call-boundary contract is incomplete")
-  return {
-    **domain_results,
-    "ineligible_direct_candidates": validated_exclusions,
-  }
-
-
 def validate_apple_wall_selector(
   context: str,
   selection: dict,
@@ -1087,163 +956,6 @@ def validate_apple_wall_selector(
           )
           for metric in METRICS
         },
-      }
-    return results
-
-  if isinstance(probe, dict) and all(
-    isinstance(probe.get(domain), dict) for domain in ("instant", "ordered")
-  ):
-    public_exact = selection.get("public_exact_probe")
-    if not isinstance(public_exact, dict):
-      failures.append(f"{context}: Apple aarch64 selector lacks paired public/exact evidence")
-      public_exact = {}
-    results = {}
-    for domain, direct_prefix, selected_prefix in (
-      ("instant", "direct_wall", "direct_selected_wall"),
-      ("ordered", "direct_ordered_wall", "direct_selected_ordered_wall"),
-    ):
-      domain_probe = probe[domain]
-      mode = domain_probe.get("user_timebase_mode")
-      continuous = domain_probe.get("continuous_hwclock")
-      if type(mode) is not int or type(continuous) is not bool:
-        failures.append(f"{context}: malformed Apple aarch64 {domain} eligibility")
-        continue
-      absolute_direct = {
-        1: (
-          "apple_commpage_cntvct_offset"
-          if domain == "instant"
-          else "apple_commpage_isb_cntvct_offset"
-        ),
-        2: "apple_commpage_cntvctss_offset",
-        3: "apple_commpage_acntvct_offset",
-      }.get(mode)
-      continuous_direct = {
-        2: "apple_continuous_hw_cntvctss_base",
-        3: "apple_continuous_hw_acntvct_base",
-      }.get(mode)
-      if continuous_direct is None:
-        continuous_direct = (
-          "apple_continuous_hw_cntvct_base"
-          if domain == "instant"
-          else "apple_continuous_hw_isb_cntvct_base"
-        )
-      expected_providers = []
-      if continuous:
-        expected_providers.append(continuous_direct)
-      if absolute_direct is not None:
-        expected_providers.append(absolute_direct)
-      expected_providers.append("apple_mach_absolute_time")
-      expected_providers.append("apple_mach_continuous_time")
-      # Sources from def4b87 onward push the bare architectural counter first
-      # for the instant domain in commpage modes 1 and 3 (ADR-0005,
-      # EVID-APPLE-BARE-CNTVCT); frozen pre-adoption artifacts lack it. Accept
-      # exactly these two candidate sets and validate against whichever the
-      # artifact declares.
-      declared = candidates.get(domain)
-      if domain == "instant" and mode in (1, 3):
-        with_bare = ["apple_bare_cntvct", *expected_providers]
-        if declared == [f"{direct_prefix}__{provider}" for provider in with_bare]:
-          expected_providers = with_bare
-      expected_rows = [f"{direct_prefix}__{provider}" for provider in expected_providers]
-      if declared != expected_rows:
-        failures.append(f"{context}: Apple aarch64 {domain} candidate set is incomplete")
-
-      count = domain_probe.get("candidate_count")
-      evidence = domain_probe.get("candidates")
-      reads = domain_probe.get("reads_per_batch")
-      required = domain_probe.get("required_decisive_wins")
-      floor_ticks = domain_probe.get("equivalence_floor_ticks_per_batch")
-      relative = domain_probe.get("equivalence_relative_denominator")
-      if (
-        domain_probe.get("ready") is not True
-        or count != len(expected_providers)
-        or not isinstance(evidence, list)
-        or len(evidence) < count
-        or reads != 4_096
-        or required != 8
-        or type(floor_ticks) is not int
-        or floor_ticks <= 0
-        or relative != 20
-      ):
-        failures.append(f"{context}: malformed Apple aarch64 {domain} selector evidence")
-        continue
-
-      names = []
-      batches = []
-      valid = True
-      for candidate in evidence[:count]:
-        if not isinstance(candidate, dict):
-          valid = False
-          break
-        name = candidate.get("provider")
-        samples = candidate.get("batches_ticks")
-        if (
-          not isinstance(name, str)
-          or not isinstance(samples, list)
-          or len(samples) != 9
-          or not all(type(sample) is int and sample > 0 for sample in samples)
-          or candidate.get("median_ticks") != int(statistics.median(samples))
-        ):
-          valid = False
-          break
-        names.append(name)
-        batches.append(samples)
-      if not valid or names != expected_providers:
-        failures.append(f"{context}: malformed Apple aarch64 {domain} candidate samples")
-        continue
-
-      incumbent_index = 0
-      decisions = []
-      for challenger_index in range(1, count):
-        challenger = batches[challenger_index]
-        incumbent = batches[incumbent_index]
-        challenger_median = int(statistics.median(challenger))
-        incumbent_median = int(statistics.median(incumbent))
-        allowance = max(floor_ticks, incumbent_median // relative)
-        decisive_wins = sum(
-          challenger_sample + allowance < incumbent_sample
-          for challenger_sample, incumbent_sample in zip(
-            challenger, incumbent, strict=True
-          )
-        )
-        challenger_selected = (
-          challenger_median + allowance < incumbent_median
-          and decisive_wins >= required
-        )
-        decisions.append({
-          "challenger": names[challenger_index],
-          "incumbent": names[incumbent_index],
-          "allowance_ticks": allowance,
-          "decisive_wins": decisive_wins,
-          "challenger_selected": challenger_selected,
-        })
-        if challenger_selected:
-          incumbent_index = challenger_index
-      measured_winner = names[incumbent_index]
-      if domain_probe.get("measured_winner") != measured_winner:
-        failures.append(f"{context}: Apple aarch64 {domain} winner does not reproduce")
-      selected_provider = domain_probe.get("selected_provider")
-      basis = domain_probe.get("selection_basis")
-      if basis == "runtime_measured_complete_public_path":
-        if selected_provider != measured_winner:
-          failures.append(f"{context}: Apple aarch64 {domain} selected a non-winner")
-      elif basis == "same_thread_reentry_or_fork_safe_absolute_fallback":
-        if selected_provider != "apple_mach_absolute_time":
-          failures.append(f"{context}: Apple aarch64 {domain} safe fallback changed")
-      else:
-        failures.append(f"{context}: Apple aarch64 {domain} selection basis changed")
-      if selected.get(domain) != selected_provider:
-        failures.append(f"{context}: Apple aarch64 {domain} selected providers disagree")
-      if selected_benchmarks.get(domain) != f"{selected_prefix}__{selected_provider}":
-        failures.append(f"{context}: Apple {domain} selected benchmark is mislabeled")
-      parity = validate_wall_public_exact_probe(
-        context, domain, public_exact.get(domain), failures
-      )
-      results[domain] = {
-        "winner": selected_provider,
-        "measured_winner": measured_winner,
-        "decisions": decisions,
-        "public_exact": parity,
       }
     return results
 
@@ -2538,281 +2250,6 @@ def validate_tournament(
       f"{context}: reproduced tournament winner {incumbent!r} != {selected_provider!r}"
     )
   return {"winner": incumbent, "decisions": decisions}
-
-
-def validate_linux_x86_wall_selector(
-  context: str,
-  selection: dict,
-  failures: list[str],
-) -> dict:
-  selected = selection.get("selected_provider")
-  candidates = selection.get("eligible_direct_candidates")
-  selected_benchmarks = selection.get("selected_native_benchmark")
-  probe = selection.get("probe")
-  public_exact = selection.get("public_exact_probe")
-  if not all(isinstance(value, dict) for value in (selected, candidates, selected_benchmarks, probe)):
-    failures.append(f"{context}: malformed Linux x86 wall selector metadata")
-    return {}
-  if not isinstance(public_exact, dict):
-    failures.append(f"{context}: Linux x86 wall selector lacks paired public/exact evidence")
-    public_exact = {}
-  reads = probe.get("reads_per_batch")
-  required = probe.get("required_decisive_wins")
-  if required != 8:
-    failures.append(f"{context}: Linux x86 required-win rule changed")
-  output = {}
-  for domain, direct_prefix, selected_prefix in (
-    ("instant", "direct_wall", "direct_selected_wall"),
-    ("ordered", "direct_ordered_wall", "direct_selected_ordered_wall"),
-  ):
-    count = probe.get(f"{domain}_candidate_count")
-    all_names = probe.get(f"{domain}_candidate_names")
-    all_eligible = probe.get(f"{domain}_candidate_eligible")
-    all_batches = probe.get(f"{domain}_candidate_batches_ns")
-    all_medians = probe.get(f"{domain}_candidate_medians_ns")
-    decision_count = probe.get(f"{domain}_tournament_decision_count")
-    if (
-      type(count) is not int
-      or count <= 0
-      or not all(isinstance(value, list) for value in (
-        all_names, all_eligible, all_batches, all_medians,
-      ))
-      or count > min(len(all_names), len(all_eligible), len(all_batches), len(all_medians))
-      or decision_count != count - 1
-    ):
-      failures.append(f"{context}: malformed Linux x86 {domain} candidate evidence")
-      continue
-    names = all_names[:count]
-    batches = all_batches[:count]
-    if not all(all_eligible[:count]):
-      failures.append(f"{context}: Linux x86 {domain} published an ineligible candidate")
-    for name, samples, recorded_median in zip(names, batches, all_medians[:count], strict=True):
-      if isinstance(samples, list) and len(samples) == 9:
-        if recorded_median != int(statistics.median(samples)):
-          failures.append(f"{context}: Linux x86 {domain} median changed for {name}")
-    declared = candidates.get(domain)
-    expected_candidates = [f"{direct_prefix}__{name}" for name in names]
-    if declared != expected_candidates:
-      failures.append(f"{context}: Linux x86 {domain} candidate set is incomplete")
-    provider = selected.get(domain)
-    if selected_benchmarks.get(domain) != f"{selected_prefix}__{provider}":
-      failures.append(f"{context}: Linux x86 {domain} selected benchmark is mislabeled")
-    steps = [
-      {
-        "challenger": challenger,
-        "incumbent": incumbent,
-        "winner": winner,
-        "allowance_ns": allowance,
-        "decisive_wins": wins,
-        "challenger_selected": challenger_selected,
-      }
-      for challenger, incumbent, winner, allowance, wins, challenger_selected in zip(
-        probe.get(f"{domain}_tournament_challengers", [])[:decision_count],
-        probe.get(f"{domain}_tournament_incumbents", [])[:decision_count],
-        probe.get(f"{domain}_tournament_winners", [])[:decision_count],
-        probe.get(f"{domain}_tournament_allowances_ns", [])[:decision_count],
-        probe.get(f"{domain}_tournament_decisive_wins", [])[:decision_count],
-        probe.get(f"{domain}_tournament_challenger_selected", [])[:decision_count],
-        strict=True,
-      )
-    ]
-    result = validate_tournament(
-      f"{context}: Linux x86 {domain}", names, batches, steps, reads, required, provider, failures
-    )
-    domain_public_exact = public_exact.get(domain)
-    if not isinstance(domain_public_exact, dict):
-      failures.append(f"{context}: Linux x86 {domain} lacks metric parity evidence")
-      domain_public_exact = {}
-    result["public_exact"] = {
-      metric: validate_wall_public_exact_probe(
-        context,
-        f"Linux x86 {domain} {metric}",
-        domain_public_exact.get(metric),
-        failures,
-      )
-      for metric in METRICS
-    }
-    output[domain] = result
-
-    eligibility = probe.get(f"{domain}_eligibility")
-    if eligibility == "pr_get_tsc_not_enabled":
-      if any("syscall" not in name or "rdtscp" in name for name in names):
-        failures.append(f"{context}: Linux x86 denied-TSC {domain} retained a faulting path")
-  return output
-
-
-def validate_linux_aarch64_wall_selector(
-  context: str,
-  selection: dict,
-  failures: list[str],
-) -> dict:
-  selected = selection.get("selected_provider")
-  candidates = selection.get("eligible_direct_candidates")
-  selected_benchmarks = selection.get("selected_native_benchmark")
-  if not all(isinstance(value, dict) for value in (selected, candidates, selected_benchmarks)):
-    failures.append(f"{context}: malformed Linux aarch64 wall selector metadata")
-    return {}
-  if not isinstance(selection.get("permission_rule"), str):
-    failures.append(f"{context}: Linux aarch64 selector lacks its permission rule")
-  output = {}
-  permission_probes = {}
-  specifications = {
-    "instant": (
-      selection.get("instant_probe"),
-      "direct_wall",
-      "direct_selected_wall",
-      {
-        "aarch64_cntvct": "cntvct_batches_ns",
-        "linux_clock_monotonic": "clock_batches_ns",
-        "linux_clock_monotonic_raw": "clock_raw_batches_ns",
-        "linux_clock_boottime": "clock_boottime_batches_ns",
-        "linux_clock_monotonic_vdso_direct": "vdso_batches_ns",
-        "linux_clock_monotonic_raw_vdso_direct": "vdso_raw_batches_ns",
-        "linux_clock_boottime_vdso_direct": "vdso_boottime_batches_ns",
-        "linux_clock_monotonic_syscall": "syscall_batches_ns",
-        "linux_clock_monotonic_raw_syscall": "syscall_raw_batches_ns",
-        "linux_clock_boottime_syscall": "syscall_boottime_batches_ns",
-      },
-    ),
-    "ordered": (
-      selection.get("ordered_probe"),
-      "direct_ordered_wall",
-      "direct_selected_ordered_wall",
-      {
-        "aarch64_isb_cntvct": "isb_batches_ns",
-        "aarch64_cntvctss": "cntvctss_batches_ns",
-        "linux_clock_monotonic": "clock_batches_ns",
-        "linux_clock_monotonic_raw": "clock_raw_batches_ns",
-        "linux_clock_boottime": "clock_boottime_batches_ns",
-        "linux_clock_monotonic_vdso_direct": "vdso_batches_ns",
-        "linux_clock_monotonic_raw_vdso_direct": "vdso_raw_batches_ns",
-        "linux_clock_boottime_vdso_direct": "vdso_boottime_batches_ns",
-        "linux_clock_monotonic_syscall": "syscall_batches_ns",
-        "linux_clock_monotonic_raw_syscall": "syscall_raw_batches_ns",
-        "linux_clock_boottime_syscall": "syscall_boottime_batches_ns",
-      },
-    ),
-  }
-  for domain, (probe, direct_prefix, selected_prefix, sample_fields) in specifications.items():
-    if not isinstance(probe, dict):
-      failures.append(f"{context}: malformed Linux aarch64 {domain} probe")
-      continue
-    permission = {
-      field: probe.get(field)
-      for field in (
-        "eligibility",
-        "permission_basis",
-        "pr_get_tsc_status",
-        "kernel_version_known",
-        "kernel_version_major",
-        "kernel_version_minor",
-      )
-    }
-    permission_probes[domain] = permission
-    basis = permission["permission_basis"]
-    status = permission["pr_get_tsc_status"]
-    known = permission["kernel_version_known"]
-    major = permission["kernel_version_major"]
-    minor = permission["kernel_version_minor"]
-    version_fields_valid = (
-      type(known) is bool
-      and type(major) is int
-      and type(minor) is int
-      and major >= 0
-      and minor >= 0
-    )
-    if not version_fields_valid:
-      failures.append(f"{context}: malformed Linux aarch64 {domain} kernel evidence")
-    elif not known and (major != 0 or minor != 0):
-      failures.append(f"{context}: Linux aarch64 {domain} unknown kernel has a version")
-
-    if permission["eligibility"] == "eligible":
-      if basis == "pr_get_tsc_enabled":
-        if status != 0:
-          failures.append(f"{context}: Linux aarch64 {domain} enabled query did not succeed")
-      elif basis == "legacy_kernel_without_pr_get_tsc":
-        predates_control = (
-          version_fields_valid
-          and known
-          and major >= 3
-          and (major < 6 or (major == 6 and minor < 12))
-        )
-        if status != -22 or not predates_control:
-          failures.append(
-            f"{context}: Linux aarch64 {domain} legacy inference lacks exact pre-6.12 proof"
-          )
-      else:
-        failures.append(f"{context}: Linux aarch64 {domain} has an invalid eligible basis")
-    elif permission["eligibility"] == "pr_get_tsc_not_enabled":
-      if basis not in ("pr_get_tsc_not_enabled", "pr_get_tsc_unknown_mode") or status != 0:
-        failures.append(f"{context}: Linux aarch64 {domain} has invalid denied evidence")
-    elif permission["eligibility"] == "pr_get_tsc_unavailable":
-      opaque_evidence_valid = status != 0 and basis in (
-        "pr_get_tsc_failed",
-        "new_kernel_without_observable_pr_get_tsc",
-        "kernel_release_unknown",
-      )
-      if basis == "kernel_release_unknown":
-        opaque_evidence_valid = opaque_evidence_valid and known is False
-      elif basis == "new_kernel_without_observable_pr_get_tsc":
-        opaque_evidence_valid = (
-          opaque_evidence_valid
-          and version_fields_valid
-          and known
-          and not (major >= 3 and (major < 6 or (major == 6 and minor < 12)))
-        )
-      elif basis == "pr_get_tsc_failed":
-        opaque_evidence_valid = (
-          opaque_evidence_valid
-          and version_fields_valid
-          and known
-          and major >= 3
-          and (major < 6 or (major == 6 and minor < 12))
-          and status != -22
-        )
-      if not opaque_evidence_valid:
-        failures.append(f"{context}: Linux aarch64 {domain} has invalid opaque evidence")
-    else:
-      failures.append(f"{context}: Linux aarch64 {domain} has unknown permission eligibility")
-    declared = candidates.get(domain)
-    if not isinstance(declared, list):
-      failures.append(f"{context}: malformed Linux aarch64 {domain} candidate set")
-      continue
-    names = [candidate.removeprefix(f"{direct_prefix}__") for candidate in declared]
-    if probe.get("candidate_count") != len(names) or len(set(names)) != len(names):
-      failures.append(f"{context}: Linux aarch64 {domain} candidate set is incomplete")
-      continue
-    try:
-      batches = [probe[sample_fields[name]] for name in names]
-    except (KeyError, TypeError):
-      failures.append(f"{context}: Linux aarch64 {domain} has an unknown candidate")
-      continue
-    provider = selected.get(domain)
-    if probe.get("selected_provider") != provider:
-      failures.append(f"{context}: Linux aarch64 {domain} selected providers disagree")
-    if selected_benchmarks.get(domain) != f"{selected_prefix}__{provider}":
-      failures.append(f"{context}: Linux aarch64 {domain} selected benchmark is mislabeled")
-    step_count = probe.get("tournament_step_count")
-    all_steps = probe.get("tournament_steps")
-    if type(step_count) is not int or not isinstance(all_steps, list):
-      failures.append(f"{context}: malformed Linux aarch64 {domain} tournament")
-      continue
-    output[domain] = validate_tournament(
-      f"{context}: Linux aarch64 {domain}",
-      names,
-      batches,
-      all_steps[:step_count],
-      probe.get("reads_per_batch"),
-      probe.get("required_decisive_wins"),
-      provider,
-      failures,
-    )
-    if probe.get("eligibility") != "eligible" and any("syscall" not in name for name in names):
-      failures.append(f"{context}: Linux aarch64 denied-counter {domain} retained a faulting path")
-  if set(permission_probes) == {"instant", "ordered"}:
-    if permission_probes["instant"] != permission_probes["ordered"]:
-      failures.append(f"{context}: Linux aarch64 wall selectors disagree on counter permission")
-  return output
 
 
 def validate_residual_wall_metadata(
@@ -4143,7 +3580,7 @@ def validate_checkout_binding(root: Path, revision: str) -> tuple[list[str], dic
   # First compare two committed trees. This keeps a later evidence-only commit
   # valid while requiring every executable, dependency lock, harness, runner,
   # extractor, and claim rule to be byte-identical to the measured revision.
-  # A source file cannot pin its own eventual commit hash; the six generated
+  # A source file cannot pin its own eventual commit hash; the four generated
   # cell documents are the authority for `revision`.
   committed_diff = git_command(
     root,
@@ -4200,6 +3637,116 @@ def validate_checkout_binding(root: Path, revision: str) -> tuple[list[str], dic
   }
 
 
+def _wall_family_for_triple(triple: object) -> str | None:
+  """Map a target triple to its fixed-pick wall family (see EXPECTED_WALL_PICKS)."""
+  if not isinstance(triple, str):
+    return None
+  if triple.endswith("-apple-darwin"):
+    # Only aarch64 Apple converts to a fixed pick; x86 Apple stays a tournament.
+    return "apple" if triple.startswith("aarch64") else None
+  if "freebsd" in triple:
+    return "freebsd"
+  if "windows" in triple:
+    return "windows"
+  if "linux" in triple or "android" in triple:
+    if triple.startswith("aarch64"):
+      return "linux-aarch64"
+    if triple.startswith(("x86_64", "i686", "i586", "x86")):
+      return "linux-x86"
+  return None
+
+
+def expected_wall_picks_for_triple(triple: object) -> dict:
+  """Frozen mode-legal picks for a triple's family, or the cross-family union.
+
+  Falling back to the union keeps the assertion meaningful for an unrecognized
+  triple: the pick must still be some family's mode-legal provider, and no
+  family's `ordered` set admits a bare unbarriered counter (ADR-0006).
+  """
+  family = _wall_family_for_triple(triple)
+  if family is not None:
+    return EXPECTED_WALL_PICKS[family]
+  return {
+    "instant": frozenset().union(*(picks["instant"] for picks in EXPECTED_WALL_PICKS.values())),
+    "ordered": frozenset().union(*(picks["ordered"] for picks in EXPECTED_WALL_PICKS.values())),
+  }
+
+
+def is_fixed_pick_wall_selection(selection: object) -> bool:
+  """True for a converted wall selection: one capability-gated pick per contract.
+
+  The emitters in ``benches/instant.rs`` write ``selected_provider``,
+  ``selected_native_benchmark``, and ``public_exact_probe`` with no
+  ``eligible_direct_candidates`` and no runtime ``probe``/``instant_probe``
+  candidate arrays. Every old runtime-tournament shape carries one of those, so
+  their presence excludes the fixed-pick shape.
+  """
+  if not isinstance(selection, dict):
+    return False
+  if any(key in selection for key in ("eligible_direct_candidates", "probe", "instant_probe")):
+    return False
+  return all(
+    isinstance(selection.get(key), dict)
+    for key in ("selected_provider", "selected_native_benchmark", "public_exact_probe")
+  )
+
+
+def validate_fixed_pick_wall_selector(
+  context: str,
+  selection: dict,
+  failures: list[str],
+) -> dict:
+  """Validate a converted fixed-pick wall selection and reproduce its parity.
+
+  The frozen-pick assertion (``selected_provider`` equals a mode-legal pick for
+  the cell's family) belongs to the caller that knows the target triple:
+  ``validate_cell`` for primary cells and
+  ``_validate_supplemental_selection_profile`` for supplemental cells. Here we
+  validate the minimal shape and replay the paired public/selected-exact probe so
+  ``wall_public_exact_metric`` still feeds the selected-native comparison.
+  """
+  selected = selection.get("selected_provider")
+  selected_benchmarks = selection.get("selected_native_benchmark")
+  public_exact = selection.get("public_exact_probe")
+  if not all(isinstance(value, dict) for value in (selected, selected_benchmarks, public_exact)):
+    failures.append(f"{context}: malformed fixed-pick wall selector metadata")
+    return {}
+  if not isinstance(selection.get("decision_rule"), str) or not selection["decision_rule"].strip():
+    failures.append(f"{context}: fixed-pick wall selector lacks a decision rule")
+  results = {}
+  for domain, selected_prefix in (
+    ("instant", "direct_selected_wall"),
+    ("ordered", "direct_selected_ordered_wall"),
+  ):
+    provider = selected.get(domain)
+    if not isinstance(provider, str) or not provider.strip():
+      failures.append(f"{context}: fixed-pick {domain} lacks a selected provider")
+      continue
+    if selected_benchmarks.get(domain) != f"{selected_prefix}__{provider}":
+      failures.append(f"{context}: fixed-pick {domain} selected benchmark is mislabeled")
+    domain_public_exact = public_exact.get(domain)
+    if not isinstance(domain_public_exact, dict):
+      failures.append(f"{context}: fixed-pick {domain} lacks metric parity evidence")
+      domain_public_exact = {}
+    # The Apple aarch64 emitter writes a flat now-only probe (the measurement leaf
+    # sits directly under the domain); FreeBSD/Windows/Linux nest {now, elapsed}.
+    # Accept both, mirroring check-inline-parity.py. The nested form still requires
+    # both metrics (a missing one becomes None -> a probe failure), so this is not
+    # a weakening — only the Apple flat shape gains a valid now-only reading.
+    if any(key in domain_public_exact for key in ("exact_batches_ns", "public_batches_ns")):
+      metric_probes = {"now": domain_public_exact}
+    else:
+      metric_probes = {metric: domain_public_exact.get(metric) for metric in METRICS}
+    results[domain] = {
+      "winner": provider,
+      "public_exact": {
+        metric: validate_wall_public_exact_probe(context, f"{domain}.{metric}", probe, failures)
+        for metric, probe in metric_probes.items()
+      },
+    }
+  return results
+
+
 def validate_wall_selector_reproduction(
   context: str,
   selection: object,
@@ -4211,20 +3758,15 @@ def validate_wall_selector_reproduction(
   if not isinstance(selection, dict):
     return {}
   selected = selection.get("selected_provider")
+  # Converted families emit one capability-gated pick per contract with no
+  # tournament candidates; route every such shape through the single fixed-pick
+  # validator (ADR-0005/0006). Runtime-tournament shapes remain only for a family
+  # that still races a frozen flip (Apple x86 supplemental) or carries an
+  # `architecture` residual descriptor (FreeBSD/RISC-V/wasm/... pre-conversion).
+  if is_fixed_pick_wall_selection(selection):
+    return validate_fixed_pick_wall_selector(context, selection, failures)
   if isinstance(selection.get("architecture"), str):
     return validate_residual_wall_selector(context, selection, clocks, failures)
-  if (
-    isinstance(selection.get("probe"), dict)
-    and "raw_architectural_counter_eligible" in selection["probe"]
-  ):
-    return validate_windows_wall_selector(context, selection, failures)
-  if (
-    isinstance(selection.get("probe"), dict)
-    and "instant_candidate_names" in selection["probe"]
-  ):
-    return validate_linux_x86_wall_selector(context, selection, failures)
-  if isinstance(selection.get("instant_probe"), dict):
-    return validate_linux_aarch64_wall_selector(context, selection, failures)
   if (
     isinstance(selected, dict)
     and isinstance(selected.get("instant"), str)
@@ -4348,6 +3890,10 @@ def validate_cell(
     if not isinstance(selected, dict):
       failures.append(f"{context}: wall selector lacks selected-provider mapping")
       selected = {}
+    fixed_pick_wall = is_fixed_pick_wall_selection(wall_selection)
+    expected_wall_picks = (
+      expected_wall_picks_for_triple(target_triple) if fixed_pick_wall else None
+    )
     for domain, public_name, direct_name in selected_pairs:
       domain_reproduction = selector_reproduction.get(domain)
       public_exact_contract = wall_public_exact_contract(domain_reproduction)
@@ -4359,7 +3905,11 @@ def validate_cell(
       else:
         domain_candidates = None
       if not isinstance(domain_candidates, list) or not domain_candidates:
-        failures.append(f"{context}: {domain} wall selector lacks eligible candidates")
+        # A converted fixed-pick selection has no eligible-candidate tournament;
+        # it is validated through the selected-native path plus the frozen-pick
+        # assertion below, not through a candidate loop.
+        if not fixed_pick_wall:
+          failures.append(f"{context}: {domain} wall selector lacks eligible candidates")
         domain_candidates = []
       for candidate in domain_candidates:
         expected_identity = exact_wall_candidate_identity(domain, candidate)
@@ -4448,6 +3998,15 @@ def validate_cell(
         continue
       validate_ci(context, direct_name, direct_wall, failures)
       expected_provider = selected.get(domain)
+      if (
+        fixed_pick_wall
+        and expected_wall_picks is not None
+        and expected_provider not in expected_wall_picks[domain]
+      ):
+        failures.append(
+          f"{context}: {domain} fixed pick {expected_provider!r} is not a frozen "
+          f"expected pick for {target_triple or 'this target'}"
+        )
       if direct_wall.get("provider") != expected_provider:
         failures.append(
           f"{context}: {domain} selected-native provider "
@@ -5232,7 +4791,7 @@ def validate_primary_speed_campaign(
   documents: dict[str, dict],
   cell_paths: dict[str, Path] | None = None,
 ) -> dict:
-  """Validate the exact primary six-cell campaign through retained observations."""
+  """Validate the exact primary four-cell campaign through retained observations."""
   failures: list[str] = []
   results = []
   if not isinstance(documents, dict):
@@ -5291,7 +4850,7 @@ def validate_primary_speed_campaign(
     results.append(result)
   if tuple(identities) != EXPECTED_PRIMARY_IDENTITIES:
     failures.append(
-      "primary campaign environments differ from the exact six-platform contract: "
+      "primary campaign environments differ from the exact four-platform contract: "
       f"{identities!r}"
     )
   if len(revisions) != 1:
@@ -5604,6 +5163,9 @@ def observed_supplemental_selection_profiles(clocks: object) -> dict:
       raise ValueError(f"{use_case} selector metadata is incomplete")
     if isinstance(selection.get("fixed_provider"), dict):
       profiles[use_case] = "fixed_native"
+    elif is_fixed_pick_wall_selection(selection):
+      # A converted wall route: one capability-gated pick per contract, no probe.
+      profiles[use_case] = "fixed_native"
     elif any(key in selection for key in ("probe", "instant_probe", "architecture")):
       profiles[use_case] = "runtime_tournament"
     else:
@@ -5654,21 +5216,22 @@ def _validate_supplemental_selection_profile(
     ):
       failures.append(f"{context}: {use_case} runtime tournament has no selector evidence")
     if profile == "fixed_native":
-      fixed = selection.get("fixed_provider")
-      if isinstance(fixed, dict) and use_case in fixed:
-        fixed = fixed[use_case]
+      # A converted wall route is the minimal fixed-pick shape (no fixed_provider
+      # dict): assert the selected provider is a mode-legal frozen pick for the
+      # target family and that its selected-native benchmark is labeled to match.
       selected = selection.get("selected_provider")
       selected = selected.get(use_case) if isinstance(selected, dict) else selected
+      benchmarks = selection.get("selected_native_benchmark")
+      benchmark = benchmarks.get(use_case) if isinstance(benchmarks, dict) else None
+      prefix = "direct_selected_wall" if use_case == "instant" else "direct_selected_ordered_wall"
+      expected_picks = expected_wall_picks_for_triple(target_triple)
       if (
-        not isinstance(fixed, dict)
-        or fixed.get("candidate") != selected
-        or fixed.get("time_domain") != f"{use_case} wall"
-        or not isinstance(fixed.get("native_primitive"), str)
-        or not fixed["native_primitive"].strip()
-        or not isinstance(fixed.get("selection_basis"), str)
-        or not fixed["selection_basis"].strip()
+        not is_fixed_pick_wall_selection(selection)
+        or not isinstance(selected, str)
+        or benchmark != f"{prefix}__{selected}"
+        or selected not in expected_picks[use_case]
       ):
-        failures.append(f"{context}: {use_case} fixed-native route has no fixed-provider basis")
+        failures.append(f"{context}: {use_case} fixed-native route has no frozen fixed pick")
     return
 
   selection_kind = selection.get("selection_kind")

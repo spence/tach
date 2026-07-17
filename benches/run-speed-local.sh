@@ -95,8 +95,8 @@ else
     --output "$output" \
     --source-revision "$source_revision" \
     --collector-bundle "$bundle_dir" \
-    --instant-profile runtime_tournament \
-    --ordered-profile runtime_tournament \
+    --instant-profile fixed_native \
+    --ordered-profile fixed_native \
     --thread-cpu-profile fixed_native
 fi
 echo "wrote $output with retained collector bundle $bundle_dir"
