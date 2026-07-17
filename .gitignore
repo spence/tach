@@ -7,3 +7,7 @@ target
 
 # Regenerable source-sealed benchmark bundles and runtime observations.
 .tach-bench-out/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
