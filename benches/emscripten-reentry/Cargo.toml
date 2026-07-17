@@ -1,9 +1,0 @@
-[package]
-name = "tach-emscripten-reentry"
-version = "0.0.0"
-edition = "2024"
-rust-version = "1.95"
-publish = false
-
-[dependencies]
-tach = { path = "../..", default-features = false }

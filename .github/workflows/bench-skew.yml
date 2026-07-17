@@ -2,79 +2,9 @@ name: bench-skew
 
 on:
   workflow_dispatch:
-    inputs:
-      boundary:
-        description: Evidence boundary to run
-        required: true
-        default: windows-ordered-contract
-        type: choice
-        options:
-          - windows-ordered-contract
-          - full
 
 jobs:
-  bench-skew:
-    if: ${{ inputs.boundary == 'full' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: windows-2025
-            label: github-windows-x86_64
-            arch: x86_64-pc-windows-msvc
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build skew bench (default features)
-        run: cargo build --release --bench skew --features bench-quanta
-      - name: Build skew bench (with recalibrate-background)
-        run: cargo build --release --bench skew --features "bench-quanta recalibrate-background"
-      - name: Run skew bench — main (no recal-bg)
-        shell: bash
-        run: |
-          # Find the binary built without recalibrate-background.
-          # On Windows the artifact has .exe suffix; binaries from both features land
-          # in target/release/deps/ with distinct hashes. Sort by mtime and take the
-          # second-newest (the one from the first build above).
-          binaries=$(ls -t target/release/deps/skew-*.exe | grep -v '\.d$')
-          # Re-run the first build to make its hash newest, then run that one.
-          cargo build --release --bench skew --features bench-quanta
-          bin=$(ls -t target/release/deps/skew-*.exe | grep -v '\.d$' | head -1)
-          echo "running base: $bin"
-          "$bin" --mode all --cell github-windows-x86_64 \
-            --duration 10 --skew-1s-samples 30 --skew-1m-samples 5 \
-            --output skewmono-base.json
-      - name: Run skew bench — tach_recal
-        shell: bash
-        run: |
-          cargo build --release --bench skew --features "bench-quanta recalibrate-background"
-          bin=$(ls -t target/release/deps/skew-*.exe | grep -v '\.d$' | head -1)
-          echo "running recal: $bin"
-          "$bin" --mode all --cell github-windows-x86_64 \
-            --duration 10 --skew-1s-samples 30 --skew-1m-samples 5 \
-            --only-clock tach_recal \
-            --output skewmono-recal.json
-      - name: Merge JSON
-        shell: bash
-        run: |
-          python -c "
-          import json
-          base = json.load(open('skewmono-base.json'))
-          recal = json.load(open('skewmono-recal.json'))
-          base['clocks'].update(recal['clocks'])
-          json.dump(base, open('skewmono-github-windows-x86_64.json', 'w'), indent=2)
-          print('merged ->', 'skewmono-github-windows-x86_64.json')
-          "
-      - name: Upload skewmono JSON
-        uses: actions/upload-artifact@v4
-        with:
-          name: skewmono-${{ matrix.label }}
-          path: skewmono-github-windows-x86_64.json
-
   windows-ordered-contract:
-    if: ${{ inputs.boundary == 'windows-ordered-contract' }}
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
