@@ -104,10 +104,14 @@ POWERPC64_TARGETS = {
   "powerpc64le-unknown-linux-gnu",
 }
 
+# The direct versioned-vDSO resolver is proved only for the wall-clock families
+# that still install and read it. M2 froze the Linux x86 and aarch64 families to
+# an architectural-counter pick (RDTSC / CNTVCT_EL0) with a raw-syscall
+# CLOCK_MONOTONIC fallback that deliberately bypasses the vDSO
+# (src/arch/linux_x86_wall.rs, src/arch/linux_aarch64_wall.rs), so those targets
+# no longer carry the resolver obligation. The residual arch families below
+# still select their wall clock through the direct versioned vDSO.
 LINUX_VDSO_TARGETS = {
-  *LINUX_X86_WALL_TARGETS,
-  "aarch64-linux-android",
-  "aarch64-unknown-linux-gnu",
   "armv7-unknown-linux-gnueabihf",
   "loongarch64-unknown-linux-gnu",
   "powerpc64-unknown-linux-gnu",
@@ -658,21 +662,10 @@ def direct_vdso_hot_patterns(target: str) -> list[str]:
 
 
 def vdso_resolver_spec(target: str) -> dict:
-  if target in LINUX_X86_WALL_TARGETS:
-    detectors = {
-      "instant": "linux_x86_wall23detect_instant_provider",
-      "ordered_instant": "linux_x86_wall23detect_ordered_provider",
-    }
-    version = "LINUX_2.6"
-    symbol = "__vdso_clock_gettime"
-  elif target in ("aarch64-unknown-linux-gnu", "aarch64-linux-android"):
-    detectors = {
-      "instant": "linux_aarch64_wall23detect_instant_provider",
-      "ordered_instant": "linux_aarch64_wall23detect_ordered_provider",
-    }
-    version = "LINUX_2.6.39"
-    symbol = "__kernel_clock_gettime"
-  elif target == "armv7-unknown-linux-gnueabihf":
+  # The Linux x86 and aarch64 wall families were frozen to an architectural
+  # counter with a raw-syscall fallback in M2 and no longer route through the
+  # vDSO, so they are absent from LINUX_VDSO_TARGETS and never reach this spec.
+  if target == "armv7-unknown-linux-gnueabihf":
     detectors = {"shared_wall_selector": "linux_clock_wall15detect_provider"}
     version = "LINUX_2.6"
     symbol = "__vdso_clock_gettime"
@@ -703,7 +696,7 @@ def vdso_resolver_spec(target: str) -> dict:
     re.escape(f'c"{version}"'),
     re.escape(f'c"{symbol}"'),
   ]
-  if target in ("i686-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf"):
+  if target == "armv7-unknown-linux-gnueabihf":
     required_patterns += [
       "linux_vdso15CLOCK_GETTIME64",
       r"store atomic i32[^\n]*linux_vdso15CLOCK_GETTIME64[^\n]* release",
@@ -714,9 +707,7 @@ def vdso_resolver_spec(target: str) -> dict:
     "version": version,
     "symbol": symbol,
     "time64_symbol": (
-      "__vdso_clock_gettime64"
-      if target in ("i686-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf")
-      else None
+      "__vdso_clock_gettime64" if target == "armv7-unknown-linux-gnueabihf" else None
     ),
     "required_patterns": required_patterns,
   }
@@ -724,18 +715,18 @@ def vdso_resolver_spec(target: str) -> dict:
 
 def instant_route(target: str) -> dict:
   if target.endswith("pc-windows-msvc"):
+    # M2 froze this family to a direct QueryPerformanceCounter pick: fallback.rs
+    # links QPC as the OS-designated high-resolution monotonic source and both
+    # wall contracts read it, so the pre-M2 runtime GetProcAddress selection
+    # among QPC/QueryInterruptTimePrecise variants (and its
+    # windows_ticks_after_selection selector) was deleted. LTO inlines the read
+    # to a single QueryPerformanceCounter call; the forbidden set keeps a raw
+    # TSC/CNTVCT read (ineligible per ADR-0005 O-WINDOWS) failing the proof.
     return {
-      "provider": "measured Windows-owned high-resolution monotonic source",
-      "native_primitive": (
-        "QueryPerformanceCounter, QueryInterruptTimePrecise, or "
-        "QueryUnbiasedInterruptTimePrecise"
-      ),
+      "provider": "fixed QueryPerformanceCounter high-resolution monotonic source",
+      "native_primitive": "QueryPerformanceCounter",
       "ordering": "unordered local platform-clock read",
-      "required_patterns": [
-        "windows_ticks_after_selection",
-        "@QueryPerformanceCounter",
-        "@GetProcAddress",
-      ],
+      "required_patterns": ["@QueryPerformanceCounter"],
       "forbidden_patterns": ["llvm.x86.rdtsc", r"\brdtscp\b", "cntvct_el0"],
     }
 
@@ -753,72 +744,80 @@ def instant_route(target: str) -> dict:
     }
 
   if target == "x86_64-unknown-freebsd":
+    # M2 froze this family to a kernel-eligible-TSC pick (RDTSC) with an explicit
+    # CLOCK_MONOTONIC (FreeBSD clock id 4) raw syscall 232 + libc retry
+    # (src/arch/freebsd_x86_64.rs `clock_monotonic_syscall`).
     return {
-      "provider": "independently measured kernel-eligible TSC, FreeBSD libc clock, or raw syscall",
-      "native_primitive": "RDTSC, clock_gettime(CLOCK_MONOTONIC=4), or syscall 232",
-      "ordering": "unordered local read from the selected wall timeline",
+      "provider": "fixed kernel-eligible TSC pick with a CLOCK_MONOTONIC raw-syscall fallback",
+      "native_primitive": "RDTSC, otherwise clock_gettime(CLOCK_MONOTONIC=4) via syscall 232 or libc",
+      "ordering": "unordered local read from the fixed RDTSC pick or its CLOCK_MONOTONIC fallback",
       "required_patterns": [
         "freebsd_x86_64.*ticks_after_selection",
         "llvm.x86.rdtsc",
+        r"\(i64 232, i32 4,",
         clock_gettime(4),
       ],
       "forbidden_patterns": [],
     }
 
   if target in LINUX_X86_WALL_TARGETS:
+    # M2 froze this family to a compile-time RDTSC pick with an explicit
+    # CLOCK_MONOTONIC (clock id 1) raw-syscall + libc fallback. The pre-M2 vDSO
+    # and CLOCK_MONOTONIC_RAW (clock id 4) wall candidates were deleted: the
+    # fallback deliberately enters the kernel through the syscall exception
+    # because a libc/vDSO clock_gettime may itself execute the denied counter
+    # (src/arch/linux_x86_wall.rs `raw_clock`/`provider_clock_id`, module doc).
+    # Clock id 4 remains reachable only through TSC-frequency calibration, so it
+    # is not asserted as a wall-route read; the vDSO symbol is now forbidden.
     syscall_patterns = (
       [
         r'asm sideeffect inteldialect "syscall"',
         r"\(i64 228, i32 1,",
-        r"\(i64 228, i32 4,",
       ]
       if not target.startswith("i686")
       else [
         r'asm sideeffect alignstack inteldialect "push ebx.*int 0x80',
         r"\(i32 1, i32 265,",
-        r"\(i32 4, i32 265,",
         r"\(i32 1, i32 403,",
-        r"\(i32 4, i32 403,",
       ]
     )
     return {
-      "provider": "measured Linux x86 complete wall provider",
+      "provider": "fixed kernel-eligible RDTSC pick with a CLOCK_MONOTONIC raw-syscall fallback",
       "native_primitive": (
-        "kernel-eligible RDTSC or MONOTONIC/MONOTONIC_RAW through libc, "
-        "a direct versioned vDSO export, an x86_64 syscall, or independent "
-        "i686 time32/time64 vDSO/syscall ABIs"
+        "kernel-eligible RDTSC, otherwise the explicit CLOCK_MONOTONIC raw "
+        "syscall (x86_64 SYSCALL, i686 time32/time64 int 0x80) with a libc retry"
       ),
-      "ordering": "unordered local read from the selected wall timeline",
+      "ordering": "unordered read from the fixed RDTSC pick or its CLOCK_MONOTONIC fallback",
       "required_patterns": [
         "linux_x86_wall.*ticks_after_selection",
         "llvm.x86.rdtsc",
         clock_gettime(1),
-        clock_gettime(4),
-        *direct_vdso_hot_patterns(target),
         *syscall_patterns,
       ],
-      "forbidden_patterns": [],
+      "forbidden_patterns": ["linux_vdso13CLOCK_GETTIME"],
     }
 
   if target in ("aarch64-unknown-linux-gnu", "aarch64-linux-android"):
+    # M2 froze this family to a bare CNTVCT_EL0 pick with an explicit
+    # CLOCK_MONOTONIC (clock id 1) raw-syscall + libc fallback. The pre-M2 vDSO
+    # and CLOCK_MONOTONIC_RAW (clock id 4) candidates were deleted; the fallback
+    # enters the kernel through the syscall exception because a libc/vDSO
+    # clock_gettime may itself execute the denied counter
+    # (src/arch/linux_aarch64_wall.rs `clock_monotonic_syscall`, module doc).
     return {
-      "provider": "measured Linux aarch64 complete wall provider",
+      "provider": "fixed bare CNTVCT_EL0 pick with a CLOCK_MONOTONIC raw-syscall fallback",
       "native_primitive": (
-        "CNTVCT_EL0 or MONOTONIC/MONOTONIC_RAW through libc, the direct "
-        "versioned vDSO export, or a raw syscall"
+        "bare CNTVCT_EL0, otherwise the CLOCK_MONOTONIC raw svc syscall with a libc retry"
       ),
-      "ordering": "unordered local read from the selected wall timeline",
+      "ordering": "unordered read from the fixed CNTVCT_EL0 pick or its CLOCK_MONOTONIC fallback",
       "required_patterns": [
         "linux_aarch64_wall.*ticks_after_selection",
         "cntvct_el0",
         clock_gettime(1),
-        clock_gettime(4),
-        *direct_vdso_hot_patterns(target),
         r'asm sideeffect "svc 0"',
         r"\(i64 1, ptr [^\n]*, i64 113\)",
-        r"\(i64 4, ptr [^\n]*, i64 113\)",
       ],
-      "forbidden_patterns": [],
+      "forbidden_patterns": [r"\bisb sy\b", "linux_vdso13CLOCK_GETTIME"],
     }
 
   if target.startswith(("x86_64", "i686")):
@@ -1003,18 +1002,16 @@ def instant_route(target: str) -> dict:
 
 def ordered_instant_route(target: str, mode: str) -> dict:
   if target.endswith("pc-windows-msvc"):
+    # Frozen ordered pick: the same direct QueryPerformanceCounter read. Its
+    # opaque OS call boundary carries the OrderedInstant happens-before edge, so
+    # no explicit fence is emitted and none is allowed; the pre-M2
+    # windows_ticks_ordered_after_selection selector was deleted with the
+    # tournament (src/arch/fallback.rs `windows_ticks_ordered`).
     return {
-      "provider": "measured Windows-owned ordered call-boundary clock",
-      "native_primitive": (
-        "QueryPerformanceCounter, QueryInterruptTimePrecise, or "
-        "QueryUnbiasedInterruptTimePrecise"
-      ),
+      "provider": "fixed QueryPerformanceCounter ordered call-boundary clock",
+      "native_primitive": "QueryPerformanceCounter",
       "ordering": "opaque OS call boundary on a Windows-owned cross-processor timeline",
-      "required_patterns": [
-        "windows_ticks_ordered_after_selection",
-        "@QueryPerformanceCounter",
-        "@GetProcAddress",
-      ],
+      "required_patterns": ["@QueryPerformanceCounter"],
       "forbidden_patterns": [
         "llvm.x86.rdtsc",
         r"\brdtscp\b",
@@ -1038,90 +1035,91 @@ def ordered_instant_route(target: str, mode: str) -> dict:
     }
 
   if target == "x86_64-unknown-freebsd":
+    # Frozen ordered pick: LFENCE+RDTSC on eligible hardware, otherwise a CPUID
+    # execution barrier before the CLOCK_MONOTONIC (id 4) raw syscall 232 + libc
+    # retry. The pre-M2 RDTSCP/MFENCE ordered tournament was deleted
+    # (src/arch/freebsd_x86_64.rs `read_hot_ordered_provider`, `cpuid_barrier`).
     return {
-      "provider": (
-        "independently measured ordered TSC or exact barrier + FreeBSD libc/raw clock"
-      ),
+      "provider": "fixed LFENCE+RDTSC ordered pick with a CPUID-barriered CLOCK_MONOTONIC fallback",
       "native_primitive": (
-        "LFENCE + RDTSC, RDTSCP, or CPUID + RDTSC; "
-        "Intel CPUID/LFENCE, AMD MFENCE/RDTSCP, or unknown-vendor CPUID + "
-        "clock_gettime(CLOCK_MONOTONIC=4)/syscall 232"
+        "eligible LFENCE+RDTSC, otherwise a CPUID execution barrier before "
+        "clock_gettime(CLOCK_MONOTONIC=4) via syscall 232 or libc"
       ),
-      "ordering": "runtime-selected exact barrier + wall-read compound provider",
+      "ordering": "LFENCE+RDTSC, or a CPUID execution barrier before the CLOCK_MONOTONIC syscall",
       "required_patterns": [
         "freebsd_x86_64.*ticks_ordered_after_selection",
         r"\blfence\\0Ardtsc\b",
-        r"\brdtscp\b",
-        r'asm sideeffect inteldialect "lfence"',
-        r'asm sideeffect inteldialect "mfence"',
         (
           r'asm sideeffect inteldialect "mov rsi, rbx\\0Axor eax, eax'
           r'\\0Acpuid\\0Amov rbx, rsi"'
         ),
+        r"\(i64 232, i32 4,",
         clock_gettime(4),
       ],
       "forbidden_patterns": [],
     }
 
   if target in LINUX_X86_WALL_TARGETS:
-    syscall_patterns = (
-      [
+    # Frozen ordered pick: LFENCE+RDTSC on eligible hardware, otherwise a CPUID
+    # execution barrier before the CLOCK_MONOTONIC (id 1) raw syscall + libc
+    # retry. The pre-M2 RDTSCP/MFENCE/SERIALIZE ordered tournament and the vDSO
+    # candidate were deleted (src/arch/linux_x86_wall.rs `read_ordered_provider`,
+    # `execute_cpuid_barrier`). Clock id 4 is reachable only via TSC calibration.
+    if not target.startswith("i686"):
+      cpuid_barrier = (
+        r'asm sideeffect inteldialect "mov rsi, rbx\\0Axor eax, eax'
+        r'\\0Acpuid\\0Amov rbx, rsi"'
+      )
+      syscall_patterns = [
         r'asm sideeffect inteldialect "syscall"',
         r"\(i64 228, i32 1,",
-        r"\(i64 228, i32 4,",
       ]
-      if not target.startswith("i686")
-      else [
+    else:
+      cpuid_barrier = r'asm sideeffect alignstack inteldialect "push ebx\\0Axor eax, eax\\0Acpuid\\0Apop ebx"'
+      syscall_patterns = [
         r'asm sideeffect alignstack inteldialect "push ebx.*int 0x80',
         r"\(i32 1, i32 265,",
-        r"\(i32 4, i32 265,",
         r"\(i32 1, i32 403,",
-        r"\(i32 4, i32 403,",
       ]
-    )
     return {
-      "provider": "measured exact ordered Linux x86 compound provider",
+      "provider": "fixed LFENCE+RDTSC ordered pick with a CPUID-barriered CLOCK_MONOTONIC fallback",
       "native_primitive": (
-        "ordered TSC or CPUID/LFENCE/MFENCE/RDTSCP+LFENCE followed by "
-        "MONOTONIC/MONOTONIC_RAW libc, a direct versioned vDSO export, or an "
-        "exact raw syscall ABI"
+        "eligible LFENCE+RDTSC, otherwise a CPUID execution barrier before the "
+        "CLOCK_MONOTONIC raw syscall (x86_64 SYSCALL, i686 time32/time64 int 0x80)"
       ),
-      "ordering": "runtime-selected exact barrier + wall-read compound path",
+      "ordering": "LFENCE+RDTSC, or a CPUID execution barrier before the CLOCK_MONOTONIC syscall",
       "required_patterns": [
         "linux_x86_wall.*ticks_ordered_after_selection",
         r"\blfence\\0Ardtsc\b",
-        r"\brdtscp\\0Alfence\b",
-        r'asm sideeffect inteldialect "mfence"',
-        r"\\0Acpuid\\0A",
+        cpuid_barrier,
         clock_gettime(1),
-        clock_gettime(4),
-        *direct_vdso_hot_patterns(target),
         *syscall_patterns,
       ],
-      "forbidden_patterns": [r"fence[^\n]*seq_cst"],
+      "forbidden_patterns": [r"fence[^\n]*seq_cst", "linux_vdso13CLOCK_GETTIME"],
     }
 
   if target in ("aarch64-unknown-linux-gnu", "aarch64-linux-android"):
+    # Frozen ordered pick: ISB+CNTVCT_EL0, otherwise the CLOCK_MONOTONIC (id 1)
+    # raw svc syscall + libc retry. The pre-M2 FEAT_ECV CNTVCTSS (S3_3_C14_C0_6)
+    # candidate, the vDSO, and CLOCK_MONOTONIC_RAW (id 4) were deleted
+    # (src/arch/linux_aarch64_wall.rs `read_hot_ordered_provider`,
+    # `clock_monotonic_syscall`); the ordered fallback carries the edge through
+    # the context-synchronizing syscall exception, not an explicit pre-barrier.
     return {
-      "provider": "measured exact ordered Linux aarch64 provider",
+      "provider": "fixed ISB+CNTVCT_EL0 ordered pick with a CLOCK_MONOTONIC raw-syscall fallback",
       "native_primitive": (
-        "ISB+CNTVCT, CNTVCTSS, or MONOTONIC/MONOTONIC_RAW through libc, the "
-        "direct versioned vDSO export, or a raw syscall"
+        "ISB+CNTVCT_EL0, otherwise the CLOCK_MONOTONIC raw svc syscall with a libc retry"
       ),
-      "ordering": "independently selected complete ordered wall path",
+      "ordering": "ISB-ordered CNTVCT_EL0, or the syscall-exception-ordered CLOCK_MONOTONIC fallback",
       "required_patterns": [
         "linux_aarch64_wall.*ticks_ordered_after_selection",
         r"\bisb sy\b",
         "cntvct_el0",
-        "S3_3_C14_C0_6",
         clock_gettime(1),
-        clock_gettime(4),
-        *direct_vdso_hot_patterns(target),
         r'asm sideeffect "svc 0"',
         r"\(i64 1, ptr [^\n]*, i64 113\)",
-        r"\(i64 4, ptr [^\n]*, i64 113\)",
       ],
-      "forbidden_patterns": [],
+      "forbidden_patterns": ["linux_vdso13CLOCK_GETTIME"],
     }
 
   if target.startswith(("x86_64", "i686")):
