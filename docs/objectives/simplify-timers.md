@@ -291,6 +291,11 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Commit the fresh 4-cell evidence bound to 505b3d7; draft README/BENCHMARKS claims with these numbers (owner signs wording); close M3.G1 + assemble the approval packet.
 - Board: 4-cell speed campaign GREEN at 505b3d7 (validate_campaign_for_checkout passes, checkout-bound); c7g disposition proven end-to-end; fresh numbers in hand
 
+### 2026-07-17 · spence · `OBJ-SIMPLIFY-TIMERS.M3`
+- Did: Assembled the complete M3.G1 approval packet (docs/plans/simplify-timers-approval-packet.md): the three owner decisions (ratify the c7g gate correction fbe6e8b via ESC-APPLE-ELAPSED-DISPATCH, sign the public claims wording carrying the fresh 4-cell numbers, accept M3.G1 closure), the fresh numbers as draft claims tables, and the precise BENCHMARKS/README rewrite spec.
+- Next: Owner: ratify fbe6e8b, sign the claims wording, accept closure. On sign-off apply the claims rewrite (BENCHMARKS six-cell tables to four-primary + fresh numbers; fix the deleted validate-speed-evidence.py reference; repoint the durable package to EVID-SPEED-CAMPAIGN-2026-07-17; regenerate summary charts) then nsr close-objective.
+- Board: M3.G1 approval packet assembled; campaign green; 3 owner decisions await (ratify fbe6e8b, sign claims wording, accept closure)
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

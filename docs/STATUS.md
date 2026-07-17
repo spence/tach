@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M3 ⚪ Apparatus diet and truthful claims)
-> Next:       Commit the fresh 4-cell evidence bound to 505b3d7; draft README/BENCHMARKS claims with these numbers (owner signs wording); close M3.G1 + assemble the approval packet.
+> Next:       Owner: ratify fbe6e8b, sign the claims wording, accept closure. On sign-off apply the claims rewrite (BENCHMARKS six-cell tables to four-primary + fresh numbers; fix the deleted validate-speed-evidence.py reference; repoint the durable package to EVID-SPEED-CAMPAIGN-2026-07-17; regenerate summary charts) then nsr close-objective.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE
-> Last verified: 2026-07-17 · Changed: Drove the corrected campaign to GREEN. Re-measured all 4 primary cells at 505b3d7 (apple M1 Max local, c7g+inteln AWS self-terminating with clean before/after orphan sweeps, windows CI run 29577574576) and validate_campaign_for_checkout PASSES: all 4 cells validate at one revision with checkout binding, zero failures. The c7g disposition is proven end-to-end — this run's ordered.now delta reproduced at +1.548 ns (9/9 decisive losses), which WOULD hard-fail, so the diagnostic-lower-bound routing is what let it compose; instant.now +0.001 confirms the change is scoped to the barrier-exposed ordered pick. · By: nsr · 2f9715d
+> Last verified: 2026-07-17 · Changed: Assembled the complete M3.G1 approval packet (docs/plans/simplify-timers-approval-packet.md): the three owner decisions (ratify the c7g gate correction fbe6e8b via ESC-APPLE-ELAPSED-DISPATCH, sign the public claims wording carrying the fresh 4-cell numbers, accept M3.G1 closure), the fresh numbers as draft claims tables, and the precise BENCHMARKS/README rewrite spec. · By: nsr · 3b379b5
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
