@@ -112,6 +112,7 @@ macro_rules! register_selected_elapsed {
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
     ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")),
   ),
 ))]
 const WALL_PUBLIC_EXACT_BATCHES: usize = 9;
@@ -125,6 +126,7 @@ const WALL_PUBLIC_EXACT_BATCHES: usize = 9;
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
     ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")),
   ),
 ))]
 const WALL_PUBLIC_EXACT_READS: usize = 65_536;
@@ -138,6 +140,7 @@ const WALL_PUBLIC_EXACT_READS: usize = 65_536;
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
     ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")),
   ),
 ))]
 const WALL_PUBLIC_EXACT_CHUNKS: usize = 64;
@@ -152,6 +155,7 @@ const WALL_PUBLIC_EXACT_CHUNKS: usize = 64;
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
     ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")),
   ),
 ))]
 #[inline(never)]
@@ -175,6 +179,7 @@ fn measure_wall_read_chunk<T>(read: &mut dyn FnMut() -> T) -> u64 {
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
     ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")),
   ),
 ))]
 fn measure_wall_paired_batch<P, PT, D, DT>(
@@ -210,6 +215,7 @@ where
       any(target_arch = "x86", target_arch = "x86_64"),
       any(target_os = "android", target_os = "linux"),
     ),
+    all(target_arch = "aarch64", any(target_os = "android", target_os = "linux")),
   ),
 ))]
 fn measure_wall_public_exact<P, PT, D, DT>(mut public: P, mut direct: D) -> serde_json::Value
@@ -422,6 +428,48 @@ macro_rules! with_linux_aarch64_ordered_read {
       }
       _ => panic!("unsupported selected Linux aarch64 Ordered provider: {}", $provider),
     }
+  }};
+}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+))]
+macro_rules! measure_linux_aarch64_public_exact {
+  (instant, $nanos_per_tick_q32:expr, $read:path) => {{
+    let scale = $nanos_per_tick_q32;
+    serde_json::json!({
+      "now": measure_wall_public_exact(|| Instant::now(), || $read()),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = Instant::now();
+          start.elapsed()
+        },
+        || {
+          let start = $read();
+          let elapsed = $read().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        },
+      ),
+    })
+  }};
+  (ordered, $nanos_per_tick_q32:expr, $read:path) => {{
+    let scale = $nanos_per_tick_q32;
+    serde_json::json!({
+      "now": measure_wall_public_exact(|| OrderedInstant::now(), || $read()),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = OrderedInstant::now();
+          start.elapsed()
+        },
+        || {
+          let start = $read();
+          let elapsed = $read().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        },
+      ),
+    })
   }};
 }
 
@@ -1450,6 +1498,7 @@ fn bench_now(c: &mut Criterion) {
   g.finish();
   write_ordered_selection();
   write_linux_x86_wall_selection();
+  write_linux_aarch64_wall_selection();
   write_freebsd_wall_selection();
   write_residual_wall_selection();
   write_apple_wall_selection();
@@ -1789,6 +1838,68 @@ fn write_linux_x86_wall_selection() {
   any(target_arch = "x86_64", target_arch = "x86"),
 )))]
 fn write_linux_x86_wall_selection() {}
+
+#[cfg(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+))]
+fn write_linux_aarch64_wall_selection() {
+  use std::fs;
+  use std::path::PathBuf;
+
+  let instant_selected = tach::bench::linux_aarch64_selected_instant_primitive();
+  let ordered_selected = tach::bench::linux_aarch64_selected_ordered_primitive();
+  let mut payload = serde_json::json!({
+    "selected_provider": {
+      "instant": instant_selected.provider(),
+      "ordered": ordered_selected.provider(),
+    },
+    "selected_native_benchmark": {
+      "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
+      "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
+    },
+    "decision_rule": "Instant reads a bare CNTVCT_EL0 and OrderedInstant reads isb sy; CNTVCT_EL0 when the kernel leaves the counter user-readable, scaled by the calibrated CNTFRQ_EL0; otherwise both fall back to the raw CLOCK_MONOTONIC syscall whose own kernel boundary carries the ordered read's happens-before edge",
+    "post_init_boundary": "a revoked EL0 counter faults on read and is served by the raw CLOCK_MONOTONIC syscall fallback, never a libc/vDSO reader",
+  });
+  let instant_provider = instant_selected.provider();
+  let instant_scale = instant_selected.nanos_per_tick_q32();
+  let instant_public_exact = with_linux_aarch64_instant_read!(
+    instant_provider,
+    measure_linux_aarch64_public_exact,
+    instant,
+    instant_scale
+  );
+  let ordered_provider = ordered_selected.provider();
+  let ordered_scale = ordered_selected.nanos_per_tick_q32();
+  let ordered_public_exact = with_linux_aarch64_ordered_read!(
+    ordered_provider,
+    measure_linux_aarch64_public_exact,
+    ordered,
+    ordered_scale
+  );
+  payload["public_exact_probe"] = serde_json::json!({
+    "instant": instant_public_exact,
+    "ordered": ordered_public_exact,
+  });
+  let target = std::env::var_os("CARGO_TARGET_DIR")
+    .map(PathBuf::from)
+    .unwrap_or_else(|| PathBuf::from("target"));
+  let directory = target.join("criterion");
+  fs::create_dir_all(&directory).expect("create criterion directory");
+  fs::write(
+    directory.join("linux-aarch64-wall-selection.json"),
+    serde_json::to_vec_pretty(&payload).expect("serialize Linux aarch64 wall selector evidence"),
+  )
+  .expect("write Linux aarch64 wall selector evidence");
+}
+
+#[cfg(not(all(
+  feature = "bench-internal",
+  target_arch = "aarch64",
+  any(target_os = "android", target_os = "linux"),
+)))]
+fn write_linux_aarch64_wall_selection() {}
 
 #[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "freebsd"))]
 fn write_freebsd_wall_selection() {

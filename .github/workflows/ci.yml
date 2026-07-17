@@ -56,6 +56,25 @@ jobs:
       - name: Run basic example
         run: cargo run --example basic --release
 
+      # M2.G1 inline parity: paired public/exact reads within max(1 ns, 5%) for
+      # every converted wall family runnable in CI. FreeBSD has no hosted runner
+      # and is out of scope here. Apple (macos-*) is verified locally, not here.
+      - name: Measure inline parity probes
+        if: contains(fromJSON('["linux-x86_64", "linux-aarch64", "windows-x86_64", "windows-aarch64"]'), matrix.name)
+        run: cargo bench --bench instant --features bench-internal -- 'zzz_no_match'
+
+      - name: Validate inline parity (Linux x86_64)
+        if: matrix.name == 'linux-x86_64'
+        run: python3 benches/check-inline-parity.py target/criterion/linux-x86-wall-selection.json
+
+      - name: Validate inline parity (Linux aarch64)
+        if: matrix.name == 'linux-aarch64'
+        run: python3 benches/check-inline-parity.py target/criterion/linux-aarch64-wall-selection.json
+
+      - name: Validate inline parity (Windows)
+        if: matrix.name == 'windows-x86_64' || matrix.name == 'windows-aarch64'
+        run: python benches/check-inline-parity.py target/criterion/windows-wall-selection.json
+
   benchmark-check:
     name: benchmark check
     runs-on: macos-15
