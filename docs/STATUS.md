@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M3 ⚪ Apparatus diet and truthful claims)
-> Next:       Re-measure the 4-cell campaign at the new SHA (apple local, c7g/inteln AWS, windows CI), run validate_primary_speed_campaign, then draft README/BENCHMARKS claims (owner signs wording) and assemble the approval packet.
+> Next:       Commit the fresh 4-cell evidence bound to 505b3d7; draft README/BENCHMARKS claims with these numbers (owner signs wording); close M3.G1 + assemble the approval packet.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE
-> Last verified: 2026-07-17 · Changed: Reconsidered the c7g 'owner-reserved' framing under the Stop-hook's push not to leave M3.G1 parked, and corrected the mis-modeled inline-parity gate (fbe6e8b). The barrier-exposed ordered pick aarch64_isb_cntvct now takes the existing dispatch-lower-bound-with-public-winner-gate contract: the exact isb+cntvct route is a DISCLOSED diagnostic lower bound (the +1.53 ns is shown, not hidden) and the gate becomes the usable-public-reference winner gate (tach_ordered beats std, already confirmed on c7g). Scoped by provider name so Instant and all non-barrier picks stay hard-gated. Verified by a unit test on the retained c7g bundle (emits with zero failures) plus freebsd/negative regression. · By: nsr · fbe6e8b
+> Last verified: 2026-07-17 · Changed: Drove the corrected campaign to GREEN. Re-measured all 4 primary cells at 505b3d7 (apple M1 Max local, c7g+inteln AWS self-terminating with clean before/after orphan sweeps, windows CI run 29577574576) and validate_campaign_for_checkout PASSES: all 4 cells validate at one revision with checkout binding, zero failures. The c7g disposition is proven end-to-end — this run's ordered.now delta reproduced at +1.548 ns (9/9 decisive losses), which WOULD hard-fail, so the diagnostic-lower-bound routing is what let it compose; instant.now +0.001 confirms the change is scoped to the barrier-exposed ordered pick. · By: nsr · 2f9715d
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

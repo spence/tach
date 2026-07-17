@@ -18,6 +18,7 @@ dated package; do not silently rewrite a verdict.
 | `EVID-FREEBSD-PARITY` |  | [`timers/freebsd-parity-2026-07-16/README.md`](timers/freebsd-parity-2026-07-16/README.md) |
 | `EVID-GRAVITON4-FLIP-LINUX-A64` |  | [`timers/graviton4-flip-linux-a64-2026-07-15/README.md`](timers/graviton4-flip-linux-a64-2026-07-15/README.md) |
 | `EVID-LINUX-PRIMARY-SPEED` | 🟡 | [`timers/primary-linux-2026-07-13/README.md`](timers/primary-linux-2026-07-13/README.md) |
+| `EVID-SPEED-CAMPAIGN-2026-07-17` |  | [`timers/primary-speed-campaign-2026-07-17/README.md`](timers/primary-speed-campaign-2026-07-17/README.md) |
 | `EVID-PROVIDER-POLICY-2026-07-14` | 🟢 | [`timers/provider-policy-closure-2026-07-14/README.md`](timers/provider-policy-closure-2026-07-14/README.md) |
 | `EVID-TARGET-PROVIDER-CEB69C1` | 🟢 | [`timers/provider-proof-ceb69c1-2026-07-14/README.md`](timers/provider-proof-ceb69c1-2026-07-14/README.md) |
 | `EVID-TARGET-PROVIDER-D0FA731` | 🟢 | [`timers/provider-proof-d0fa731/README.md`](timers/provider-proof-d0fa731/README.md) |

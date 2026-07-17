@@ -285,6 +285,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Next: Re-measure the 4-cell campaign at the new SHA (apple local, c7g/inteln AWS, windows CI), run validate_primary_speed_campaign, then draft README/BENCHMARKS claims (owner signs wording) and assemble the approval packet.
 - Board: c7g mis-modeled gate corrected (fbe6e8b): barrier-exposed ordered dispatch disclosed as a diagnostic lower bound; campaign re-measuring at new SHA; ESC open for ratification
 
+### 2026-07-17 · spence · `OBJ-SIMPLIFY-TIMERS.M3`
+- Did: Drove the corrected campaign to GREEN. Re-measured all 4 primary cells at 505b3d7 (apple M1 Max local, c7g+inteln AWS self-terminating with clean before/after orphan sweeps, windows CI run 29577574576) and validate_campaign_for_checkout PASSES: all 4 cells validate at one revision with checkout binding, zero failures. The c7g disposition is proven end-to-end — this run's ordered.now delta reproduced at +1.548 ns (9/9 decisive losses), which WOULD hard-fail, so the diagnostic-lower-bound routing is what let it compose; instant.now +0.001 confirms the change is scoped to the barrier-exposed ordered pick.
+- Found: Headline numbers: apple Instant now tach 0.65 ns (quanta 3.35, std 20.39); c7g ordered now tach 20.38 < std 32.24; inteln Instant now tach 14.72 (fastest eligible, minstant/fastant 14.75); windows ordered now tach 25.28 < std 37.73. On windows quanta Instant 11.46 beats tach QPC 25.27 but is NOT eligible for tach's contract (forgoes QPC's documented cross-core/hypervisor guarantees, ADR-0005), so the campaign correctly passes on the eligible-reference gate.
+- Next: Commit the fresh 4-cell evidence bound to 505b3d7; draft README/BENCHMARKS claims with these numbers (owner signs wording); close M3.G1 + assemble the approval packet.
+- Board: 4-cell speed campaign GREEN at 505b3d7 (validate_campaign_for_checkout passes, checkout-bound); c7g disposition proven end-to-end; fresh numbers in hand
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the
