@@ -8,8 +8,8 @@ objective doc: author status there, not here.
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
 > Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-M3-CLAIMS-REMEASURE
-> Last verified: 2026-07-16 · Changed: M2.G1 PASS: (1) fmt/clippy -D warnings/tests green default + --no-default-features (CI + local); (2) tournament/selector-symbol grep clean (0 latency-tournament symbols across all 5 converted families; retained Selector/PROVIDER_ are ADR-0005 capability gates); (3) inline parity within max(1ns,5%) for every converted family runnable locally or in CI -- Apple (local), linux-x86_64/aarch64 + windows-x86_64/aarch64 (native CI parity steps, run 29554433481), FreeBSD-x86_64 (EVID-FREEBSD-PARITY native AWS, 4/4); (4) relocated test counts reconcile (pre-move 172 src + 6 tests/ = 178 preserved; 29 conversion-deleted tests all tournament machinery, 6 fixed-pick tests added).; OBJ-SIMPLIFY-TIMERS.M2.G1 🟢 at evidence SHA `4076fe5`. · By: nsr · 051b2f4
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE
+> Last verified: 2026-07-17 · Changed: OBJ-SIMPLIFY-TIMERS.M2 🚧 (Fixed-pick conversion with inline parity) · By: nsr · cc42cc2
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
