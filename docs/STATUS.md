@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
-> Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
+> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M3 ⚪ Apparatus diet and truthful claims)
+> Next:       OBJ-SIMPLIFY-TIMERS.M3 — Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-FREEBSD-PARITY-MEASUREMENT
-> Last verified: 2026-07-16 · Changed: Verified M2.G1 test-count reconcile (condition 4 ✅): relocation preserved all tests (pre-move 172 src + 6 pre-existing tests/ = 178 total = post-relocation 150 src + 22 relocated + 6). The 29 src tests removed by the 5 conversions are ALL tournament/selection/candidate/protocol-machinery (verified by name + content: e.g. freebsd fixed_point_conversions tested the deleted Bintime/pvclock candidates; tsc_denial->initial_sigsegv_mode; selected...evidence_complete->selected_protocols_are_monotonic); the 6 added are fixed-pick coverage (SIGILL guards, LFENCE gate, survey, Apple hardening, QPC monotonic). No valid test lost. · By: nsr · 8da952e
+> Last verified: 2026-07-16 · Changed: Executed M3 §7.1+§7.2 apparatus diet (a7d77ac): deleted 54 dead release-forensics/campaign files (all archive-retained on archive/pre-simplify-2026-07-15) + the claim-evidence CI job (the last red job) -> CI now FULLY GREEN (run 29556556028, 26/26). Conservative: KEPT live-referenced apparatus the plan mis-listed (speed_evidence.py<-compose-speed, lambda-speed/<-bench.rs include_str!, seal/compose collectors run by run-speed-*.sh, README chart chain); pruned dangling manifest entries. Public surface (README/lib.rs) has ZERO dangling refs to deleted files (parent-verified). · By: nsr · a7d77ac
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -31,7 +31,7 @@ policy [`decisions/0005…`](decisions/0005-timer-contracts-eligibility-evidence
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M2`): G1⚪
+Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M3`): G1⚪
 <!-- /render:board -->
 
 ---
