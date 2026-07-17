@@ -1,0 +1,827 @@
+{
+  "schema": "tach-speed-primary-v1",
+  "artifact_id": "speed-1-c7g.json",
+  "title": "AWS Graviton 3",
+  "instance": "c7g.large",
+  "triple": "aarch64-unknown-linux-gnu",
+  "order": 1,
+  "build_mode": "default",
+  "evidence_kind": "full_speed",
+  "provenance": {
+    "harness": "criterion",
+    "source_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+    "runner": "aws-c7g",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "bench-internal",
+      "thread-cpu-inline"
+    ]
+  },
+  "collector_bundle": {
+    "schema": "tach-speed-collector-v1",
+    "path": "speed-1-c7g.collector.bundle",
+    "manifest_sha256": "51a7c09f3aa336d445ca6031cc93a148b4e7509a5f3d44a19ddcb4eb76d7ebfd"
+  },
+  "collector_attestation": {
+    "schema": "tach-speed-collector-v1",
+    "invocation_id": "criterion-db2a3c19e3fe3548",
+    "runtime_attestation": {
+      "build_mode": "default",
+      "build_profile": "optimized",
+      "features": [
+        "bench-internal",
+        "thread-cpu-inline"
+      ],
+      "harness": "criterion",
+      "invocation_id": "criterion-db2a3c19e3fe3548",
+      "output_isolated": true,
+      "runner": "aws-c7g",
+      "schema": "tach-benchmark-runtime-v2",
+      "source_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+      "target": {
+        "arch": "aarch64",
+        "env": "gnu",
+        "os": "linux"
+      }
+    },
+    "manifest_sha256": "51a7c09f3aa336d445ca6031cc93a148b4e7509a5f3d44a19ddcb4eb76d7ebfd"
+  },
+  "clocks": {
+    "tach": {
+      "now": 6.673897117314616,
+      "now_ci95": [
+        6.673708067440162,
+        6.674055925003743
+      ],
+      "elapsed": 13.347144582371568,
+      "elapsed_ci95": [
+        13.346762579980574,
+        13.347499081419294
+      ],
+      "time_domain": "instant wall",
+      "selection": {
+        "decision_rule": "Instant reads a bare CNTVCT_EL0 and OrderedInstant reads isb sy; CNTVCT_EL0 when the kernel leaves the counter user-readable, scaled by the calibrated CNTFRQ_EL0; otherwise both fall back to the raw CLOCK_MONOTONIC syscall whose own kernel boundary carries the ordered read's happens-before edge",
+        "post_init_boundary": "a revoked EL0 counter faults on read and is served by the raw CLOCK_MONOTONIC syscall fallback, never a libc/vDSO reader",
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                875675,
+                878946,
+                875666,
+                875664,
+                875664,
+                879846,
+                875634,
+                875590,
+                875678
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                876485,
+                876338,
+                876355,
+                879442,
+                876397,
+                886177,
+                876360,
+                876238,
+                880436
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                438353,
+                438351,
+                438357,
+                438334,
+                438316,
+                438317,
+                438361,
+                438322,
+                446240
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                438584,
+                438368,
+                443918,
+                438398,
+                438390,
+                438400,
+                438356,
+                440970,
+                438364
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                2537855,
+                2539825,
+                2541677,
+                2542163,
+                2538854,
+                2540327,
+                2539435,
+                2544294,
+                2541971
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                2576015,
+                2563558,
+                2569087,
+                2564618,
+                2574663,
+                2563144,
+                2566648,
+                2563561,
+                2571406
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1112527,
+                1119993,
+                1112528,
+                1112499,
+                1112513,
+                1112482,
+                1117498,
+                1112536,
+                1112526
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1212314,
+                1213966,
+                1215468,
+                1212180,
+                1214777,
+                1215248,
+                1212166,
+                1215082,
+                1212178
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__aarch64_cntvct",
+          "ordered": "direct_selected_ordered_wall__aarch64_isb_cntvct"
+        },
+        "selected_provider": {
+          "instant": "aarch64_cntvct",
+          "ordered": "aarch64_isb_cntvct"
+        }
+      }
+    },
+    "tach_ordered": {
+      "now": 20.379808069243637,
+      "now_ci95": [
+        20.37821924655028,
+        20.380440944977902
+      ],
+      "elapsed": 40.041657583453194,
+      "elapsed_ci95": [
+        40.04066882416397,
+        40.042809352670204
+      ],
+      "time_domain": "ordered wall",
+      "selection": {
+        "decision_rule": "median advantage > max(1 ns/read, 5%) and >=8/9 decisive paired wins",
+        "eligible_direct_candidates": [
+          "direct_ordered__aarch64_isb_cntvct"
+        ],
+        "probe": null,
+        "selected_provider": "aarch64_isb_cntvct"
+      },
+      "wall_selection": {
+        "decision_rule": "Instant reads a bare CNTVCT_EL0 and OrderedInstant reads isb sy; CNTVCT_EL0 when the kernel leaves the counter user-readable, scaled by the calibrated CNTFRQ_EL0; otherwise both fall back to the raw CLOCK_MONOTONIC syscall whose own kernel boundary carries the ordered read's happens-before edge",
+        "post_init_boundary": "a revoked EL0 counter faults on read and is served by the raw CLOCK_MONOTONIC syscall fallback, never a libc/vDSO reader",
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                875675,
+                878946,
+                875666,
+                875664,
+                875664,
+                879846,
+                875634,
+                875590,
+                875678
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                876485,
+                876338,
+                876355,
+                879442,
+                876397,
+                886177,
+                876360,
+                876238,
+                880436
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                438353,
+                438351,
+                438357,
+                438334,
+                438316,
+                438317,
+                438361,
+                438322,
+                446240
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                438584,
+                438368,
+                443918,
+                438398,
+                438390,
+                438400,
+                438356,
+                440970,
+                438364
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                2537855,
+                2539825,
+                2541677,
+                2542163,
+                2538854,
+                2540327,
+                2539435,
+                2544294,
+                2541971
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                2576015,
+                2563558,
+                2569087,
+                2564618,
+                2574663,
+                2563144,
+                2566648,
+                2563561,
+                2571406
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                1112527,
+                1119993,
+                1112528,
+                1112499,
+                1112513,
+                1112482,
+                1117498,
+                1112536,
+                1112526
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                1212314,
+                1213966,
+                1215468,
+                1212180,
+                1214777,
+                1215248,
+                1212166,
+                1215082,
+                1212178
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__aarch64_cntvct",
+          "ordered": "direct_selected_ordered_wall__aarch64_isb_cntvct"
+        },
+        "selected_provider": {
+          "instant": "aarch64_cntvct",
+          "ordered": "aarch64_isb_cntvct"
+        }
+      }
+    },
+    "quanta": {
+      "now": 6.7980882786779135,
+      "now_ci95": [
+        6.797867354938225,
+        6.79856928121718
+      ],
+      "elapsed": 14.181023468057367,
+      "elapsed_ci95": [
+        14.180700339641989,
+        14.181750687891848
+      ]
+    },
+    "fastant": {
+      "now": 41.120199767257034,
+      "now_ci95": [
+        41.04643473331362,
+        41.20792104860719
+      ],
+      "elapsed": 86.0087295437165,
+      "elapsed_ci95": [
+        85.93842907989885,
+        86.0690616746019
+      ]
+    },
+    "minstant": {
+      "now": 41.41906473108044,
+      "now_ci95": [
+        41.36070583672678,
+        41.45432750127024
+      ],
+      "elapsed": 86.87190500585481,
+      "elapsed_ci95": [
+        86.79771662763466,
+        86.922388927659
+      ]
+    },
+    "std": {
+      "now": 32.23651354820198,
+      "now_ci95": [
+        32.220960253163746,
+        32.25452362576108
+      ],
+      "elapsed": 70.08571231145858,
+      "elapsed_ci95": [
+        69.98704307593684,
+        70.20318825129013
+      ]
+    },
+    "direct_ordered__aarch64_isb_cntvct": {
+      "provider": "aarch64_isb_cntvct",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_ordered__aarch64_isb_cntvct",
+      "now": 20.272388224281592,
+      "now_ci95": [
+        20.271553107248884,
+        20.273257862737676
+      ]
+    },
+    "direct_selected_wall": {
+      "provider": "aarch64_cntvct",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_selected_wall__aarch64_cntvct",
+      "now": 6.673723661182848,
+      "now_ci95": [
+        6.6735191755795995,
+        6.6738439910570175
+      ],
+      "elapsed": 13.347685736330753,
+      "elapsed_ci95": [
+        13.34744714212361,
+        13.348047421343871
+      ]
+    },
+    "direct_selected_ordered_wall": {
+      "provider": "aarch64_isb_cntvct",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_selected_ordered_wall__aarch64_isb_cntvct",
+      "now": 20.27045560299326,
+      "now_ci95": [
+        20.26937794539004,
+        20.27077529310184
+      ],
+      "elapsed": 40.04399290366122,
+      "elapsed_ci95": [
+        40.04289511409256,
+        40.04548590438823
+      ]
+    },
+    "tach_thread_cpu": {
+      "benchmark": "tach_thread_cpu__linux_perf_mmap__inline",
+      "now": 57.58908909745651,
+      "now_ci95": [
+        57.57494212401823,
+        57.60834162324191
+      ],
+      "elapsed": 116.11814434669273,
+      "elapsed_ci95": [
+        116.07809924612405,
+        116.15190845839803
+      ],
+      "provider": "Linux perf task-clock mmap",
+      "read_cost": "inline",
+      "time_domain": "thread CPU",
+      "selection": {
+        "eligible_direct_candidates": [
+          "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime",
+          "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+          "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+          "direct_thread_cpu__linux_perf_read__raw_read_svc"
+        ],
+        "failure_fallback": {
+          "eligibility_gate": "perf task-clock mmap exposes complete seqlock conversion metadata and a usable architectural counter",
+          "fallback_mechanism": "linux_aarch64_raw_syscall_clock_thread_cputime",
+          "fallback_provider": "posix_thread_cpu_clock",
+          "preferred_provider": "linux_perf_mmap",
+          "trigger": "perf event or mmap capability is unavailable, or an inline mmap read fails"
+        },
+        "fallback_mechanism": "linux_aarch64_raw_syscall_clock_thread_cputime",
+        "fallback_native_benchmark": "direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+        "fallback_provider": "posix_thread_cpu_clock",
+        "fallback_read_cost": "system call",
+        "native_entry_probe": {
+          "floor_ns_per_read": 1,
+          "libc_allowance_ns": 4096,
+          "libc_available": true,
+          "libc_batches_ns": [
+            1141536,
+            1070323,
+            1068507,
+            1064332,
+            1065934,
+            1337102,
+            1106538,
+            1106698,
+            1270965
+          ],
+          "libc_decisive_wins": 0,
+          "libc_materially_faster": false,
+          "libc_median_ns": 1106538,
+          "libc_provider": "linux_aarch64_libc_clock_thread_cputime",
+          "raw_allowance_ns": 4096,
+          "raw_available": true,
+          "raw_batches_ns": [
+            1104082,
+            1024825,
+            1027203,
+            1022183,
+            1051031,
+            1021456,
+            1069654,
+            1064141,
+            1112140
+          ],
+          "raw_decisive_wins": 9,
+          "raw_median_ns": 1051031,
+          "raw_provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+          "raw_selected": true,
+          "reads_per_batch": 4096,
+          "relative_denominator": null,
+          "required_decisive_wins": 7,
+          "selected_provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+          "selected_read_cost": "system call",
+          "selection_basis": "the inlined raw Linux syscall is the native primitive; libc wraps the same kernel clock and remains the failure fallback",
+          "selection_kind": "raw_syscall_preferred_with_performance_audit"
+        },
+        "perf": {
+          "decision_rule": "prefer perf task-clock mmap when its complete inline capability is available; otherwise use the selected native CLOCK_THREAD_CPUTIME_ID entry; paired path samples audit but do not choose this policy",
+          "event_available": true,
+          "measurement_clock": "raw SYS_clock_gettime(CLOCK_MONOTONIC_RAW), never libc/vDSO or the candidate under test",
+          "mmap": {
+            "available": true,
+            "counter_probe": {
+              "candidate_batches_ns": [
+                [
+                  152810,
+                  154187,
+                  152684,
+                  153982,
+                  152447,
+                  153935,
+                  152460,
+                  153834,
+                  199316
+                ],
+                [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              ],
+              "candidate_eligible": [
+                true,
+                false
+              ],
+              "candidate_names": [
+                "aarch64_isb_cntvct_isb",
+                "aarch64_cntvctss_isb"
+              ],
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "reads_per_batch": 4096,
+              "required_decisive_wins": 8,
+              "selected_candidate": "aarch64_isb_cntvct_isb",
+              "selection_kind": "tournament"
+            },
+            "eligible_benchmarks": [
+              "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb"
+            ],
+            "read_cost": "inline",
+            "selected_candidate_benchmark": "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+            "selected_mechanism": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+            "supported_on_target": true
+          },
+          "path_probe": {
+            "candidate_batches_ns": [
+              [
+                1139071,
+                1116620,
+                1029912,
+                1028494,
+                1030840,
+                1030763,
+                1034714,
+                1031113,
+                1032776
+              ],
+              [
+                280658,
+                236945,
+                234484,
+                234557,
+                235775,
+                238699,
+                235414,
+                235789,
+                235388
+              ],
+              [
+                2215663,
+                1737287,
+                1854140,
+                1649797,
+                1651421,
+                1777274,
+                1641707,
+                1640992,
+                1641790
+              ]
+            ],
+            "candidate_eligible": [
+              true,
+              true,
+              true
+            ],
+            "candidate_names": [
+              "posix_thread_cpu",
+              "linux_perf_mmap",
+              "linux_perf_read"
+            ],
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "failure_fallback_candidate": "posix_thread_cpu",
+            "preferred_candidate": "linux_perf_mmap",
+            "reads_per_batch": 4096,
+            "required_decisive_wins": 8,
+            "selected_candidate": "linux_perf_mmap",
+            "selection_basis": "complete perf mmap metadata and architectural-counter capability; audit samples do not select the provider",
+            "selection_kind": "capability_preferred_with_performance_audit"
+          },
+          "read": {
+            "available": true,
+            "eligible_benchmarks": [
+              "direct_thread_cpu__linux_perf_read__raw_read_svc"
+            ],
+            "entry_probe": {
+              "candidate_batches_ns": null,
+              "candidate_eligible": [
+                true
+              ],
+              "candidate_measured": [
+                false
+              ],
+              "candidate_names": [
+                "raw_read_svc"
+              ],
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "reads_per_batch": 4096,
+              "required_decisive_wins": 8,
+              "selected_candidate": "raw_read_svc",
+              "selection_kind": "fixed_candidate"
+            },
+            "read_cost": "system call",
+            "selected_candidate_benchmark": "direct_thread_cpu__linux_perf_read__raw_read_svc",
+            "selected_mechanism": "linux_perf_read__raw_read_svc",
+            "supported_on_target": true
+          }
+        },
+        "read_cost_basis": "perf mmap is Inline because tach issues no OS or host call on the hot path; persistent perf read and every CLOCK_THREAD_CPUTIME_ID entry route are SystemCall",
+        "selected_mechanism": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+        "selected_native_benchmark": "direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+        "selected_provider": "linux_perf_mmap",
+        "selected_read_cost": "inline",
+        "selection_kind": "capability_preferred_with_failure_fallback"
+      }
+    },
+    "native_thread_cpu": {
+      "benchmark": "native_thread_cpu__inline_syscall_clock_thread_cputime_id",
+      "now": 269.35860975762114,
+      "now_ci95": [
+        269.1845706136294,
+        269.49157991426824
+      ],
+      "elapsed": 524.12073616815,
+      "elapsed_ci95": [
+        522.8072188471522,
+        524.9851458885942
+      ],
+      "provider": "inline syscall(CLOCK_THREAD_CPUTIME_ID)",
+      "read_cost": "system call",
+      "time_domain": "thread CPU"
+    },
+    "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime": {
+      "provider": "linux_aarch64_libc_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime",
+      "now": 270.1616286835145,
+      "now_ci95": [
+        270.0241327300151,
+        270.3415513897867
+      ],
+      "elapsed": 557.551436184348,
+      "elapsed_ci95": [
+        556.8813130926449,
+        558.466947863366
+      ]
+    },
+    "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime": {
+      "provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+      "now": 259.98682899403184,
+      "now_ci95": [
+        259.82528968080453,
+        260.146346251662
+      ],
+      "elapsed": 524.6763554452859,
+      "elapsed_ci95": [
+        524.4429208807572,
+        525.2669104204754
+      ]
+    },
+    "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb": {
+      "provider": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "read_cost": "inline",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "now": 58.17446945232736,
+      "now_ci95": [
+        58.146707896134586,
+        58.21156966547109
+      ],
+      "elapsed": 117.85467919912617,
+      "elapsed_ci95": [
+        117.81912631375438,
+        117.90722557383648
+      ]
+    },
+    "direct_thread_cpu__linux_perf_read__raw_read_svc": {
+      "provider": "linux_perf_read__raw_read_svc",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__linux_perf_read__raw_read_svc",
+      "now": 414.11251467364303,
+      "now_ci95": [
+        414.00875496336323,
+        414.21834704654304
+      ],
+      "elapsed": 811.8781496834225,
+      "elapsed_ci95": [
+        811.6281643171138,
+        812.18556124617
+      ]
+    },
+    "direct_selected_thread_cpu": {
+      "provider": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "read_cost": "inline",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
+      "now": 58.199531777314064,
+      "now_ci95": [
+        58.18064578593213,
+        58.22006601765099
+      ],
+      "elapsed": 116.9317341061534,
+      "elapsed_ci95": [
+        116.91489501312336,
+        116.96063648293963
+      ]
+    },
+    "direct_fallback_thread_cpu": {
+      "provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
+      "now": 271.0564266180493,
+      "now_ci95": [
+        270.9444222880583,
+        271.1958847076178
+      ],
+      "elapsed": 543.8580995806701,
+      "elapsed_ci95": [
+        543.3411058638331,
+        544.5023955538301
+      ]
+    }
+  }
+}

@@ -1,0 +1,1982 @@
+{
+  "schema": "tach-speed-primary-report-v1",
+  "claim": "each tach timer selects the fastest audited eligible reliable steady-state provider for its contract in every measured primary environment",
+  "equivalence_rule": "tach is faster than or materially tied with every eligible reference: its point estimate and conservative 95% CI comparison fit within max(1 ns, 5%)",
+  "source_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+  "passed": true,
+  "failures": [],
+  "cells": [
+    {
+      "artifact_id": "speed-0-apple.json",
+      "source_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+      "triple": "aarch64-apple-darwin",
+      "build_mode": "default",
+      "evidence_kind": "full_speed",
+      "bound_observation": true,
+      "bundle_path": null,
+      "three_clock_speed": {
+        "same_thread_elapsed": {
+          "now": {
+            "tach_ns": 0.6536226290508003,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 3.3485512678946496,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "apple_bare_cntvct_omits_xnu_wake_correction_and_may_suspend_diverge",
+                "implementation": "quanta reads bare CNTVCT_EL0 on aarch64-apple-darwin; unlike XNU's wake-corrected wall-clock path, that counter can time-warp or diverge across suspend",
+                "measured": true,
+                "passed": true
+              },
+              "fastant": {
+                "reference_ns": 27.316443487486737,
+                "equivalence_allowance_ns": 1.3658221743743368,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 27.585466347847685,
+                "equivalence_allowance_ns": 1.3792733173923843,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 20.394714660200833,
+                "equivalence_allowance_ns": 1.0197357330100416,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 1.6365120175278989,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 7.297505016145678,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "apple_bare_cntvct_omits_xnu_wake_correction_and_may_suspend_diverge",
+                "implementation": "quanta reads bare CNTVCT_EL0 on aarch64-apple-darwin; unlike XNU's wake-corrected wall-clock path, that counter can time-warp or diverge across suspend",
+                "measured": true,
+                "passed": true
+              },
+              "fastant": {
+                "reference_ns": 60.9416217670744,
+                "equivalence_allowance_ns": 3.0470810883537203,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 61.287355468356154,
+                "equivalence_allowance_ns": 3.064367773417808,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 44.31008123161747,
+                "equivalence_allowance_ns": 2.2155040615808734,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          }
+        },
+        "same_thread_reference_eligibility": {
+          "quanta": {
+            "eligible": false,
+            "reason": "apple_bare_cntvct_omits_xnu_wake_correction_and_may_suspend_diverge",
+            "implementation": "quanta reads bare CNTVCT_EL0 on aarch64-apple-darwin; unlike XNU's wake-corrected wall-clock path, that counter can time-warp or diverge across suspend"
+          },
+          "fastant": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "minstant": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "std": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          }
+        },
+        "cross_thread_elapsed": {
+          "now": {
+            "tach_ns": 7.742216847970684,
+            "std_ns": 20.394714660200833,
+            "equivalence_allowance_ns": 1.0197357330100416,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 15.627705925518253,
+            "std_ns": 44.31008123161747,
+            "equivalence_allowance_ns": 2.2155040615808734,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          }
+        },
+        "wall_selector_reproduction": {
+          "instant": {
+            "winner": "apple_bare_cntvct",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 88124,
+                "exact_median_batch_ns": 67669,
+                "public_ns_per_read": 1.34466552734375,
+                "exact_ns_per_read": 1.0325469970703125,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 126748,
+                "exact_median_batch_ns": 105584,
+                "public_ns_per_read": 1.93402099609375,
+                "exact_ns_per_read": 1.611083984375,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              }
+            }
+          },
+          "ordered": {
+            "winner": "apple_commpage_acntvct_offset",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 400122,
+                "exact_median_batch_ns": 378248,
+                "public_ns_per_read": 6.105377197265625,
+                "exact_ns_per_read": 5.7716064453125,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 906164,
+                "exact_median_batch_ns": 886240,
+                "public_ns_per_read": 13.82696533203125,
+                "exact_ns_per_read": 13.52294921875,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              }
+            }
+          }
+        },
+        "selected_wall_provider_parity": {
+          "instant": {
+            "selected_provider": "apple_bare_cntvct",
+            "public_exact_contract": null,
+            "metrics": {
+              "now": {
+                "tach_ns": 0.6536226290508003,
+                "selected_native_ns": 0.3513012026468878,
+                "equivalence_allowance_ns": 1.0,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 88124,
+                  "exact_median_batch_ns": 67669,
+                  "public_ns_per_read": 1.34466552734375,
+                  "exact_ns_per_read": 1.0325469970703125,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 1.6365120175278989,
+                "selected_native_ns": 1.3142080658712751,
+                "equivalence_allowance_ns": 1.0,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 126748,
+                  "exact_median_batch_ns": 105584,
+                  "public_ns_per_read": 1.93402099609375,
+                  "exact_ns_per_read": 1.611083984375,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          },
+          "ordered": {
+            "selected_provider": "apple_commpage_acntvct_offset",
+            "public_exact_contract": null,
+            "metrics": {
+              "now": {
+                "tach_ns": 7.742216847970684,
+                "selected_native_ns": 7.749801869441251,
+                "equivalence_allowance_ns": 1.0,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 400122,
+                  "exact_median_batch_ns": 378248,
+                  "public_ns_per_read": 6.105377197265625,
+                  "exact_ns_per_read": 5.7716064453125,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 15.627705925518253,
+                "selected_native_ns": 15.644256451753293,
+                "equivalence_allowance_ns": 1.0,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 906164,
+                  "exact_median_batch_ns": 886240,
+                  "public_ns_per_read": 13.82696533203125,
+                  "exact_ns_per_read": 13.52294921875,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          }
+        },
+        "thread_cpu_selector_reproduction": {
+          "winner": "posix_thread_cpu_clock",
+          "selected_mechanism": "macos_clock_gettime_nsec_np_thread_cpu",
+          "selected_read_cost": "system call",
+          "fallback": null,
+          "eligible_direct_candidates": [
+            "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu"
+          ],
+          "public_exact": {
+            "now": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 8405211,
+              "exact_median_batch_ns": 8400456,
+              "public_ns_per_read": 128.2533416748047,
+              "exact_ns_per_read": 128.1807861328125,
+              "equivalence_allowance_ns_per_read": 6.409027099609375,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            },
+            "elapsed": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 17012880,
+              "exact_median_batch_ns": 17034000,
+              "public_ns_per_read": 259.595947265625,
+              "exact_ns_per_read": 259.918212890625,
+              "equivalence_allowance_ns_per_read": 12.99591064453125,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            }
+          }
+        },
+        "selected_thread_cpu_provider_parity": {
+          "selected_provider": "posix_thread_cpu_clock",
+          "selected_mechanism": "macos_clock_gettime_nsec_np_thread_cpu",
+          "selected_read_cost": "system call",
+          "metrics": {
+            "now": {
+              "tach_ns": 129.32262293644175,
+              "selected_native_ns": 129.43627908560234,
+              "equivalence_allowance_ns": 6.409027099609375,
+              "comparison_basis": "alternating paired public/exact probe",
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 8405211,
+                "exact_median_batch_ns": 8400456,
+                "public_ns_per_read": 128.2533416748047,
+                "exact_ns_per_read": 128.1807861328125,
+                "equivalence_allowance_ns_per_read": 6.409027099609375,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "passed": true
+            },
+            "elapsed": {
+              "tach_ns": 260.2702623935369,
+              "selected_native_ns": 261.7106371274001,
+              "equivalence_allowance_ns": 12.99591064453125,
+              "comparison_basis": "alternating paired public/exact probe",
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 17012880,
+                "exact_median_batch_ns": 17034000,
+                "public_ns_per_read": 259.595947265625,
+                "exact_ns_per_read": 259.918212890625,
+                "equivalence_allowance_ns_per_read": 12.99591064453125,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "passed": true
+            }
+          },
+          "eligible_candidates": {
+            "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 129.32262293644175,
+                  "candidate_ns": 129.07984953436633,
+                  "equivalence_allowance_ns": 6.409027099609375,
+                  "comparison_basis": "alternating paired public/exact probe",
+                  "paired_probe": {
+                    "reads_per_batch": 65536,
+                    "public_median_batch_ns": 8405211,
+                    "exact_median_batch_ns": 8400456,
+                    "public_ns_per_read": 128.2533416748047,
+                    "exact_ns_per_read": 128.1807861328125,
+                    "equivalence_allowance_ns_per_read": 6.409027099609375,
+                    "decisive_losses": 0,
+                    "admission_role": "public_exact_parity",
+                    "passed": true
+                  },
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 260.2702623935369,
+                  "candidate_ns": 262.6084535063692,
+                  "equivalence_allowance_ns": 12.99591064453125,
+                  "comparison_basis": "alternating paired public/exact probe",
+                  "paired_probe": {
+                    "reads_per_batch": 65536,
+                    "public_median_batch_ns": 17012880,
+                    "exact_median_batch_ns": 17034000,
+                    "public_ns_per_read": 259.595947265625,
+                    "exact_ns_per_read": 259.918212890625,
+                    "equivalence_allowance_ns_per_read": 12.99591064453125,
+                    "decisive_losses": 0,
+                    "admission_role": "public_exact_parity",
+                    "passed": true
+                  },
+                  "passed": true
+                }
+              },
+              "passed": true
+            }
+          },
+          "passed": true
+        },
+        "current_thread_cpu": {
+          "now": {
+            "tach_ns": 129.32262293644175,
+            "native_ns": 129.50863270841148,
+            "equivalence_allowance_ns": 6.409027099609375,
+            "comparison_basis": "alternating paired public/exact probe",
+            "paired_probe": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 8405211,
+              "exact_median_batch_ns": 8400456,
+              "public_ns_per_read": 128.2533416748047,
+              "exact_ns_per_read": 128.1807861328125,
+              "equivalence_allowance_ns_per_read": 6.409027099609375,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            },
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 260.2702623935369,
+            "native_ns": 261.5544254776622,
+            "equivalence_allowance_ns": 12.99591064453125,
+            "comparison_basis": "alternating paired public/exact probe",
+            "paired_probe": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 17012880,
+              "exact_median_batch_ns": 17034000,
+              "public_ns_per_read": 259.595947265625,
+              "exact_ns_per_read": 259.918212890625,
+              "equivalence_allowance_ns_per_read": 12.99591064453125,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            },
+            "passed": true
+          }
+        },
+        "provider": "POSIX thread CPU clock",
+        "read_cost": "system call"
+      },
+      "passed": true,
+      "failures": [],
+      "bundle_binding": {
+        "path": "/Users/spencer/src/tach/.tach-bench-out/505b3d7/speed-0-apple.collector.bundle",
+        "passed": true
+      }
+    },
+    {
+      "artifact_id": "speed-1-c7g.json",
+      "source_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+      "triple": "aarch64-unknown-linux-gnu",
+      "build_mode": "default",
+      "evidence_kind": "full_speed",
+      "bound_observation": true,
+      "bundle_path": null,
+      "three_clock_speed": {
+        "same_thread_elapsed": {
+          "now": {
+            "tach_ns": 6.673897117314616,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 6.7980882786779135,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "fastant": {
+                "reference_ns": 41.120199767257034,
+                "equivalence_allowance_ns": 2.056009988362852,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 41.41906473108044,
+                "equivalence_allowance_ns": 2.070953236554022,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 32.23651354820198,
+                "equivalence_allowance_ns": 1.611825677410099,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 13.347144582371568,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 14.181023468057367,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "fastant": {
+                "reference_ns": 86.0087295437165,
+                "equivalence_allowance_ns": 4.3004364771858254,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 86.87190500585481,
+                "equivalence_allowance_ns": 4.343595250292741,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 70.08571231145858,
+                "equivalence_allowance_ns": 3.504285615572929,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          }
+        },
+        "same_thread_reference_eligibility": {
+          "quanta": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "fastant": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "minstant": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "std": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          }
+        },
+        "cross_thread_elapsed": {
+          "now": {
+            "tach_ns": 20.379808069243637,
+            "std_ns": 32.23651354820198,
+            "equivalence_allowance_ns": 1.611825677410099,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 40.041657583453194,
+            "std_ns": 70.08571231145858,
+            "equivalence_allowance_ns": 3.504285615572929,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          }
+        },
+        "wall_selector_reproduction": {
+          "instant": {
+            "winner": "aarch64_cntvct",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 438398,
+                "exact_median_batch_ns": 438351,
+                "public_ns_per_read": 6.689422607421875,
+                "exact_ns_per_read": 6.6887054443359375,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 876397,
+                "exact_median_batch_ns": 875666,
+                "public_ns_per_read": 13.372756958007812,
+                "exact_ns_per_read": 13.361602783203125,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              }
+            }
+          },
+          "ordered": {
+            "winner": "aarch64_isb_cntvct",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 1213966,
+                "exact_median_batch_ns": 1112527,
+                "public_ns_per_read": 18.523651123046875,
+                "exact_ns_per_read": 16.975814819335938,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 9,
+                "admission_role": "diagnostic_dispatch_lower_bound",
+                "passed": false
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 2566648,
+                "exact_median_batch_ns": 2540327,
+                "public_ns_per_read": 39.1639404296875,
+                "exact_ns_per_read": 38.76231384277344,
+                "equivalence_allowance_ns_per_read": 1.9381103515625,
+                "decisive_losses": 0,
+                "admission_role": "diagnostic_dispatch_lower_bound",
+                "passed": true
+              }
+            },
+            "public_exact_contract": "dispatch_lower_bound_with_public_winner_gate"
+          }
+        },
+        "selected_wall_provider_parity": {
+          "instant": {
+            "selected_provider": "aarch64_cntvct",
+            "public_exact_contract": null,
+            "metrics": {
+              "now": {
+                "tach_ns": 6.673897117314616,
+                "selected_native_ns": 6.673723661182848,
+                "equivalence_allowance_ns": 1.0,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 438398,
+                  "exact_median_batch_ns": 438351,
+                  "public_ns_per_read": 6.689422607421875,
+                  "exact_ns_per_read": 6.6887054443359375,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 13.347144582371568,
+                "selected_native_ns": 13.347685736330753,
+                "equivalence_allowance_ns": 1.0,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 876397,
+                  "exact_median_batch_ns": 875666,
+                  "public_ns_per_read": 13.372756958007812,
+                  "exact_ns_per_read": 13.361602783203125,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          },
+          "ordered": {
+            "selected_provider": "aarch64_isb_cntvct",
+            "public_exact_contract": "dispatch_lower_bound_with_public_winner_gate",
+            "metrics": {
+              "now": {
+                "tach_ns": 20.379808069243637,
+                "selected_native_ns": 20.27045560299326,
+                "equivalence_allowance_ns": null,
+                "comparison_basis": "usable public-reference winner gate; exact route is a diagnostic dispatch lower bound",
+                "public_reference_gate": {
+                  "std": {
+                    "measured": true,
+                    "reference_ns": 32.23651354820198,
+                    "equivalence_allowance_ns": 1.611825677410099,
+                    "passed": true
+                  }
+                },
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 1213966,
+                  "exact_median_batch_ns": 1112527,
+                  "public_ns_per_read": 18.523651123046875,
+                  "exact_ns_per_read": 16.975814819335938,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 9,
+                  "admission_role": "diagnostic_dispatch_lower_bound",
+                  "passed": false
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 40.041657583453194,
+                "selected_native_ns": 40.04399290366122,
+                "equivalence_allowance_ns": null,
+                "comparison_basis": "usable public-reference winner gate; exact route is a diagnostic dispatch lower bound",
+                "public_reference_gate": {
+                  "std": {
+                    "measured": true,
+                    "reference_ns": 70.08571231145858,
+                    "equivalence_allowance_ns": 3.504285615572929,
+                    "passed": true
+                  }
+                },
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 2566648,
+                  "exact_median_batch_ns": 2540327,
+                  "public_ns_per_read": 39.1639404296875,
+                  "exact_ns_per_read": 38.76231384277344,
+                  "equivalence_allowance_ns_per_read": 1.9381103515625,
+                  "decisive_losses": 0,
+                  "admission_role": "diagnostic_dispatch_lower_bound",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          }
+        },
+        "thread_cpu_selector_reproduction": {
+          "winner": "linux_perf_mmap",
+          "selected_mechanism": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+          "selected_read_cost": "inline",
+          "fallback": [
+            "posix_thread_cpu_clock",
+            "linux_aarch64_raw_syscall_clock_thread_cputime",
+            "system call"
+          ],
+          "native_entry": {
+            "winner": "linux_aarch64_raw_syscall_clock_thread_cputime",
+            "candidates": [
+              "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime",
+              "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime"
+            ],
+            "selected_read_cost": "system call",
+            "raw_decision": {
+              "challenger_median_ns": 1051031,
+              "incumbent_median_ns": 1106538,
+              "allowance_ns": 4096,
+              "decisive_wins": 9,
+              "selected": true
+            },
+            "libc_reverse_decision": {
+              "challenger_median_ns": 1106538,
+              "incumbent_median_ns": 1051031,
+              "allowance_ns": 4096,
+              "decisive_wins": 0,
+              "selected": false
+            }
+          },
+          "perf_counter": {
+            "winner": "aarch64_isb_cntvct_isb",
+            "candidates": [
+              "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb"
+            ],
+            "decisions": [],
+            "selection_kind": "tournament"
+          },
+          "perf_read_entry": {
+            "winner": "raw_read_svc",
+            "candidates": [
+              "direct_thread_cpu__linux_perf_read__raw_read_svc"
+            ],
+            "decisions": [],
+            "selection_kind": "fixed_candidate"
+          },
+          "perf_path": {
+            "selected": {
+              "winner": "linux_perf_mmap"
+            },
+            "fallback": {
+              "winner": "posix_thread_cpu"
+            },
+            "audit": {
+              "winner": "linux_perf_mmap",
+              "decisions": [
+                {
+                  "challenger_median_ns": 235775,
+                  "incumbent_median_ns": 1031113,
+                  "allowance_ns": 51555,
+                  "decisive_wins": 9,
+                  "selected": true,
+                  "challenger": "linux_perf_mmap",
+                  "incumbent": "posix_thread_cpu"
+                },
+                {
+                  "challenger_median_ns": 1651421,
+                  "incumbent_median_ns": 235775,
+                  "allowance_ns": 11788,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_perf_read",
+                  "incumbent": "linux_perf_mmap"
+                }
+              ]
+            }
+          }
+        },
+        "selected_thread_cpu_provider_parity": {
+          "selected_provider": "linux_perf_mmap",
+          "selected_mechanism": "linux_perf_mmap__aarch64_isb_cntvct_isb",
+          "selected_read_cost": "inline",
+          "metrics": {
+            "now": {
+              "tach_ns": 57.58908909745651,
+              "selected_native_ns": 58.199531777314064,
+              "equivalence_allowance_ns": 2.909976588865703,
+              "comparison_basis": "Criterion estimate",
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "tach_ns": 116.11814434669273,
+              "selected_native_ns": 116.9317341061534,
+              "equivalence_allowance_ns": 5.84658670530767,
+              "comparison_basis": "Criterion estimate",
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "eligible_candidates": {
+            "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 57.58908909745651,
+                  "candidate_ns": 270.1616286835145,
+                  "equivalence_allowance_ns": 13.508081434175725,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 116.11814434669273,
+                  "candidate_ns": 557.551436184348,
+                  "equivalence_allowance_ns": 27.8775718092174,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            },
+            "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 57.58908909745651,
+                  "candidate_ns": 259.98682899403184,
+                  "equivalence_allowance_ns": 12.999341449701593,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 116.11814434669273,
+                  "candidate_ns": 524.6763554452859,
+                  "equivalence_allowance_ns": 26.2338177722643,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            },
+            "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 57.58908909745651,
+                  "candidate_ns": 58.17446945232736,
+                  "equivalence_allowance_ns": 2.908723472616368,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 116.11814434669273,
+                  "candidate_ns": 117.85467919912617,
+                  "equivalence_allowance_ns": 5.892733959956309,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            },
+            "direct_thread_cpu__linux_perf_read__raw_read_svc": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 57.58908909745651,
+                  "candidate_ns": 414.11251467364303,
+                  "equivalence_allowance_ns": 20.705625733682155,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 116.11814434669273,
+                  "candidate_ns": 811.8781496834225,
+                  "equivalence_allowance_ns": 40.593907484171126,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            }
+          },
+          "passed": true,
+          "measured_runner_up": {
+            "provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
+            "metrics": {
+              "now": {
+                "selected_ns": 58.199531777314064,
+                "fallback_ns": 271.0564266180493,
+                "equivalence_allowance_ns": 13.552821330902464,
+                "passed": true
+              },
+              "elapsed": {
+                "selected_ns": 116.9317341061534,
+                "fallback_ns": 543.8580995806701,
+                "equivalence_allowance_ns": 27.192904979033507,
+                "passed": true
+              }
+            },
+            "passed": true
+          }
+        },
+        "current_thread_cpu": {
+          "now": {
+            "tach_ns": 57.58908909745651,
+            "native_ns": 269.35860975762114,
+            "equivalence_allowance_ns": 13.467930487881057,
+            "comparison_basis": "Criterion estimate",
+            "paired_probe": null,
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 116.11814434669273,
+            "native_ns": 524.12073616815,
+            "equivalence_allowance_ns": 26.2060368084075,
+            "comparison_basis": "Criterion estimate",
+            "paired_probe": null,
+            "passed": true
+          }
+        },
+        "provider": "Linux perf task-clock mmap",
+        "read_cost": "inline"
+      },
+      "passed": true,
+      "failures": [],
+      "bundle_binding": {
+        "path": "/Users/spencer/src/tach/.tach-bench-out/505b3d7/speed-1-c7g.collector.bundle",
+        "passed": true
+      }
+    },
+    {
+      "artifact_id": "speed-2-inteln.json",
+      "source_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+      "triple": "x86_64-unknown-linux-gnu",
+      "build_mode": "default",
+      "evidence_kind": "full_speed",
+      "bound_observation": true,
+      "bundle_path": null,
+      "three_clock_speed": {
+        "same_thread_elapsed": {
+          "now": {
+            "tach_ns": 14.717406767807246,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 17.210702365231224,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "fastant": {
+                "reference_ns": 14.74908752294575,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 14.752494222296972,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 25.96815513924715,
+                "equivalence_allowance_ns": 1.2984077569623576,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 30.425097009303492,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 38.21647789616205,
+                "equivalence_allowance_ns": 1.9108238948081024,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "fastant": {
+                "reference_ns": 40.036821938500616,
+                "equivalence_allowance_ns": 2.001841096925031,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 39.98273409891632,
+                "equivalence_allowance_ns": 1.999136704945816,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 55.93853171293716,
+                "equivalence_allowance_ns": 2.796926585646858,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          }
+        },
+        "same_thread_reference_eligibility": {
+          "quanta": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "fastant": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "minstant": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          },
+          "std": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          }
+        },
+        "cross_thread_elapsed": {
+          "now": {
+            "tach_ns": 22.38633811641907,
+            "std_ns": 25.96815513924715,
+            "equivalence_allowance_ns": 1.2984077569623576,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 43.65339880279035,
+            "std_ns": 55.93853171293716,
+            "equivalence_allowance_ns": 2.796926585646858,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          }
+        },
+        "wall_selector_reproduction": {
+          "instant": {
+            "winner": "linux_kernel_eligible_tsc",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 963075,
+                "exact_median_batch_ns": 947426,
+                "public_ns_per_read": 14.695358276367188,
+                "exact_ns_per_read": 14.456573486328125,
+                "equivalence_allowance_ns_per_read": 1.0,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 2010659,
+                "exact_median_batch_ns": 1959191,
+                "public_ns_per_read": 30.680221557617188,
+                "exact_ns_per_read": 29.894882202148438,
+                "equivalence_allowance_ns_per_read": 1.4947357177734375,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              }
+            }
+          },
+          "ordered": {
+            "winner": "linux_kernel_eligible_tsc_x86_lfence_rdtsc",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 1423323,
+                "exact_median_batch_ns": 1379676,
+                "public_ns_per_read": 21.718185424804688,
+                "exact_ns_per_read": 21.05218505859375,
+                "equivalence_allowance_ns_per_read": 1.0525970458984375,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 2918018,
+                "exact_median_batch_ns": 2878428,
+                "public_ns_per_read": 44.525421142578125,
+                "exact_ns_per_read": 43.92132568359375,
+                "equivalence_allowance_ns_per_read": 2.1960601806640625,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              }
+            }
+          }
+        },
+        "selected_wall_provider_parity": {
+          "instant": {
+            "selected_provider": "linux_kernel_eligible_tsc",
+            "public_exact_contract": null,
+            "metrics": {
+              "now": {
+                "tach_ns": 14.717406767807246,
+                "selected_native_ns": 14.449583800755772,
+                "equivalence_allowance_ns": 1.0,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 963075,
+                  "exact_median_batch_ns": 947426,
+                  "public_ns_per_read": 14.695358276367188,
+                  "exact_ns_per_read": 14.456573486328125,
+                  "equivalence_allowance_ns_per_read": 1.0,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 30.425097009303492,
+                "selected_native_ns": 29.508181923756524,
+                "equivalence_allowance_ns": 1.4947357177734375,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 2010659,
+                  "exact_median_batch_ns": 1959191,
+                  "public_ns_per_read": 30.680221557617188,
+                  "exact_ns_per_read": 29.894882202148438,
+                  "equivalence_allowance_ns_per_read": 1.4947357177734375,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          },
+          "ordered": {
+            "selected_provider": "linux_kernel_eligible_tsc_x86_lfence_rdtsc",
+            "public_exact_contract": null,
+            "metrics": {
+              "now": {
+                "tach_ns": 22.38633811641907,
+                "selected_native_ns": 22.43140936787904,
+                "equivalence_allowance_ns": 1.0525970458984375,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 1423323,
+                  "exact_median_batch_ns": 1379676,
+                  "public_ns_per_read": 21.718185424804688,
+                  "exact_ns_per_read": 21.05218505859375,
+                  "equivalence_allowance_ns_per_read": 1.0525970458984375,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 43.65339880279035,
+                "selected_native_ns": 43.35020792316492,
+                "equivalence_allowance_ns": 2.1960601806640625,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 2918018,
+                  "exact_median_batch_ns": 2878428,
+                  "public_ns_per_read": 44.525421142578125,
+                  "exact_ns_per_read": 43.92132568359375,
+                  "equivalence_allowance_ns_per_read": 2.1960601806640625,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          }
+        },
+        "thread_cpu_selector_reproduction": {
+          "winner": "posix_thread_cpu_clock",
+          "selected_mechanism": "linux_x86_64_raw_syscall_clock_thread_cputime",
+          "selected_read_cost": "system call",
+          "fallback": [
+            "linux_perf_read",
+            "linux_perf_read__raw_read_syscall",
+            "system call"
+          ],
+          "native_entry": {
+            "winner": "linux_x86_64_raw_syscall_clock_thread_cputime",
+            "candidates": [
+              "direct_thread_cpu__linux_x86_64_libc_clock_thread_cputime",
+              "direct_thread_cpu__linux_x86_64_raw_syscall_clock_thread_cputime"
+            ],
+            "selected_read_cost": "system call",
+            "raw_decision": {
+              "challenger_median_ns": 672940,
+              "incumbent_median_ns": 685782,
+              "allowance_ns": 4096,
+              "decisive_wins": 7,
+              "selected": true
+            },
+            "libc_reverse_decision": {
+              "challenger_median_ns": 685782,
+              "incumbent_median_ns": 672940,
+              "allowance_ns": 4096,
+              "decisive_wins": 0,
+              "selected": false
+            }
+          },
+          "perf_counter": {},
+          "perf_read_entry": {
+            "winner": "raw_read_syscall",
+            "candidates": [
+              "direct_thread_cpu__linux_perf_read__raw_read_syscall"
+            ],
+            "decisions": [],
+            "selection_kind": "fixed_candidate"
+          },
+          "perf_path": {
+            "selected": {
+              "winner": "posix_thread_cpu",
+              "decisions": [
+                {
+                  "challenger_median_ns": 1134183,
+                  "incumbent_median_ns": 674014,
+                  "allowance_ns": 33700,
+                  "decisive_wins": 0,
+                  "selected": false,
+                  "challenger": "linux_perf_read",
+                  "incumbent": "posix_thread_cpu"
+                }
+              ]
+            },
+            "fallback": {
+              "winner": "linux_perf_read",
+              "decisions": []
+            }
+          }
+        },
+        "selected_thread_cpu_provider_parity": {
+          "selected_provider": "posix_thread_cpu_clock",
+          "selected_mechanism": "linux_x86_64_raw_syscall_clock_thread_cputime",
+          "selected_read_cost": "system call",
+          "metrics": {
+            "now": {
+              "tach_ns": 163.9262264859736,
+              "selected_native_ns": 163.945276933791,
+              "equivalence_allowance_ns": 8.19726384668955,
+              "comparison_basis": "Criterion estimate",
+              "paired_probe": null,
+              "passed": true
+            },
+            "elapsed": {
+              "tach_ns": 330.3998872797886,
+              "selected_native_ns": 330.0917394216063,
+              "equivalence_allowance_ns": 16.504586971080315,
+              "comparison_basis": "Criterion estimate",
+              "paired_probe": null,
+              "passed": true
+            }
+          },
+          "eligible_candidates": {
+            "direct_thread_cpu__linux_x86_64_libc_clock_thread_cputime": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 163.9262264859736,
+                  "candidate_ns": 170.17867605192347,
+                  "equivalence_allowance_ns": 8.508933802596173,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 330.3998872797886,
+                  "candidate_ns": 341.63222984260557,
+                  "equivalence_allowance_ns": 17.08161149213028,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            },
+            "direct_thread_cpu__linux_x86_64_raw_syscall_clock_thread_cputime": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 163.9262264859736,
+                  "candidate_ns": 163.86868222564235,
+                  "equivalence_allowance_ns": 8.193434111282118,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 330.3998872797886,
+                  "candidate_ns": 326.30903802594355,
+                  "equivalence_allowance_ns": 16.315451901297177,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            },
+            "direct_thread_cpu__linux_perf_read__raw_read_syscall": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 163.9262264859736,
+                  "candidate_ns": 273.7507472330298,
+                  "equivalence_allowance_ns": 13.687537361651492,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 330.3998872797886,
+                  "candidate_ns": 547.5096489084392,
+                  "equivalence_allowance_ns": 27.375482445421962,
+                  "comparison_basis": "Criterion estimate",
+                  "paired_probe": null,
+                  "passed": true
+                }
+              },
+              "passed": true
+            }
+          },
+          "passed": true,
+          "measured_runner_up": {
+            "provider": "linux_perf_read__raw_read_syscall",
+            "metrics": {
+              "now": {
+                "selected_ns": 163.945276933791,
+                "fallback_ns": 276.8475632614808,
+                "equivalence_allowance_ns": 13.84237816307404,
+                "passed": true
+              },
+              "elapsed": {
+                "selected_ns": 330.0917394216063,
+                "fallback_ns": 555.0603037743185,
+                "equivalence_allowance_ns": 27.753015188715928,
+                "passed": true
+              }
+            },
+            "passed": true
+          }
+        },
+        "current_thread_cpu": {
+          "now": {
+            "tach_ns": 163.9262264859736,
+            "native_ns": 164.19517224558427,
+            "equivalence_allowance_ns": 8.209758612279215,
+            "comparison_basis": "Criterion estimate",
+            "paired_probe": null,
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 330.3998872797886,
+            "native_ns": 329.1023561874331,
+            "equivalence_allowance_ns": 16.455117809371654,
+            "comparison_basis": "Criterion estimate",
+            "paired_probe": null,
+            "passed": true
+          }
+        },
+        "provider": "POSIX thread CPU clock",
+        "read_cost": "system call"
+      },
+      "passed": true,
+      "failures": [],
+      "bundle_binding": {
+        "path": "/Users/spencer/src/tach/.tach-bench-out/505b3d7/speed-2-inteln.collector.bundle",
+        "passed": true
+      }
+    },
+    {
+      "artifact_id": "speed-4-windows.json",
+      "source_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+      "triple": "x86_64-pc-windows-msvc",
+      "build_mode": "default",
+      "evidence_kind": "full_speed",
+      "bound_observation": true,
+      "bundle_path": null,
+      "three_clock_speed": {
+        "same_thread_elapsed": {
+          "now": {
+            "tach_ns": 25.269956266781097,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 11.461559138899435,
+                "equivalence_allowance_ns": 1.0,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "windows_raw_counter_does_not_meet_qpc_reliability_contract",
+                "implementation": "quanta selects calibrated RDTSC on this target",
+                "measured": true,
+                "passed": false
+              },
+              "fastant": {
+                "reference_ns": 41.20920158837897,
+                "equivalence_allowance_ns": 2.0604600794189483,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
+                "implementation": "fastant falls back to std::time::SystemTime on non-Linux-x86 targets",
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 41.20390255150473,
+                "equivalence_allowance_ns": 2.060195127575237,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
+                "implementation": "minstant falls back to std::time::SystemTime on non-Linux-x86 targets",
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 37.726827475066024,
+                "equivalence_allowance_ns": 1.8863413737533012,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 53.40978671839206,
+            "comparisons": {
+              "quanta": {
+                "reference_ns": 23.232680432449772,
+                "equivalence_allowance_ns": 1.1616340216224887,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "windows_raw_counter_does_not_meet_qpc_reliability_contract",
+                "implementation": "quanta selects calibrated RDTSC on this target",
+                "measured": true,
+                "passed": false
+              },
+              "fastant": {
+                "reference_ns": 95.48397095358453,
+                "equivalence_allowance_ns": 4.774198547679227,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
+                "implementation": "fastant falls back to std::time::SystemTime on non-Linux-x86 targets",
+                "measured": true,
+                "passed": true
+              },
+              "minstant": {
+                "reference_ns": 95.26326825480552,
+                "equivalence_allowance_ns": 4.763163412740276,
+                "eligible_for_reliable_contract": false,
+                "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
+                "implementation": "minstant falls back to std::time::SystemTime on non-Linux-x86 targets",
+                "measured": true,
+                "passed": true
+              },
+              "std": {
+                "reference_ns": 78.29252046239017,
+                "equivalence_allowance_ns": 3.9146260231195087,
+                "eligible_for_reliable_contract": true,
+                "eligibility_reason": null,
+                "implementation": null,
+                "measured": true,
+                "passed": true
+              }
+            },
+            "passed": true
+          }
+        },
+        "same_thread_reference_eligibility": {
+          "quanta": {
+            "eligible": false,
+            "reason": "windows_raw_counter_does_not_meet_qpc_reliability_contract",
+            "implementation": "quanta selects calibrated RDTSC on this target"
+          },
+          "fastant": {
+            "eligible": false,
+            "reason": "windows_system_time_fallback_is_not_monotonic_qpc",
+            "implementation": "fastant falls back to std::time::SystemTime on non-Linux-x86 targets"
+          },
+          "minstant": {
+            "eligible": false,
+            "reason": "windows_system_time_fallback_is_not_monotonic_qpc",
+            "implementation": "minstant falls back to std::time::SystemTime on non-Linux-x86 targets"
+          },
+          "std": {
+            "eligible": true,
+            "reason": null,
+            "implementation": null
+          }
+        },
+        "cross_thread_elapsed": {
+          "now": {
+            "tach_ns": 25.282645029814354,
+            "std_ns": 37.726827475066024,
+            "equivalence_allowance_ns": 1.8863413737533012,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 53.341835507782,
+            "std_ns": 78.29252046239017,
+            "equivalence_allowance_ns": 3.9146260231195087,
+            "eligible_for_reliable_contract": true,
+            "eligibility_reason": null,
+            "measured": true,
+            "passed": true
+          }
+        },
+        "wall_selector_reproduction": {
+          "instant": {
+            "winner": "windows_qpc",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 1659600,
+                "exact_median_batch_ns": 1663000,
+                "public_ns_per_read": 25.323486328125,
+                "exact_ns_per_read": 25.3753662109375,
+                "equivalence_allowance_ns_per_read": 1.268768310546875,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 3502700,
+                "exact_median_batch_ns": 3543500,
+                "public_ns_per_read": 53.44696044921875,
+                "exact_ns_per_read": 54.06951904296875,
+                "equivalence_allowance_ns_per_read": 2.7034759521484375,
+                "decisive_losses": 1,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              }
+            }
+          },
+          "ordered": {
+            "winner": "windows_qpc_call_boundary",
+            "public_exact": {
+              "now": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 1645100,
+                "exact_median_batch_ns": 1689900,
+                "public_ns_per_read": 25.10223388671875,
+                "exact_ns_per_read": 25.78582763671875,
+                "equivalence_allowance_ns_per_read": 1.2892913818359375,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "elapsed": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 3515100,
+                "exact_median_batch_ns": 3521400,
+                "public_ns_per_read": 53.63616943359375,
+                "exact_ns_per_read": 53.7322998046875,
+                "equivalence_allowance_ns_per_read": 2.686614990234375,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              }
+            }
+          }
+        },
+        "selected_wall_provider_parity": {
+          "instant": {
+            "selected_provider": "windows_qpc",
+            "public_exact_contract": null,
+            "metrics": {
+              "now": {
+                "tach_ns": 25.269956266781097,
+                "selected_native_ns": 25.272092966817908,
+                "equivalence_allowance_ns": 1.268768310546875,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 1659600,
+                  "exact_median_batch_ns": 1663000,
+                  "public_ns_per_read": 25.323486328125,
+                  "exact_ns_per_read": 25.3753662109375,
+                  "equivalence_allowance_ns_per_read": 1.268768310546875,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 53.40978671839206,
+                "selected_native_ns": 62.164560743273086,
+                "equivalence_allowance_ns": 2.7034759521484375,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 3502700,
+                  "exact_median_batch_ns": 3543500,
+                  "public_ns_per_read": 53.44696044921875,
+                  "exact_ns_per_read": 54.06951904296875,
+                  "equivalence_allowance_ns_per_read": 2.7034759521484375,
+                  "decisive_losses": 1,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          },
+          "ordered": {
+            "selected_provider": "windows_qpc_call_boundary",
+            "public_exact_contract": null,
+            "metrics": {
+              "now": {
+                "tach_ns": 25.282645029814354,
+                "selected_native_ns": 25.276088627581338,
+                "equivalence_allowance_ns": 1.2892913818359375,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 1645100,
+                  "exact_median_batch_ns": 1689900,
+                  "public_ns_per_read": 25.10223388671875,
+                  "exact_ns_per_read": 25.78582763671875,
+                  "equivalence_allowance_ns_per_read": 1.2892913818359375,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              },
+              "elapsed": {
+                "tach_ns": 53.341835507782,
+                "selected_native_ns": 62.13129693991691,
+                "equivalence_allowance_ns": 2.686614990234375,
+                "comparison_basis": "alternating paired public/exact probe",
+                "public_reference_gate": null,
+                "paired_probe": {
+                  "reads_per_batch": 65536,
+                  "public_median_batch_ns": 3515100,
+                  "exact_median_batch_ns": 3521400,
+                  "public_ns_per_read": 53.63616943359375,
+                  "exact_ns_per_read": 53.7322998046875,
+                  "equivalence_allowance_ns_per_read": 2.686614990234375,
+                  "decisive_losses": 0,
+                  "admission_role": "public_exact_parity",
+                  "passed": true
+                },
+                "passed": true
+              }
+            },
+            "eligible_candidates": {},
+            "passed": true
+          }
+        },
+        "thread_cpu_selector_reproduction": {
+          "winner": "windows_thread_times",
+          "selected_mechanism": "get_thread_times_current_thread_pseudohandle",
+          "selected_read_cost": "system call",
+          "fallback": {
+            "campaign_behavior": "an observed fallback aborts the native benchmark before extraction instead of emitting thread-CPU parity evidence",
+            "eligible_for_thread_cpu_speed_claim": false,
+            "exact_benchmark": "direct_fallback_thread_cpu__windows_selected_monotonic_wall_fallback",
+            "exact_route_measured": true,
+            "mechanism": "windows_selected_monotonic_wall_fallback",
+            "observed_as_public_provider_during_campaign": false,
+            "provider": "monotonic_wall_clock",
+            "read_cost": "system call",
+            "state_transition": "sticky process-wide fallback",
+            "time_domain": "monotonic wall fallback",
+            "trigger": "GetThreadTimes(current-thread pseudo-handle) returns zero"
+          },
+          "eligible_direct_candidates": [
+            "direct_thread_cpu__get_thread_times_current_thread_pseudohandle"
+          ],
+          "ineligible_direct_candidates": {
+            "nt_query_information_thread": {
+              "authority": "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationthread",
+              "eligibility": "ineligible",
+              "reason": "the documented THREADINFOCLASS contract exposes no stable ThreadTimes class"
+            },
+            "query_thread_cycle_time": {
+              "authority": "https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-querythreadcycletime",
+              "eligibility": "ineligible",
+              "reason": "implementation-dependent cycles cannot be converted to elapsed thread CPU time"
+            }
+          },
+          "public_exact": {
+            "now": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 14035300,
+              "exact_median_batch_ns": 14071400,
+              "public_ns_per_read": 214.16168212890625,
+              "exact_ns_per_read": 214.7125244140625,
+              "equivalence_allowance_ns_per_read": 10.735626220703125,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            },
+            "elapsed": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 28491900,
+              "exact_median_batch_ns": 28135900,
+              "public_ns_per_read": 434.75189208984375,
+              "exact_ns_per_read": 429.31976318359375,
+              "equivalence_allowance_ns_per_read": 21.465988159179688,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            }
+          }
+        },
+        "selected_thread_cpu_provider_parity": {
+          "selected_provider": "windows_thread_times",
+          "selected_mechanism": "get_thread_times_current_thread_pseudohandle",
+          "selected_read_cost": "system call",
+          "metrics": {
+            "now": {
+              "tach_ns": 211.97819853312006,
+              "selected_native_ns": 208.8488865152446,
+              "equivalence_allowance_ns": 10.735626220703125,
+              "comparison_basis": "alternating paired public/exact probe",
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 14035300,
+                "exact_median_batch_ns": 14071400,
+                "public_ns_per_read": 214.16168212890625,
+                "exact_ns_per_read": 214.7125244140625,
+                "equivalence_allowance_ns_per_read": 10.735626220703125,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "passed": true
+            },
+            "elapsed": {
+              "tach_ns": 421.9718817591925,
+              "selected_native_ns": 426.52263031895745,
+              "equivalence_allowance_ns": 21.465988159179688,
+              "comparison_basis": "alternating paired public/exact probe",
+              "paired_probe": {
+                "reads_per_batch": 65536,
+                "public_median_batch_ns": 28491900,
+                "exact_median_batch_ns": 28135900,
+                "public_ns_per_read": 434.75189208984375,
+                "exact_ns_per_read": 429.31976318359375,
+                "equivalence_allowance_ns_per_read": 21.465988159179688,
+                "decisive_losses": 0,
+                "admission_role": "public_exact_parity",
+                "passed": true
+              },
+              "passed": true
+            }
+          },
+          "eligible_candidates": {
+            "direct_thread_cpu__get_thread_times_current_thread_pseudohandle": {
+              "metrics": {
+                "now": {
+                  "tach_ns": 211.97819853312006,
+                  "candidate_ns": 208.67393288770677,
+                  "equivalence_allowance_ns": 10.735626220703125,
+                  "comparison_basis": "alternating paired public/exact probe",
+                  "paired_probe": {
+                    "reads_per_batch": 65536,
+                    "public_median_batch_ns": 14035300,
+                    "exact_median_batch_ns": 14071400,
+                    "public_ns_per_read": 214.16168212890625,
+                    "exact_ns_per_read": 214.7125244140625,
+                    "equivalence_allowance_ns_per_read": 10.735626220703125,
+                    "decisive_losses": 0,
+                    "admission_role": "public_exact_parity",
+                    "passed": true
+                  },
+                  "passed": true
+                },
+                "elapsed": {
+                  "tach_ns": 421.9718817591925,
+                  "candidate_ns": 427.6202696824706,
+                  "equivalence_allowance_ns": 21.465988159179688,
+                  "comparison_basis": "alternating paired public/exact probe",
+                  "paired_probe": {
+                    "reads_per_batch": 65536,
+                    "public_median_batch_ns": 28491900,
+                    "exact_median_batch_ns": 28135900,
+                    "public_ns_per_read": 434.75189208984375,
+                    "exact_ns_per_read": 429.31976318359375,
+                    "equivalence_allowance_ns_per_read": 21.465988159179688,
+                    "decisive_losses": 0,
+                    "admission_role": "public_exact_parity",
+                    "passed": true
+                  },
+                  "passed": true
+                }
+              },
+              "passed": true
+            }
+          },
+          "passed": true,
+          "failure_fallback": {
+            "provider": "windows_selected_monotonic_wall_fallback",
+            "read_cost": "system call",
+            "time_domain": "monotonic wall fallback",
+            "eligible_for_thread_cpu_speed_claim": false,
+            "now_ns": 25.276896948038555,
+            "elapsed_ns": 60.631816858156405,
+            "measured": true
+          }
+        },
+        "current_thread_cpu": {
+          "now": {
+            "tach_ns": 211.97819853312006,
+            "native_ns": 210.3861310781412,
+            "equivalence_allowance_ns": 10.735626220703125,
+            "comparison_basis": "alternating paired public/exact probe",
+            "paired_probe": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 14035300,
+              "exact_median_batch_ns": 14071400,
+              "public_ns_per_read": 214.16168212890625,
+              "exact_ns_per_read": 214.7125244140625,
+              "equivalence_allowance_ns_per_read": 10.735626220703125,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            },
+            "passed": true
+          },
+          "elapsed": {
+            "tach_ns": 421.9718817591925,
+            "native_ns": 423.9666239489186,
+            "equivalence_allowance_ns": 21.465988159179688,
+            "comparison_basis": "alternating paired public/exact probe",
+            "paired_probe": {
+              "reads_per_batch": 65536,
+              "public_median_batch_ns": 28491900,
+              "exact_median_batch_ns": 28135900,
+              "public_ns_per_read": 434.75189208984375,
+              "exact_ns_per_read": 429.31976318359375,
+              "equivalence_allowance_ns_per_read": 21.465988159179688,
+              "decisive_losses": 0,
+              "admission_role": "public_exact_parity",
+              "passed": true
+            },
+            "passed": true
+          }
+        },
+        "provider": "Windows GetThreadTimes",
+        "read_cost": "system call"
+      },
+      "passed": true,
+      "failures": [],
+      "bundle_binding": {
+        "path": "/Users/spencer/src/tach/.tach-bench-out/505b3d7/speed-4-windows.collector.bundle",
+        "passed": true
+      }
+    }
+  ],
+  "checkout_binding": {
+    "passed": true,
+    "campaign_revision": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+    "checkout_head": "505b3d76a72014ce5f9e61a09dde64c003da9378",
+    "committed_tree_inputs_unchanged": true,
+    "committed_tree_changes": [],
+    "working_tree_inputs_clean": true,
+    "working_tree_changes": []
+  }
+}
