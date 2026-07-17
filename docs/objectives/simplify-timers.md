@@ -247,6 +247,11 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Blocked/unsure: M2.G1 full closure owner-blocked on ESC-APPLE-ORDERED-SELECTION (Apple aarch64 tournament remains until the owner rules on its ordered pick); pre-existing CI 'retained release claim evidence' is an M3 target
 - Board: M2 §6 step-2: ALL 4 non-Apple families converted + CI-verified (aarch64/x86/freebsd/windows); ~10.6k tournament lines deleted; M2.G1 closure now owner-blocked on Apple (ESC-APPLE-ORDERED-SELECTION) + step-4 parity
 
+### 2026-07-16 · spence · `OBJ-SIMPLIFY-TIMERS.M2`
+- Did: Owner ruled ESC-APPLE-ORDERED-SELECTION -> Option A (self-synchronizing counter, mode-gated) after the two-machine happens-before survey (EVID-APPLE-ORDERED, c39fe20): bare_cntvct fires 112.7M/942.9M violations while mach/acntvct/isb each hold 0/~0.87e9. Escalation ACCEPTED. Dispatched the Apple fixed-pick conversion (worktree execution subagent).
+- Found: mode 0 (USER_TIMEBASE_NONE) permits NO EL0 counter read, so the fixed pick must fall to mach_absolute for all three contracts there (SIGILL otherwise). Gates: Instant=bare(modes 1/3)/cntvctss(2)/mach(0); Ordered=acntvct(3)/cntvctss(2)/isb+cntvct(1)/mach(0), all mach-domain; Instant scale=CNTFRQ iff bare, else mach.
+- Next: Apply conversion diff, read correctness regions (dual-domain scale + SIGILL mode gate + fork test), run native gates, commit as one Apple-family commit, push, monitor CI native/macos; then drive M2.G1 closure.
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
-> Next:       Non-blocked remaining M2: §6 step-3 residual bench.rs/arch-block shrink (assess shared dead scaffolding the per-family conversions left), §6 step-4 inline parity (paired public/exact probe within max(1ns,5%) per converted family — runs in CI/AWS bench, not locally since the only local family is Apple). M2.G1 full closure awaits ESC-APPLE-ORDERED-SELECTION (Apple conversion) + parity evidence. Apple converts as one commit once the owner rules on the ordered pick (Instant=bare is ready).
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ORDERED-SELECTION
-> Last verified: 2026-07-16 · Changed: Converted the FOURTH and last non-Apple family, W/O-WINDOWS (e5cf08f). fallback.rs qpc module ~960->~100 lines; deleted the 3-way runtime tournament (QPC vs InterruptTimePrecise vs Unbiased) + its GetProcAddress resolution + probe/evidence machinery; fixed to Instant=windows_qpc, Ordered=windows_qpc_call_boundary (ordered by the opaque QueryPerformanceCounter FFI call boundary, no separate fence). fallback.rs is SHARED with Apple mach_time: all diff hunks inside mod qpc, zero macOS lines changed, 27 apple consumers untouched. CI e5cf08f GREEN: native/windows-x86_64 + windows-aarch64 (Windows tests+benches run on real hardware), native/macos-x86_64 + macos-aarch64 (shared file intact), native/linux-{x86_64,aarch64} (no regression). §8a none needed. · By: nsr · c39fe20
+> Next:       Apply conversion diff, read correctness regions (dual-domain scale + SIGILL mode gate + fork test), run native gates, commit as one Apple-family commit, push, monitor CI native/macos; then drive M2.G1 closure.
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING
+> Last verified: 2026-07-16 · Changed: Owner ruled ESC-APPLE-ORDERED-SELECTION -> Option A (self-synchronizing counter, mode-gated) after the two-machine happens-before survey (EVID-APPLE-ORDERED, c39fe20): bare_cntvct fires 112.7M/942.9M violations while mach/acntvct/isb each hold 0/~0.87e9. Escalation ACCEPTED. Dispatched the Apple fixed-pick conversion (worktree execution subagent). · By: nsr · 24e4204
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
