@@ -253,12 +253,40 @@ where
 
 #[cfg(all(feature = "bench-internal", target_arch = "aarch64", target_os = "macos"))]
 macro_rules! measure_apple_public_exact {
-  (instant, $read:path) => {
-    measure_wall_public_exact(|| Instant::now(), || $read())
-  };
-  (ordered, $read:path) => {
-    measure_wall_public_exact(|| OrderedInstant::now(), || $read())
-  };
+  (instant, $nanos_per_tick_q32:expr, $read:path) => {{
+    let scale = $nanos_per_tick_q32;
+    serde_json::json!({
+      "now": measure_wall_public_exact(|| Instant::now(), || $read()),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = Instant::now();
+          start.elapsed()
+        },
+        || {
+          let start = $read();
+          let elapsed = $read().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        },
+      ),
+    })
+  }};
+  (ordered, $nanos_per_tick_q32:expr, $read:path) => {{
+    let scale = $nanos_per_tick_q32;
+    serde_json::json!({
+      "now": measure_wall_public_exact(|| OrderedInstant::now(), || $read()),
+      "elapsed": measure_wall_public_exact(
+        || {
+          let start = OrderedInstant::now();
+          start.elapsed()
+        },
+        || {
+          let start = $read();
+          let elapsed = $read().saturating_sub(start);
+          tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        },
+      ),
+    })
+  }};
 }
 
 #[cfg(all(feature = "bench-internal", target_arch = "x86_64", target_os = "macos"))]
@@ -1652,10 +1680,26 @@ fn write_apple_wall_selection() {
   let payload = {
     // The commpage mode fixes one provider per contract; there is no tournament.
     let decision_rule = "Instant reads bare CNTVCT_EL0 where the commpage mode permits it (SPEC/NOSPEC_APPLE), scaled by CNTFRQ_EL0, else the self-synchronizing commpage offset (NOSPEC) or mach_absolute_time (NONE). OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
-    let instant_probe =
-      with_apple_aarch64_instant_read!(instant_provider, measure_apple_public_exact, instant);
-    let ordered_probe =
-      with_apple_aarch64_ordered_read!(ordered_provider, measure_apple_public_exact, ordered);
+    // The exact elapsed leg must scale its tick delta into a Duration exactly as
+    // the public path does; the selected primitive carries the mode-correct scale
+    // (bare CNTVCT by CNTFRQ_EL0, Mach-domain reads by the Mach ratio) and is
+    // paired with the read the dispatch macros pick from the same provider name.
+    let instant_scale =
+      tach::bench::apple_aarch64_selected_instant_primitive().nanos_per_tick_q32();
+    let ordered_scale =
+      tach::bench::apple_aarch64_selected_ordered_primitive().nanos_per_tick_q32();
+    let instant_probe = with_apple_aarch64_instant_read!(
+      instant_provider,
+      measure_apple_public_exact,
+      instant,
+      instant_scale
+    );
+    let ordered_probe = with_apple_aarch64_ordered_read!(
+      ordered_provider,
+      measure_apple_public_exact,
+      ordered,
+      ordered_scale
+    );
     serde_json::json!({
       "selected_provider": {
         "instant": instant_provider,
@@ -2018,9 +2062,15 @@ fn write_ordered_selection() {
   let payload = {
     // The commpage mode fixes the OrderedInstant pick; there is no tournament.
     let ordered_provider = tach::bench::apple_ordered_wall_selected_provider();
+    let ordered_scale =
+      tach::bench::apple_aarch64_selected_ordered_primitive().nanos_per_tick_q32();
     let decision_rule = "OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the commpage mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
-    let public_exact_probe =
-      with_apple_aarch64_ordered_read!(ordered_provider, measure_apple_public_exact, ordered);
+    let public_exact_probe = with_apple_aarch64_ordered_read!(
+      ordered_provider,
+      measure_apple_public_exact,
+      ordered,
+      ordered_scale
+    );
     serde_json::json!({
       "selected_provider": ordered_provider,
       "selected_native_benchmark": format!("direct_selected_ordered_wall__{ordered_provider}"),

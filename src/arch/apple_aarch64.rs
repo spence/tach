@@ -26,26 +26,84 @@
 //! ordered pick stays in the Mach-timebase domain.
 
 use core::arch::asm;
-use core::sync::atomic::{AtomicU8, Ordering};
+use core::sync::atomic::{AtomicU64, Ordering};
 
 const COMM_PAGE_BASE: usize = 0x0000_000f_ffff_c000;
 const TIMEBASE_OFFSET: usize = COMM_PAGE_BASE + 0x088;
 const USER_TIMEBASE: usize = COMM_PAGE_BASE + 0x090;
 
-#[cfg(test)]
 const USER_TIMEBASE_NONE: u8 = 0;
 const USER_TIMEBASE_SPEC: u8 = 1;
 const USER_TIMEBASE_NOSPEC: u8 = 2;
 const USER_TIMEBASE_NOSPEC_APPLE: u8 = 3;
 
-// MODE_UNREAD sentinel is outside the valid 0..=3 range.
-const MODE_UNREAD: u8 = 0xFF;
-static CACHED_MODE: AtomicU8 = AtomicU8::new(MODE_UNREAD);
+// One relaxed load resolves the SIGILL-gate mode AND the `Instant` scale.
+//
+// The commpage timebase mode is process-immutable (set at `exec`, inherited
+// unchanged across `fork`), and on Apple Silicon the `Instant` scale is equally
+// fixed: it derives from `CNTFRQ_EL0`/`mach_timebase_info`, which never change
+// for a process, and `recalibrate()` is a documented no-op on macOS. So both
+// share one cached word:
+//   bits [63:56] = commpage mode (0..=3)
+//   bits [55: 0] = `Instant` nanos-per-tick Q32 scale
+// `elapsed()` then pays a single cached load for both the read gate and the
+// scale instead of a mode load plus a separate scale load. A resolved entry
+// always carries a nonzero scale (`scale_from_ratio` floors at 1), so the
+// all-zero word is the "unresolved" sentinel — the packed analogue of the
+// former 0xFF mode-byte sentinel, and likewise outside every resolved value.
+const MODE_SHIFT: u32 = 56;
+const SCALE_MASK: u64 = (1_u64 << MODE_SHIFT) - 1;
+// Bit [56] is the mode byte's low bit; it is set exactly for the bare-`CNTVCT`
+// modes SPEC(1) and NOSPEC_APPLE(3). One `tst BARE_BIT` selects the resolved
+// bare read — the common Apple-Silicon case and the whole reason bare CNTVCT is
+// the pick — while the all-zero unresolved word and every non-bare mode fall
+// through to the cold resolver/dispatch. `resolve_cold` normalizes any
+// out-of-range commpage byte to NONE, so this bit can never nominate a
+// SIGILL-unsafe bare read on a mode that forbids it.
+const BARE_BIT: u64 = 1_u64 << MODE_SHIFT;
+static RESOLVED: AtomicU64 = AtomicU64::new(0);
 
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {
-  match resolved_mode() {
+  let packed = RESOLVED.load(Ordering::Relaxed);
+  if packed & BARE_BIT != 0 {
+    return bare_cntvct();
+  }
+  ticks_nonbare(packed)
+}
+
+// `Instant::elapsed()` end read paired with its scale from one cached load, so
+// the hot elapsed path resolves the SIGILL gate and the tick scale together.
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn ticks_with_scale() -> (u64, u64) {
+  let packed = RESOLVED.load(Ordering::Relaxed);
+  if packed & BARE_BIT != 0 {
+    return (bare_cntvct(), packed & SCALE_MASK);
+  }
+  ticks_with_scale_nonbare(packed)
+}
+
+// Cold on Apple Silicon: reached only before the mode resolves and on the
+// (currently unshipped) non-bare commpage modes. The first bare read on a fresh
+// process also lands here once, then every later read takes the inline bare arm.
+#[cold]
+#[inline(never)]
+fn ticks_nonbare(packed: u64) -> u64 {
+  ticks_for_mode((ensure_resolved(packed) >> MODE_SHIFT) as u8)
+}
+
+#[cold]
+#[inline(never)]
+fn ticks_with_scale_nonbare(packed: u64) -> (u64, u64) {
+  let packed = ensure_resolved(packed);
+  (ticks_for_mode((packed >> MODE_SHIFT) as u8), packed & SCALE_MASK)
+}
+
+#[inline]
+fn ticks_for_mode(mode: u8) -> u64 {
+  match mode {
     // Modes 1/3 permit the bare `CNTVCT_EL0`; it is its own `CNTFRQ` domain.
     USER_TIMEBASE_SPEC | USER_TIMEBASE_NOSPEC_APPLE => bare_cntvct(),
     // Mode 2 permits the self-synchronizing register; Mach-timebase domain.
@@ -89,19 +147,40 @@ pub fn ticks_ordered_unordered() -> u64 {
   }
 }
 
-/// Resolve the process-immutable commpage timebase mode, caching it after the
-/// first read. Racing threads compute the same immutable mode, so the relaxed
-/// load/store is sufficient (no CAS).
+/// Extract the process-immutable commpage timebase mode from the cached word.
 #[inline(always)]
 #[allow(clippy::inline_always)]
 fn resolved_mode() -> u8 {
-  let cached = CACHED_MODE.load(Ordering::Relaxed);
-  if cached != MODE_UNREAD {
-    return cached;
-  }
-  let mode = user_timebase_mode();
-  CACHED_MODE.store(mode, Ordering::Relaxed);
-  mode
+  (resolved() >> MODE_SHIFT) as u8
+}
+
+/// Load the cached (mode, scale) word, resolving it once on first use. Racing
+/// threads compute the same immutable values, so the relaxed load/store is
+/// sufficient (no CAS).
+#[inline(always)]
+#[allow(clippy::inline_always)]
+fn resolved() -> u64 {
+  ensure_resolved(RESOLVED.load(Ordering::Relaxed))
+}
+
+#[inline]
+fn ensure_resolved(packed: u64) -> u64 {
+  if packed != 0 { packed } else { resolve_cold() }
+}
+
+#[cold]
+#[inline(never)]
+fn resolve_cold() -> u64 {
+  let raw = user_timebase_mode();
+  // Normalize any out-of-range commpage byte to NONE so `BARE_BIT` (the mode's
+  // low bit) never nominates a bare read for a mode that forbids it — matching
+  // the historical `_ => mach_absolute()` fallback for unknown bytes.
+  let mode = if raw <= USER_TIMEBASE_NOSPEC_APPLE { raw } else { USER_TIMEBASE_NONE };
+  let scale = instant_scale_for_mode(mode);
+  debug_assert!(scale <= SCALE_MASK, "Instant scale exceeds the packed field width");
+  let packed = (u64::from(mode) << MODE_SHIFT) | (scale & SCALE_MASK);
+  RESOLVED.store(packed, Ordering::Relaxed);
+  packed
 }
 
 // The bare counter is its own tick domain: `CNTFRQ_EL0` reports 24 MHz on
@@ -109,15 +188,20 @@ fn resolved_mode() -> u8 {
 // Mach-timebase ticks. The `Instant` READ and this SCALE therefore branch on
 // the same mode predicate: modes 1/3 read bare and scale by `CNTFRQ`; every
 // other mode reads a Mach-timebase source and scales by the Mach ratio. A
-// mismatch would make `elapsed()` wrong by ~40x on M3/M4 (1 GHz vs 24 MHz).
+// mismatch would make `elapsed()` wrong by ~40x on M3/M4 (1 GHz vs 24 MHz). The
+// resolved value is cached inside the packed word so this branch runs once.
 #[inline]
-pub(crate) fn instant_nanos_per_tick_q32() -> u64 {
-  let mode = resolved_mode();
+fn instant_scale_for_mode(mode: u8) -> u64 {
   if mode == USER_TIMEBASE_SPEC || mode == USER_TIMEBASE_NOSPEC_APPLE {
     crate::arch::scale_from_ratio(1_000_000_000, cntfrq())
   } else {
     mach_nanos_per_tick_q32()
   }
+}
+
+#[inline]
+pub(crate) fn instant_nanos_per_tick_q32() -> u64 {
+  resolved() & SCALE_MASK
 }
 
 #[inline(always)]

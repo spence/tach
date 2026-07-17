@@ -362,12 +362,18 @@ pub(crate) fn ticks_with_scale() -> (u64, u64) {
   {
     return apple_x86_64::ticks_with_scale();
   }
+  #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+  {
+    // One cached load yields both the SIGILL-gate read and its Q32 scale.
+    apple_aarch64::ticks_with_scale()
+  }
   #[cfg(all(target_os = "freebsd", target_arch = "x86_64"))]
   {
     return freebsd_x86_64::ticks_with_scale();
   }
   #[cfg(not(any(
     all(target_os = "macos", target_arch = "x86_64"),
+    all(target_os = "macos", target_arch = "aarch64"),
     all(target_os = "freebsd", target_arch = "x86_64"),
   )))]
   (ticks(), nanos_per_tick_q32())

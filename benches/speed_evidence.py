@@ -3728,15 +3728,10 @@ def validate_fixed_pick_wall_selector(
     if not isinstance(domain_public_exact, dict):
       failures.append(f"{context}: fixed-pick {domain} lacks metric parity evidence")
       domain_public_exact = {}
-    # The Apple aarch64 emitter writes a flat now-only probe (the measurement leaf
-    # sits directly under the domain); FreeBSD/Windows/Linux nest {now, elapsed}.
-    # Accept both, mirroring check-inline-parity.py. The nested form still requires
-    # both metrics (a missing one becomes None -> a probe failure), so this is not
-    # a weakening — only the Apple flat shape gains a valid now-only reading.
-    if any(key in domain_public_exact for key in ("exact_batches_ns", "public_batches_ns")):
-      metric_probes = {"now": domain_public_exact}
-    else:
-      metric_probes = {metric: domain_public_exact.get(metric) for metric in METRICS}
+    # Every converted wall family nests {now, elapsed} under each domain. A missing
+    # leaf becomes None, which validate_wall_public_exact_probe fails closed, so an
+    # incomplete probe can never pass as a partial reading.
+    metric_probes = {metric: domain_public_exact.get(metric) for metric in METRICS}
     results[domain] = {
       "winner": provider,
       "public_exact": {
