@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Render the six admitted native environments for tach's three timing use cases."""
+"""Render tach's three timing-use-case cells from a full release snapshot or a
+four-primary campaign directory."""
 
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from pathlib import Path
 import sys
 
 import release_chart
+import speed_evidence
 
 ROOT = Path(__file__).resolve().parent
 RELEASE_VALIDATOR_PATH = ROOT / "validate-release-evidence.py"
@@ -113,9 +115,14 @@ def compact_provider(label: str) -> str:
   )
 
 
-def validate(cells) -> None:
-  if len(cells) != 6:
-    raise ValueError(f"expected six admitted native chart cells, found {len(cells)}")
+def validate(cells, *, expected_count: int = 6) -> None:
+  """Check the shared cell shape; `expected_count` only accounts for which artifact
+  set a caller committed to (six for the fixed release layout, whatever a campaign
+  actually planned to load) — it is not a speed comparison or eligibility rule."""
+  if len(cells) != expected_count:
+    raise ValueError(
+      f"expected {expected_count} admitted native chart cells, found {len(cells)}"
+    )
   missing = []
   for header, clocks in cells:
     for _section, rows in SECTIONS:
@@ -283,6 +290,52 @@ def cells_from_release_snapshot(snapshot) -> list[tuple[tuple[str, str, str], di
   return cells
 
 
+def cells_from_campaign(campaign_dir: Path) -> list[tuple[tuple[str, str, str], dict]]:
+  """Build chart cells straight from a four-primary campaign directory's cell JSON.
+
+  Reuses release_chart.CHART_CELLS for headers and identity checks so a campaign
+  cell renders with the exact title/instance/triple a release-snapshot cell would.
+  The four primary cells (speed_evidence.PRIMARY_SPEED_CELLS) are required; an
+  admitted supplemental cell (freebsd, macos-x86) is included when its file is
+  present in `campaign_dir`, but the primaries alone are sufficient to render.
+  """
+  loader = load_release_validator()
+  directory = loader.evidence_directory(campaign_dir)
+  primary_ids = frozenset(speed_evidence.PRIMARY_SPEED_CELLS)
+  planned = [
+    (artifact_id, header)
+    for artifact_id, header in release_chart.CHART_CELLS
+    if artifact_id in primary_ids or (directory / artifact_id).is_file()
+  ]
+  cells = []
+  for artifact_id, header in planned:
+    path = directory / artifact_id
+    if not path.is_file():
+      raise ValueError(f"campaign directory {directory} is missing required cell {artifact_id}")
+    document = loader.parse_strict_json_object(path.read_bytes(), f"campaign cell {artifact_id}")
+    expected_schema = (
+      speed_evidence.PRIMARY_SPEED_SCHEMA
+      if artifact_id in primary_ids
+      else speed_evidence.SUPPLEMENTAL_SPEED_SCHEMA
+    )
+    if document.get("schema") != expected_schema:
+      raise ValueError(
+        f"campaign cell {artifact_id} schema changed: "
+        f"expected {expected_schema!r}, got {document.get('schema')!r}"
+      )
+    if document.get("triple") != header[2]:
+      raise ValueError(
+        f"campaign cell {artifact_id} target changed: "
+        f"expected {header[2]!r}, got {document.get('triple')!r}"
+      )
+    clocks = document.get("clocks")
+    if not isinstance(clocks, dict):
+      raise ValueError(f"campaign cell {artifact_id} has no clocks object")
+    cells.append((header, clocks))
+  validate(cells, expected_count=len(planned))
+  return cells
+
+
 def render_cells(cells, output_dir: Path, png: bool = True) -> None:
   """Render already-admitted chart cells without reading evidence paths."""
   output_dir.mkdir(parents=True, exist_ok=True)
@@ -301,24 +354,37 @@ def render(snapshot, output_dir: Path, png: bool = True) -> None:
   render_cells(cells_from_release_snapshot(snapshot), output_dir, png)
 
 
+def render_from_campaign(campaign_dir: Path, output_dir: Path, png: bool = True) -> None:
+  """Render a claim straight from a four-primary campaign directory's admitted cells."""
+  render_cells(cells_from_campaign(campaign_dir), output_dir, png)
+
+
 def main() -> None:
   parser = argparse.ArgumentParser()
   parser.add_argument("--data-dir", type=Path, default=ROOT)
+  parser.add_argument("--campaign-dir", type=Path, default=None)
   parser.add_argument("--output-dir", type=Path, default=ROOT)
   parser.add_argument("--svg-only", action="store_true")
   args = parser.parse_args()
   if not args.svg_only and shutil.which("rsvg-convert") is None:
     raise SystemExit("rsvg-convert is required to render the benchmark PNG")
   try:
-    snapshot = load_release_validator().require_validated_release_snapshot(
-      args.data_dir,
-      ROOT.parent,
-    )
-    render(
-      snapshot,
-      args.output_dir,
-      png=not args.svg_only,
-    )
+    if args.campaign_dir is not None:
+      render_from_campaign(
+        args.campaign_dir,
+        args.output_dir,
+        png=not args.svg_only,
+      )
+    else:
+      snapshot = load_release_validator().require_validated_release_snapshot(
+        args.data_dir,
+        ROOT.parent,
+      )
+      render(
+        snapshot,
+        args.output_dir,
+        png=not args.svg_only,
+      )
   except ValueError as error:
     raise SystemExit(str(error)) from error
 

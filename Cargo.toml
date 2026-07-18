@@ -21,7 +21,6 @@ include = [
   "/BENCHMARKS.md",
   "/benches/ORDERED-VERIFICATION.md",
   "/benches/speed-*.json",
-  "/benches/three-clock-evidence.json",
   "/benches/summary-thread-cpu.png",
   "/benches/summary-use-cases.png",
   "/LICENSE-MIT",
