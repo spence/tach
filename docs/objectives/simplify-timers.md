@@ -29,6 +29,7 @@ authority. The closure is owner-accepted; nothing closes by assertion.
 | `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | ✅ | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | 🚧 | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1⚪ |
 
 ---
 
@@ -92,6 +93,16 @@ workflow references a deleted path; README/BENCHMARKS contain no claim referenci
 provenance and carry the fresh six-cell numbers; the plan's consistency greps return empty.
 - **Fallback.** restore the specific provenance from the archive branch or correct the claim;
   never leave a public claim pointing at nothing. Never weaken the gate.
+
+---
+
+## `OBJ-SIMPLIFY-TIMERS.M4` — Refined three-tier contract: competitive Instant, publish-ready
+
+**Description.** Refine the three timer contracts per ADR-0007 — `Instant` = fastest same-core clock (elapsed never negative), `OrderedInstant` = fastest cross-core-reliable clock, `ThreadCpuInstant` = fastest reliable per-thread time — re-point Windows `Instant` from QPC to a raw-TSC read, re-measure, and carry the honest competitive claims to publish-readiness.
+
+### Gate `OBJ-SIMPLIFY-TIMERS.M4.G1` — Refined contract landed, re-measured competitive, claims honest, packet ready
+Pass: ADR-0007 accepted; Windows `Instant` selects a raw-TSC provider on both feature surfaces with `OrderedInstant` unchanged; `validate_campaign_for_checkout` passes at one revision with `Instant` competitive against the same-tier references and `OrderedInstant` beating `std`; README/BENCHMARKS describe the refined contract with fresh committed evidence and no deleted-provenance claims; a complete approval packet awaits the owner.
+- **Fallback.** A provider that cannot meet its contract on a target reverts to the prior reliable pick with a recorded residual; a claim that cannot be backed reverts to frozen evidence or is corrected. Never weaken an ADR-0007 contract invariant.
 
 ---
 
@@ -295,6 +306,12 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 - Did: Assembled the complete M3.G1 approval packet (docs/plans/simplify-timers-approval-packet.md): the three owner decisions (ratify the c7g gate correction fbe6e8b via ESC-APPLE-ELAPSED-DISPATCH, sign the public claims wording carrying the fresh 4-cell numbers, accept M3.G1 closure), the fresh numbers as draft claims tables, and the precise BENCHMARKS/README rewrite spec.
 - Next: Owner: ratify fbe6e8b, sign the claims wording, accept closure. On sign-off apply the claims rewrite (BENCHMARKS six-cell tables to four-primary + fresh numbers; fix the deleted validate-speed-evidence.py reference; repoint the durable package to EVID-SPEED-CAMPAIGN-2026-07-17; regenerate summary charts) then nsr close-objective.
 - Board: M3.G1 approval packet assembled; campaign green; 3 owner decisions await (ratify fbe6e8b, sign claims wording, accept closure)
+
+### 2026-07-17 · spence · `OBJ-SIMPLIFY-TIMERS.M4`
+- Did: Opened M4 and accepted ADR-0007 (owner ruling A): the three timer contracts are sharpened by guarantee — Instant = fastest same-core clock (elapsed never negative, saturates to zero), OrderedInstant = fastest cross-core-reliable clock, ThreadCpuInstant = fastest reliable per-thread time — each the fastest ELIGIBLE clock for its guarantee. This relocates the cross-core guarantee from Instant to OrderedInstant, so Windows Instant moves QPC to a raw-TSC read (competitive with quanta) while Windows OrderedInstant stays QPC.
+- Found: The Windows Instant slowness was an artifact of conflating Instant's guarantee with OrderedInstant's. Apple/Graviton read a system-wide counter (fast AND cross-core for free) and Linux x86 already reads raw TSC, so only Windows Instant is out of step; only that cell re-measures — every OrderedInstant cell and the other Instant cells stand, and the c7g dispatch disposition (fbe6e8b) is reinforced.
+- Next: Implement the Windows raw-TSC Instant provider (OrderedInstant=QPC unchanged); relax any Instant-only cross-core eligibility gate; re-measure the Windows Instant cell and re-validate the campaign; rewrite README/BENCHMARKS to the refined contract with fresh numbers; ratify the c7g disposition; assemble the approval packet.
+- Board: M4 opened; ADR-0007 accepted (refined 3-tier contract); next = Windows Instant raw-TSC provider + re-measure + honest claims
 
 ## /goal
 
