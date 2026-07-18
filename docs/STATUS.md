@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M4 🚧 Refined three-tier contract: competitive Instant, publish-ready)
-> Next:       Refresh approval packet with 4259e92 numbers + draft claims; escalate claims-wording + publish sign-off (blocks M4.G1); present to owner.
+> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M5 ⚪ Runtime-selection audit closure)
+> Next:       Land R2 (chart 4-cell adapter + Cargo cleanup, both re-seal) -> full 4-cell re-measure at the final revision -> validate_campaign_for_checkout, render PNG, freeze evidence, close M5.G1.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-SIMPLIFY-M4-APPROVAL
-> Last verified: 2026-07-18 · Changed: OBJ-SIMPLIFY-TIMERS.M4 🚧 (Refined three-tier contract: competitive Instant, publish-ready) · By: nsr · 1ad5664
+> Last verified: 2026-07-18 · Changed: Landed R1 (fcdcd95): Apple x86 Instant converted from the TSC-vs-mach tournament to a fixed mach_absolute_time pick (net -563 lines); OrderedInstant byte-identical; route-proof now forbids rdtsc/requires mach; fixed pre-existing x86-apple clippy lints. Gates green on main: fmt, cargo check x86-apple+host x2 surfaces, test --lib 12/0, host clippy, lib x86-apple clippy -D warnings, py_compile validators. · By: nsr · fcdcd95
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -33,7 +33,7 @@ policy [`decisions/0005…`](decisions/0005-timer-contracts-eligibility-evidence
 | `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | 🚧 | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M5` | Runtime-selection audit closure | ⚪ | Apple x86 `Instant` → fixed pick (last in-tree tournament); every runtime clock choice dispositioned honest | inline · G1⚪ |
 
-Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M4`): G1⚪
+Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M5`): G1⚪
 <!-- /render:board -->
 
 ---

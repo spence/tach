@@ -343,6 +343,11 @@ surfaces; fmt/clippy/`test --lib` green on default and `--no-default-features`.
 - Next: Refresh approval packet with 4259e92 numbers + draft claims; escalate claims-wording + publish sign-off (blocks M4.G1); present to owner.
 - Board: M4 campaign GREEN at 4259e92 (EVID-SPEED-CAMPAIGN-REFINED); M4.G1 blocked on owner claims-wording sign-off
 
+### 2026-07-18 · spence · `OBJ-SIMPLIFY-TIMERS.M5`
+- Did: Landed R1 (fcdcd95): Apple x86 Instant converted from the TSC-vs-mach tournament to a fixed mach_absolute_time pick (net -563 lines); OrderedInstant byte-identical; route-proof now forbids rdtsc/requires mach; fixed pre-existing x86-apple clippy lints. Gates green on main: fmt, cargo check x86-apple+host x2 surfaces, test --lib 12/0, host clippy, lib x86-apple clippy -D warnings, py_compile validators.
+- Found: BENCHMARK_SOURCE_PATHS (speed_evidence.py:138) seals summary-use-cases.py + validators + instant.rs + Cargo.toml, but NOT README/BENCHMARKS/*.png -> every sealed-tooling change (chart adapter, Cargo include cleanup) must precede the re-measure; claims rewrite is post-measure docs. Cargo three-clock-evidence.json include verified a silent no-op (cargo package --list EXIT=0), removed as dead config.
+- Next: Land R2 (chart 4-cell adapter + Cargo cleanup, both re-seal) -> full 4-cell re-measure at the final revision -> validate_campaign_for_checkout, render PNG, freeze evidence, close M5.G1.
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the
