@@ -185,7 +185,7 @@ impl ThreadCpuInstant {
   #[inline(always)]
   #[allow(clippy::inline_always)]
   pub(crate) fn bench_windows_wall_fallback_now() -> Self {
-    Self::from_nanos(encode_wall_ticks(arch::ticks()))
+    Self::from_nanos(arch::thread_cpu::windows_wall_now_value())
   }
 
   /// Reports the provider selected for the current OS thread.
@@ -258,16 +258,21 @@ impl ThreadCpuInstant {
   #[inline]
   #[must_use]
   pub fn duration_since(&self, earlier: Self) -> Duration {
+    // Windows joins the nanosecond-domain fallbacks: both its `GetThreadTimes`
+    // CPU reads and its QueryPerformanceCounter wall fallback are nanoseconds, so
+    // a wall-tagged sample is never rescaled through the tick-domain `Instant`
+    // path (a bare TSC on x86 Windows).
     #[cfg(any(
       target_os = "wasi",
       target_os = "emscripten",
+      target_os = "windows",
       all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
     ))]
     {
       if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
         return Duration::ZERO;
       }
-      return Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos));
+      Duration::from_nanos(self.nanos.saturating_sub(earlier.nanos))
     }
     #[cfg(all(target_os = "macos", not(test)))]
     {
@@ -278,6 +283,7 @@ impl ThreadCpuInstant {
       not(any(
         target_os = "wasi",
         target_os = "emscripten",
+        target_os = "windows",
         all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
       )),
     ))]
@@ -299,13 +305,14 @@ impl ThreadCpuInstant {
     #[cfg(any(
       target_os = "wasi",
       target_os = "emscripten",
+      target_os = "windows",
       all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
     ))]
     {
       if (self.nanos ^ earlier.nanos) & WALL_DOMAIN_BIT != 0 {
         return None;
       }
-      return self.nanos.checked_sub(earlier.nanos).map(Duration::from_nanos);
+      self.nanos.checked_sub(earlier.nanos).map(Duration::from_nanos)
     }
     #[cfg(all(target_os = "macos", not(test)))]
     {
@@ -316,6 +323,7 @@ impl ThreadCpuInstant {
       not(any(
         target_os = "wasi",
         target_os = "emscripten",
+        target_os = "windows",
         all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
       )),
     ))]
@@ -349,7 +357,7 @@ impl ThreadCpuInstant {
     let delta = if self.measures_thread_cpu_time() {
       duration_to_nanos(duration)?
     } else {
-      crate::instant::duration_to_ticks(duration)?
+      wall_duration_delta(duration)?
     };
     let nanos = (self.nanos & VALUE_MASK).checked_add(delta)?;
     (nanos <= VALUE_MASK).then(|| Self::from_nanos(domain | nanos))
@@ -363,7 +371,7 @@ impl ThreadCpuInstant {
     let delta = if self.measures_thread_cpu_time() {
       duration_to_nanos(duration)?
     } else {
-      crate::instant::duration_to_ticks(duration)?
+      wall_duration_delta(duration)?
     };
     (self.nanos & VALUE_MASK)
       .checked_sub(delta)
@@ -381,6 +389,7 @@ impl ThreadCpuInstant {
   not(any(
     target_os = "wasi",
     target_os = "emscripten",
+    target_os = "windows",
     all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
   )),
 ))]
@@ -388,6 +397,23 @@ impl ThreadCpuInstant {
 #[inline(never)]
 fn duration_since_wall_or_mixed(later: ThreadCpuInstant, earlier: ThreadCpuInstant) -> Duration {
   later.checked_duration_since(earlier).unwrap_or_default()
+}
+
+// A wall-domain `ThreadCpuInstant` advances in its wall source's units. Windows
+// wall fallbacks are QueryPerformanceCounter nanoseconds; every other tick-domain
+// wall fallback shares the `Instant` scale. Keeping Windows in nanoseconds keeps
+// its wall arithmetic off the x86 `Instant` TSC scale (which the thread-cpu route
+// forbids reaching).
+#[cfg(target_os = "windows")]
+#[inline]
+fn wall_duration_delta(duration: Duration) -> Option<u64> {
+  duration_to_nanos(duration)
+}
+
+#[cfg(not(target_os = "windows"))]
+#[inline]
+fn wall_duration_delta(duration: Duration) -> Option<u64> {
+  crate::instant::duration_to_ticks(duration)
 }
 
 impl Add<Duration> for ThreadCpuInstant {

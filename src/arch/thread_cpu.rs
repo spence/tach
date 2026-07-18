@@ -3634,7 +3634,7 @@ pub(crate) fn now_nanos() -> u64 {
 
   let state = WINDOWS_PROVIDER.load(Ordering::Relaxed);
   if state == WINDOWS_WALL {
-    return wall_now_value();
+    return windows_wall_now_value();
   }
   if let Some(nanos) = windows_thread_cpu_nanos() {
     return match state {
@@ -3646,13 +3646,31 @@ pub(crate) fn now_nanos() -> u64 {
         Ordering::Relaxed,
       ) {
         Ok(_) | Err(WINDOWS_THREAD_CPU) => nanos,
-        Err(_) => wall_now_value(),
+        Err(_) => windows_wall_now_value(),
       },
-      _ => wall_now_value(),
+      _ => windows_wall_now_value(),
     };
   }
   WINDOWS_PROVIDER.store(WINDOWS_WALL, Ordering::Relaxed);
-  wall_now_value()
+  windows_wall_now_value()
+}
+
+// GetThreadTimes' documented failure fallback is QueryPerformanceCounter, the
+// same OS-owned high-resolution wall clock `OrderedInstant` reads, scaled to
+// nanoseconds. Reading QPC directly rather than the shared `crate::arch::ticks()`
+// `Instant` timeline keeps this fallback off the x86 Windows bare-invariant-TSC
+// `Instant` path (RDTSC), which the thread-cpu route forbids and whose tick
+// domain would also mis-scale against QueryPerformanceFrequency. The nanosecond
+// result carries the shared wall tag, so it is interpreted with
+// `Duration::from_nanos` like every other tagged wall fallback and never
+// re-enters the tick-domain `Instant` scale.
+#[cfg(target_os = "windows")]
+#[inline]
+pub(crate) fn windows_wall_now_value() -> u64 {
+  let ticks = u128::from(crate::arch::fallback::qpc_ticks());
+  let frequency = u128::from(crate::arch::fallback::qpc_frequency().max(1));
+  let nanos = u64::try_from(ticks.saturating_mul(1_000_000_000) / frequency).unwrap_or(u64::MAX);
+  crate::thread_cpu::encode_wall_ticks(nanos)
 }
 
 #[cfg(target_os = "windows")]
@@ -4084,8 +4102,12 @@ fn timespec_to_nanos(value: libc::timespec) -> Option<u64> {
   seconds.checked_mul(1_000_000_000)?.checked_add(u64::from(nanos))
 }
 
+// Windows routes its thread-cpu wall fallback through `windows_wall_now_value`
+// (QueryPerformanceCounter), so this shared `crate::arch::ticks()` wall read is
+// excluded there: on x86 Windows `ticks()` is the bare-invariant-TSC `Instant`
+// path the thread-cpu route forbids.
 #[inline]
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
 fn wall_now_value() -> u64 {
   crate::thread_cpu::encode_wall_ticks(crate::arch::ticks())
 }
