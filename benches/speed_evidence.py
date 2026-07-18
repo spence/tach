@@ -851,28 +851,48 @@ def validate_apple_wall_selector(
     failures.append(f"{context}: malformed Apple wall selector metadata")
     return {}
   probe = selection.get("probe")
+  # Apple x86 shape: `Instant` is a fixed `apple_mach_absolute_time` read (the
+  # invariant-TSC branch was removed as an unvalidatable bare-metal-Intel path,
+  # owner ruling), so there is no Instant tournament to reproduce; `OrderedInstant`
+  # keeps its commpage-vs-mach tournament. The aarch64 payload carries no `probe`
+  # key and falls through to the fixed-per-contract branch below.
   if (
     isinstance(probe, dict)
-    and isinstance(probe.get("instant"), dict)
-    and "tsc_eligible" in probe["instant"]
     and isinstance(probe.get("ordered"), dict)
+    and "commpage_eligible" in probe["ordered"]
   ):
     public_exact = selection.get("public_exact_probe")
     if not isinstance(public_exact, dict):
       failures.append(f"{context}: Apple x86 selector lacks paired public/exact evidence")
       public_exact = {}
     results = {}
+
+    # `Instant` is fixed: mach_absolute_time is the only candidate and selection.
+    instant_selected = selected.get("instant")
+    if instant_selected != "apple_mach_absolute_time":
+      failures.append(f"{context}: Apple x86 Instant must be a fixed apple_mach_absolute_time pick")
+    if candidates.get("instant") != ["direct_wall__apple_mach_absolute_time"]:
+      failures.append(f"{context}: Apple x86 Instant candidate set must be the fixed mach read")
+    if selected_benchmarks.get("instant") != f"direct_selected_wall__{instant_selected}":
+      failures.append(f"{context}: Apple x86 Instant selected benchmark is mislabeled")
+    instant_public_exact = public_exact.get("instant")
+    if not isinstance(instant_public_exact, dict):
+      failures.append(f"{context}: Apple x86 Instant lacks metric parity evidence")
+      instant_public_exact = {}
+    results["instant"] = {
+      "winner": instant_selected,
+      "measured_winner": "apple_mach_absolute_time",
+      "decision": None,
+      "public_exact": {
+        metric: validate_wall_public_exact_probe(
+          context, f"instant.{metric}", instant_public_exact.get(metric), failures
+        )
+        for metric in METRICS
+      },
+    }
+
+    # `OrderedInstant` keeps the unchanged commpage-vs-mach tournament.
     domain_specs = (
-      (
-        "instant",
-        "tsc_eligible",
-        "tsc_batches_ticks",
-        "tsc_median_ticks",
-        "tsc_selected",
-        "apple_invariant_rdtsc",
-        "direct_wall",
-        "direct_selected_wall",
-      ),
       (
         "ordered",
         "commpage_eligible",
@@ -934,12 +954,7 @@ def validate_apple_wall_selector(
       if candidates.get(domain) != expected_candidates:
         failures.append(f"{context}: Apple x86 {domain} candidate set is incomplete")
       selected_provider = domain_probe.get("selected_provider")
-      if domain == "instant":
-        if domain_probe.get("measured_winner") != measured_winner:
-          failures.append(f"{context}: Apple x86 Instant measured winner changed")
-        if selected_provider not in (measured_winner, "apple_mach_absolute_time"):
-          failures.append(f"{context}: Apple x86 Instant selected an invalid provider")
-      elif selected_provider != measured_winner:
+      if selected_provider != measured_winner:
         failures.append(f"{context}: Apple x86 Ordered selected provider does not reproduce")
       if selected.get(domain) != selected_provider:
         failures.append(f"{context}: Apple x86 {domain} selected providers disagree")

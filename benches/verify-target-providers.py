@@ -744,16 +744,19 @@ def instant_route(target: str) -> dict:
     }
 
   if target == "x86_64-apple-darwin":
+    # M4 removed the Instant TSC-vs-mach tournament: the invariant-TSC branch was
+    # only selectable on a bare-metal Intel Mac (unavailable), an unvalidatable
+    # runtime branch, so Instant is a fixed mach_absolute_time read
+    # (src/arch/apple_x86_64.rs `ticks`). XNU's x86 mach_timebase is 1/1, so the
+    # counter is already nanoseconds and no RDTSC is emitted for Instant.
+    # OrderedInstant is unchanged (ordered_instant_route below still requires the
+    # commpage LFENCE/RDTSC/LFENCE protocol).
     return {
-      "provider": "measured invariant TSC or XNU Mach absolute-time provider",
-      "native_primitive": "RDTSC or mach_absolute_time",
+      "provider": "fixed XNU Mach absolute-time provider",
+      "native_primitive": "mach_absolute_time",
       "ordering": "unordered same-thread wall read",
-      "required_patterns": [
-        r"apple_x86_64.*ticks(?:_with_scale)?_after_selection",
-        "@mach_absolute_time",
-        "llvm.x86.rdtsc",
-      ],
-      "forbidden_patterns": [r"\brdtscp\b"],
+      "required_patterns": ["@mach_absolute_time"],
+      "forbidden_patterns": [r"\brdtscp\b", "llvm.x86.rdtsc"],
     }
 
   if target == "x86_64-unknown-freebsd":
@@ -1663,6 +1666,14 @@ def selection_policy(target: str, timer: str, mode: str) -> dict[str, str]:
     return {
       "selection_policy": "fixed_contract",
       "selection_basis": "XNU's approved architectural counter is the eligible local wall route",
+    }
+  if target == "x86_64-apple-darwin" and timer == "instant":
+    return {
+      "selection_policy": "fixed_contract",
+      "selection_basis": (
+        "the fixed XNU Mach absolute-time read is the only validatable local wall route; the "
+        "invariant-TSC branch was removed (owner ruling, unvalidatable bare-metal Intel)"
+      ),
     }
   return {
     "selection_policy": "runtime_measured",

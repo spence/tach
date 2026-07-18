@@ -362,7 +362,7 @@ pub fn nanos_per_tick_q32() -> u64 {
 pub(crate) fn ticks_with_scale() -> (u64, u64) {
   #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
   {
-    return apple_x86_64::ticks_with_scale();
+    apple_x86_64::ticks_with_scale()
   }
   #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
   {
@@ -437,7 +437,7 @@ pub fn ordered_nanos_per_tick_q32() -> u64 {
 pub(crate) fn ordered_ticks_with_scale() -> (u64, u64) {
   #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
   {
-    return apple_x86_64::ticks_ordered_with_scale();
+    apple_x86_64::ticks_ordered_with_scale()
   }
   #[cfg(all(target_os = "freebsd", target_arch = "x86_64"))]
   {
