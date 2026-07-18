@@ -3,7 +3,7 @@
 [![docs.rs](https://docs.rs/tach/badge.svg)](https://docs.rs/tach)
 [![crates.io](https://img.shields.io/crates/v/tach.svg)](https://crates.io/crates/tach)
 
-`tach` provides three Instant-shaped timers for three timing contracts. On six retained native
+`tach` provides three Instant-shaped timers for three timing contracts. On four primary
 environments, each has the fastest tested steady-state read and elapsed bracket among providers
 eligible for its contract, treating differences within `max(1 ns, 5%)` as a material tie. A
 separate 24-target build matrix proves API availability and provider routing, not speed on
@@ -50,27 +50,29 @@ moving a sample would make it too easy to compare unrelated thread-CPU timelines
 
 ![tach steady-state speed across three timing contracts](https://raw.githubusercontent.com/spence/tach/v0.2.0/benches/summary-use-cases.png)
 
-The chart shows the six native full-speed cells admitted by the release campaign: Apple M1 Max,
-Intel macOS, AWS Graviton 3, AWS Intel Linux, GitHub Windows 2025, and AWS FreeBSD. Dark bars are
-`now()`; light bars are the full `now() + elapsed()` roundtrip.
+The chart shows the four primary cells admitted by `EVID-PRIMARY-SPEED-CAMPAIGN`: Apple M1 Max,
+AWS Graviton 3, AWS Intel Linux, and GitHub Windows 2025. Dark bars are `now()`; light bars are
+the full `now() + elapsed()` roundtrip.
 
-The renderer first requires the complete 15-boundary release snapshot—including Wasm,
-Emscripten, WASI, fallback, and smoke records—then refuses to render unless every eligible
-comparison below passes for both operations on all six native environments.
+The renderer refuses to render unless every eligible comparison below passes for both operations
+on all four primary environments.
 
-| Contract | Audited references | Native result |
+| Contract | Audited references | Primary result |
 |---|---|---|
-| Same-thread elapsed | `quanta`, `fastant`, `minstant`, `std` (eligibility is platform-specific) | 6/6 pass |
-| Synchronization-ordered elapsed | `std` | 6/6 pass |
-| Current-thread CPU usage | Direct OS primitive; direct cached perf mapping when selected | 6/6 pass |
+| Same-thread elapsed | `quanta`, `fastant`, `minstant`, `std` (eligibility is platform-specific) | 4/4 pass |
+| Synchronization-ordered elapsed | `std` | 4/4 pass |
+| Current-thread CPU usage | Direct OS primitive; direct cached perf mapping when selected | 4/4 pass |
 
-A shorter bar can still be ineligible: for example, the bare Windows counter omits OS-owned
-cross-core, hypervisor, and platform-timeline guarantees Windows documents only for QPC. The
-chart keeps those diagnostics visible; the validator does not call them competitors. (The former
-Apple bare-counter exclusion was superseded on 2026-07-15 — ADR-0005, `EVID-APPLE-BARE-CNTVCT`:
-the bare architectural counter passed the same-thread contract battery and is now Apple
-`Instant`'s selected provider; the chart above still shows the frozen `76fd4b1` campaign until
-the six-cell refresh.)
+`Instant` is fastest outright on Apple M1 Max and AWS Graviton 3, and materially tied — within
+`max(1 ns, 5%)` — with the fastest same-tier library on AWS Intel Linux and GitHub Windows.
+`OrderedInstant` beats `std` on every primary cell.
+
+A shorter bar can still be ineligible or unshippable: on Graviton 3 the exact `isb; cntvct` route
+under `OrderedInstant` is retained as a disclosed diagnostic dispatch lower bound — the mandatory
+`isb` barrier exposes a SIGILL-safe provider dispatch tach cannot skip and still ship, so the
+chart's public comparison gates on the shippable read (`tach::OrderedInstant` 20.38 ns < `std`
+32.27 ns), not the idealized diagnostic. The chart keeps such diagnostics visible; the validator
+does not call them competitors.
 
 The predeclared material-tie rule requires tach's point estimate and the conservative edges of
 the two 95% confidence intervals to fit within `max(1 ns, 5%)` of every eligible reference. A
@@ -82,8 +84,8 @@ These are steady-state results. Linux's one-time provider setup and measurement 
 outside the hot-path benchmark.
 
 See the [full values and methodology](https://github.com/spence/tach/blob/v0.2.0/BENCHMARKS.md),
-the [machine-readable claim report](https://github.com/spence/tach/blob/v0.2.0/docs/evidence/timers/release-speed-closure-2026-07-14/release-report.json),
-and the [retained evidence package](https://github.com/spence/tach/tree/v0.2.0/docs/evidence/timers/release-speed-closure-2026-07-14).
+the [machine-readable claim report](https://github.com/spence/tach/blob/v0.2.0/docs/evidence/timers/primary-speed-campaign-2026-07-18/campaign-report.json),
+and the [retained evidence package](https://github.com/spence/tach/tree/v0.2.0/docs/evidence/timers/primary-speed-campaign-2026-07-18).
 
 ## How each timer works
 
@@ -100,9 +102,11 @@ operations. If a timestamp participates in a cross-thread happens-before relatio
 
 ### `OrderedInstant`: synchronization-ordered elapsed time
 
-`OrderedInstant::now()` reads the same elapsed-time counter behind the architecture's ordering
-primitive: `lfence; rdtsc` on x86 and `isb sy` before CNTVCT_EL0 on aarch64. A sample taken after an
-`Acquire` observation cannot be pulled in front of that observation.
+`OrderedInstant::now()` reads the elapsed-time counter behind the architecture's ordering
+primitive: `lfence; rdtsc` on x86 and `isb sy` before CNTVCT_EL0 on aarch64, except Windows, whose
+`OrderedInstant` stays on the OS-owned `QueryPerformanceCounter` call boundary for its cross-core
+guarantee. A sample taken after an `Acquire` observation cannot be pulled in front of that
+observation.
 
 The load-then-now-then-check contract produced zero inversions in about 10.9 billion reads on the
 tested x86 and aarch64 systems. RISC-V and LoongArch use their strongest available barriers, but
@@ -163,8 +167,10 @@ comparison is unordered.
 | Linux AArch64 | Measured CNTVCT or OS monotonic route | Independently measured ordered CNTVCT or OS monotonic route | Complete inline perf capability when available; native raw syscall fallback |
 | Linux RISC-V / LoongArch | Measured architecture counter or OS monotonic route | Independently measured ordered counter or OS monotonic route † | Measured perf task-clock mmap/read or native thread-clock route |
 | Linux armv7 / s390x / powerpc64 | Measured architecture or OS monotonic route | Independently measured barrier/exception-ordered route | Measured perf task-clock mmap/read or native thread-clock route |
-| macOS x86_64 / AArch64 | Measured bare architectural counter (Apple Silicon; ADR-0005) or eligible XNU Mach/commpage route | Independently measured ordered XNU Mach/commpage route | `clock_gettime_nsec_np` thread clock |
-| Windows x86 / x86_64 / AArch64 | Measured Windows-owned high-resolution monotonic route | Independently measured Windows-owned ordered route | `GetThreadTimes`; explicit QPC wall fallback on failure |
+| macOS AArch64 | Bare architectural counter (Apple Silicon; ADR-0005) | Independently measured ordered XNU Mach/commpage route | `clock_gettime_nsec_np` thread clock |
+| macOS x86_64 | Fixed `mach_absolute_time` read (no runtime tournament) | Independently measured ordered XNU Mach/commpage route | `clock_gettime_nsec_np` thread clock |
+| Windows x86 / x86_64 | Calibrated invariant TSC behind a CPUID rate-stability gate (ADR-0007); degrades to QPC when ineligible | Windows-owned QPC ordered route (fixed) | `GetThreadTimes`; explicit QPC wall fallback on failure |
+| Windows AArch64 | Windows-owned QPC monotonic route | Windows-owned QPC ordered route (fixed) | `GetThreadTimes`; explicit QPC wall fallback on failure |
 | Android x86_64 / AArch64 | Measured architecture counter or OS monotonic route | Independently measured ordered counter or OS monotonic route | Measured perf task-clock mmap/read or native thread-clock route |
 | FreeBSD x86_64 | Measured kernel-eligible TSC, libc, or raw clock route | Independently measured ordered TSC or OS clock route | Measured libc or raw native thread-clock route |
 | WASI preview 1 / 2 | Host monotonic clock | Host monotonic clock | Host thread clock where exposed; otherwise explicit wall fallback |
@@ -173,9 +179,9 @@ comparison is unordered.
 
 The provider proof compiles all three public APIs with warnings denied in default and
 `--no-default-features` modes for 24 target triples, then inspects optimized LLVM IR for each
-provider route. This establishes support and routing. The 15-boundary campaign provides runtime
-corroboration; its public charts show the six native full-speed cells. Unbenchmarked hardware is
-not represented as measured.
+provider route. This establishes support and routing. The primary speed campaign provides runtime
+corroboration on four native environments; its public charts show those primary cells.
+Unbenchmarked hardware is not represented as measured.
 
 The `wasm32-unknown-unknown` and `wasm32v1-none` routes require a wasm-bindgen JavaScript host
 that exposes `globalThis.performance`. A standalone wasm module without that host has no clock to

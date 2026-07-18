@@ -9,7 +9,7 @@
   "evidence_kind": "full_speed",
   "provenance": {
     "harness": "criterion",
-    "source_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+    "source_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
     "runner": "aws-c7g",
     "build_profile": "optimized",
     "build_mode": "default",
@@ -21,11 +21,11 @@
   "collector_bundle": {
     "schema": "tach-speed-collector-v1",
     "path": "speed-1-c7g.collector.bundle",
-    "manifest_sha256": "afd950550b43c8d78e13a476a50326a659a72c3030a80323b0c984dad060516e"
+    "manifest_sha256": "8b196944c8f185b21f0bab7bee70f2839f06707a0f69f7f3af4cc476ea19a226"
   },
   "collector_attestation": {
     "schema": "tach-speed-collector-v1",
-    "invocation_id": "criterion-d6b3653f98f384c1",
+    "invocation_id": "criterion-7c3909e03315e944",
     "runtime_attestation": {
       "build_mode": "default",
       "build_profile": "optimized",
@@ -34,30 +34,30 @@
         "thread-cpu-inline"
       ],
       "harness": "criterion",
-      "invocation_id": "criterion-d6b3653f98f384c1",
+      "invocation_id": "criterion-7c3909e03315e944",
       "output_isolated": true,
       "runner": "aws-c7g",
       "schema": "tach-benchmark-runtime-v2",
-      "source_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+      "source_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
       "target": {
         "arch": "aarch64",
         "env": "gnu",
         "os": "linux"
       }
     },
-    "manifest_sha256": "afd950550b43c8d78e13a476a50326a659a72c3030a80323b0c984dad060516e"
+    "manifest_sha256": "8b196944c8f185b21f0bab7bee70f2839f06707a0f69f7f3af4cc476ea19a226"
   },
   "clocks": {
     "tach": {
-      "now": 6.6732077960337435,
+      "now": 6.673712154810205,
       "now_ci95": [
-        6.6730027654325745,
-        6.6733627692203985
+        6.67361978698544,
+        6.673998003389744
       ],
-      "elapsed": 13.346443623969517,
+      "elapsed": 13.347301586409905,
       "elapsed_ci95": [
-        13.346169554793091,
-        13.34677855781674
+        13.347005902110332,
+        13.347745743288302
       ],
       "time_domain": "instant wall",
       "selection": {
@@ -73,27 +73,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                875716,
-                878553,
-                875695,
-                881018,
-                875661,
-                878391,
-                875715,
-                875621,
-                878156
+                875620,
+                875687,
+                875639,
+                875627,
+                875603,
+                875626,
+                875625,
+                877143,
+                875611
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                876384,
-                876258,
-                876252,
-                876275,
-                876258,
-                876229,
-                876413,
-                876339,
-                884667
+                879552,
+                876402,
+                876405,
+                883788,
+                876408,
+                879921,
+                876424,
+                876568,
+                876552
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -107,27 +107,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                438451,
-                438321,
-                438342,
-                438362,
-                438376,
                 438360,
-                438364,
-                438374,
-                438378
+                438351,
+                438318,
+                438344,
+                438324,
+                452679,
+                441865,
+                438371,
+                438360
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                438506,
-                438335,
-                443816,
-                438353,
-                450851,
-                438350,
-                438392,
-                441537,
-                438326
+                438478,
+                444384,
+                438356,
+                438352,
+                438337,
+                438361,
+                438329,
+                438342,
+                438361
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -143,27 +143,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                2538579,
-                2537923,
-                2543492,
-                2542070,
-                2547169,
-                2540381,
-                2541585,
-                2541426,
-                2540758
+                2539021,
+                2547547,
+                2536692,
+                2542751,
+                2541382,
+                2551078,
+                2538078,
+                2551937,
+                2538351
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                2574272,
-                2568823,
-                2564094,
-                2567208,
-                2566607,
-                2570220,
-                2562868,
-                2569197,
-                2563309
+                2575160,
+                2565997,
+                2566481,
+                2565929,
+                2567445,
+                2565254,
+                2566650,
+                2563094,
+                2568178
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -177,27 +177,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                1112829,
-                1112804,
-                1115243,
-                1112788,
-                1115436,
-                1112812,
-                1112818,
-                1115326,
-                1112837
+                1119095,
+                1112498,
+                1117056,
+                1112535,
+                1117831,
+                1116320,
+                1112536,
+                1112540,
+                1119225
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                1215232,
-                1212179,
-                1212186,
-                1212170,
-                1230193,
-                1212185,
-                1214900,
-                1212174,
-                1218973
+                1212279,
+                1212139,
+                1212134,
+                1243668,
+                1214372,
+                1212115,
+                1212133,
+                1213635,
+                1212140
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -216,15 +216,15 @@
       }
     },
     "tach_ordered": {
-      "now": 20.37804152687319,
+      "now": 20.375222102874076,
       "now_ci95": [
-        20.37687009932044,
-        20.379054584573893
+        20.374301228140908,
+        20.37644681369987
       ],
-      "elapsed": 40.03941907714825,
+      "elapsed": 40.04158414044839,
       "elapsed_ci95": [
-        40.0380899690986,
-        40.04039969732423
+        40.04080298613756,
+        40.04295767053114
       ],
       "time_domain": "ordered wall",
       "selection": {
@@ -248,27 +248,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                875716,
-                878553,
-                875695,
-                881018,
-                875661,
-                878391,
-                875715,
-                875621,
-                878156
+                875620,
+                875687,
+                875639,
+                875627,
+                875603,
+                875626,
+                875625,
+                877143,
+                875611
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                876384,
-                876258,
-                876252,
-                876275,
-                876258,
-                876229,
-                876413,
-                876339,
-                884667
+                879552,
+                876402,
+                876405,
+                883788,
+                876408,
+                879921,
+                876424,
+                876568,
+                876552
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -282,27 +282,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                438451,
-                438321,
-                438342,
-                438362,
-                438376,
                 438360,
-                438364,
-                438374,
-                438378
+                438351,
+                438318,
+                438344,
+                438324,
+                452679,
+                441865,
+                438371,
+                438360
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                438506,
-                438335,
-                443816,
-                438353,
-                450851,
-                438350,
-                438392,
-                441537,
-                438326
+                438478,
+                444384,
+                438356,
+                438352,
+                438337,
+                438361,
+                438329,
+                438342,
+                438361
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -318,27 +318,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                2538579,
-                2537923,
-                2543492,
-                2542070,
-                2547169,
-                2540381,
-                2541585,
-                2541426,
-                2540758
+                2539021,
+                2547547,
+                2536692,
+                2542751,
+                2541382,
+                2551078,
+                2538078,
+                2551937,
+                2538351
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                2574272,
-                2568823,
-                2564094,
-                2567208,
-                2566607,
-                2570220,
-                2562868,
-                2569197,
-                2563309
+                2575160,
+                2565997,
+                2566481,
+                2565929,
+                2567445,
+                2565254,
+                2566650,
+                2563094,
+                2568178
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -352,27 +352,27 @@
                 "relative_denominator": 20
               },
               "exact_batches_ns": [
-                1112829,
-                1112804,
-                1115243,
-                1112788,
-                1115436,
-                1112812,
-                1112818,
-                1115326,
-                1112837
+                1119095,
+                1112498,
+                1117056,
+                1112535,
+                1117831,
+                1116320,
+                1112536,
+                1112540,
+                1119225
               ],
               "measurement_clock": "std::time::Instant outside the measured read loop",
               "public_batches_ns": [
-                1215232,
-                1212179,
-                1212186,
-                1212170,
-                1230193,
-                1212185,
-                1214900,
-                1212174,
-                1218973
+                1212279,
+                1212139,
+                1212134,
+                1243668,
+                1214372,
+                1212115,
+                1212133,
+                1213635,
+                1212140
               ],
               "reads_per_batch": 65536,
               "required_decisive_losses": 8,
@@ -391,51 +391,51 @@
       }
     },
     "quanta": {
-      "now": 6.820664931964769,
+      "now": 6.786161873468478,
       "now_ci95": [
-        6.819976298744633,
-        6.821348873178291
+        6.785391859017555,
+        6.787058594535013
       ],
-      "elapsed": 14.195245251900099,
+      "elapsed": 14.17717581485195,
       "elapsed_ci95": [
-        14.194413591849719,
-        14.195938094829664
+        14.17654095013446,
+        14.178125844816384
       ]
     },
     "fastant": {
-      "now": 41.42515696000086,
+      "now": 41.07942454174961,
       "now_ci95": [
-        41.137354643152385,
-        41.83203052507859
+        41.02059660726209,
+        41.138699257618455
       ],
-      "elapsed": 87.39700536272949,
+      "elapsed": 86.06715284416146,
       "elapsed_ci95": [
-        86.97091055964479,
-        87.71003402220717
+        85.9931248228482,
+        86.15494740959048
       ]
     },
     "minstant": {
-      "now": 42.34375158329405,
+      "now": 41.38548236582629,
       "now_ci95": [
-        41.57435058910845,
-        43.02549643191871
+        41.30245734561377,
+        41.45043180815803
       ],
-      "elapsed": 88.03822128722393,
+      "elapsed": 86.92503075357259,
       "elapsed_ci95": [
-        87.79304029304029,
-        88.25030036630037
+        86.85649483674067,
+        86.98953849832617
       ]
     },
     "std": {
-      "now": 32.22613151792564,
+      "now": 32.26755411280594,
       "now_ci95": [
-        32.21549661610409,
-        32.253696887986635
+        32.25427118398668,
+        32.28514754357841
       ],
-      "elapsed": 70.45558769737795,
+      "elapsed": 70.07608414476886,
       "elapsed_ci95": [
-        70.29088983050848,
-        70.60089027103226
+        69.95872486168437,
+        70.19595424849987
       ]
     },
     "direct_ordered__aarch64_isb_cntvct": {
@@ -443,10 +443,10 @@
       "read_cost": "inline",
       "time_domain": "ordered wall",
       "benchmark": "direct_ordered__aarch64_isb_cntvct",
-      "now": 20.270160753359256,
+      "now": 20.26998647260132,
       "now_ci95": [
-        20.269646768060458,
-        20.27053607580592
+        20.26924328529796,
+        20.27045027800565
       ]
     },
     "direct_selected_wall": {
@@ -454,15 +454,15 @@
       "read_cost": "inline",
       "time_domain": "instant wall",
       "benchmark": "direct_selected_wall__aarch64_cntvct",
-      "now": 6.673080413690564,
+      "now": 6.673858603064105,
       "now_ci95": [
-        6.6729724032948745,
-        6.673268770079176
+        6.673696226139517,
+        6.674058672896598
       ],
-      "elapsed": 13.347263384680797,
+      "elapsed": 13.347614131081766,
       "elapsed_ci95": [
-        13.3467846061463,
-        13.347666786766915
+        13.347379819995258,
+        13.347946406891579
       ]
     },
     "direct_selected_ordered_wall": {
@@ -470,28 +470,28 @@
       "read_cost": "inline",
       "time_domain": "ordered wall",
       "benchmark": "direct_selected_ordered_wall__aarch64_isb_cntvct",
-      "now": 20.2697053526378,
+      "now": 20.269743158808716,
       "now_ci95": [
-        20.26951705428653,
-        20.27026584308774
+        20.26939678931592,
+        20.270376617172495
       ],
-      "elapsed": 40.03947120075213,
+      "elapsed": 40.04330735013375,
       "elapsed_ci95": [
-        40.038690906089435,
-        40.04020372242819
+        40.04212142100667,
+        40.04518633663523
       ]
     },
     "tach_thread_cpu": {
       "benchmark": "tach_thread_cpu__linux_perf_mmap__inline",
-      "now": 58.43984105347276,
+      "now": 57.58331093256228,
       "now_ci95": [
-        58.00414930970458,
-        58.613631003569125
+        57.57047659584705,
+        57.60427055297248
       ],
-      "elapsed": 116.08759295152257,
+      "elapsed": 116.07228880901347,
       "elapsed_ci95": [
-        116.06608015640273,
-        116.12646063151928
+        116.04831768388107,
+        116.08912208631908
       ],
       "provider": "Linux perf task-clock mmap",
       "read_cost": "inline",
@@ -519,35 +519,35 @@
           "libc_allowance_ns": 4096,
           "libc_available": true,
           "libc_batches_ns": [
-            1094472,
-            1101055,
-            1097679,
-            1103809,
-            1102533,
-            1102547,
-            1102993,
-            1114744,
-            1115373
+            1114307,
+            1113042,
+            1108891,
+            1098691,
+            1102082,
+            1116993,
+            1115562,
+            1112186,
+            1099602
           ],
           "libc_decisive_wins": 0,
           "libc_materially_faster": false,
-          "libc_median_ns": 1102547,
+          "libc_median_ns": 1112186,
           "libc_provider": "linux_aarch64_libc_clock_thread_cputime",
           "raw_allowance_ns": 4096,
           "raw_available": true,
           "raw_batches_ns": [
-            1052781,
-            1058214,
-            1055702,
-            1062624,
-            1066273,
-            1058128,
-            1068949,
-            1072950,
-            1074437
+            1071377,
+            1071371,
+            1054457,
+            1054451,
+            1076532,
+            1073303,
+            1072982,
+            1072809,
+            1058231
           ],
           "raw_decisive_wins": 9,
-          "raw_median_ns": 1062624,
+          "raw_median_ns": 1071377,
           "raw_provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
           "raw_selected": true,
           "reads_per_batch": 4096,
@@ -567,15 +567,15 @@
             "counter_probe": {
               "candidate_batches_ns": [
                 [
-                  152961,
-                  154235,
-                  158834,
-                  154195,
-                  152404,
-                  154197,
-                  152404,
-                  154192,
-                  152408
+                  152877,
+                  161657,
+                  152418,
+                  153892,
+                  152426,
+                  153898,
+                  152410,
+                  153920,
+                  154247
                 ],
                 [
                   0,
@@ -617,37 +617,37 @@
           "path_probe": {
             "candidate_batches_ns": [
               [
-                1077662,
-                1078354,
-                1068124,
-                1063225,
-                1092505,
-                1066903,
-                1062356,
-                1068280,
-                1065908
+                1066335,
+                1064303,
+                1064375,
+                1059070,
+                1076622,
+                1078039,
+                1063032,
+                1061767,
+                1067548
               ],
               [
-                235744,
-                235760,
-                236378,
-                240404,
-                236374,
-                235816,
-                235668,
-                235784,
-                235760
+                236753,
+                235750,
+                235739,
+                235750,
+                235740,
+                240820,
+                235766,
+                235233,
+                234366
               ],
               [
-                1644195,
-                1648808,
-                1645649,
-                1642785,
-                1640731,
-                1646009,
-                1650699,
-                1646982,
-                1649518
+                1630344,
+                1632556,
+                1639532,
+                1628094,
+                1629293,
+                1651340,
+                1639221,
+                1626636,
+                1623160
               ]
             ],
             "candidate_eligible": [
@@ -713,15 +713,15 @@
     },
     "native_thread_cpu": {
       "benchmark": "native_thread_cpu__inline_syscall_clock_thread_cputime_id",
-      "now": 262.7797440434647,
+      "now": 265.6565066385299,
       "now_ci95": [
-        262.6676305295805,
-        263.02885005907547
+        265.4320067264574,
+        265.80106035127056
       ],
-      "elapsed": 522.2764351328335,
+      "elapsed": 525.7542770795437,
       "elapsed_ci95": [
-        521.938948905594,
-        522.7275085445822
+        525.4287188355898,
+        526.0086962927753
       ],
       "provider": "inline syscall(CLOCK_THREAD_CPUTIME_ID)",
       "read_cost": "system call",
@@ -732,15 +732,15 @@
       "read_cost": "system call",
       "time_domain": "thread CPU",
       "benchmark": "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime",
-      "now": 270.2421941865657,
+      "now": 270.0236434276471,
       "now_ci95": [
-        270.070369166775,
-        270.3960442013827
+        269.5606915377616,
+        270.30524668034116
       ],
-      "elapsed": 557.0931202520129,
+      "elapsed": 575.3904055416492,
       "elapsed_ci95": [
-        556.5523157672627,
-        557.3489989267182
+        574.7116806361487,
+        575.771345675601
       ]
     },
     "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime": {
@@ -748,15 +748,15 @@
       "read_cost": "system call",
       "time_domain": "thread CPU",
       "benchmark": "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
-      "now": 268.75124345895495,
+      "now": 259.93305518755653,
       "now_ci95": [
-        268.5444394190663,
-        268.8691861799816
+        259.7512208593193,
+        260.22256230870136
       ],
-      "elapsed": 523.434196484845,
+      "elapsed": 540.815710861147,
       "elapsed_ci95": [
-        523.2059897375173,
-        523.7822663701361
+        540.5008210180624,
+        541.3360217045076
       ]
     },
     "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb": {
@@ -764,15 +764,15 @@
       "read_cost": "inline",
       "time_domain": "thread CPU",
       "benchmark": "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
-      "now": 58.27742970577038,
+      "now": 58.150810413709806,
       "now_ci95": [
-        58.215849241311794,
-        58.34316024352579
+        58.13391694739878,
+        58.1625808887632
       ],
-      "elapsed": 117.94298334655815,
+      "elapsed": 117.74539209241229,
       "elapsed_ci95": [
-        117.88214879416435,
-        117.98902442817078
+        117.68271854737137,
+        117.82965981834087
       ]
     },
     "direct_thread_cpu__linux_perf_read__raw_read_svc": {
@@ -780,15 +780,15 @@
       "read_cost": "system call",
       "time_domain": "thread CPU",
       "benchmark": "direct_thread_cpu__linux_perf_read__raw_read_svc",
-      "now": 399.3184572707628,
+      "now": 396.4215215594435,
       "now_ci95": [
-        398.9925705319115,
-        399.6529597979235
+        396.0771419733993,
+        396.5945241643602
       ],
-      "elapsed": 815.2633341750679,
+      "elapsed": 793.3951773165884,
       "elapsed_ci95": [
-        793.6807598399718,
-        815.7664683822873
+        792.6701907356949,
+        793.9097149444561
       ]
     },
     "direct_selected_thread_cpu": {
@@ -796,15 +796,15 @@
       "read_cost": "inline",
       "time_domain": "thread CPU",
       "benchmark": "direct_selected_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb",
-      "now": 58.23499129869187,
+      "now": 58.43745596544154,
       "now_ci95": [
-        58.18314910706215,
-        58.29696190154475
+        58.427984386549014,
+        58.45720184839249
       ],
-      "elapsed": 116.82224409448818,
+      "elapsed": 116.8049374618497,
       "elapsed_ci95": [
-        116.79330708661418,
-        116.87365194856972
+        116.7864540827977,
+        116.82272098758344
       ]
     },
     "direct_fallback_thread_cpu": {
@@ -812,15 +812,15 @@
       "read_cost": "system call",
       "time_domain": "thread CPU",
       "benchmark": "direct_fallback_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime",
-      "now": 262.13423593537584,
+      "now": 262.2066470982052,
       "now_ci95": [
-        262.0086045405851,
-        262.2932372369164
+        261.9903556963548,
+        262.34352468219913
       ],
-      "elapsed": 528.6382315686664,
+      "elapsed": 542.7180338740945,
       "elapsed_ci95": [
-        528.4436698991798,
-        528.9238383838383
+        532.9652786095473,
+        544.3453389109955
       ]
     }
   }

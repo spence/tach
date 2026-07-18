@@ -2,13 +2,13 @@
   "schema": "tach-speed-primary-report-v1",
   "claim": "each tach timer selects the fastest audited eligible reliable steady-state provider for its contract in every measured primary environment",
   "equivalence_rule": "tach is faster than or materially tied with every eligible reference: its point estimate and conservative 95% CI comparison fit within max(1 ns, 5%)",
-  "source_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+  "source_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
   "passed": true,
   "failures": [],
   "cells": [
     {
       "artifact_id": "speed-0-apple.json",
-      "source_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+      "source_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
       "triple": "aarch64-apple-darwin",
       "build_mode": "default",
       "evidence_kind": "full_speed",
@@ -17,10 +17,10 @@
       "three_clock_speed": {
         "same_thread_elapsed": {
           "now": {
-            "tach_ns": 0.6587159873127595,
+            "tach_ns": 0.6495624129254725,
             "comparisons": {
               "quanta": {
-                "reference_ns": 3.371582534857007,
+                "reference_ns": 3.373257182250775,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "apple_bare_cntvct_omits_xnu_wake_correction_and_may_suspend_diverge",
@@ -29,8 +29,8 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 29.35966737415316,
-                "equivalence_allowance_ns": 1.4679833687076582,
+                "reference_ns": 27.05167240797315,
+                "equivalence_allowance_ns": 1.3525836203986576,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -38,8 +38,8 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 28.020818732339897,
-                "equivalence_allowance_ns": 1.401040936616995,
+                "reference_ns": 27.099275231182588,
+                "equivalence_allowance_ns": 1.3549637615591295,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -47,8 +47,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 20.330797934213155,
-                "equivalence_allowance_ns": 1.0165398967106578,
+                "reference_ns": 20.20516044353888,
+                "equivalence_allowance_ns": 1.010258022176944,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -59,10 +59,10 @@
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 1.6352969875421204,
+            "tach_ns": 1.6299958282745695,
             "comparisons": {
               "quanta": {
-                "reference_ns": 7.268758357511199,
+                "reference_ns": 7.321238974706237,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "apple_bare_cntvct_omits_xnu_wake_correction_and_may_suspend_diverge",
@@ -71,8 +71,8 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 60.273008652916765,
-                "equivalence_allowance_ns": 3.0136504326458384,
+                "reference_ns": 60.01000486468297,
+                "equivalence_allowance_ns": 3.0005002432341485,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -80,8 +80,8 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 61.05819206139328,
-                "equivalence_allowance_ns": 3.052909603069664,
+                "reference_ns": 60.19309453155057,
+                "equivalence_allowance_ns": 3.0096547265775286,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -89,8 +89,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 44.141309852363314,
-                "equivalence_allowance_ns": 2.207065492618166,
+                "reference_ns": 44.11769881413636,
+                "equivalence_allowance_ns": 2.205884940706818,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -125,18 +125,18 @@
         },
         "cross_thread_elapsed": {
           "now": {
-            "tach_ns": 7.758987191601749,
-            "std_ns": 20.330797934213155,
-            "equivalence_allowance_ns": 1.0165398967106578,
+            "tach_ns": 7.729224385034449,
+            "std_ns": 20.20516044353888,
+            "equivalence_allowance_ns": 1.010258022176944,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 15.546569546938816,
-            "std_ns": 44.141309852363314,
-            "equivalence_allowance_ns": 2.207065492618166,
+            "tach_ns": 15.379926017972736,
+            "std_ns": 44.11769881413636,
+            "equivalence_allowance_ns": 2.205884940706818,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
@@ -149,10 +149,10 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 88334,
-                "exact_median_batch_ns": 67666,
-                "public_ns_per_read": 1.347869873046875,
-                "exact_ns_per_read": 1.032501220703125,
+                "public_median_batch_ns": 88164,
+                "exact_median_batch_ns": 67501,
+                "public_ns_per_read": 1.34527587890625,
+                "exact_ns_per_read": 1.0299835205078125,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -160,10 +160,10 @@
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 132125,
-                "exact_median_batch_ns": 110033,
-                "public_ns_per_read": 2.0160675048828125,
-                "exact_ns_per_read": 1.6789703369140625,
+                "public_median_batch_ns": 127874,
+                "exact_median_batch_ns": 106163,
+                "public_ns_per_read": 1.951202392578125,
+                "exact_ns_per_read": 1.6199188232421875,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -176,10 +176,10 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 403378,
-                "exact_median_batch_ns": 382075,
-                "public_ns_per_read": 6.155059814453125,
-                "exact_ns_per_read": 5.8300018310546875,
+                "public_median_batch_ns": 403958,
+                "exact_median_batch_ns": 382787,
+                "public_ns_per_read": 6.163909912109375,
+                "exact_ns_per_read": 5.8408660888671875,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -187,10 +187,10 @@
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 909918,
-                "exact_median_batch_ns": 888129,
-                "public_ns_per_read": 13.884246826171875,
-                "exact_ns_per_read": 13.551773071289062,
+                "public_median_batch_ns": 904793,
+                "exact_median_batch_ns": 887538,
+                "public_ns_per_read": 13.806045532226562,
+                "exact_ns_per_read": 13.542755126953125,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -205,17 +205,17 @@
             "public_exact_contract": null,
             "metrics": {
               "now": {
-                "tach_ns": 0.6587159873127595,
-                "selected_native_ns": 0.3523669120086718,
+                "tach_ns": 0.6495624129254725,
+                "selected_native_ns": 0.3503975497571331,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 88334,
-                  "exact_median_batch_ns": 67666,
-                  "public_ns_per_read": 1.347869873046875,
-                  "exact_ns_per_read": 1.032501220703125,
+                  "public_median_batch_ns": 88164,
+                  "exact_median_batch_ns": 67501,
+                  "public_ns_per_read": 1.34527587890625,
+                  "exact_ns_per_read": 1.0299835205078125,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -224,17 +224,17 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 1.6352969875421204,
-                "selected_native_ns": 1.2989863122586398,
+                "tach_ns": 1.6299958282745695,
+                "selected_native_ns": 1.3016378506599067,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 132125,
-                  "exact_median_batch_ns": 110033,
-                  "public_ns_per_read": 2.0160675048828125,
-                  "exact_ns_per_read": 1.6789703369140625,
+                  "public_median_batch_ns": 127874,
+                  "exact_median_batch_ns": 106163,
+                  "public_ns_per_read": 1.951202392578125,
+                  "exact_ns_per_read": 1.6199188232421875,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -251,17 +251,17 @@
             "public_exact_contract": null,
             "metrics": {
               "now": {
-                "tach_ns": 7.758987191601749,
-                "selected_native_ns": 7.691780198595017,
+                "tach_ns": 7.729224385034449,
+                "selected_native_ns": 7.711337970555768,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 403378,
-                  "exact_median_batch_ns": 382075,
-                  "public_ns_per_read": 6.155059814453125,
-                  "exact_ns_per_read": 5.8300018310546875,
+                  "public_median_batch_ns": 403958,
+                  "exact_median_batch_ns": 382787,
+                  "public_ns_per_read": 6.163909912109375,
+                  "exact_ns_per_read": 5.8408660888671875,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -270,17 +270,17 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 15.546569546938816,
-                "selected_native_ns": 15.459407928832967,
+                "tach_ns": 15.379926017972736,
+                "selected_native_ns": 15.449742282736523,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 909918,
-                  "exact_median_batch_ns": 888129,
-                  "public_ns_per_read": 13.884246826171875,
-                  "exact_ns_per_read": 13.551773071289062,
+                  "public_median_batch_ns": 904793,
+                  "exact_median_batch_ns": 887538,
+                  "public_ns_per_read": 13.806045532226562,
+                  "exact_ns_per_read": 13.542755126953125,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -304,22 +304,22 @@
           "public_exact": {
             "now": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 8400875,
-              "exact_median_batch_ns": 8419336,
-              "public_ns_per_read": 128.1871795654297,
-              "exact_ns_per_read": 128.4688720703125,
-              "equivalence_allowance_ns_per_read": 6.423431396484375,
+              "public_median_batch_ns": 8362579,
+              "exact_median_batch_ns": 8375536,
+              "public_ns_per_read": 127.60282897949219,
+              "exact_ns_per_read": 127.800537109375,
+              "equivalence_allowance_ns_per_read": 6.3900146484375,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
             },
             "elapsed": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 17108789,
-              "exact_median_batch_ns": 17136664,
-              "public_ns_per_read": 261.0594024658203,
-              "exact_ns_per_read": 261.4847412109375,
-              "equivalence_allowance_ns_per_read": 13.074234008789062,
+              "public_median_batch_ns": 16948083,
+              "exact_median_batch_ns": 16962287,
+              "public_ns_per_read": 258.6072235107422,
+              "exact_ns_per_read": 258.82395935058594,
+              "equivalence_allowance_ns_per_read": 12.941192626953125,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
@@ -332,17 +332,17 @@
           "selected_read_cost": "system call",
           "metrics": {
             "now": {
-              "tach_ns": 130.014394486921,
-              "selected_native_ns": 129.55453499436277,
-              "equivalence_allowance_ns": 6.423431396484375,
+              "tach_ns": 129.27404417420402,
+              "selected_native_ns": 129.9333343398612,
+              "equivalence_allowance_ns": 6.3900146484375,
               "comparison_basis": "alternating paired public/exact probe",
               "paired_probe": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 8400875,
-                "exact_median_batch_ns": 8419336,
-                "public_ns_per_read": 128.1871795654297,
-                "exact_ns_per_read": 128.4688720703125,
-                "equivalence_allowance_ns_per_read": 6.423431396484375,
+                "public_median_batch_ns": 8362579,
+                "exact_median_batch_ns": 8375536,
+                "public_ns_per_read": 127.60282897949219,
+                "exact_ns_per_read": 127.800537109375,
+                "equivalence_allowance_ns_per_read": 6.3900146484375,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
@@ -350,17 +350,17 @@
               "passed": true
             },
             "elapsed": {
-              "tach_ns": 260.5953748355984,
-              "selected_native_ns": 260.91611646920904,
-              "equivalence_allowance_ns": 13.074234008789062,
+              "tach_ns": 260.9183650369414,
+              "selected_native_ns": 259.8053179408568,
+              "equivalence_allowance_ns": 12.941192626953125,
               "comparison_basis": "alternating paired public/exact probe",
               "paired_probe": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 17108789,
-                "exact_median_batch_ns": 17136664,
-                "public_ns_per_read": 261.0594024658203,
-                "exact_ns_per_read": 261.4847412109375,
-                "equivalence_allowance_ns_per_read": 13.074234008789062,
+                "public_median_batch_ns": 16948083,
+                "exact_median_batch_ns": 16962287,
+                "public_ns_per_read": 258.6072235107422,
+                "exact_ns_per_read": 258.82395935058594,
+                "equivalence_allowance_ns_per_read": 12.941192626953125,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
@@ -372,17 +372,17 @@
             "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu": {
               "metrics": {
                 "now": {
-                  "tach_ns": 130.014394486921,
-                  "candidate_ns": 129.723766130498,
-                  "equivalence_allowance_ns": 6.423431396484375,
+                  "tach_ns": 129.27404417420402,
+                  "candidate_ns": 129.37953263527513,
+                  "equivalence_allowance_ns": 6.3900146484375,
                   "comparison_basis": "alternating paired public/exact probe",
                   "paired_probe": {
                     "reads_per_batch": 65536,
-                    "public_median_batch_ns": 8400875,
-                    "exact_median_batch_ns": 8419336,
-                    "public_ns_per_read": 128.1871795654297,
-                    "exact_ns_per_read": 128.4688720703125,
-                    "equivalence_allowance_ns_per_read": 6.423431396484375,
+                    "public_median_batch_ns": 8362579,
+                    "exact_median_batch_ns": 8375536,
+                    "public_ns_per_read": 127.60282897949219,
+                    "exact_ns_per_read": 127.800537109375,
+                    "equivalence_allowance_ns_per_read": 6.3900146484375,
                     "decisive_losses": 0,
                     "admission_role": "public_exact_parity",
                     "passed": true
@@ -390,17 +390,17 @@
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 260.5953748355984,
-                  "candidate_ns": 260.3396424277821,
-                  "equivalence_allowance_ns": 13.074234008789062,
+                  "tach_ns": 260.9183650369414,
+                  "candidate_ns": 260.19395313158356,
+                  "equivalence_allowance_ns": 12.941192626953125,
                   "comparison_basis": "alternating paired public/exact probe",
                   "paired_probe": {
                     "reads_per_batch": 65536,
-                    "public_median_batch_ns": 17108789,
-                    "exact_median_batch_ns": 17136664,
-                    "public_ns_per_read": 261.0594024658203,
-                    "exact_ns_per_read": 261.4847412109375,
-                    "equivalence_allowance_ns_per_read": 13.074234008789062,
+                    "public_median_batch_ns": 16948083,
+                    "exact_median_batch_ns": 16962287,
+                    "public_ns_per_read": 258.6072235107422,
+                    "exact_ns_per_read": 258.82395935058594,
+                    "equivalence_allowance_ns_per_read": 12.941192626953125,
                     "decisive_losses": 0,
                     "admission_role": "public_exact_parity",
                     "passed": true
@@ -415,17 +415,17 @@
         },
         "current_thread_cpu": {
           "now": {
-            "tach_ns": 130.014394486921,
-            "native_ns": 129.32926405383532,
-            "equivalence_allowance_ns": 6.423431396484375,
+            "tach_ns": 129.27404417420402,
+            "native_ns": 128.98508199018414,
+            "equivalence_allowance_ns": 6.3900146484375,
             "comparison_basis": "alternating paired public/exact probe",
             "paired_probe": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 8400875,
-              "exact_median_batch_ns": 8419336,
-              "public_ns_per_read": 128.1871795654297,
-              "exact_ns_per_read": 128.4688720703125,
-              "equivalence_allowance_ns_per_read": 6.423431396484375,
+              "public_median_batch_ns": 8362579,
+              "exact_median_batch_ns": 8375536,
+              "public_ns_per_read": 127.60282897949219,
+              "exact_ns_per_read": 127.800537109375,
+              "equivalence_allowance_ns_per_read": 6.3900146484375,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
@@ -433,17 +433,17 @@
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 260.5953748355984,
-            "native_ns": 260.695932104185,
-            "equivalence_allowance_ns": 13.074234008789062,
+            "tach_ns": 260.9183650369414,
+            "native_ns": 260.0399652521802,
+            "equivalence_allowance_ns": 12.941192626953125,
             "comparison_basis": "alternating paired public/exact probe",
             "paired_probe": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 17108789,
-              "exact_median_batch_ns": 17136664,
-              "public_ns_per_read": 261.0594024658203,
-              "exact_ns_per_read": 261.4847412109375,
-              "equivalence_allowance_ns_per_read": 13.074234008789062,
+              "public_median_batch_ns": 16948083,
+              "exact_median_batch_ns": 16962287,
+              "public_ns_per_read": 258.6072235107422,
+              "exact_ns_per_read": 258.82395935058594,
+              "equivalence_allowance_ns_per_read": 12.941192626953125,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
@@ -457,13 +457,13 @@
       "passed": true,
       "failures": [],
       "bundle_binding": {
-        "path": "/Users/spencer/src/tach/.tach-bench-out/e20af60/speed-0-apple.collector.bundle",
+        "path": "/Users/spencer/src/tach/.tach-bench-out/f6df5df/speed-0-apple.collector.bundle",
         "passed": true
       }
     },
     {
       "artifact_id": "speed-1-c7g.json",
-      "source_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+      "source_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
       "triple": "aarch64-unknown-linux-gnu",
       "build_mode": "default",
       "evidence_kind": "full_speed",
@@ -472,10 +472,10 @@
       "three_clock_speed": {
         "same_thread_elapsed": {
           "now": {
-            "tach_ns": 6.6732077960337435,
+            "tach_ns": 6.673712154810205,
             "comparisons": {
               "quanta": {
-                "reference_ns": 6.820664931964769,
+                "reference_ns": 6.786161873468478,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
@@ -484,8 +484,8 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 41.42515696000086,
-                "equivalence_allowance_ns": 2.071257848000043,
+                "reference_ns": 41.07942454174961,
+                "equivalence_allowance_ns": 2.0539712270874806,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -493,8 +493,8 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 42.34375158329405,
-                "equivalence_allowance_ns": 2.117187579164703,
+                "reference_ns": 41.38548236582629,
+                "equivalence_allowance_ns": 2.0692741182913146,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -502,8 +502,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 32.22613151792564,
-                "equivalence_allowance_ns": 1.611306575896282,
+                "reference_ns": 32.26755411280594,
+                "equivalence_allowance_ns": 1.6133777056402971,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -514,10 +514,10 @@
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 13.346443623969517,
+            "tach_ns": 13.347301586409905,
             "comparisons": {
               "quanta": {
-                "reference_ns": 14.195245251900099,
+                "reference_ns": 14.17717581485195,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
@@ -526,8 +526,8 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 87.39700536272949,
-                "equivalence_allowance_ns": 4.369850268136474,
+                "reference_ns": 86.06715284416146,
+                "equivalence_allowance_ns": 4.303357642208073,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -535,8 +535,8 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 88.03822128722393,
-                "equivalence_allowance_ns": 4.4019110643611965,
+                "reference_ns": 86.92503075357259,
+                "equivalence_allowance_ns": 4.346251537678629,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -544,8 +544,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 70.45558769737795,
-                "equivalence_allowance_ns": 3.5227793848688975,
+                "reference_ns": 70.07608414476886,
+                "equivalence_allowance_ns": 3.503804207238443,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -580,18 +580,18 @@
         },
         "cross_thread_elapsed": {
           "now": {
-            "tach_ns": 20.37804152687319,
-            "std_ns": 32.22613151792564,
-            "equivalence_allowance_ns": 1.611306575896282,
+            "tach_ns": 20.375222102874076,
+            "std_ns": 32.26755411280594,
+            "equivalence_allowance_ns": 1.6133777056402971,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 40.03941907714825,
-            "std_ns": 70.45558769737795,
-            "equivalence_allowance_ns": 3.5227793848688975,
+            "tach_ns": 40.04158414044839,
+            "std_ns": 70.07608414476886,
+            "equivalence_allowance_ns": 3.503804207238443,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
@@ -604,10 +604,10 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 438392,
-                "exact_median_batch_ns": 438364,
-                "public_ns_per_read": 6.6893310546875,
-                "exact_ns_per_read": 6.68890380859375,
+                "public_median_batch_ns": 438356,
+                "exact_median_batch_ns": 438360,
+                "public_ns_per_read": 6.68878173828125,
+                "exact_ns_per_read": 6.6888427734375,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -615,10 +615,10 @@
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 876275,
-                "exact_median_batch_ns": 875716,
-                "public_ns_per_read": 13.370895385742188,
-                "exact_ns_per_read": 13.36236572265625,
+                "public_median_batch_ns": 876552,
+                "exact_median_batch_ns": 875626,
+                "public_ns_per_read": 13.3751220703125,
+                "exact_ns_per_read": 13.360992431640625,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -631,10 +631,10 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 1212186,
-                "exact_median_batch_ns": 1112829,
-                "public_ns_per_read": 18.496490478515625,
-                "exact_ns_per_read": 16.980422973632812,
+                "public_median_batch_ns": 1212140,
+                "exact_median_batch_ns": 1116320,
+                "public_ns_per_read": 18.49578857421875,
+                "exact_ns_per_read": 17.03369140625,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 9,
                 "admission_role": "diagnostic_dispatch_lower_bound",
@@ -642,11 +642,11 @@
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 2567208,
-                "exact_median_batch_ns": 2541426,
-                "public_ns_per_read": 39.1724853515625,
-                "exact_ns_per_read": 38.779083251953125,
-                "equivalence_allowance_ns_per_read": 1.9389495849609375,
+                "public_median_batch_ns": 2566481,
+                "exact_median_batch_ns": 2541382,
+                "public_ns_per_read": 39.16139221191406,
+                "exact_ns_per_read": 38.778411865234375,
+                "equivalence_allowance_ns_per_read": 1.9389190673828125,
                 "decisive_losses": 0,
                 "admission_role": "diagnostic_dispatch_lower_bound",
                 "passed": true
@@ -661,17 +661,17 @@
             "public_exact_contract": null,
             "metrics": {
               "now": {
-                "tach_ns": 6.6732077960337435,
-                "selected_native_ns": 6.673080413690564,
+                "tach_ns": 6.673712154810205,
+                "selected_native_ns": 6.673858603064105,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 438392,
-                  "exact_median_batch_ns": 438364,
-                  "public_ns_per_read": 6.6893310546875,
-                  "exact_ns_per_read": 6.68890380859375,
+                  "public_median_batch_ns": 438356,
+                  "exact_median_batch_ns": 438360,
+                  "public_ns_per_read": 6.68878173828125,
+                  "exact_ns_per_read": 6.6888427734375,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -680,17 +680,17 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 13.346443623969517,
-                "selected_native_ns": 13.347263384680797,
+                "tach_ns": 13.347301586409905,
+                "selected_native_ns": 13.347614131081766,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 876275,
-                  "exact_median_batch_ns": 875716,
-                  "public_ns_per_read": 13.370895385742188,
-                  "exact_ns_per_read": 13.36236572265625,
+                  "public_median_batch_ns": 876552,
+                  "exact_median_batch_ns": 875626,
+                  "public_ns_per_read": 13.3751220703125,
+                  "exact_ns_per_read": 13.360992431640625,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -707,24 +707,24 @@
             "public_exact_contract": "dispatch_lower_bound_with_public_winner_gate",
             "metrics": {
               "now": {
-                "tach_ns": 20.37804152687319,
-                "selected_native_ns": 20.2697053526378,
+                "tach_ns": 20.375222102874076,
+                "selected_native_ns": 20.269743158808716,
                 "equivalence_allowance_ns": null,
                 "comparison_basis": "usable public-reference winner gate; exact route is a diagnostic dispatch lower bound",
                 "public_reference_gate": {
                   "std": {
                     "measured": true,
-                    "reference_ns": 32.22613151792564,
-                    "equivalence_allowance_ns": 1.611306575896282,
+                    "reference_ns": 32.26755411280594,
+                    "equivalence_allowance_ns": 1.6133777056402971,
                     "passed": true
                   }
                 },
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 1212186,
-                  "exact_median_batch_ns": 1112829,
-                  "public_ns_per_read": 18.496490478515625,
-                  "exact_ns_per_read": 16.980422973632812,
+                  "public_median_batch_ns": 1212140,
+                  "exact_median_batch_ns": 1116320,
+                  "public_ns_per_read": 18.49578857421875,
+                  "exact_ns_per_read": 17.03369140625,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 9,
                   "admission_role": "diagnostic_dispatch_lower_bound",
@@ -733,25 +733,25 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 40.03941907714825,
-                "selected_native_ns": 40.03947120075213,
+                "tach_ns": 40.04158414044839,
+                "selected_native_ns": 40.04330735013375,
                 "equivalence_allowance_ns": null,
                 "comparison_basis": "usable public-reference winner gate; exact route is a diagnostic dispatch lower bound",
                 "public_reference_gate": {
                   "std": {
                     "measured": true,
-                    "reference_ns": 70.45558769737795,
-                    "equivalence_allowance_ns": 3.5227793848688975,
+                    "reference_ns": 70.07608414476886,
+                    "equivalence_allowance_ns": 3.503804207238443,
                     "passed": true
                   }
                 },
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 2567208,
-                  "exact_median_batch_ns": 2541426,
-                  "public_ns_per_read": 39.1724853515625,
-                  "exact_ns_per_read": 38.779083251953125,
-                  "equivalence_allowance_ns_per_read": 1.9389495849609375,
+                  "public_median_batch_ns": 2566481,
+                  "exact_median_batch_ns": 2541382,
+                  "public_ns_per_read": 39.16139221191406,
+                  "exact_ns_per_read": 38.778411865234375,
+                  "equivalence_allowance_ns_per_read": 1.9389190673828125,
                   "decisive_losses": 0,
                   "admission_role": "diagnostic_dispatch_lower_bound",
                   "passed": true
@@ -780,15 +780,15 @@
             ],
             "selected_read_cost": "system call",
             "raw_decision": {
-              "challenger_median_ns": 1062624,
-              "incumbent_median_ns": 1102547,
+              "challenger_median_ns": 1071377,
+              "incumbent_median_ns": 1112186,
               "allowance_ns": 4096,
               "decisive_wins": 9,
               "selected": true
             },
             "libc_reverse_decision": {
-              "challenger_median_ns": 1102547,
-              "incumbent_median_ns": 1062624,
+              "challenger_median_ns": 1112186,
+              "incumbent_median_ns": 1071377,
               "allowance_ns": 4096,
               "decisive_wins": 0,
               "selected": false
@@ -821,18 +821,18 @@
               "winner": "linux_perf_mmap",
               "decisions": [
                 {
-                  "challenger_median_ns": 235784,
-                  "incumbent_median_ns": 1068124,
-                  "allowance_ns": 53406,
+                  "challenger_median_ns": 235750,
+                  "incumbent_median_ns": 1064375,
+                  "allowance_ns": 53218,
                   "decisive_wins": 9,
                   "selected": true,
                   "challenger": "linux_perf_mmap",
                   "incumbent": "posix_thread_cpu"
                 },
                 {
-                  "challenger_median_ns": 1646009,
-                  "incumbent_median_ns": 235784,
-                  "allowance_ns": 11789,
+                  "challenger_median_ns": 1630344,
+                  "incumbent_median_ns": 235750,
+                  "allowance_ns": 11787,
                   "decisive_wins": 0,
                   "selected": false,
                   "challenger": "linux_perf_read",
@@ -848,17 +848,17 @@
           "selected_read_cost": "inline",
           "metrics": {
             "now": {
-              "tach_ns": 58.43984105347276,
-              "selected_native_ns": 58.23499129869187,
-              "equivalence_allowance_ns": 2.9117495649345937,
+              "tach_ns": 57.58331093256228,
+              "selected_native_ns": 58.43745596544154,
+              "equivalence_allowance_ns": 2.9218727982720774,
               "comparison_basis": "Criterion estimate",
               "paired_probe": null,
               "passed": true
             },
             "elapsed": {
-              "tach_ns": 116.08759295152257,
-              "selected_native_ns": 116.82224409448818,
-              "equivalence_allowance_ns": 5.84111220472441,
+              "tach_ns": 116.07228880901347,
+              "selected_native_ns": 116.8049374618497,
+              "equivalence_allowance_ns": 5.840246873092486,
               "comparison_basis": "Criterion estimate",
               "paired_probe": null,
               "passed": true
@@ -868,17 +868,17 @@
             "direct_thread_cpu__linux_aarch64_libc_clock_thread_cputime": {
               "metrics": {
                 "now": {
-                  "tach_ns": 58.43984105347276,
-                  "candidate_ns": 270.2421941865657,
-                  "equivalence_allowance_ns": 13.512109709328286,
+                  "tach_ns": 57.58331093256228,
+                  "candidate_ns": 270.0236434276471,
+                  "equivalence_allowance_ns": 13.501182171382354,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 116.08759295152257,
-                  "candidate_ns": 557.0931202520129,
-                  "equivalence_allowance_ns": 27.854656012600646,
+                  "tach_ns": 116.07228880901347,
+                  "candidate_ns": 575.3904055416492,
+                  "equivalence_allowance_ns": 28.769520277082464,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
@@ -889,17 +889,17 @@
             "direct_thread_cpu__linux_aarch64_raw_syscall_clock_thread_cputime": {
               "metrics": {
                 "now": {
-                  "tach_ns": 58.43984105347276,
-                  "candidate_ns": 268.75124345895495,
-                  "equivalence_allowance_ns": 13.437562172947748,
+                  "tach_ns": 57.58331093256228,
+                  "candidate_ns": 259.93305518755653,
+                  "equivalence_allowance_ns": 12.996652759377827,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 116.08759295152257,
-                  "candidate_ns": 523.434196484845,
-                  "equivalence_allowance_ns": 26.17170982424225,
+                  "tach_ns": 116.07228880901347,
+                  "candidate_ns": 540.815710861147,
+                  "equivalence_allowance_ns": 27.04078554305735,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
@@ -910,17 +910,17 @@
             "direct_thread_cpu__linux_perf_mmap__aarch64_isb_cntvct_isb": {
               "metrics": {
                 "now": {
-                  "tach_ns": 58.43984105347276,
-                  "candidate_ns": 58.27742970577038,
-                  "equivalence_allowance_ns": 2.913871485288519,
+                  "tach_ns": 57.58331093256228,
+                  "candidate_ns": 58.150810413709806,
+                  "equivalence_allowance_ns": 2.9075405206854903,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 116.08759295152257,
-                  "candidate_ns": 117.94298334655815,
-                  "equivalence_allowance_ns": 5.897149167327908,
+                  "tach_ns": 116.07228880901347,
+                  "candidate_ns": 117.74539209241229,
+                  "equivalence_allowance_ns": 5.887269604620615,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
@@ -931,17 +931,17 @@
             "direct_thread_cpu__linux_perf_read__raw_read_svc": {
               "metrics": {
                 "now": {
-                  "tach_ns": 58.43984105347276,
-                  "candidate_ns": 399.3184572707628,
-                  "equivalence_allowance_ns": 19.96592286353814,
+                  "tach_ns": 57.58331093256228,
+                  "candidate_ns": 396.4215215594435,
+                  "equivalence_allowance_ns": 19.821076077972176,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 116.08759295152257,
-                  "candidate_ns": 815.2633341750679,
-                  "equivalence_allowance_ns": 40.7631667087534,
+                  "tach_ns": 116.07228880901347,
+                  "candidate_ns": 793.3951773165884,
+                  "equivalence_allowance_ns": 39.66975886582942,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
@@ -955,15 +955,15 @@
             "provider": "linux_aarch64_raw_syscall_clock_thread_cputime",
             "metrics": {
               "now": {
-                "selected_ns": 58.23499129869187,
-                "fallback_ns": 262.13423593537584,
-                "equivalence_allowance_ns": 13.106711796768792,
+                "selected_ns": 58.43745596544154,
+                "fallback_ns": 262.2066470982052,
+                "equivalence_allowance_ns": 13.110332354910263,
                 "passed": true
               },
               "elapsed": {
-                "selected_ns": 116.82224409448818,
-                "fallback_ns": 528.6382315686664,
-                "equivalence_allowance_ns": 26.43191157843332,
+                "selected_ns": 116.8049374618497,
+                "fallback_ns": 542.7180338740945,
+                "equivalence_allowance_ns": 27.135901693704728,
                 "passed": true
               }
             },
@@ -972,17 +972,17 @@
         },
         "current_thread_cpu": {
           "now": {
-            "tach_ns": 58.43984105347276,
-            "native_ns": 262.7797440434647,
-            "equivalence_allowance_ns": 13.138987202173235,
+            "tach_ns": 57.58331093256228,
+            "native_ns": 265.6565066385299,
+            "equivalence_allowance_ns": 13.282825331926496,
             "comparison_basis": "Criterion estimate",
             "paired_probe": null,
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 116.08759295152257,
-            "native_ns": 522.2764351328335,
-            "equivalence_allowance_ns": 26.113821756641677,
+            "tach_ns": 116.07228880901347,
+            "native_ns": 525.7542770795437,
+            "equivalence_allowance_ns": 26.287713853977188,
             "comparison_basis": "Criterion estimate",
             "paired_probe": null,
             "passed": true
@@ -994,13 +994,13 @@
       "passed": true,
       "failures": [],
       "bundle_binding": {
-        "path": "/Users/spencer/src/tach/.tach-bench-out/e20af60/speed-1-c7g.collector.bundle",
+        "path": "/Users/spencer/src/tach/.tach-bench-out/f6df5df/speed-1-c7g.collector.bundle",
         "passed": true
       }
     },
     {
       "artifact_id": "speed-2-inteln.json",
-      "source_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+      "source_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
       "triple": "x86_64-unknown-linux-gnu",
       "build_mode": "default",
       "evidence_kind": "full_speed",
@@ -1009,10 +1009,10 @@
       "three_clock_speed": {
         "same_thread_elapsed": {
           "now": {
-            "tach_ns": 14.740506397944204,
+            "tach_ns": 14.850761668446335,
             "comparisons": {
               "quanta": {
-                "reference_ns": 17.17041249796833,
+                "reference_ns": 17.37820330530281,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
@@ -1021,7 +1021,7 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 14.70550549063621,
+                "reference_ns": 14.867105303730778,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
@@ -1030,7 +1030,7 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 14.73462207926485,
+                "reference_ns": 14.849415057112001,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
@@ -1039,8 +1039,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 25.9295960528066,
-                "equivalence_allowance_ns": 1.29647980264033,
+                "reference_ns": 26.151457831116762,
+                "equivalence_allowance_ns": 1.3075728915558382,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -1051,11 +1051,11 @@
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 30.37887638149816,
+            "tach_ns": 30.647775784987466,
             "comparisons": {
               "quanta": {
-                "reference_ns": 38.12563800086509,
-                "equivalence_allowance_ns": 1.9062819000432545,
+                "reference_ns": 38.507845517926135,
+                "equivalence_allowance_ns": 1.925392275896307,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -1063,8 +1063,8 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 39.96737084168944,
-                "equivalence_allowance_ns": 1.998368542084472,
+                "reference_ns": 40.30353822707325,
+                "equivalence_allowance_ns": 2.0151769113536626,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -1072,8 +1072,8 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 39.89793715733674,
-                "equivalence_allowance_ns": 1.9948968578668371,
+                "reference_ns": 40.224428531598946,
+                "equivalence_allowance_ns": 2.0112214265799473,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -1081,8 +1081,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 55.788348687696356,
-                "equivalence_allowance_ns": 2.789417434384818,
+                "reference_ns": 56.545055445814036,
+                "equivalence_allowance_ns": 2.827252772290702,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -1117,18 +1117,18 @@
         },
         "cross_thread_elapsed": {
           "now": {
-            "tach_ns": 22.410739827746863,
-            "std_ns": 25.9295960528066,
-            "equivalence_allowance_ns": 1.29647980264033,
+            "tach_ns": 22.602685661432954,
+            "std_ns": 26.151457831116762,
+            "equivalence_allowance_ns": 1.3075728915558382,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 43.599395015367186,
-            "std_ns": 55.788348687696356,
-            "equivalence_allowance_ns": 2.789417434384818,
+            "tach_ns": 43.95704809509867,
+            "std_ns": 56.545055445814036,
+            "equivalence_allowance_ns": 2.827252772290702,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
@@ -1141,10 +1141,10 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 972559,
-                "exact_median_batch_ns": 951313,
-                "public_ns_per_read": 14.840072631835938,
-                "exact_ns_per_read": 14.515884399414062,
+                "public_median_batch_ns": 969565,
+                "exact_median_batch_ns": 949882,
+                "public_ns_per_read": 14.794387817382812,
+                "exact_ns_per_read": 14.494049072265625,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -1152,11 +1152,11 @@
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 2010995,
-                "exact_median_batch_ns": 1952151,
-                "public_ns_per_read": 30.685348510742188,
-                "exact_ns_per_read": 29.787460327148438,
-                "equivalence_allowance_ns_per_read": 1.4893646240234375,
+                "public_median_batch_ns": 2033138,
+                "exact_median_batch_ns": 1970475,
+                "public_ns_per_read": 31.023223876953125,
+                "exact_ns_per_read": 30.067062377929688,
+                "equivalence_allowance_ns_per_read": 1.5033416748046875,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
@@ -1168,22 +1168,22 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 1406737,
-                "exact_median_batch_ns": 1365353,
-                "public_ns_per_read": 21.465103149414062,
-                "exact_ns_per_read": 20.833633422851562,
-                "equivalence_allowance_ns_per_read": 1.0416717529296875,
+                "public_median_batch_ns": 1428808,
+                "exact_median_batch_ns": 1384119,
+                "public_ns_per_read": 21.8018798828125,
+                "exact_ns_per_read": 21.119979858398438,
+                "equivalence_allowance_ns_per_read": 1.0559844970703125,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 2909477,
-                "exact_median_batch_ns": 2872489,
-                "public_ns_per_read": 44.39509582519531,
-                "exact_ns_per_read": 43.83070373535156,
-                "equivalence_allowance_ns_per_read": 2.1915283203125,
+                "public_median_batch_ns": 2945041,
+                "exact_median_batch_ns": 2892941,
+                "public_ns_per_read": 44.93775939941406,
+                "exact_ns_per_read": 44.14277648925781,
+                "equivalence_allowance_ns_per_read": 2.2071380615234375,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
@@ -1197,17 +1197,17 @@
             "public_exact_contract": null,
             "metrics": {
               "now": {
-                "tach_ns": 14.740506397944204,
-                "selected_native_ns": 14.42976319909981,
+                "tach_ns": 14.850761668446335,
+                "selected_native_ns": 14.537124937537104,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 972559,
-                  "exact_median_batch_ns": 951313,
-                  "public_ns_per_read": 14.840072631835938,
-                  "exact_ns_per_read": 14.515884399414062,
+                  "public_median_batch_ns": 969565,
+                  "exact_median_batch_ns": 949882,
+                  "public_ns_per_read": 14.794387817382812,
+                  "exact_ns_per_read": 14.494049072265625,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -1216,18 +1216,18 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 30.37887638149816,
-                "selected_native_ns": 29.465092172623738,
-                "equivalence_allowance_ns": 1.4893646240234375,
+                "tach_ns": 30.647775784987466,
+                "selected_native_ns": 29.80061465975059,
+                "equivalence_allowance_ns": 1.5033416748046875,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 2010995,
-                  "exact_median_batch_ns": 1952151,
-                  "public_ns_per_read": 30.685348510742188,
-                  "exact_ns_per_read": 29.787460327148438,
-                  "equivalence_allowance_ns_per_read": 1.4893646240234375,
+                  "public_median_batch_ns": 2033138,
+                  "exact_median_batch_ns": 1970475,
+                  "public_ns_per_read": 31.023223876953125,
+                  "exact_ns_per_read": 30.067062377929688,
+                  "equivalence_allowance_ns_per_read": 1.5033416748046875,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
                   "passed": true
@@ -1243,18 +1243,18 @@
             "public_exact_contract": null,
             "metrics": {
               "now": {
-                "tach_ns": 22.410739827746863,
-                "selected_native_ns": 22.406493921892906,
-                "equivalence_allowance_ns": 1.0416717529296875,
+                "tach_ns": 22.602685661432954,
+                "selected_native_ns": 22.586557229686328,
+                "equivalence_allowance_ns": 1.0559844970703125,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 1406737,
-                  "exact_median_batch_ns": 1365353,
-                  "public_ns_per_read": 21.465103149414062,
-                  "exact_ns_per_read": 20.833633422851562,
-                  "equivalence_allowance_ns_per_read": 1.0416717529296875,
+                  "public_median_batch_ns": 1428808,
+                  "exact_median_batch_ns": 1384119,
+                  "public_ns_per_read": 21.8018798828125,
+                  "exact_ns_per_read": 21.119979858398438,
+                  "equivalence_allowance_ns_per_read": 1.0559844970703125,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
                   "passed": true
@@ -1262,18 +1262,18 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 43.599395015367186,
-                "selected_native_ns": 43.261776008888866,
-                "equivalence_allowance_ns": 2.1915283203125,
+                "tach_ns": 43.95704809509867,
+                "selected_native_ns": 43.59423409744165,
+                "equivalence_allowance_ns": 2.2071380615234375,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 2909477,
-                  "exact_median_batch_ns": 2872489,
-                  "public_ns_per_read": 44.39509582519531,
-                  "exact_ns_per_read": 43.83070373535156,
-                  "equivalence_allowance_ns_per_read": 2.1915283203125,
+                  "public_median_batch_ns": 2945041,
+                  "exact_median_batch_ns": 2892941,
+                  "public_ns_per_read": 44.93775939941406,
+                  "exact_ns_per_read": 44.14277648925781,
+                  "equivalence_allowance_ns_per_read": 2.2071380615234375,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
                   "passed": true
@@ -1302,17 +1302,17 @@
             ],
             "selected_read_cost": "system call",
             "raw_decision": {
-              "challenger_median_ns": 668348,
-              "incumbent_median_ns": 682738,
+              "challenger_median_ns": 691554,
+              "incumbent_median_ns": 705287,
               "allowance_ns": 4096,
               "decisive_wins": 7,
               "selected": true
             },
             "libc_reverse_decision": {
-              "challenger_median_ns": 682738,
-              "incumbent_median_ns": 668348,
+              "challenger_median_ns": 705287,
+              "incumbent_median_ns": 691554,
               "allowance_ns": 4096,
-              "decisive_wins": 1,
+              "decisive_wins": 0,
               "selected": false
             }
           },
@@ -1330,9 +1330,9 @@
               "winner": "posix_thread_cpu",
               "decisions": [
                 {
-                  "challenger_median_ns": 1124742,
-                  "incumbent_median_ns": 655661,
-                  "allowance_ns": 32783,
+                  "challenger_median_ns": 1149016,
+                  "incumbent_median_ns": 676783,
+                  "allowance_ns": 33839,
                   "decisive_wins": 0,
                   "selected": false,
                   "challenger": "linux_perf_read",
@@ -1352,17 +1352,17 @@
           "selected_read_cost": "system call",
           "metrics": {
             "now": {
-              "tach_ns": 163.25052713883116,
-              "selected_native_ns": 163.70855033269584,
-              "equivalence_allowance_ns": 8.185427516634793,
+              "tach_ns": 166.6341649891133,
+              "selected_native_ns": 167.1892877269395,
+              "equivalence_allowance_ns": 8.359464386346977,
               "comparison_basis": "Criterion estimate",
               "paired_probe": null,
               "passed": true
             },
             "elapsed": {
-              "tach_ns": 331.46639153730683,
-              "selected_native_ns": 331.1523945559272,
-              "equivalence_allowance_ns": 16.55761972779636,
+              "tach_ns": 336.18838248265246,
+              "selected_native_ns": 337.448010276662,
+              "equivalence_allowance_ns": 16.8724005138331,
               "comparison_basis": "Criterion estimate",
               "paired_probe": null,
               "passed": true
@@ -1372,17 +1372,17 @@
             "direct_thread_cpu__linux_x86_64_libc_clock_thread_cputime": {
               "metrics": {
                 "now": {
-                  "tach_ns": 163.25052713883116,
-                  "candidate_ns": 170.5706626955278,
-                  "equivalence_allowance_ns": 8.52853313477639,
+                  "tach_ns": 166.6341649891133,
+                  "candidate_ns": 173.43042682873005,
+                  "equivalence_allowance_ns": 8.671521341436502,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 331.46639153730683,
-                  "candidate_ns": 343.21385800878545,
-                  "equivalence_allowance_ns": 17.160692900439273,
+                  "tach_ns": 336.18838248265246,
+                  "candidate_ns": 347.98094121111285,
+                  "equivalence_allowance_ns": 17.39904706055564,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
@@ -1393,17 +1393,17 @@
             "direct_thread_cpu__linux_x86_64_raw_syscall_clock_thread_cputime": {
               "metrics": {
                 "now": {
-                  "tach_ns": 163.25052713883116,
-                  "candidate_ns": 164.5665228848821,
-                  "equivalence_allowance_ns": 8.228326144244106,
+                  "tach_ns": 166.6341649891133,
+                  "candidate_ns": 166.8207880075107,
+                  "equivalence_allowance_ns": 8.341039400375536,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 331.46639153730683,
-                  "candidate_ns": 327.16938576433915,
-                  "equivalence_allowance_ns": 16.35846928821696,
+                  "tach_ns": 336.18838248265246,
+                  "candidate_ns": 333.5498710762332,
+                  "equivalence_allowance_ns": 16.67749355381166,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
@@ -1414,17 +1414,17 @@
             "direct_thread_cpu__linux_perf_read__raw_read_syscall": {
               "metrics": {
                 "now": {
-                  "tach_ns": 163.25052713883116,
-                  "candidate_ns": 270.81033564288003,
-                  "equivalence_allowance_ns": 13.540516782144003,
+                  "tach_ns": 166.6341649891133,
+                  "candidate_ns": 279.2266780907009,
+                  "equivalence_allowance_ns": 13.961333904535046,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 331.46639153730683,
-                  "candidate_ns": 544.1468998877467,
-                  "equivalence_allowance_ns": 27.207344994387338,
+                  "tach_ns": 336.18838248265246,
+                  "candidate_ns": 557.8380132309005,
+                  "equivalence_allowance_ns": 27.891900661545026,
                   "comparison_basis": "Criterion estimate",
                   "paired_probe": null,
                   "passed": true
@@ -1438,15 +1438,15 @@
             "provider": "linux_perf_read__raw_read_syscall",
             "metrics": {
               "now": {
-                "selected_ns": 163.70855033269584,
-                "fallback_ns": 276.2602892044701,
-                "equivalence_allowance_ns": 13.813014460223506,
+                "selected_ns": 167.1892877269395,
+                "fallback_ns": 283.19778360343184,
+                "equivalence_allowance_ns": 14.159889180171593,
                 "passed": true
               },
               "elapsed": {
-                "selected_ns": 331.1523945559272,
-                "fallback_ns": 552.1156380208333,
-                "equivalence_allowance_ns": 27.605781901041667,
+                "selected_ns": 337.448010276662,
+                "fallback_ns": 566.2721476349736,
+                "equivalence_allowance_ns": 28.31360738174868,
                 "passed": true
               }
             },
@@ -1455,17 +1455,17 @@
         },
         "current_thread_cpu": {
           "now": {
-            "tach_ns": 163.25052713883116,
-            "native_ns": 164.6446567152639,
-            "equivalence_allowance_ns": 8.232232835763195,
+            "tach_ns": 166.6341649891133,
+            "native_ns": 167.2315073759383,
+            "equivalence_allowance_ns": 8.361575368796915,
             "comparison_basis": "Criterion estimate",
             "paired_probe": null,
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 331.46639153730683,
-            "native_ns": 329.16942657903815,
-            "equivalence_allowance_ns": 16.45847132895191,
+            "tach_ns": 336.18838248265246,
+            "native_ns": 334.2357637642009,
+            "equivalence_allowance_ns": 16.711788188210047,
             "comparison_basis": "Criterion estimate",
             "paired_probe": null,
             "passed": true
@@ -1477,13 +1477,13 @@
       "passed": true,
       "failures": [],
       "bundle_binding": {
-        "path": "/Users/spencer/src/tach/.tach-bench-out/e20af60/speed-2-inteln.collector.bundle",
+        "path": "/Users/spencer/src/tach/.tach-bench-out/f6df5df/speed-2-inteln.collector.bundle",
         "passed": true
       }
     },
     {
       "artifact_id": "speed-4-windows.json",
-      "source_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+      "source_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
       "triple": "x86_64-pc-windows-msvc",
       "build_mode": "default",
       "evidence_kind": "full_speed",
@@ -1492,10 +1492,10 @@
       "three_clock_speed": {
         "same_thread_elapsed": {
           "now": {
-            "tach_ns": 11.471604280030878,
+            "tach_ns": 11.478995905048446,
             "comparisons": {
               "quanta": {
-                "reference_ns": 11.362256555346255,
+                "reference_ns": 11.437181134063184,
                 "equivalence_allowance_ns": 1.0,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "windows_raw_counter_does_not_meet_qpc_reliability_contract",
@@ -1504,8 +1504,8 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 40.91268628504761,
-                "equivalence_allowance_ns": 2.0456343142523807,
+                "reference_ns": 41.22071030872837,
+                "equivalence_allowance_ns": 2.061035515436419,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
                 "implementation": "fastant falls back to std::time::SystemTime on non-Linux-x86 targets",
@@ -1513,8 +1513,8 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 41.01894457571612,
-                "equivalence_allowance_ns": 2.050947228785806,
+                "reference_ns": 41.208278557776026,
+                "equivalence_allowance_ns": 2.0604139278888014,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
                 "implementation": "minstant falls back to std::time::SystemTime on non-Linux-x86 targets",
@@ -1522,8 +1522,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 38.089149911986354,
-                "equivalence_allowance_ns": 1.9044574955993179,
+                "reference_ns": 37.76481874996628,
+                "equivalence_allowance_ns": 1.8882409374983142,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -1534,11 +1534,11 @@
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 22.982248713438864,
+            "tach_ns": 22.768666781971746,
             "comparisons": {
               "quanta": {
-                "reference_ns": 23.31229831089921,
-                "equivalence_allowance_ns": 1.1656149155449604,
+                "reference_ns": 23.897154001836917,
+                "equivalence_allowance_ns": 1.1948577000918459,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "windows_raw_counter_does_not_meet_qpc_reliability_contract",
                 "implementation": "quanta selects calibrated RDTSC on this target",
@@ -1546,8 +1546,8 @@
                 "passed": true
               },
               "fastant": {
-                "reference_ns": 95.2253205234955,
-                "equivalence_allowance_ns": 4.761266026174775,
+                "reference_ns": 99.99234071409975,
+                "equivalence_allowance_ns": 4.999617035704988,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
                 "implementation": "fastant falls back to std::time::SystemTime on non-Linux-x86 targets",
@@ -1555,8 +1555,8 @@
                 "passed": true
               },
               "minstant": {
-                "reference_ns": 95.23287461467787,
-                "equivalence_allowance_ns": 4.761643730733893,
+                "reference_ns": 95.39848477834543,
+                "equivalence_allowance_ns": 4.769924238917272,
                 "eligible_for_reliable_contract": false,
                 "eligibility_reason": "windows_system_time_fallback_is_not_monotonic_qpc",
                 "implementation": "minstant falls back to std::time::SystemTime on non-Linux-x86 targets",
@@ -1564,8 +1564,8 @@
                 "passed": true
               },
               "std": {
-                "reference_ns": 78.90429440505001,
-                "equivalence_allowance_ns": 3.9452147202525008,
+                "reference_ns": 78.37079102298796,
+                "equivalence_allowance_ns": 3.918539551149398,
                 "eligible_for_reliable_contract": true,
                 "eligibility_reason": null,
                 "implementation": null,
@@ -1600,18 +1600,18 @@
         },
         "cross_thread_elapsed": {
           "now": {
-            "tach_ns": 25.269892900933634,
-            "std_ns": 38.089149911986354,
-            "equivalence_allowance_ns": 1.9044574955993179,
+            "tach_ns": 25.273213411849,
+            "std_ns": 37.76481874996628,
+            "equivalence_allowance_ns": 1.8882409374983142,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 53.383162726412465,
-            "std_ns": 78.90429440505001,
-            "equivalence_allowance_ns": 3.9452147202525008,
+            "tach_ns": 53.35162402659173,
+            "std_ns": 78.37079102298796,
+            "equivalence_allowance_ns": 3.918539551149398,
             "eligible_for_reliable_contract": true,
             "eligibility_reason": null,
             "measured": true,
@@ -1624,10 +1624,10 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 732000,
-                "exact_median_batch_ns": 744400,
-                "public_ns_per_read": 11.16943359375,
-                "exact_ns_per_read": 11.358642578125,
+                "public_median_batch_ns": 737500,
+                "exact_median_batch_ns": 734100,
+                "public_ns_per_read": 11.25335693359375,
+                "exact_ns_per_read": 11.20147705078125,
                 "equivalence_allowance_ns_per_read": 1.0,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
@@ -1635,12 +1635,12 @@
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 1506200,
-                "exact_median_batch_ns": 1498000,
-                "public_ns_per_read": 22.9827880859375,
-                "exact_ns_per_read": 22.857666015625,
-                "equivalence_allowance_ns_per_read": 1.14288330078125,
-                "decisive_losses": 1,
+                "public_median_batch_ns": 1495800,
+                "exact_median_batch_ns": 1496900,
+                "public_ns_per_read": 22.8240966796875,
+                "exact_ns_per_read": 22.84088134765625,
+                "equivalence_allowance_ns_per_read": 1.1420440673828125,
+                "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
               }
@@ -1651,23 +1651,23 @@
             "public_exact": {
               "now": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 1672200,
-                "exact_median_batch_ns": 1684300,
-                "public_ns_per_read": 25.5157470703125,
-                "exact_ns_per_read": 25.70037841796875,
-                "equivalence_allowance_ns_per_read": 1.2850189208984375,
+                "public_median_batch_ns": 1661800,
+                "exact_median_batch_ns": 1677600,
+                "public_ns_per_read": 25.3570556640625,
+                "exact_ns_per_read": 25.59814453125,
+                "equivalence_allowance_ns_per_read": 1.2799072265625,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
               },
               "elapsed": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 3554700,
-                "exact_median_batch_ns": 3557800,
-                "public_ns_per_read": 54.24041748046875,
-                "exact_ns_per_read": 54.2877197265625,
-                "equivalence_allowance_ns_per_read": 2.714385986328125,
-                "decisive_losses": 1,
+                "public_median_batch_ns": 3525500,
+                "exact_median_batch_ns": 3525200,
+                "public_ns_per_read": 53.79486083984375,
+                "exact_ns_per_read": 53.790283203125,
+                "equivalence_allowance_ns_per_read": 2.68951416015625,
+                "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
               }
@@ -1680,17 +1680,17 @@
             "public_exact_contract": null,
             "metrics": {
               "now": {
-                "tach_ns": 11.471604280030878,
-                "selected_native_ns": 11.535994713519397,
+                "tach_ns": 11.478995905048446,
+                "selected_native_ns": 11.540421932189266,
                 "equivalence_allowance_ns": 1.0,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 732000,
-                  "exact_median_batch_ns": 744400,
-                  "public_ns_per_read": 11.16943359375,
-                  "exact_ns_per_read": 11.358642578125,
+                  "public_median_batch_ns": 737500,
+                  "exact_median_batch_ns": 734100,
+                  "public_ns_per_read": 11.25335693359375,
+                  "exact_ns_per_read": 11.20147705078125,
                   "equivalence_allowance_ns_per_read": 1.0,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
@@ -1699,19 +1699,19 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 22.982248713438864,
-                "selected_native_ns": 23.006822523156256,
-                "equivalence_allowance_ns": 1.14288330078125,
+                "tach_ns": 22.768666781971746,
+                "selected_native_ns": 23.00436129215808,
+                "equivalence_allowance_ns": 1.1420440673828125,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 1506200,
-                  "exact_median_batch_ns": 1498000,
-                  "public_ns_per_read": 22.9827880859375,
-                  "exact_ns_per_read": 22.857666015625,
-                  "equivalence_allowance_ns_per_read": 1.14288330078125,
-                  "decisive_losses": 1,
+                  "public_median_batch_ns": 1495800,
+                  "exact_median_batch_ns": 1496900,
+                  "public_ns_per_read": 22.8240966796875,
+                  "exact_ns_per_read": 22.84088134765625,
+                  "equivalence_allowance_ns_per_read": 1.1420440673828125,
+                  "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
                   "passed": true
                 },
@@ -1726,18 +1726,18 @@
             "public_exact_contract": null,
             "metrics": {
               "now": {
-                "tach_ns": 25.269892900933634,
-                "selected_native_ns": 25.271321817955,
-                "equivalence_allowance_ns": 1.2850189208984375,
+                "tach_ns": 25.273213411849,
+                "selected_native_ns": 25.28819296501444,
+                "equivalence_allowance_ns": 1.2799072265625,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 1672200,
-                  "exact_median_batch_ns": 1684300,
-                  "public_ns_per_read": 25.5157470703125,
-                  "exact_ns_per_read": 25.70037841796875,
-                  "equivalence_allowance_ns_per_read": 1.2850189208984375,
+                  "public_median_batch_ns": 1661800,
+                  "exact_median_batch_ns": 1677600,
+                  "public_ns_per_read": 25.3570556640625,
+                  "exact_ns_per_read": 25.59814453125,
+                  "equivalence_allowance_ns_per_read": 1.2799072265625,
                   "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
                   "passed": true
@@ -1745,19 +1745,19 @@
                 "passed": true
               },
               "elapsed": {
-                "tach_ns": 53.383162726412465,
-                "selected_native_ns": 62.149432809773124,
-                "equivalence_allowance_ns": 2.714385986328125,
+                "tach_ns": 53.35162402659173,
+                "selected_native_ns": 62.14649217253766,
+                "equivalence_allowance_ns": 2.68951416015625,
                 "comparison_basis": "alternating paired public/exact probe",
                 "public_reference_gate": null,
                 "paired_probe": {
                   "reads_per_batch": 65536,
-                  "public_median_batch_ns": 3554700,
-                  "exact_median_batch_ns": 3557800,
-                  "public_ns_per_read": 54.24041748046875,
-                  "exact_ns_per_read": 54.2877197265625,
-                  "equivalence_allowance_ns_per_read": 2.714385986328125,
-                  "decisive_losses": 1,
+                  "public_median_batch_ns": 3525500,
+                  "exact_median_batch_ns": 3525200,
+                  "public_ns_per_read": 53.79486083984375,
+                  "exact_ns_per_read": 53.790283203125,
+                  "equivalence_allowance_ns_per_read": 2.68951416015625,
+                  "decisive_losses": 0,
                   "admission_role": "public_exact_parity",
                   "passed": true
                 },
@@ -1803,22 +1803,22 @@
           "public_exact": {
             "now": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 14201600,
-              "exact_median_batch_ns": 14127900,
-              "public_ns_per_read": 216.69921875,
-              "exact_ns_per_read": 215.57464599609375,
-              "equivalence_allowance_ns_per_read": 10.778732299804688,
+              "public_median_batch_ns": 14165500,
+              "exact_median_batch_ns": 14033800,
+              "public_ns_per_read": 216.14837646484375,
+              "exact_ns_per_read": 214.1387939453125,
+              "equivalence_allowance_ns_per_read": 10.706939697265625,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
             },
             "elapsed": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 27849600,
-              "exact_median_batch_ns": 27967100,
-              "public_ns_per_read": 424.951171875,
-              "exact_ns_per_read": 426.74407958984375,
-              "equivalence_allowance_ns_per_read": 21.337203979492188,
+              "public_median_batch_ns": 27893300,
+              "exact_median_batch_ns": 28110900,
+              "public_ns_per_read": 425.61798095703125,
+              "exact_ns_per_read": 428.93829345703125,
+              "equivalence_allowance_ns_per_read": 21.446914672851562,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
@@ -1831,17 +1831,17 @@
           "selected_read_cost": "system call",
           "metrics": {
             "now": {
-              "tach_ns": 212.99221846240079,
-              "selected_native_ns": 212.53028187942738,
-              "equivalence_allowance_ns": 10.778732299804688,
+              "tach_ns": 211.87454945661045,
+              "selected_native_ns": 209.05790202914096,
+              "equivalence_allowance_ns": 10.706939697265625,
               "comparison_basis": "alternating paired public/exact probe",
               "paired_probe": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 14201600,
-                "exact_median_batch_ns": 14127900,
-                "public_ns_per_read": 216.69921875,
-                "exact_ns_per_read": 215.57464599609375,
-                "equivalence_allowance_ns_per_read": 10.778732299804688,
+                "public_median_batch_ns": 14165500,
+                "exact_median_batch_ns": 14033800,
+                "public_ns_per_read": 216.14837646484375,
+                "exact_ns_per_read": 214.1387939453125,
+                "equivalence_allowance_ns_per_read": 10.706939697265625,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
@@ -1849,17 +1849,17 @@
               "passed": true
             },
             "elapsed": {
-              "tach_ns": 423.0351066457878,
-              "selected_native_ns": 424.0760146594557,
-              "equivalence_allowance_ns": 21.337203979492188,
+              "tach_ns": 424.3824791883454,
+              "selected_native_ns": 418.8332144555397,
+              "equivalence_allowance_ns": 21.446914672851562,
               "comparison_basis": "alternating paired public/exact probe",
               "paired_probe": {
                 "reads_per_batch": 65536,
-                "public_median_batch_ns": 27849600,
-                "exact_median_batch_ns": 27967100,
-                "public_ns_per_read": 424.951171875,
-                "exact_ns_per_read": 426.74407958984375,
-                "equivalence_allowance_ns_per_read": 21.337203979492188,
+                "public_median_batch_ns": 27893300,
+                "exact_median_batch_ns": 28110900,
+                "public_ns_per_read": 425.61798095703125,
+                "exact_ns_per_read": 428.93829345703125,
+                "equivalence_allowance_ns_per_read": 21.446914672851562,
                 "decisive_losses": 0,
                 "admission_role": "public_exact_parity",
                 "passed": true
@@ -1871,17 +1871,17 @@
             "direct_thread_cpu__get_thread_times_current_thread_pseudohandle": {
               "metrics": {
                 "now": {
-                  "tach_ns": 212.99221846240079,
-                  "candidate_ns": 213.22786880822446,
-                  "equivalence_allowance_ns": 10.778732299804688,
+                  "tach_ns": 211.87454945661045,
+                  "candidate_ns": 212.80227265035367,
+                  "equivalence_allowance_ns": 10.706939697265625,
                   "comparison_basis": "alternating paired public/exact probe",
                   "paired_probe": {
                     "reads_per_batch": 65536,
-                    "public_median_batch_ns": 14201600,
-                    "exact_median_batch_ns": 14127900,
-                    "public_ns_per_read": 216.69921875,
-                    "exact_ns_per_read": 215.57464599609375,
-                    "equivalence_allowance_ns_per_read": 10.778732299804688,
+                    "public_median_batch_ns": 14165500,
+                    "exact_median_batch_ns": 14033800,
+                    "public_ns_per_read": 216.14837646484375,
+                    "exact_ns_per_read": 214.1387939453125,
+                    "equivalence_allowance_ns_per_read": 10.706939697265625,
                     "decisive_losses": 0,
                     "admission_role": "public_exact_parity",
                     "passed": true
@@ -1889,17 +1889,17 @@
                   "passed": true
                 },
                 "elapsed": {
-                  "tach_ns": 423.0351066457878,
-                  "candidate_ns": 423.74512794441625,
-                  "equivalence_allowance_ns": 21.337203979492188,
+                  "tach_ns": 424.3824791883454,
+                  "candidate_ns": 423.00147608338125,
+                  "equivalence_allowance_ns": 21.446914672851562,
                   "comparison_basis": "alternating paired public/exact probe",
                   "paired_probe": {
                     "reads_per_batch": 65536,
-                    "public_median_batch_ns": 27849600,
-                    "exact_median_batch_ns": 27967100,
-                    "public_ns_per_read": 424.951171875,
-                    "exact_ns_per_read": 426.74407958984375,
-                    "equivalence_allowance_ns_per_read": 21.337203979492188,
+                    "public_median_batch_ns": 27893300,
+                    "exact_median_batch_ns": 28110900,
+                    "public_ns_per_read": 425.61798095703125,
+                    "exact_ns_per_read": 428.93829345703125,
+                    "equivalence_allowance_ns_per_read": 21.446914672851562,
                     "decisive_losses": 0,
                     "admission_role": "public_exact_parity",
                     "passed": true
@@ -1916,24 +1916,24 @@
             "read_cost": "system call",
             "time_domain": "monotonic wall fallback",
             "eligible_for_thread_cpu_speed_claim": false,
-            "now_ns": 11.334416733932015,
-            "elapsed_ns": 22.61638287012392,
+            "now_ns": 34.346778268736685,
+            "elapsed_ns": 63.113000177951804,
             "measured": true
           }
         },
         "current_thread_cpu": {
           "now": {
-            "tach_ns": 212.99221846240079,
-            "native_ns": 212.2657167654506,
-            "equivalence_allowance_ns": 10.778732299804688,
+            "tach_ns": 211.87454945661045,
+            "native_ns": 209.4457890943514,
+            "equivalence_allowance_ns": 10.706939697265625,
             "comparison_basis": "alternating paired public/exact probe",
             "paired_probe": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 14201600,
-              "exact_median_batch_ns": 14127900,
-              "public_ns_per_read": 216.69921875,
-              "exact_ns_per_read": 215.57464599609375,
-              "equivalence_allowance_ns_per_read": 10.778732299804688,
+              "public_median_batch_ns": 14165500,
+              "exact_median_batch_ns": 14033800,
+              "public_ns_per_read": 216.14837646484375,
+              "exact_ns_per_read": 214.1387939453125,
+              "equivalence_allowance_ns_per_read": 10.706939697265625,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
@@ -1941,17 +1941,17 @@
             "passed": true
           },
           "elapsed": {
-            "tach_ns": 423.0351066457878,
-            "native_ns": 422.2549118727463,
-            "equivalence_allowance_ns": 21.337203979492188,
+            "tach_ns": 424.3824791883454,
+            "native_ns": 423.19506766381767,
+            "equivalence_allowance_ns": 21.446914672851562,
             "comparison_basis": "alternating paired public/exact probe",
             "paired_probe": {
               "reads_per_batch": 65536,
-              "public_median_batch_ns": 27849600,
-              "exact_median_batch_ns": 27967100,
-              "public_ns_per_read": 424.951171875,
-              "exact_ns_per_read": 426.74407958984375,
-              "equivalence_allowance_ns_per_read": 21.337203979492188,
+              "public_median_batch_ns": 27893300,
+              "exact_median_batch_ns": 28110900,
+              "public_ns_per_read": 425.61798095703125,
+              "exact_ns_per_read": 428.93829345703125,
+              "equivalence_allowance_ns_per_read": 21.446914672851562,
               "decisive_losses": 0,
               "admission_role": "public_exact_parity",
               "passed": true
@@ -1965,15 +1965,15 @@
       "passed": true,
       "failures": [],
       "bundle_binding": {
-        "path": "/Users/spencer/src/tach/.tach-bench-out/e20af60/speed-4-windows.collector.bundle",
+        "path": "/Users/spencer/src/tach/.tach-bench-out/f6df5df/speed-4-windows.collector.bundle",
         "passed": true
       }
     }
   ],
   "checkout_binding": {
     "passed": true,
-    "campaign_revision": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
-    "checkout_head": "e20af602aa7b884eb6eea9b5b71120970ed7baca",
+    "campaign_revision": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
+    "checkout_head": "f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b",
     "committed_tree_inputs_unchanged": true,
     "committed_tree_changes": [],
     "working_tree_inputs_clean": true,
