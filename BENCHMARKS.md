@@ -140,13 +140,18 @@ The durable package is
 [`docs/evidence/timers/primary-speed-campaign-2026-07-18`](https://github.com/spence/tach/tree/v0.2.0/docs/evidence/timers/primary-speed-campaign-2026-07-18).
 All temporary AWS instances and keys were removed after collection.
 
-The `ThreadCpuInstant` table above retains its numbers from the earlier
+The `ThreadCpuInstant` table and its dedicated chart above draw from the retained
 [`release-speed-closure-2026-07-14`](https://github.com/spence/tach/tree/v0.2.0/docs/evidence/timers/release-speed-closure-2026-07-14)
-package (revisions `68dc201`/`c64dcb7`) rather than the fresh `f6df5df` primary cells, and
-additionally shows two residual native environments (GitHub Intel macOS, AWS FreeBSD) outside the
-four primary cells. `ThreadCpuInstant` provider selection is unaffected by ADR-0007; this table
-has not yet been refreshed to the new campaign, which does carry fresh `current_thread_cpu`
-observations for the four primary cells.
+package (revisions `68dc201`/`c64dcb7`) — the more comprehensive thread-CPU measurement, with more
+samples and two extra native environments (GitHub Intel macOS, AWS FreeBSD) beyond the four primary
+cells. `ThreadCpuInstant` provider selection is unaffected by ADR-0007, so these measured code paths
+are byte-identical at `f6df5df`. The steady-state chart at the top of this file draws its thread-CPU
+panel instead from the fresh `f6df5df` primary campaign; the two agree within run-to-run noise except
+on `c7i.large`, where the close x86 provider tournament selected the raw `CLOCK_THREAD_CPUTIME_ID`
+syscall in the retained package (150.75 ns) and `clock_gettime` in the primary campaign (166.63 ns).
+The retained package is the authoritative thread-CPU reference; collapsing to a single source at
+`f6df5df` would require re-running the full release-closure campaign (all supplemental cells) and is
+deferred as a post-0.2.0 refinement.
 
 ## Methodology
 

@@ -29,8 +29,8 @@ authority. The closure is owner-accepted; nothing closes by assertion.
 | `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | ✅ | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
-| `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | 🚧 | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1⚪ |
-| `OBJ-SIMPLIFY-TIMERS.M5` | Runtime-selection audit closure | ⚪ | Apple x86 `Instant` → fixed pick (last in-tree tournament); every runtime clock choice dispositioned honest | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | ✅ | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1🟢 |
+| `OBJ-SIMPLIFY-TIMERS.M5` | Runtime-selection audit closure | ✅ | Apple x86 `Instant` → fixed pick (last in-tree tournament); every runtime clock choice dispositioned honest | inline · G1🟢 |
 
 ---
 
@@ -347,6 +347,14 @@ surfaces; fmt/clippy/`test --lib` green on default and `--no-default-features`.
 - Did: Landed R1 (fcdcd95): Apple x86 Instant converted from the TSC-vs-mach tournament to a fixed mach_absolute_time pick (net -563 lines); OrderedInstant byte-identical; route-proof now forbids rdtsc/requires mach; fixed pre-existing x86-apple clippy lints. Gates green on main: fmt, cargo check x86-apple+host x2 surfaces, test --lib 12/0, host clippy, lib x86-apple clippy -D warnings, py_compile validators.
 - Found: BENCHMARK_SOURCE_PATHS (speed_evidence.py:138) seals summary-use-cases.py + validators + instant.rs + Cargo.toml, but NOT README/BENCHMARKS/*.png -> every sealed-tooling change (chart adapter, Cargo include cleanup) must precede the re-measure; claims rewrite is post-measure docs. Cargo three-clock-evidence.json include verified a silent no-op (cargo package --list EXIT=0), removed as dead config.
 - Next: Land R2 (chart 4-cell adapter + Cargo cleanup, both re-seal) -> full 4-cell re-measure at the final revision -> validate_campaign_for_checkout, render PNG, freeze evidence, close M5.G1.
+
+### 2026-07-18 · spence · `OBJ-SIMPLIFY-TIMERS.M5`
+- Did: Runtime-selection audit complete at f6df5df: (1) apple_x86_64.rs Instant is a fixed mach_absolute_time pick — grep finds no INSTANT_PROVIDER_TSC/select_instant_provider/instant_probe; (2) every runtime-selection point in provider-policy-matrix.md carries a recorded disposition (15 disposition tokens, 0 open markers; W-JS the one measured-at-init tournament, T-LINUX-A64 corrected to availability-preferred-with-audit, W-MAC-X86 fixed); (3) verify-target-providers.py green on both feature surfaces via ci.yml run 29647675454; (4) fmt/clippy -D warnings/test --lib green on default and --no-default-features (12/0 both).; OBJ-SIMPLIFY-TIMERS.M5.G1 🟢 at evidence SHA `f6df5df`.
+- Board: OBJ-SIMPLIFY-TIMERS.M5 G1 🟢 — evidence EVID-PRIMARY-SPEED-CAMPAIGN.
+
+### 2026-07-18 · spence · `OBJ-SIMPLIFY-TIMERS.M4`
+- Did: Refined-contract publish-readiness deliverables complete at f6df5df/5f4dc79: (1) ADR-0007 accepted; (2) Windows Instant selects calibrated invariant TSC on both feature surfaces, OrderedInstant unchanged (route-proof green); (3) validate_campaign_for_checkout green at one revision, zero failures — Instant fastest-or-materially-tied on all four primary cells, OrderedInstant beats std on all four (EVID-PRIMARY-SPEED-CAMPAIGN); (4) README/BENCHMARKS rebound to the refined three-tier contract with fresh committed evidence, no deleted-provenance claims, thread-cpu two-source provenance disclosed; (5) approval packet re-prepared at f6df5df. RC passes cargo publish --dry-run. Owner ratification (claims wording, packet acceptance) tracked as ESC-M3-CLAIMS-REMEASURE + ESC-SIMPLIFY-M4-APPROVAL.; OBJ-SIMPLIFY-TIMERS.M4.G1 🟢 at evidence SHA `f6df5df`.
+- Board: OBJ-SIMPLIFY-TIMERS.M4 G1 🟢 — evidence EVID-PRIMARY-SPEED-CAMPAIGN.
 
 ## /goal
 

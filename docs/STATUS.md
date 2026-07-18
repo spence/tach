@@ -6,10 +6,10 @@ objective doc: author status there, not here.
 
 <!-- render:vitals -->
 > **VITALS · tach**
-> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M5 ⚪ Runtime-selection audit closure)
-> Next:       Land R2 (chart 4-cell adapter + Cargo cleanup, both re-seal) -> full 4-cell re-measure at the final revision -> validate_campaign_for_checkout, render PNG, freeze evidence, close M5.G1.
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-M4-CI-RED, ESC-SIMPLIFY-M4-APPROVAL
-> Last verified: 2026-07-18 · Changed: Landed R1 (fcdcd95): Apple x86 Instant converted from the TSC-vs-mach tournament to a fixed mach_absolute_time pick (net -563 lines); OrderedInstant byte-identical; route-proof now forbids rdtsc/requires mach; fixed pre-existing x86-apple clippy lints. Gates green on main: fmt, cargo check x86-apple+host x2 surfaces, test --lib 12/0, host clippy, lib x86-apple clippy -D warnings, py_compile validators. · By: nsr · f6df5df
+> Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
+> Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-SIMPLIFY-M4-APPROVAL
+> Last verified: 2026-07-18 · Changed: Refined-contract publish-readiness deliverables complete at f6df5df/5f4dc79: (1) ADR-0007 accepted; (2) Windows Instant selects calibrated invariant TSC on both feature surfaces, OrderedInstant unchanged (route-proof green); (3) validate_campaign_for_checkout green at one revision, zero failures — Instant fastest-or-materially-tied on all four primary cells, OrderedInstant beats std on all four (EVID-PRIMARY-SPEED-CAMPAIGN); (4) README/BENCHMARKS rebound to the refined three-tier contract with fresh committed evidence, no deleted-provenance claims, thread-cpu two-source provenance disclosed; (5) approval packet re-prepared at f6df5df. RC passes cargo publish --dry-run. Owner ratification (claims wording, packet acceptance) tracked as ESC-M3-CLAIMS-REMEASURE + ESC-SIMPLIFY-M4-APPROVAL.; OBJ-SIMPLIFY-TIMERS.M4.G1 🟢 at evidence SHA `f6df5df`. · By: nsr · 5f4dc79
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -30,10 +30,10 @@ policy [`decisions/0005…`](decisions/0005-timer-contracts-eligibility-evidence
 | `OBJ-SIMPLIFY-TIMERS.M1` | Eligibility re-adjudication and flip verification | ✅ | Every provider family gets a freeze verdict from retained or new frozen evidence; Apple bare-counter candidacy re-adjudicated | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
-| `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | 🚧 | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1⚪ |
-| `OBJ-SIMPLIFY-TIMERS.M5` | Runtime-selection audit closure | ⚪ | Apple x86 `Instant` → fixed pick (last in-tree tournament); every runtime clock choice dispositioned honest | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | ✅ | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1🟢 |
+| `OBJ-SIMPLIFY-TIMERS.M5` | Runtime-selection audit closure | ✅ | Apple x86 `Instant` → fixed pick (last in-tree tournament); every runtime clock choice dispositioned honest | inline · G1🟢 |
 
-Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M5`): G1⚪
+Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M2`): G1🟢
 <!-- /render:board -->
 
 ---
