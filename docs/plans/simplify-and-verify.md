@@ -93,8 +93,10 @@ meaning.
 Pre-decided rulings the executor applies without revisiting:
 - Apple bare `CNTVCT_EL0` IS an `Instant` candidate; its barriered form IS an `OrderedInstant`
   candidate (§5.1 decides by evidence).
-- Windows bare TSC stays excluded (class 1); `QueryThreadCycleTime` stays excluded (class 1);
-  deliberately coarsened clocks stay excluded (class 1).
+- Windows bare TSC: **ADR-0007 (accepted 2026-07-17) admits it for the same-core `Instant`**
+  (x86 Windows Instant → `windows_tsc`, degrading to QPC when the invariant-TSC gate fails); it
+  stays excluded (class 1, cross-core) for `OrderedInstant`. `QueryThreadCycleTime` stays excluded
+  (class 1); deliberately coarsened clocks stay excluded (class 1).
 - An unbarriered read is never advertised as synchronization-ordered.
 
 ## 3. Selection rule
@@ -187,7 +189,7 @@ documentation run (owner-coordinated) and the full-crate battery on `catalyst-mi
 | `W/O-LINUX-X86` | c7i (TSC; LFENCE+RDTSC) | `c7a.large` (AMD Zen4, ~$0.09/hr) | `benches/run-speed-aws.sh` paired probes | Same winners → freeze fixed. Different ordered winner → first real flip: `O-LINUX-X86` stays measured; retain evidence |
 | `T-LINUX-X86` | c7i (syscall won; perf available-but-slower) | `c5n.metal` (~$3.89/hr, minutes; `cap_user_rdpmc=true`) | `benches/run-thread-pmu-aws.sh` | perf mmap wins on metal → flip frozen: tournament stays WITH evidence. Syscall wins there too → convert to capability policy (mmap handshake → else raw syscall) |
 | `W/O-LINUX-A64` | c7g | `c8g.large` (~$0.07/hr) | `run-speed-aws.sh` wall/ordered probes | Same winners → freeze fixed. Flip → stays measured; retain |
-| `W/O-WINDOWS` | windows-2025 runner (QPC) | `windows-2022` runner | dispatch the existing Windows bench workflow on the second runner label | Same winner → freeze QPC fixed. Flip → `nsr escalate` (unexpected) |
+| `W/O-WINDOWS` | windows-2025 runner (QPC) | `windows-2022` runner | dispatch the existing Windows bench workflow on the second runner label | Same winner → freeze QPC fixed. Flip → `nsr escalate` (unexpected). **ADR-0007 supersedes for x86 `Instant`: it now reads `windows_tsc` (re-measure in M4); `OrderedInstant` and aarch64 `Instant` stay QPC.** |
 | `W/O-FREEBSD-X86` | c7i FreeBSD 15 (TSC; LFENCE+TSC) | `c7a.large` FreeBSD | `benches/run-speed-freebsd-aws.sh` | Same → freeze fixed. Flip → stays measured; retain |
 | `W/O-MAC-X86` | macos-15-intel runner | none available | — | Freeze on the single frozen run + class-1 documentation; record residual |
 | Rare Linux arches, wasm/WASI | none | none | — | Freeze on class-1 architecture documentation; record residual "source/codegen-proven; not performance-measured"; publish no fastest claim for them |
@@ -200,8 +202,9 @@ raw output. Terminate instances; verify no orphans.
 Produce one table (updating [`provider-policy-matrix`](provider-policy-matrix.md)): every
 "ineligible" footnote → its class-1 citation or class-2 frozen evidence. An exclusion citing
 neither dissolves into candidacy and joins its family's freeze procedure. Known dissolution:
-Apple bare counter (§5.1). Known upheld (pre-decided): Windows bare TSC, `QueryThreadCycleTime`,
-coarse clocks.
+Apple bare counter (§5.1); Windows bare TSC for the same-core `Instant` (ADR-0007). Known upheld
+(pre-decided): Windows bare TSC for `OrderedInstant` (cross-core), `QueryThreadCycleTime`, coarse
+clocks.
 
 Close `M1.G1` when all 72 target/timer cells carry a verdict plus evidence or documented residual.
 

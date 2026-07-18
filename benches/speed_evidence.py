@@ -410,7 +410,10 @@ EXPECTED_WALL_PICKS = {
     }),
   },
   "windows": {
-    "instant": frozenset({"windows_qpc"}),
+    # x86 Windows Instant is a calibrated invariant TSC (windows_tsc, ADR-0007),
+    # degrading to windows_qpc when the invariant-TSC gate fails; aarch64 Windows
+    # Instant stays windows_qpc. OrderedInstant is unchanged on every arch.
+    "instant": frozenset({"windows_tsc", "windows_qpc"}),
     "ordered": frozenset({"windows_qpc_call_boundary"}),
   },
   "freebsd": {

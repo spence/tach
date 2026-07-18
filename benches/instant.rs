@@ -1509,9 +1509,13 @@ fn bench_now(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    // Both wall contracts are the frozen fixed pick: QueryPerformanceCounter.
+    // x86 Instant is the invariant-TSC pick (ADR-0007); OrderedInstant and
+    // aarch64 Instant stay on QueryPerformanceCounter.
     let instant_provider = tach::bench::windows_wall_selected_provider();
     g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
+      #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+      b.iter(|| black_box(tach::bench::windows_tsc_ticks()));
+      #[cfg(target_arch = "aarch64")]
       b.iter(|| black_box(tach::bench::windows_qpc_ticks()));
     });
     let ordered_provider = tach::bench::windows_ordered_wall_selected_provider();
@@ -1746,9 +1750,30 @@ fn write_windows_wall_selection() {
   } else {
     "aarch64-windows"
   };
-  // Both wall contracts read QueryPerformanceCounter and scale by
-  // QueryPerformanceFrequency, so they share one fixed-point scale.
-  let scale = tach::bench::windows_qpc_nanos_per_tick_q32();
+  // OrderedInstant reads QueryPerformanceCounter on every arch and scales by
+  // QueryPerformanceFrequency. x86 Instant reads a bare invariant TSC (ADR-0007),
+  // so its exact-parity probe scales by the calibrated TSC rate instead.
+  let ordered_scale = tach::bench::windows_qpc_nanos_per_tick_q32();
+  #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+  let instant_scale = tach::bench::windows_tsc_nanos_per_tick_q32();
+  #[cfg(target_arch = "aarch64")]
+  let instant_scale = tach::bench::windows_qpc_nanos_per_tick_q32();
+  #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+  let instant_public_exact = serde_json::json!({
+    "now": measure_wall_public_exact(|| Instant::now(), || tach::bench::windows_tsc_ticks()),
+    "elapsed": measure_wall_public_exact(
+      || {
+        let start = Instant::now();
+        start.elapsed()
+      },
+      || {
+        let start = tach::bench::windows_tsc_ticks();
+        let elapsed = tach::bench::windows_tsc_ticks().saturating_sub(start);
+        tach::bench::exact_ticks_to_duration_with_scale(elapsed, instant_scale)
+      },
+    ),
+  });
+  #[cfg(target_arch = "aarch64")]
   let instant_public_exact = serde_json::json!({
     "now": measure_wall_public_exact(|| Instant::now(), || tach::bench::windows_qpc_ticks()),
     "elapsed": measure_wall_public_exact(
@@ -1759,7 +1784,7 @@ fn write_windows_wall_selection() {
       || {
         let start = tach::bench::windows_qpc_ticks();
         let elapsed = tach::bench::windows_qpc_ticks().saturating_sub(start);
-        tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        tach::bench::exact_ticks_to_duration_with_scale(elapsed, instant_scale)
       },
     ),
   });
@@ -1773,10 +1798,14 @@ fn write_windows_wall_selection() {
       || {
         let start = tach::bench::windows_qpc_ticks();
         let elapsed = tach::bench::windows_qpc_ticks().saturating_sub(start);
-        tach::bench::exact_ticks_to_duration_with_scale(elapsed, scale)
+        tach::bench::exact_ticks_to_duration_with_scale(elapsed, ordered_scale)
       },
     ),
   });
+  #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+  let decision_rule = "x86 Windows Instant reads a bare invariant TSC (RDTSC) calibrated against QueryPerformanceCounter, the same-core Instant tier of ADR-0007, degrading to QueryPerformanceCounter only when the CPUID invariant-TSC gate (leaf 1 EDX[4] plus 0x80000007 EDX[8]) fails. OrderedInstant stays on QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock, scaled by QueryPerformanceFrequency: Windows owns its cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity, so a raw counter read is ineligible for the cross-core ordered contract while the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. OrderedInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.";
+  #[cfg(target_arch = "aarch64")]
+  let decision_rule = "Instant and OrderedInstant both read QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock on every supported Windows target, scaled by QueryPerformanceFrequency. Windows owns the cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity of its backing source, so a raw TSC/CNTVCT read is ineligible and the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. OrderedInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.";
   let payload = serde_json::json!({
     "architecture": architecture,
     "selected_provider": {
@@ -1787,7 +1816,7 @@ fn write_windows_wall_selection() {
       "instant": format!("direct_selected_wall__{instant_provider}"),
       "ordered": format!("direct_selected_ordered_wall__{ordered_provider}"),
     },
-    "decision_rule": "Instant and OrderedInstant both read QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock on every supported Windows target, scaled by QueryPerformanceFrequency. Windows owns the cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity of its backing source, so a raw TSC/CNTVCT read is ineligible and the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. OrderedInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.",
+    "decision_rule": decision_rule,
     "ordering_contract": {
       "basis": "the opaque Windows API call boundary prevents compiler motion across the read, and the Windows-owned timeline orders events across processors without a separate raw-counter fence",
       "authority": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps",
@@ -2366,9 +2395,17 @@ fn bench_elapsed(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    // Both wall contracts are the frozen fixed pick: QueryPerformanceCounter.
+    // x86 Instant is the invariant-TSC pick (ADR-0007); OrderedInstant and
+    // aarch64 Instant stay on QueryPerformanceCounter.
     let instant_provider = tach::bench::windows_wall_selected_provider();
     g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
+      #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+      b.iter(|| {
+        let start = tach::bench::windows_tsc_ticks();
+        let elapsed = tach::bench::windows_tsc_ticks().saturating_sub(start);
+        black_box(tach::bench::windows_tsc_delta_to_duration(elapsed))
+      });
+      #[cfg(target_arch = "aarch64")]
       b.iter(|| {
         let start = tach::bench::windows_qpc_ticks();
         let elapsed = tach::bench::windows_qpc_ticks().saturating_sub(start);

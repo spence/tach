@@ -3265,7 +3265,13 @@ pub fn apple_x86_selected_ordered_ticks() -> u64 {
   crate::arch::apple_x86_64::bench_selected_ordered_ticks()
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+#[doc(hidden)]
+pub fn windows_wall_selected_provider() -> &'static str {
+  crate::arch::windows_x86_wall::bench_instant_provider()
+}
+
+#[cfg(all(target_os = "windows", target_arch = "aarch64"))]
 #[doc(hidden)]
 pub fn windows_wall_selected_provider() -> &'static str {
   crate::arch::fallback::bench_instant_provider()
@@ -3297,6 +3303,31 @@ pub fn windows_qpc_delta_to_duration(ticks: u64) -> Duration {
 #[doc(hidden)]
 pub fn windows_qpc_nanos_per_tick_q32() -> u64 {
   crate::arch::scale_from_ratio(1_000_000_000, crate::arch::fallback::qpc_frequency())
+}
+
+// x86 Windows `Instant` reads a bare invariant TSC (ADR-0007). These parallel
+// the `windows_qpc_*` exports so the bench harness can drive and scale the TSC
+// read for the Instant exact-parity probe; the ordered probe stays QPC.
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+#[doc(hidden)]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn windows_tsc_ticks() -> u64 {
+  crate::arch::windows_x86_wall::bench_direct_tsc()
+}
+
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+#[doc(hidden)]
+pub fn windows_tsc_delta_to_duration(ticks: u64) -> Duration {
+  let nanos = u128::from(ticks).saturating_mul(1_000_000_000)
+    / u128::from(crate::arch::windows_x86_wall::bench_tsc_frequency().max(1));
+  Duration::from_nanos(u64::try_from(nanos).unwrap_or(u64::MAX))
+}
+
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+#[doc(hidden)]
+pub fn windows_tsc_nanos_per_tick_q32() -> u64 {
+  crate::arch::windows_x86_wall::bench_tsc_nanos_per_tick_q32()
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]

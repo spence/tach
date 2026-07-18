@@ -158,8 +158,9 @@ fn recalibrate_does_not_perturb_elapsed() {
   Instant::recalibrate();
   let elapsed = start.elapsed();
   // Recalibration itself spins for up to ~700 ms on platforms where it
-  // actually measures (direct-TSC x86 and aarch64 Linux); no-op on macOS
-  // and Windows where the selected platform clock has an authoritative
+  // actually measures (direct-TSC x86 — including x86 Windows, which measures
+  // against QueryPerformanceCounter — and aarch64 Linux); no-op on macOS and
+  // aarch64 Windows where the selected platform clock has an authoritative
   // scale. The upper bound here is a sanity check that a buggy
   // recalibration didn't jump the scaling so far that elapsed jumps to
   // multi-second values, not an assertion about the recalibrate cost

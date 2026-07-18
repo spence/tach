@@ -150,16 +150,19 @@ mod qpc {
   }
 
   // QueryPerformanceCounter is the OS-designated high-resolution monotonic wall
-  // clock on every supported Windows target, so both wall contracts read it and
-  // scale by the cached QueryPerformanceFrequency. Windows owns whatever
+  // clock on every supported Windows target, scaled by the cached
+  // QueryPerformanceFrequency. It backs `OrderedInstant` on every architecture,
+  // `Instant` on aarch64 Windows, and the `Instant` fallback on x86 Windows when
+  // the invariant-TSC gate fails; x86 Windows `Instant` otherwise reads a
+  // calibrated TSC (`super::windows_x86_wall`, ADR-0007). Windows owns whatever
   // cross-processor synchronization, hypervisor scaling, bias, and live-migration
-  // continuity its backing source needs. A raw TSC/CNTVCT read does not inherit
-  // those guarantees; the precise interrupt-time APIs expose a slower 100 ns
-  // domain; and the coarse/UTC/auxiliary clocks do not satisfy the
-  // high-resolution monotonic contract. `OrderedInstant` needs no separate
-  // fence: the opaque QueryPerformanceCounter call boundary prevents the
-  // compiler from moving the read across a prior Acquire load, and the
-  // Windows-owned timeline orders events across processors.
+  // continuity its backing source needs. A raw CNTVCT read does not inherit those
+  // guarantees; the precise interrupt-time APIs expose a slower 100 ns domain;
+  // and the coarse/UTC/auxiliary clocks do not satisfy the high-resolution
+  // monotonic contract. `OrderedInstant` needs no separate fence: the opaque
+  // QueryPerformanceCounter call boundary prevents the compiler from moving the
+  // read across a prior Acquire load, and the Windows-owned timeline orders
+  // events across processors.
   static QPC_FREQ: AtomicI64 = AtomicI64::new(0);
 
   #[inline]
@@ -176,7 +179,10 @@ mod qpc {
     f as u64
   }
 
-  /// Reads the OS-designated high-resolution monotonic wall clock for `Instant`.
+  /// Reads the OS-designated high-resolution monotonic wall clock for `Instant`
+  /// on aarch64 Windows, and as the x86 Windows fallback when the invariant-TSC
+  /// gate fails (routed through `super::windows_x86_wall`, so unused on x86 here).
+  #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), allow(dead_code))]
   #[inline(always)]
   pub fn windows_ticks() -> u64 {
     qpc_ticks()
@@ -198,6 +204,9 @@ mod qpc {
     qpc_ticks()
   }
 
+  /// QPC `Instant` frequency for aarch64 Windows. x86 Windows derives its
+  /// `Instant` frequency in `super::windows_x86_wall`, so this is unused there.
+  #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), allow(dead_code))]
   #[inline]
   pub fn instant_frequency() -> u64 {
     qpc_frequency()
@@ -216,7 +225,10 @@ mod qpc {
     c as u64
   }
 
+  // x86 Windows reports its Instant provider through `super::windows_x86_wall`;
+  // this QPC name is the aarch64 Windows Instant provider.
   #[cfg(feature = "bench-internal")]
+  #[cfg_attr(any(target_arch = "x86_64", target_arch = "x86"), allow(dead_code))]
   pub(crate) fn bench_instant_provider() -> &'static str {
     "windows_qpc"
   }
@@ -236,8 +248,13 @@ mod qpc {
   mod wall_tests {
     use super::*;
 
+    // Validates the QPC domain itself: `OrderedInstant` on every Windows
+    // architecture, `Instant` on aarch64 Windows, and the x86 Windows `Instant`
+    // fallback. It deliberately reads the QPC primitives here, not the selected
+    // x86 `Instant` (a calibrated TSC in `super::windows_x86_wall`, ADR-0007),
+    // whose own domain is covered by that module's tests.
     #[test]
-    fn selected_domains_are_monotonic_and_share_the_qpc_frequency() {
+    fn qpc_domain_reads_are_monotonic_and_share_the_qpc_frequency() {
       let instant_before = windows_ticks();
       let ordered_before = windows_ticks_ordered();
       assert!(instant_frequency() > 0);

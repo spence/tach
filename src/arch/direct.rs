@@ -2,24 +2,28 @@
 //!
 //! On every supported target, `Instant::now()` reads the fastest reliable
 //! wall-clock-rate counter for that OS/architecture pair. Most targets use an
-//! architectural counter. Windows measures QPC and the two documented precise
-//! interrupt-time APIs on each host, retaining the fastest complete dispatch.
-//! Windows validates their backing clocks and owns any synchronization,
-//! scaling, and bias needed across processors and virtualization.
-//! A raw x86 TSC is not an eligible substitute because invariant-frequency
-//! CPUID metadata and a local cost probe cannot prove those properties. A raw
-//! Arm system-counter read is likewise ineligible without a Windows guarantee
-//! that EL0 access and that counter are the active reliable timeline.
+//! architectural counter. Windows x86 `Instant` reads a calibrated invariant
+//! TSC — the same-core tier of ADR-0007 — degrading to `QueryPerformanceCounter`
+//! when the invariant-TSC CPUID gate fails. Windows `OrderedInstant`, which
+//! carries the cross-core happens-before contract, and aarch64 Windows `Instant`
+//! stay on `QueryPerformanceCounter`, whose backing clock Windows validates and
+//! whose cross-processor synchronization, scaling, and bias Windows owns. A raw
+//! Arm system-counter read is ineligible there without a Windows guarantee that
+//! EL0 access and that counter are the active reliable timeline.
 //! Intel macOS independently measures an eligible invariant TSC for local
 //! elapsed brackets and XNU's inline commpage nanotime protocol for ordered
 //! brackets. FreeBSD/amd64 selects a direct TSC only when the kernel's
 //! active timecounter says it is reliable and tach's initialization probe
 //! confirms the branched read materially beats the vDSO.
 
-#[cfg(all(
-  target_os = "windows",
-  any(target_arch = "x86_64", target_arch = "x86", target_arch = "aarch64"),
-))]
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+#[inline(always)]
+#[allow(clippy::inline_always)]
+pub fn ticks() -> u64 {
+  super::windows_x86_wall::ticks()
+}
+
+#[cfg(all(target_os = "windows", target_arch = "aarch64"))]
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks() -> u64 {

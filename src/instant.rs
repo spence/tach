@@ -8,10 +8,12 @@ use crate::arch;
 /// `Instant` is wall-clock-rate: it keeps ticking while the calling thread is
 /// parked or descheduled. Whether it advances during whole-system suspend
 /// follows the target's selected monotonic clock. Tach uses a direct
-/// architectural counter where that is the fastest reliable timeline, the
-/// OS-vetted QPC timeline on Windows, a measured invariant TSC or XNU Mach
-/// absolute-time implementation on Intel macOS, a kernel-eligible and measured TSC on FreeBSD/amd64, and the
-/// platform monotonic clock on fallback targets.
+/// architectural counter where that is the fastest reliable timeline — including
+/// a calibrated invariant TSC on x86 Windows — the OS-vetted QPC timeline on
+/// aarch64 Windows and as the x86 Windows fallback, a measured invariant TSC or
+/// XNU Mach absolute-time implementation on Intel macOS, a kernel-eligible and
+/// measured TSC on FreeBSD/amd64, and the platform monotonic clock on fallback
+/// targets.
 ///
 /// Eligible providers expose a high-resolution timeline. Deliberately
 /// coarsened or approximate clocks such as Linux `CLOCK_MONOTONIC_COARSE` do
@@ -118,9 +120,11 @@ impl Instant {
   /// to the median); do not invoke from a hot path.
   ///
   /// No-op on platforms where the selected clock has an authoritative rate:
-  /// Windows QPC/QPF, the Darwin timebase, FreeBSD's selected wall provider,
-  /// aarch64 `cntfrq_el0`, WASI, and the wasm host. Other direct-TSC x86 targets
-  /// measure the actual rate against `clock_gettime(CLOCK_MONOTONIC)`.
+  /// aarch64 Windows QPC/QPF, Windows `OrderedInstant` on every architecture,
+  /// the Darwin timebase, FreeBSD's selected wall provider, aarch64 `cntfrq_el0`,
+  /// WASI, and the wasm host. Direct-TSC x86 targets re-measure the actual
+  /// counter rate against the platform monotonic clock — `clock_gettime` on
+  /// Unix, `QueryPerformanceCounter` on x86 Windows.
   ///
   /// `recalibrate` itself is `#![no_std]`-compatible — it uses the same
   /// platform-monotonic spin-loop path the crate already calls during

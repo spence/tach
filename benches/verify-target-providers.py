@@ -715,13 +715,26 @@ def vdso_resolver_spec(target: str) -> dict:
 
 def instant_route(target: str) -> dict:
   if target.endswith("pc-windows-msvc"):
-    # M2 froze this family to a direct QueryPerformanceCounter pick: fallback.rs
-    # links QPC as the OS-designated high-resolution monotonic source and both
-    # wall contracts read it, so the pre-M2 runtime GetProcAddress selection
-    # among QPC/QueryInterruptTimePrecise variants (and its
-    # windows_ticks_after_selection selector) was deleted. LTO inlines the read
-    # to a single QueryPerformanceCounter call; the forbidden set keeps a raw
-    # TSC/CNTVCT read (ineligible per ADR-0005 O-WINDOWS) failing the proof.
+    if target.startswith(("x86_64", "i686")):
+      # ADR-0007 moves x86 Windows Instant off QPC to a bare invariant-TSC read
+      # (src/arch/windows_x86_wall.rs `windows_tsc`), degrading to
+      # QueryPerformanceCounter only when the CPUID invariant-TSC gate fails.
+      # Instant is the same-core tier now, so the raw RDTSC that M2 forbade is
+      # required; a bare rdtscp/CNTVCT read stays forbidden, and QPC is allowed
+      # because the fallback and OrderedInstant still link it. OrderedInstant is
+      # unchanged (ordered_instant_route below still requires QueryPerformanceCounter).
+      return {
+        "provider": "invariant-TSC Instant pick with a QueryPerformanceCounter fallback",
+        "native_primitive": "RDTSC, otherwise QueryPerformanceCounter",
+        "ordering": "unordered same-core wall read from the TSC pick or its QPC fallback",
+        "required_patterns": ["llvm.x86.rdtsc"],
+        "forbidden_patterns": [r"\brdtscp\b", "cntvct_el0"],
+      }
+    # aarch64 Windows Instant stays on QueryPerformanceCounter: RDTSC is x86-only,
+    # a stated policy fork, not a silent gap. The pre-M2 runtime GetProcAddress
+    # tournament among QPC/QueryInterruptTimePrecise variants was deleted; LTO
+    # inlines the read to a single QueryPerformanceCounter call, and a raw
+    # TSC/CNTVCT read stays forbidden.
     return {
       "provider": "fixed QueryPerformanceCounter high-resolution monotonic source",
       "native_primitive": "QueryPerformanceCounter",

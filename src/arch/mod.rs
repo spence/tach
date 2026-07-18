@@ -54,6 +54,8 @@ pub mod riscv64;
 pub(crate) mod thread_cpu;
 #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
 pub mod wasm;
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+pub mod windows_x86_wall;
 #[cfg(all(target_arch = "x86", not(any(target_os = "windows", target_os = "macos"))))]
 pub mod x86;
 #[cfg(all(target_arch = "x86_64", not(any(target_os = "windows", target_os = "macos"))))]
@@ -555,9 +557,16 @@ fn read_ordered_nanos_per_tick_q32() -> u64 {
   scale_from_ratio(1_000_000_000, read_ordered_frequency())
 }
 
-// Windows independently selects QPC/QPF or a precise interrupt-time clock at
-// 10 MHz for each wall contract.
-#[cfg(target_os = "windows")]
+// Windows x86 `Instant` selects a calibrated invariant TSC or degrades to QPC;
+// its frequency follows that selection. `OrderedInstant` and aarch64 Windows
+// stay on the authoritative QueryPerformanceFrequency.
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+#[inline]
+fn read_local_frequency() -> u64 {
+  windows_x86_wall::instant_frequency()
+}
+
+#[cfg(all(target_os = "windows", target_arch = "aarch64"))]
 #[inline]
 fn read_local_frequency() -> u64 {
   fallback::instant_frequency()
@@ -832,11 +841,26 @@ fn measure_scales_for_recal() -> RecalibrationScaleUpdate {
   RecalibrationScaleUpdate { local: local.then_some(scale), ordered: ordered.then_some(scale) }
 }
 
+// Windows x86 has no `clock_gettime`, so it re-measures its TSC scale against
+// QPC in `windows_x86_wall` instead of the shared `crate::calibration` path.
+// Only the local scale recalibrates and only when the TSC is selected;
+// `OrderedInstant` stays on the authoritative QueryPerformanceFrequency.
+#[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+#[inline]
+fn measure_scales_for_recal() -> RecalibrationScaleUpdate {
+  let (local, _ordered) = recalibration_domains();
+  RecalibrationScaleUpdate {
+    local: local.then(windows_x86_wall::recalibrate_instant_scale).flatten(),
+    ordered: None,
+  }
+}
+
 #[cfg(not(any(
   all(
     any(target_arch = "x86_64", target_arch = "x86"),
     not(any(target_os = "windows", target_os = "macos", target_os = "freebsd")),
   ),
+  all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")),
   all(target_arch = "aarch64", target_os = "linux"),
   all(target_arch = "riscv64", target_os = "linux"),
   all(target_arch = "loongarch64", target_os = "linux"),
@@ -852,6 +876,7 @@ fn measure_scales_for_recal() -> RecalibrationScaleUpdate {
     any(target_arch = "x86_64", target_arch = "x86"),
     not(any(target_os = "windows", target_os = "macos", target_os = "freebsd")),
   ),
+  all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")),
   all(target_arch = "aarch64", target_os = "linux"),
   all(target_arch = "riscv64", target_os = "linux"),
   all(target_arch = "loongarch64", target_os = "linux"),
@@ -865,6 +890,12 @@ fn recalibration_domains() -> (bool, bool) {
   ))]
   {
     (linux_x86_wall::instant_uses_tsc(), linux_x86_wall::ordered_uses_tsc())
+  }
+
+  // Windows x86 recalibrates only the local TSC scale; ordered stays QPC.
+  #[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
+  {
+    (windows_x86_wall::instant_uses_tsc(), false)
   }
 
   #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
@@ -914,6 +945,7 @@ fn recalibration_domains() -> (bool, bool) {
       any(target_os = "android", target_os = "linux"),
       any(target_arch = "x86_64", target_arch = "x86"),
     ),
+    all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")),
     all(target_arch = "aarch64", target_os = "linux"),
     all(
       any(target_arch = "x86_64", target_arch = "x86"),
