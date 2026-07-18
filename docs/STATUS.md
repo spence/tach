@@ -9,7 +9,7 @@ objective doc: author status there, not here.
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M4 🚧 Refined three-tier contract: competitive Instant, publish-ready)
 > Next:       Refresh approval packet with 4259e92 numbers + draft claims; escalate claims-wording + publish sign-off (blocks M4.G1); present to owner.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-SIMPLIFY-M4-APPROVAL
-> Last verified: 2026-07-17 · Changed: Re-measured all 4 primary cells at 4259e92; validate_campaign_for_checkout PASSES — checkout-bound, zero failures (EVID-SPEED-CAMPAIGN-REFINED). Instant is the fastest read in every environment (apple 0.65 vs quanta 3.35; c7g 6.67 vs quanta 6.78; inteln 14.56 vs minstant 14.72; windows 9.29 invariant-TSC vs quanta 11.91 — up from 25.27 QPC, retiring the eligibility caveat). OrderedInstant beats std everywhere. Windows CI proved windows_tsc selects at runtime with OrderedInstant on QPC; c7g barrier-exposed ordered disposition reproduced (20.38<std 32.24). · By: nsr · 4259e92
+> Last verified: 2026-07-18 · Changed: OBJ-SIMPLIFY-TIMERS.M4 🚧 (Refined three-tier contract: competitive Instant, publish-ready) · By: nsr · 1ad5664
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
@@ -31,6 +31,7 @@ policy [`decisions/0005…`](decisions/0005-timer-contracts-eligibility-evidence
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | 🚧 | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M5` | Runtime-selection audit closure | ⚪ | Apple x86 `Instant` → fixed pick (last in-tree tournament); every runtime clock choice dispositioned honest | inline · G1⚪ |
 
 Gate checklist (current milestone `OBJ-SIMPLIFY-TIMERS.M4`): G1⚪
 <!-- /render:board -->

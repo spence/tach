@@ -30,6 +30,7 @@ authority. The closure is owner-accepted; nothing closes by assertion.
 | `OBJ-SIMPLIFY-TIMERS.M2` | Fixed-pick conversion with inline parity | 🚧 | `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen | inline · G1🟢 |
 | `OBJ-SIMPLIFY-TIMERS.M3` | Apparatus diet and truthful claims | ⚪ | Release-forensics tooling leaves the live tree; CI slims; claims trace to live evidence with fresh six-cell numbers | inline · G1⚪ |
 | `OBJ-SIMPLIFY-TIMERS.M4` | Refined three-tier contract: competitive Instant, publish-ready | 🚧 | Contracts sharpened per ADR-0007; Windows `Instant` → raw TSC; re-measure + honest competitive claims | inline · G1⚪ |
+| `OBJ-SIMPLIFY-TIMERS.M5` | Runtime-selection audit closure | ⚪ | Apple x86 `Instant` → fixed pick (last in-tree tournament); every runtime clock choice dispositioned honest | inline · G1⚪ |
 
 ---
 
@@ -103,6 +104,24 @@ provenance and carry the fresh six-cell numbers; the plan's consistency greps re
 ### Gate `OBJ-SIMPLIFY-TIMERS.M4.G1` — Refined contract landed, re-measured competitive, claims honest, packet ready
 Pass: ADR-0007 accepted; Windows `Instant` selects a raw-TSC provider on both feature surfaces with `OrderedInstant` unchanged; `validate_campaign_for_checkout` passes at one revision with `Instant` competitive against the same-tier references and `OrderedInstant` beating `std`; README/BENCHMARKS describe the refined contract with fresh committed evidence and no deleted-provenance claims; a complete approval packet awaits the owner.
 - **Fallback.** A provider that cannot meet its contract on a target reverts to the prior reliable pick with a recorded residual; a claim that cannot be backed reverts to frozen evidence or is corrected. Never weaken an ADR-0007 contract invariant.
+
+---
+
+## `OBJ-SIMPLIFY-TIMERS.M5` — Runtime-selection audit closure
+
+**Description.** Every advertised (arch, timer) runtime clock choice is honest: it survives only where
+the same `cfg` target genuinely diverges across real environments; otherwise it is a fixed compile-time
+pick. Converts the last in-tree wall tournament (Apple x86 `Instant`, owner-ruled) to a fixed pick and
+records a disposition for every remaining runtime branch.
+
+### Gate `OBJ-SIMPLIFY-TIMERS.M5.G1` — No unjustified runtime selection; every branch dispositioned
+Pass: `src/arch/apple_x86_64.rs` `Instant` is a fixed `mach_absolute_time` pick (grep finds no
+`INSTANT_PROVIDER_TSC` / `select_instant_provider` / `instant_probe`); every runtime-selection point in
+`docs/plans/provider-policy-matrix.md` carries a recorded disposition (fixed · eligibility-gate-documented
+· source-proven-residual · owner-decision); `benches/verify-target-providers.py` passes on both feature
+surfaces; fmt/clippy/`test --lib` green on default and `--no-default-features`.
+- **Fallback.** A provider that cannot meet its contract reverts to its prior reliable pick with a
+  recorded residual and an escalation; never weaken the gate.
 
 ---
 
