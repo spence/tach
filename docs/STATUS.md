@@ -7,9 +7,9 @@ objective doc: author status there, not here.
 <!-- render:vitals -->
 > **VITALS · tach**
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M4 🚧 Refined three-tier contract: competitive Instant, publish-ready)
-> Next:       Implement the Windows raw-TSC Instant provider (OrderedInstant=QPC unchanged); relax any Instant-only cross-core eligibility gate; re-measure the Windows Instant cell and re-validate the campaign; rewrite README/BENCHMARKS to the refined contract with fresh numbers; ratify the c7g disposition; assemble the approval packet.
-> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE
-> Last verified: 2026-07-17 · Changed: Opened M4 and accepted ADR-0007 (owner ruling A): the three timer contracts are sharpened by guarantee — Instant = fastest same-core clock (elapsed never negative, saturates to zero), OrderedInstant = fastest cross-core-reliable clock, ThreadCpuInstant = fastest reliable per-thread time — each the fastest ELIGIBLE clock for its guarantee. This relocates the cross-core guarantee from Instant to OrderedInstant, so Windows Instant moves QPC to a raw-TSC read (competitive with quanta) while Windows OrderedInstant stays QPC. · By: nsr · 6f6ca17
+> Next:       Refresh approval packet with 4259e92 numbers + draft claims; escalate claims-wording + publish sign-off (blocks M4.G1); present to owner.
+> Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-SIMPLIFY-M4-APPROVAL
+> Last verified: 2026-07-17 · Changed: Re-measured all 4 primary cells at 4259e92; validate_campaign_for_checkout PASSES — checkout-bound, zero failures (EVID-SPEED-CAMPAIGN-REFINED). Instant is the fastest read in every environment (apple 0.65 vs quanta 3.35; c7g 6.67 vs quanta 6.78; inteln 14.56 vs minstant 14.72; windows 9.29 invariant-TSC vs quanta 11.91 — up from 25.27 QPC, retiring the eligibility caveat). OrderedInstant beats std everywhere. Windows CI proved windows_tsc selects at runtime with OrderedInstant on QPC; c7g barrier-exposed ordered disposition reproduced (20.38<std 32.24). · By: nsr · 4259e92
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

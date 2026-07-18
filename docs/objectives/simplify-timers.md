@@ -313,6 +313,17 @@ Pass: ADR-0007 accepted; Windows `Instant` selects a raw-TSC provider on both fe
 - Next: Implement the Windows raw-TSC Instant provider (OrderedInstant=QPC unchanged); relax any Instant-only cross-core eligibility gate; re-measure the Windows Instant cell and re-validate the campaign; rewrite README/BENCHMARKS to the refined contract with fresh numbers; ratify the c7g disposition; assemble the approval packet.
 - Board: M4 opened; ADR-0007 accepted (refined 3-tier contract); next = Windows Instant raw-TSC provider + re-measure + honest claims
 
+### 2026-07-17 · spence · `OBJ-SIMPLIFY-TIMERS.M4`
+- Did: Landed the x86/x86_64 Windows raw-TSC Instant provider at 4259e92 (src/arch/windows_x86_wall.rs, ADR-0007): a calibrated invariant TSC behind a CPUID rate-stability gate, degrading to QPC when ineligible; selection latches once so now()/elapsed() never mix TSC/QPC tick domains; OrderedInstant and aarch64-Windows Instant untouched (QPC). Route-proof splits by arch (x86 requires llvm.x86.rdtsc), EXPECTED_WALL_PICKS admits windows_tsc. Gates green: fmt; cargo check x86_64/i686/aarch64-pc-windows-msvc across default and --no-default-features; host test --lib; clippy -D warnings.
+- Next: 4-cell re-measure at 4259e92 in flight: apple local + c7g/inteln AWS (i-0816278657771fa4f) + windows CI run 29625920608 -> validate_campaign_for_checkout; then claims rewrite (owner signs wording), c7g ratification, approval packet.
+- Board: M4 implementation landed (4259e92); 4-cell re-measure in flight
+
+### 2026-07-17 · spence · `OBJ-SIMPLIFY-TIMERS.M4`
+- Did: Re-measured all 4 primary cells at 4259e92; validate_campaign_for_checkout PASSES — checkout-bound, zero failures (EVID-SPEED-CAMPAIGN-REFINED). Instant is the fastest read in every environment (apple 0.65 vs quanta 3.35; c7g 6.67 vs quanta 6.78; inteln 14.56 vs minstant 14.72; windows 9.29 invariant-TSC vs quanta 11.91 — up from 25.27 QPC, retiring the eligibility caveat). OrderedInstant beats std everywhere. Windows CI proved windows_tsc selects at runtime with OrderedInstant on QPC; c7g barrier-exposed ordered disposition reproduced (20.38<std 32.24).
+- Found: M4.G1 clauses 1-3 met (ADR-0007 accepted; raw-TSC both surfaces + Ordered unchanged; campaign green at one revision). Remaining clauses 4-5 (public README/BENCHMARKS rewrite + approval-packet acceptance) are owner-gated: claims WORDING sign-off + publish.
+- Next: Refresh approval packet with 4259e92 numbers + draft claims; escalate claims-wording + publish sign-off (blocks M4.G1); present to owner.
+- Board: M4 campaign GREEN at 4259e92 (EVID-SPEED-CAMPAIGN-REFINED); M4.G1 blocked on owner claims-wording sign-off
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

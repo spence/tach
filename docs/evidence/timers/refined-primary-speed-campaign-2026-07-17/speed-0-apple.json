@@ -1,0 +1,698 @@
+{
+  "schema": "tach-speed-primary-v1",
+  "artifact_id": "speed-0-apple.json",
+  "title": "Apple Silicon",
+  "instance": "M1 Max MacBook Pro",
+  "triple": "aarch64-apple-darwin",
+  "order": 0,
+  "build_mode": "default",
+  "evidence_kind": "full_speed",
+  "provenance": {
+    "harness": "criterion",
+    "source_revision": "4259e92a4f84b83bd4a051a81f89e9be7669c45c",
+    "runner": "local-macos-criterion",
+    "build_profile": "optimized",
+    "build_mode": "default",
+    "features": [
+      "bench-internal",
+      "thread-cpu-inline"
+    ]
+  },
+  "collector_bundle": {
+    "schema": "tach-speed-collector-v1",
+    "path": "speed-0-apple.collector.bundle",
+    "manifest_sha256": "9fda7d9c1241864c7615db8ba44153f5f7163cb8845dd6aefea342b1a87a7cd4"
+  },
+  "collector_attestation": {
+    "schema": "tach-speed-collector-v1",
+    "invocation_id": "criterion-98825826be3530ec",
+    "runtime_attestation": {
+      "build_mode": "default",
+      "build_profile": "optimized",
+      "features": [
+        "bench-internal",
+        "thread-cpu-inline"
+      ],
+      "harness": "criterion",
+      "invocation_id": "criterion-98825826be3530ec",
+      "output_isolated": true,
+      "runner": "local-macos-criterion",
+      "schema": "tach-benchmark-runtime-v2",
+      "source_revision": "4259e92a4f84b83bd4a051a81f89e9be7669c45c",
+      "target": {
+        "arch": "aarch64",
+        "env": "",
+        "os": "macos"
+      }
+    },
+    "manifest_sha256": "9fda7d9c1241864c7615db8ba44153f5f7163cb8845dd6aefea342b1a87a7cd4"
+  },
+  "clocks": {
+    "tach": {
+      "now": 0.6517466296753307,
+      "now_ci95": [
+        0.6488265235934032,
+        0.6532058179856695
+      ],
+      "elapsed": 1.62447140665223,
+      "elapsed_ci95": [
+        1.6216496079421907,
+        1.6289166559461317
+      ],
+      "time_domain": "instant wall",
+      "selection": {
+        "decision_rule": "Instant reads bare CNTVCT_EL0 where the commpage mode permits it (SPEC/NOSPEC_APPLE), scaled by CNTFRQ_EL0, else the self-synchronizing commpage offset (NOSPEC) or mach_absolute_time (NONE). OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).",
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                111580,
+                108540,
+                108294,
+                106790,
+                108334,
+                109211,
+                107000,
+                107503,
+                109585
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                133879,
+                130377,
+                130163,
+                128290,
+                130208,
+                130668,
+                128336,
+                128084,
+                131711
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                67997,
+                68416,
+                81380,
+                68964,
+                68960,
+                68667,
+                68209,
+                67832,
+                70125
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                89543,
+                89667,
+                89960,
+                89373,
+                89837,
+                89168,
+                88876,
+                89126,
+                89708
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                928870,
+                910997,
+                930083,
+                921746,
+                1103700,
+                898839,
+                871043,
+                864000,
+                897207
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                945421,
+                911337,
+                911535,
+                985708,
+                1103670,
+                902627,
+                894171,
+                898917,
+                933462
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                380957,
+                383953,
+                376792,
+                375081,
+                381999,
+                375459,
+                376713,
+                398875,
+                415455
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                402249,
+                406915,
+                398876,
+                396455,
+                403664,
+                396541,
+                398501,
+                405123,
+                454789
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__apple_bare_cntvct",
+          "ordered": "direct_selected_ordered_wall__apple_commpage_acntvct_offset"
+        },
+        "selected_provider": {
+          "instant": "apple_bare_cntvct",
+          "ordered": "apple_commpage_acntvct_offset"
+        }
+      }
+    },
+    "tach_ordered": {
+      "now": 7.656921030266811,
+      "now_ci95": [
+        7.641495440415844,
+        7.672721640624145
+      ],
+      "elapsed": 15.543537827466956,
+      "elapsed_ci95": [
+        15.471017891262811,
+        15.587327731457357
+      ],
+      "time_domain": "ordered wall",
+      "selection": {
+        "decision_rule": "OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the commpage mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).",
+        "public_exact_probe": {
+          "elapsed": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              853960,
+              890836,
+              894289,
+              869832,
+              851542,
+              857787,
+              851827,
+              889791,
+              859003
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              874714,
+              893502,
+              933749,
+              908495,
+              873456,
+              878207,
+              874381,
+              912374,
+              895667
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          },
+          "now": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              402332,
+              382372,
+              378705,
+              390083,
+              377878,
+              383498,
+              389834,
+              385788,
+              374873
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              414239,
+              403710,
+              399961,
+              410998,
+              399921,
+              405751,
+              412042,
+              408251,
+              396245
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          }
+        },
+        "selected_native_benchmark": "direct_selected_ordered_wall__apple_commpage_acntvct_offset",
+        "selected_provider": "apple_commpage_acntvct_offset"
+      },
+      "wall_selection": {
+        "decision_rule": "Instant reads bare CNTVCT_EL0 where the commpage mode permits it (SPEC/NOSPEC_APPLE), scaled by CNTFRQ_EL0, else the self-synchronizing commpage offset (NOSPEC) or mach_absolute_time (NONE). OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).",
+        "public_exact_probe": {
+          "instant": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                111580,
+                108540,
+                108294,
+                106790,
+                108334,
+                109211,
+                107000,
+                107503,
+                109585
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                133879,
+                130377,
+                130163,
+                128290,
+                130208,
+                130668,
+                128336,
+                128084,
+                131711
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                67997,
+                68416,
+                81380,
+                68964,
+                68960,
+                68667,
+                68209,
+                67832,
+                70125
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                89543,
+                89667,
+                89960,
+                89373,
+                89837,
+                89168,
+                88876,
+                89126,
+                89708
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          },
+          "ordered": {
+            "elapsed": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                928870,
+                910997,
+                930083,
+                921746,
+                1103700,
+                898839,
+                871043,
+                864000,
+                897207
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                945421,
+                911337,
+                911535,
+                985708,
+                1103670,
+                902627,
+                894171,
+                898917,
+                933462
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            },
+            "now": {
+              "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+              "call_boundary": "symmetric dynamic FnMut boundary",
+              "equivalence_band": {
+                "floor_ns_per_read": 1,
+                "relative_denominator": 20
+              },
+              "exact_batches_ns": [
+                380957,
+                383953,
+                376792,
+                375081,
+                381999,
+                375459,
+                376713,
+                398875,
+                415455
+              ],
+              "measurement_clock": "std::time::Instant outside the measured read loop",
+              "public_batches_ns": [
+                402249,
+                406915,
+                398876,
+                396455,
+                403664,
+                396541,
+                398501,
+                405123,
+                454789
+              ],
+              "reads_per_batch": 65536,
+              "required_decisive_losses": 8,
+              "selection_kind": "paired_public_exact_parity"
+            }
+          }
+        },
+        "selected_native_benchmark": {
+          "instant": "direct_selected_wall__apple_bare_cntvct",
+          "ordered": "direct_selected_ordered_wall__apple_commpage_acntvct_offset"
+        },
+        "selected_provider": {
+          "instant": "apple_bare_cntvct",
+          "ordered": "apple_commpage_acntvct_offset"
+        }
+      }
+    },
+    "quanta": {
+      "now": 3.347545832148107,
+      "now_ci95": [
+        3.3348317826923024,
+        3.362094299422991
+      ],
+      "elapsed": 7.2381511281223325,
+      "elapsed_ci95": [
+        7.209657044446097,
+        7.265671388504513
+      ]
+    },
+    "fastant": {
+      "now": 27.07969542530096,
+      "now_ci95": [
+        27.03404321084672,
+        27.12606350653297
+      ],
+      "elapsed": 60.439453937478454,
+      "elapsed_ci95": [
+        60.36115895046095,
+        60.70203565483522
+      ]
+    },
+    "minstant": {
+      "now": 27.29751107583072,
+      "now_ci95": [
+        27.218862985502057,
+        27.362668701114153
+      ],
+      "elapsed": 60.88099645638618,
+      "elapsed_ci95": [
+        60.69367840355448,
+        61.04371022061333
+      ]
+    },
+    "std": {
+      "now": 20.18296508219627,
+      "now_ci95": [
+        20.107863533531145,
+        20.24006249405067
+      ],
+      "elapsed": 43.91784426194027,
+      "elapsed_ci95": [
+        43.844166904709006,
+        44.02901888232746
+      ]
+    },
+    "direct_selected_wall": {
+      "provider": "apple_bare_cntvct",
+      "read_cost": "inline",
+      "time_domain": "instant wall",
+      "benchmark": "direct_selected_wall__apple_bare_cntvct",
+      "now": 0.3523171443392952,
+      "now_ci95": [
+        0.3512899731619077,
+        0.35314067618694245
+      ],
+      "elapsed": 1.3243140914209581,
+      "elapsed_ci95": [
+        1.3185379582298848,
+        1.3279725342988284
+      ]
+    },
+    "direct_selected_ordered_wall": {
+      "provider": "apple_commpage_acntvct_offset",
+      "read_cost": "inline",
+      "time_domain": "ordered wall",
+      "benchmark": "direct_selected_ordered_wall__apple_commpage_acntvct_offset",
+      "now": 7.742541974014612,
+      "now_ci95": [
+        7.712094381485707,
+        7.7808831864445835
+      ],
+      "elapsed": 15.606463251483467,
+      "elapsed_ci95": [
+        15.556456949643763,
+        15.67498987854251
+      ]
+    },
+    "tach_thread_cpu": {
+      "benchmark": "tach_thread_cpu__posix_thread_cpu_clock__system_call",
+      "now": 129.24280248523186,
+      "now_ci95": [
+        128.81075827662778,
+        129.481136682146
+      ],
+      "elapsed": 260.13943397123944,
+      "elapsed_ci95": [
+        259.76577877671286,
+        260.57431564989565
+      ],
+      "provider": "POSIX thread CPU clock",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "selection": {
+        "eligible_direct_candidates": [
+          "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu"
+        ],
+        "fallback_mechanism": null,
+        "fallback_native_benchmark": null,
+        "fallback_provider": null,
+        "fallback_read_cost": null,
+        "fixed_provider": {
+          "candidate": "macos_clock_gettime_nsec_np_thread_cpu",
+          "native_primitive": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+          "selection_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is macOS's direct current-thread CPU-time entry",
+          "supported_architectures": [
+            "x86_64",
+            "aarch64"
+          ],
+          "time_domain": "thread CPU"
+        },
+        "public_exact_probe": {
+          "elapsed": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              17077873,
+              17061961,
+              17059665,
+              16891211,
+              16976500,
+              17091496,
+              16945626,
+              16930745,
+              16984044
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              17030500,
+              17008086,
+              17087172,
+              16855870,
+              16937461,
+              17047457,
+              16839752,
+              16831921,
+              17035335
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          },
+          "now": {
+            "batch_order": "64 alternating 1024-read chunks per batch; starting side flips by batch",
+            "call_boundary": "symmetric dynamic FnMut boundary",
+            "equivalence_band": {
+              "floor_ns_per_read": 1,
+              "relative_denominator": 20
+            },
+            "exact_batches_ns": [
+              8599626,
+              8354456,
+              8407912,
+              8411495,
+              8370541,
+              8278002,
+              8353919,
+              8377584,
+              8611166
+            ],
+            "measurement_clock": "std::time::Instant outside the measured read loop",
+            "public_batches_ns": [
+              8745878,
+              8316215,
+              8336252,
+              8388500,
+              8339953,
+              8312709,
+              8365207,
+              8420744,
+              8463458
+            ],
+            "reads_per_batch": 65536,
+            "required_decisive_losses": 8,
+            "selection_kind": "paired_public_exact_parity"
+          }
+        },
+        "read_cost_basis": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) is a native system-call tier for scheduled CPU time on the current macOS thread",
+        "selected_mechanism": "macos_clock_gettime_nsec_np_thread_cpu",
+        "selected_native_benchmark": "direct_selected_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+        "selected_provider": "posix_thread_cpu_clock",
+        "selected_read_cost": "system call",
+        "selection_kind": "fixed_native"
+      }
+    },
+    "native_thread_cpu": {
+      "benchmark": "native_thread_cpu__clock_gettime_nsec_np_clock_thread_cputime_id",
+      "now": 130.55357494099135,
+      "now_ci95": [
+        130.03033352009928,
+        131.26983909807356
+      ],
+      "elapsed": 260.7547658311346,
+      "elapsed_ci95": [
+        260.034585338093,
+        261.0784852555739
+      ],
+      "provider": "clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)",
+      "read_cost": "system call",
+      "time_domain": "thread CPU"
+    },
+    "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu": {
+      "provider": "macos_clock_gettime_nsec_np_thread_cpu",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+      "now": 129.4724429289092,
+      "now_ci95": [
+        129.2852905697394,
+        129.64432095026584
+      ],
+      "elapsed": 260.9807451577117,
+      "elapsed_ci95": [
+        260.5272292361908,
+        261.4519181023333
+      ]
+    },
+    "direct_selected_thread_cpu": {
+      "provider": "macos_clock_gettime_nsec_np_thread_cpu",
+      "read_cost": "system call",
+      "time_domain": "thread CPU",
+      "benchmark": "direct_selected_thread_cpu__macos_clock_gettime_nsec_np_thread_cpu",
+      "now": 129.86736566272617,
+      "now_ci95": [
+        129.479387157124,
+        130.32266185653546
+      ],
+      "elapsed": 259.940121472447,
+      "elapsed_ci95": [
+        259.4414821715622,
+        260.53072670181393
+      ]
+    }
+  }
+}
