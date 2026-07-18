@@ -9,7 +9,7 @@ objective doc: author status there, not here.
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M5 ⚪ Runtime-selection audit closure)
 > Next:       Land R2 (chart 4-cell adapter + Cargo cleanup, both re-seal) -> full 4-cell re-measure at the final revision -> validate_campaign_for_checkout, render PNG, freeze evidence, close M5.G1.
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-SIMPLIFY-M4-APPROVAL
-> Last verified: 2026-07-18 · Changed: Landed R1 (fcdcd95): Apple x86 Instant converted from the TSC-vs-mach tournament to a fixed mach_absolute_time pick (net -563 lines); OrderedInstant byte-identical; route-proof now forbids rdtsc/requires mach; fixed pre-existing x86-apple clippy lints. Gates green on main: fmt, cargo check x86-apple+host x2 surfaces, test --lib 12/0, host clippy, lib x86-apple clippy -D warnings, py_compile validators. · By: nsr · fcdcd95
+> Last verified: 2026-07-18 · Changed: Landed R1 (fcdcd95): Apple x86 Instant converted from the TSC-vs-mach tournament to a fixed mach_absolute_time pick (net -563 lines); OrderedInstant byte-identical; route-proof now forbids rdtsc/requires mach; fixed pre-existing x86-apple clippy lints. Gates green on main: fmt, cargo check x86-apple+host x2 surfaces, test --lib 12/0, host clippy, lib x86-apple clippy -D warnings, py_compile validators. · By: nsr · e20af60
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope
