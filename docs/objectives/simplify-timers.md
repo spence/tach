@@ -356,6 +356,14 @@ surfaces; fmt/clippy/`test --lib` green on default and `--no-default-features`.
 - Did: Refined-contract publish-readiness deliverables complete at f6df5df/5f4dc79: (1) ADR-0007 accepted; (2) Windows Instant selects calibrated invariant TSC on both feature surfaces, OrderedInstant unchanged (route-proof green); (3) validate_campaign_for_checkout green at one revision, zero failures — Instant fastest-or-materially-tied on all four primary cells, OrderedInstant beats std on all four (EVID-PRIMARY-SPEED-CAMPAIGN); (4) README/BENCHMARKS rebound to the refined three-tier contract with fresh committed evidence, no deleted-provenance claims, thread-cpu two-source provenance disclosed; (5) approval packet re-prepared at f6df5df. RC passes cargo publish --dry-run. Owner ratification (claims wording, packet acceptance) tracked as ESC-M3-CLAIMS-REMEASURE + ESC-SIMPLIFY-M4-APPROVAL.; OBJ-SIMPLIFY-TIMERS.M4.G1 🟢 at evidence SHA `f6df5df`.
 - Board: OBJ-SIMPLIFY-TIMERS.M4 G1 🟢 — evidence EVID-PRIMARY-SPEED-CAMPAIGN.
 
+### 2026-07-20 · spence · `OBJ-SIMPLIFY-TIMERS.M4`
+- Did: Re-bound EVID-PRIMARY-SPEED-CAMPAIGN to e35ec98 after the OrderedInstant->GlobalInstant rename (ADR-0008): campaign re-measured, validate_campaign_for_checkout PASSED at e35ec98 with zero failures, numbers reproduce f6df5df within noise (inteln ~6% faster on a different c7i runner, verdicts unchanged), ci.yml 24-target route-proof green (run 29801712705). README/BENCHMARKS numbers + revision refs updated to e35ec98.; OBJ-SIMPLIFY-TIMERS.M4.G1 🟢 at evidence SHA `e35ec98`.
+- Board: OBJ-SIMPLIFY-TIMERS.M4 G1 🟢 — evidence EVID-PRIMARY-SPEED-CAMPAIGN.
+
+### 2026-07-20 · spence · `OBJ-SIMPLIFY-TIMERS.M5`
+- Did: Runtime-selection audit holds at e35ec98; the rename is behavior-neutral (ADR-0008). Apple x86 fixed mach pick, matrix dispositioned, verify-target-providers.py green on both surfaces via ci.yml route-proof run 29801712705. Re-bound to e35ec98.; OBJ-SIMPLIFY-TIMERS.M5.G1 🟢 at evidence SHA `e35ec98`.
+- Board: OBJ-SIMPLIFY-TIMERS.M5 G1 🟢 — evidence EVID-PRIMARY-SPEED-CAMPAIGN.
+
 ## /goal
 
 Deliver `OBJ-SIMPLIFY-TIMERS`'s slice of the VISION — *Every advertised target receives the

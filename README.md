@@ -71,7 +71,7 @@ A shorter bar can still be ineligible or unshippable: on Graviton 3 the exact `i
 under `GlobalInstant` is retained as a disclosed diagnostic dispatch lower bound — the mandatory
 `isb` barrier exposes a SIGILL-safe provider dispatch tach cannot skip and still ship, so the
 chart's public comparison gates on the shippable read (`tach::GlobalInstant` 20.38 ns < `std`
-32.27 ns), not the idealized diagnostic. The chart keeps such diagnostics visible; the validator
+32.23 ns), not the idealized diagnostic. The chart keeps such diagnostics visible; the validator
 does not call them competitors.
 
 The predeclared material-tie rule requires tach's point estimate and the conservative edges of

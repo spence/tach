@@ -9,7 +9,7 @@ objective doc: author status there, not here.
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
 > Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-SIMPLIFY-M4-APPROVAL
-> Last verified: 2026-07-20 · Changed: OBJ-SIMPLIFY-TIMERS.M2 🚧 (Fixed-pick conversion with inline parity) · By: nsr · 6a1a113
+> Last verified: 2026-07-20 · Changed: Runtime-selection audit holds at e35ec98; the rename is behavior-neutral (ADR-0008). Apple x86 fixed mach pick, matrix dispositioned, verify-target-providers.py green on both surfaces via ci.yml route-proof run 29801712705. Re-bound to e35ec98.; OBJ-SIMPLIFY-TIMERS.M5.G1 🟢 at evidence SHA `e35ec98`. · By: nsr · e35ec98
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

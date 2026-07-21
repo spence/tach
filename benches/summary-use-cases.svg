@@ -9,172 +9,172 @@
 <text x="66" y="284" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60">aarch64-apple-darwin</text>
 <text x="66" y="311" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SAME-THREAD ELAPSED TIME</text>
 <text x="66" y="348.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::Instant</text>
-<rect x="351" y="331.5" width="9.34241" height="22" fill="#eda9a0"/>
-<rect x="351" y="331.5" width="3.723" height="22" fill="#D72D24"/>
-<text x="860" y="348.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">0.65<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">1.63</tspan></text>
+<rect x="351" y="331.5" width="9.09042" height="22" fill="#eda9a0"/>
+<rect x="351" y="331.5" width="3.71195" height="22" fill="#D72D24"/>
+<text x="860" y="348.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">0.65<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">1.59</tspan></text>
 <text x="66" y="391.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">quanta</text>
-<rect x="351" y="374.5" width="41.9621" height="22" fill="#bebebd"/>
-<rect x="351" y="374.5" width="19.334" height="22" fill="#5B6472"/>
-<text x="860" y="391.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">3.37<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">7.32</tspan></text>
+<rect x="351" y="374.5" width="40.8988" height="22" fill="#bebebd"/>
+<rect x="351" y="374.5" width="19.0293" height="22" fill="#5B6472"/>
+<text x="860" y="391.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">3.34<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">7.17</tspan></text>
 <text x="66" y="434.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">fastant</text>
-<rect x="351" y="417.5" width="343.951" height="22" fill="#b9c2ba"/>
-<rect x="351" y="417.5" width="155.048" height="22" fill="#4F6F6A"/>
-<text x="860" y="434.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">27.1<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">60.0</tspan></text>
+<rect x="351" y="417.5" width="340.318" height="22" fill="#b9c2ba"/>
+<rect x="351" y="417.5" width="153.006" height="22" fill="#4F6F6A"/>
+<text x="860" y="434.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">26.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">59.7</tspan></text>
 <text x="66" y="477.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">minstant</text>
 <rect x="351" y="460.5" width="345" height="22" fill="#d0bca9"/>
-<rect x="351" y="460.5" width="155.321" height="22" fill="#8B5E3C"/>
-<text x="860" y="477.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">27.1<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">60.2</tspan></text>
+<rect x="351" y="460.5" width="153.98" height="22" fill="#8B5E3C"/>
+<text x="860" y="477.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">27.0<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">60.5</tspan></text>
 <text x="66" y="520.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
-<rect x="351" y="503.5" width="252.863" height="22" fill="#d6cca8"/>
-<rect x="351" y="503.5" width="115.807" height="22" fill="#9A8A3A"/>
-<text x="860" y="520.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">20.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">44.1</tspan></text>
+<rect x="351" y="503.5" width="250.145" height="22" fill="#d6cca8"/>
+<rect x="351" y="503.5" width="113.179" height="22" fill="#9A8A3A"/>
+<text x="860" y="520.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">19.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">43.9</tspan></text>
 <text x="66" y="554" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
 <text x="66" y="591.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
-<rect x="351" y="574.5" width="120.271" height="22" fill="#f5c69c"/>
-<rect x="351" y="574.5" width="60.4425" height="22" fill="#EC7A1C"/>
-<text x="860" y="591.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">7.73<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">15.4</tspan></text>
+<rect x="351" y="574.5" width="118.56" height="22" fill="#f5c69c"/>
+<rect x="351" y="574.5" width="60.1475" height="22" fill="#EC7A1C"/>
+<text x="860" y="591.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">7.65<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">15.1</tspan></text>
 <text x="66" y="634.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
 <rect x="351" y="617.5" width="345" height="22" fill="#d6cca8"/>
-<rect x="351" y="617.5" width="158.004" height="22" fill="#9A8A3A"/>
-<text x="860" y="634.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">20.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">44.1</tspan></text>
+<rect x="351" y="617.5" width="156.096" height="22" fill="#9A8A3A"/>
+<text x="860" y="634.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">19.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">43.9</tspan></text>
 <text x="66" y="668" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CURRENT-THREAD CPU TIME</text>
 <text x="860" y="668" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="13.0" fill="#7A6E60">tach: POSIX thread clock · system call  |  native: clock_gettime_nsec_np</text>
 <text x="66" y="705.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::ThreadCpuInstant</text>
-<rect x="351" y="688.5" width="345" height="22" fill="#eda9a0"/>
-<rect x="351" y="688.5" width="170.933" height="22" fill="#D72D24"/>
-<text x="860" y="705.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">129<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">261</tspan></text>
+<rect x="351" y="688.5" width="344.863" height="22" fill="#eda9a0"/>
+<rect x="351" y="688.5" width="169.418" height="22" fill="#D72D24"/>
+<text x="860" y="705.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">129<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">263</tspan></text>
 <text x="66" y="748.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">OS native</text>
-<rect x="351" y="731.5" width="343.839" height="22" fill="#bebebd"/>
-<rect x="351" y="731.5" width="170.551" height="22" fill="#5B6472"/>
-<text x="860" y="748.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">129<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">260</tspan></text>
+<rect x="351" y="731.5" width="345" height="22" fill="#bebebd"/>
+<rect x="351" y="731.5" width="169.809" height="22" fill="#5B6472"/>
+<text x="860" y="748.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">130<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">263</tspan></text>
 <text x="948" y="239" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="31.0" fill="#2E231B" font-weight="600">AWS Graviton 3</text>
 <text x="948" y="263" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60">c7g.large</text>
 <text x="948" y="284" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60">aarch64-unknown-linux-gnu</text>
 <text x="948" y="311" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SAME-THREAD ELAPSED TIME</text>
 <text x="948" y="348.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::Instant</text>
-<rect x="1233" y="331.5" width="52.9746" height="22" fill="#eda9a0"/>
-<rect x="1233" y="331.5" width="26.4875" height="22" fill="#D72D24"/>
-<text x="1742" y="348.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">6.67<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">13.3</tspan></text>
+<rect x="1233" y="331.5" width="53.0836" height="22" fill="#eda9a0"/>
+<rect x="1233" y="331.5" width="26.5427" height="22" fill="#D72D24"/>
+<text x="1742" y="348.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">6.68<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">13.4</tspan></text>
 <text x="948" y="391.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">quanta</text>
-<rect x="1233" y="374.5" width="56.2683" height="22" fill="#bebebd"/>
-<rect x="1233" y="374.5" width="26.9339" height="22" fill="#5B6472"/>
-<text x="1742" y="391.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">6.79<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">14.2</tspan></text>
+<rect x="1233" y="374.5" width="56.5297" height="22" fill="#bebebd"/>
+<rect x="1233" y="374.5" width="27.138" height="22" fill="#5B6472"/>
+<text x="1742" y="391.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">6.83<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">14.2</tspan></text>
 <text x="948" y="434.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">fastant</text>
-<rect x="1233" y="417.5" width="341.595" height="22" fill="#b9c2ba"/>
-<rect x="1233" y="417.5" width="163.042" height="22" fill="#4F6F6A"/>
-<text x="1742" y="434.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">41.1<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">86.1</tspan></text>
+<rect x="1233" y="417.5" width="342.794" height="22" fill="#b9c2ba"/>
+<rect x="1233" y="417.5" width="162.326" height="22" fill="#4F6F6A"/>
+<text x="1742" y="434.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">40.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">86.2</tspan></text>
 <text x="948" y="477.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">minstant</text>
 <rect x="1233" y="460.5" width="345" height="22" fill="#d0bca9"/>
-<rect x="1233" y="460.5" width="164.256" height="22" fill="#8B5E3C"/>
-<text x="1742" y="477.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">41.4<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">86.9</tspan></text>
+<rect x="1233" y="460.5" width="164.045" height="22" fill="#8B5E3C"/>
+<text x="1742" y="477.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">41.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">86.8</tspan></text>
 <text x="948" y="520.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
-<rect x="1233" y="503.5" width="278.128" height="22" fill="#d6cca8"/>
-<rect x="1233" y="503.5" width="128.068" height="22" fill="#9A8A3A"/>
-<text x="1742" y="520.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">32.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">70.1</tspan></text>
+<rect x="1233" y="503.5" width="279.123" height="22" fill="#d6cca8"/>
+<rect x="1233" y="503.5" width="128.14" height="22" fill="#9A8A3A"/>
+<text x="1742" y="520.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">32.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">70.2</tspan></text>
 <text x="948" y="554" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
 <text x="948" y="591.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
-<rect x="1233" y="574.5" width="197.134" height="22" fill="#f5c69c"/>
-<rect x="1233" y="574.5" width="100.312" height="22" fill="#EC7A1C"/>
+<rect x="1233" y="574.5" width="196.833" height="22" fill="#f5c69c"/>
+<rect x="1233" y="574.5" width="100.169" height="22" fill="#EC7A1C"/>
 <text x="1742" y="591.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">20.4<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">40.0</tspan></text>
 <text x="948" y="634.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
 <rect x="1233" y="617.5" width="345" height="22" fill="#d6cca8"/>
-<rect x="1233" y="617.5" width="158.86" height="22" fill="#9A8A3A"/>
-<text x="1742" y="634.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">32.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">70.1</tspan></text>
+<rect x="1233" y="617.5" width="158.383" height="22" fill="#9A8A3A"/>
+<text x="1742" y="634.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">32.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">70.2</tspan></text>
 <text x="948" y="668" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CURRENT-THREAD CPU TIME</text>
 <text x="1742" y="668" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="13.0" fill="#7A6E60">tach: Linux perf task-clock mmap · inline  |  native: raw syscall</text>
 <text x="948" y="705.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::ThreadCpuInstant</text>
-<rect x="1233" y="688.5" width="76.1666" height="22" fill="#eda9a0"/>
-<rect x="1233" y="688.5" width="37.7862" height="22" fill="#D72D24"/>
+<rect x="1233" y="688.5" width="76.4328" height="22" fill="#eda9a0"/>
+<rect x="1233" y="688.5" width="37.9033" height="22" fill="#D72D24"/>
 <text x="1742" y="705.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">57.6<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">116</tspan></text>
 <text x="948" y="748.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">OS native</text>
 <rect x="1233" y="731.5" width="345" height="22" fill="#bebebd"/>
-<rect x="1233" y="731.5" width="174.324" height="22" fill="#5B6472"/>
-<text x="1742" y="748.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">266<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">526</tspan></text>
+<rect x="1233" y="731.5" width="171.281" height="22" fill="#5B6472"/>
+<text x="1742" y="748.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">260<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">524</tspan></text>
 <text x="66" y="977" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="31.0" fill="#2E231B" font-weight="600">AWS Intel Linux</text>
 <text x="66" y="1001" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60">c7i.large</text>
 <text x="66" y="1022" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60">x86_64-unknown-linux-gnu</text>
 <text x="66" y="1049" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SAME-THREAD ELAPSED TIME</text>
 <text x="66" y="1086.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::Instant</text>
-<rect x="351" y="1069.5" width="186.992" height="22" fill="#eda9a0"/>
-<rect x="351" y="1069.5" width="90.6094" height="22" fill="#D72D24"/>
-<text x="860" y="1086.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">14.9<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">30.6</tspan></text>
+<rect x="351" y="1069.5" width="187.132" height="22" fill="#eda9a0"/>
+<rect x="351" y="1069.5" width="90.6296" height="22" fill="#D72D24"/>
+<text x="860" y="1086.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">13.9<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">28.8</tspan></text>
 <text x="66" y="1129.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">quanta</text>
-<rect x="351" y="1112.5" width="234.949" height="22" fill="#bebebd"/>
-<rect x="351" y="1112.5" width="106.03" height="22" fill="#5B6472"/>
-<text x="860" y="1129.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">17.4<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">38.5</tspan></text>
+<rect x="351" y="1112.5" width="234.474" height="22" fill="#bebebd"/>
+<rect x="351" y="1112.5" width="105.823" height="22" fill="#5B6472"/>
+<text x="860" y="1129.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">16.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">36.1</tspan></text>
 <text x="66" y="1172.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">fastant</text>
-<rect x="351" y="1155.5" width="245.905" height="22" fill="#b9c2ba"/>
-<rect x="351" y="1155.5" width="90.7091" height="22" fill="#4F6F6A"/>
-<text x="860" y="1172.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">14.9<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">40.3</tspan></text>
+<rect x="351" y="1155.5" width="246.893" height="22" fill="#b9c2ba"/>
+<rect x="351" y="1155.5" width="90.9129" height="22" fill="#4F6F6A"/>
+<text x="860" y="1172.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">14.0<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">38.0</tspan></text>
 <text x="66" y="1215.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">minstant</text>
-<rect x="351" y="1198.5" width="245.422" height="22" fill="#d0bca9"/>
-<rect x="351" y="1198.5" width="90.6012" height="22" fill="#8B5E3C"/>
-<text x="860" y="1215.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">14.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">40.2</tspan></text>
+<rect x="351" y="1198.5" width="245.58" height="22" fill="#d0bca9"/>
+<rect x="351" y="1198.5" width="90.7377" height="22" fill="#8B5E3C"/>
+<text x="860" y="1215.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">14.0<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">37.8</tspan></text>
 <text x="66" y="1258.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
 <rect x="351" y="1241.5" width="345" height="22" fill="#d6cca8"/>
-<rect x="351" y="1241.5" width="159.559" height="22" fill="#9A8A3A"/>
-<text x="860" y="1258.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">26.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">56.5</tspan></text>
+<rect x="351" y="1241.5" width="160.007" height="22" fill="#9A8A3A"/>
+<text x="860" y="1258.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">24.6<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">53.1</tspan></text>
 <text x="66" y="1292" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
 <text x="66" y="1329.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
-<rect x="351" y="1312.5" width="268.196" height="22" fill="#f5c69c"/>
-<rect x="351" y="1312.5" width="137.906" height="22" fill="#EC7A1C"/>
-<text x="860" y="1329.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">22.6<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">44.0</tspan></text>
+<rect x="351" y="1312.5" width="268.783" height="22" fill="#f5c69c"/>
+<rect x="351" y="1312.5" width="138.203" height="22" fill="#EC7A1C"/>
+<text x="860" y="1329.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">21.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">41.3</tspan></text>
 <text x="66" y="1372.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
 <rect x="351" y="1355.5" width="345" height="22" fill="#d6cca8"/>
-<rect x="351" y="1355.5" width="159.559" height="22" fill="#9A8A3A"/>
-<text x="860" y="1372.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">26.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">56.5</tspan></text>
+<rect x="351" y="1355.5" width="160.007" height="22" fill="#9A8A3A"/>
+<text x="860" y="1372.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">24.6<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">53.1</tspan></text>
 <text x="66" y="1406" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CURRENT-THREAD CPU TIME</text>
 <text x="860" y="1406" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="13.0" fill="#7A6E60">tach: POSIX thread clock · system call  |  native: raw syscall</text>
 <text x="66" y="1443.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::ThreadCpuInstant</text>
 <rect x="351" y="1426.5" width="345" height="22" fill="#eda9a0"/>
-<rect x="351" y="1426.5" width="171.002" height="22" fill="#D72D24"/>
-<text x="860" y="1443.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">167<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">336</tspan></text>
+<rect x="351" y="1426.5" width="170.543" height="22" fill="#D72D24"/>
+<text x="860" y="1443.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">154<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">312</tspan></text>
 <text x="66" y="1486.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">OS native</text>
-<rect x="351" y="1469.5" width="342.996" height="22" fill="#bebebd"/>
-<rect x="351" y="1469.5" width="171.615" height="22" fill="#5B6472"/>
-<text x="860" y="1486.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">167<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">334</tspan></text>
+<rect x="351" y="1469.5" width="342.958" height="22" fill="#bebebd"/>
+<rect x="351" y="1469.5" width="171.101" height="22" fill="#5B6472"/>
+<text x="860" y="1486.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">155<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">310</tspan></text>
 <text x="948" y="977" text-anchor="start" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-size="31.0" fill="#2E231B" font-weight="600">GitHub Windows</text>
 <text x="948" y="1001" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60">windows-2025</text>
 <text x="948" y="1022" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60">x86_64-pc-windows-msvc</text>
 <text x="948" y="1049" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SAME-THREAD ELAPSED TIME</text>
 <text x="948" y="1086.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::Instant</text>
-<rect x="1233" y="1069.5" width="78.5579" height="22" fill="#eda9a0"/>
-<rect x="1233" y="1069.5" width="39.6056" height="22" fill="#D72D24"/>
+<rect x="1233" y="1069.5" width="82.4068" height="22" fill="#eda9a0"/>
+<rect x="1233" y="1069.5" width="41.5612" height="22" fill="#D72D24"/>
 <text x="1742" y="1086.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">11.5<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">22.8</tspan></text>
 <text x="948" y="1129.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">quanta</text>
-<rect x="1233" y="1112.5" width="82.4515" height="22" fill="#bebebd"/>
-<rect x="1233" y="1112.5" width="39.4613" height="22" fill="#5B6472"/>
-<text x="1742" y="1129.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">11.4<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">23.9</tspan></text>
+<rect x="1233" y="1112.5" width="85.0601" height="22" fill="#bebebd"/>
+<rect x="1233" y="1112.5" width="41.4042" height="22" fill="#5B6472"/>
+<text x="1742" y="1129.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">11.4<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">23.5</tspan></text>
 <text x="948" y="1172.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">fastant</text>
-<rect x="1233" y="1155.5" width="345" height="22" fill="#b9c2ba"/>
-<rect x="1233" y="1155.5" width="142.222" height="22" fill="#4F6F6A"/>
-<text x="1742" y="1172.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">41.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">100.0</tspan></text>
+<rect x="1233" y="1155.5" width="344.791" height="22" fill="#b9c2ba"/>
+<rect x="1233" y="1155.5" width="149.376" height="22" fill="#4F6F6A"/>
+<text x="1742" y="1172.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">41.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">95.2</tspan></text>
 <text x="948" y="1215.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">minstant</text>
-<rect x="1233" y="1198.5" width="329.15" height="22" fill="#d0bca9"/>
-<rect x="1233" y="1198.5" width="142.179" height="22" fill="#8B5E3C"/>
-<text x="1742" y="1215.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">41.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">95.4</tspan></text>
+<rect x="1233" y="1198.5" width="345" height="22" fill="#d0bca9"/>
+<rect x="1233" y="1198.5" width="149.345" height="22" fill="#8B5E3C"/>
+<text x="1742" y="1215.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">41.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">95.3</tspan></text>
 <text x="948" y="1258.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
-<rect x="1233" y="1241.5" width="270.4" height="22" fill="#d6cca8"/>
-<rect x="1233" y="1241.5" width="130.299" height="22" fill="#9A8A3A"/>
-<text x="1742" y="1258.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">37.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">78.4</tspan></text>
+<rect x="1233" y="1241.5" width="283.589" height="22" fill="#d6cca8"/>
+<rect x="1233" y="1241.5" width="136.582" height="22" fill="#9A8A3A"/>
+<text x="1742" y="1258.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">37.7<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">78.3</tspan></text>
 <text x="948" y="1292" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
 <text x="948" y="1329.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
-<rect x="1233" y="1312.5" width="234.862" height="22" fill="#f5c69c"/>
-<rect x="1233" y="1312.5" width="111.256" height="22" fill="#EC7A1C"/>
+<rect x="1233" y="1312.5" width="235.077" height="22" fill="#f5c69c"/>
+<rect x="1233" y="1312.5" width="111.397" height="22" fill="#EC7A1C"/>
 <text x="1742" y="1329.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">25.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">53.4</tspan></text>
 <text x="948" y="1372.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">std</text>
 <rect x="1233" y="1355.5" width="345" height="22" fill="#d6cca8"/>
-<rect x="1233" y="1355.5" width="166.246" height="22" fill="#9A8A3A"/>
-<text x="1742" y="1372.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">37.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">78.4</tspan></text>
+<rect x="1233" y="1355.5" width="166.159" height="22" fill="#9A8A3A"/>
+<text x="1742" y="1372.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">37.7<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">78.3</tspan></text>
 <text x="948" y="1406" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CURRENT-THREAD CPU TIME</text>
 <text x="1742" y="1406" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="13.0" fill="#7A6E60">tach: GetThreadTimes · system call  |  native: GetThreadTimes</text>
 <text x="948" y="1443.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#D72D24" font-weight="600">tach::ThreadCpuInstant</text>
 <rect x="1233" y="1426.5" width="345" height="22" fill="#eda9a0"/>
-<rect x="1233" y="1426.5" width="172.243" height="22" fill="#D72D24"/>
-<text x="1742" y="1443.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">212<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">424</tspan></text>
+<rect x="1233" y="1426.5" width="172.567" height="22" fill="#D72D24"/>
+<text x="1742" y="1443.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">213<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">425</tspan></text>
 <text x="948" y="1486.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#2E231B">OS native</text>
-<rect x="1233" y="1469.5" width="344.035" height="22" fill="#bebebd"/>
-<rect x="1233" y="1469.5" width="170.268" height="22" fill="#5B6472"/>
-<text x="1742" y="1486.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">209<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">423</tspan></text>
+<rect x="1233" y="1469.5" width="340.231" height="22" fill="#bebebd"/>
+<rect x="1233" y="1469.5" width="172.433" height="22" fill="#5B6472"/>
+<text x="1742" y="1486.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">213<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">419</tspan></text>
 <text x="38" y="1644" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="14.0" fill="#7A6E60">tach selects the fastest eligible reliable provider · material tie: 95% CI + max(1 ns, 5%) · selector evidence retained in JSON</text>
 </svg>

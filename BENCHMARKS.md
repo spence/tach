@@ -23,7 +23,7 @@ tach's release proof separates two claims:
 
 `validate_campaign_for_checkout` admits all four primary cells with zero failures, bound to a
 single checked-out source revision:
-[`f6df5df`](https://github.com/spence/tach/commit/f6df5df4ce8c5b0576e42d0e7cb2bd06dbcfa37b)
+[`e35ec98`](https://github.com/spence/tach/commit/e35ec986c0a797f2291908b91863e374dd352824)
 (`docs/evidence/timers/primary-speed-campaign-2026-07-18/`).
 
 Every value below is nanoseconds per call; lower is better. Each pair is
@@ -52,10 +52,10 @@ value use `GlobalInstant` instead. The audited references are `quanta 0.12.6`, `
 
 | Environment | tach::Instant | fastest eligible reference | std (now) | verdict |
 |---|---:|---:|---:|---|
-| Apple M1 Max | **0.65 / 1.63** | quanta 3.37 | 20.21 | fastest outright |
-| AWS Graviton 3 | **6.67 / 13.35** | quanta 6.79 | 32.27 | fastest (within margin) |
-| AWS Intel Linux | **14.85 / 30.65** | fastant 14.87, minstant 14.85 | 26.15 | material tie; beats quanta 17.38 |
-| GitHub Windows 2025 | **11.48 / 22.77** | quanta 11.44 | 37.76 | material tie (tach faster on elapsed: 22.77 < 23.90) |
+| Apple M1 Max | **0.65 / 1.59** | quanta 3.34 | 19.84 | fastest outright |
+| AWS Graviton 3 | **6.68 / 13.35** | quanta 6.83 | 32.23 | fastest (within margin) |
+| AWS Intel Linux | **13.94 / 28.78** | minstant 13.96, fastant 13.98 | 24.61 | material tie; beats quanta 16.28 |
+| GitHub Windows 2025 | **11.48 / 22.76** | quanta 11.44 | 37.72 | material tie (tach faster on elapsed: 22.76 < 23.49) |
 
 "Material tie" means tach's point estimate and the conservative edge of its 95% confidence
 interval both fit within `max(1 ns, 5%)` of the reference — a fraction-of-a-nanosecond wobble, not
@@ -74,10 +74,10 @@ cross-core-reliable public reference in this set.
 
 | Environment | `tach::GlobalInstant` | `std::time::Instant` (now) |
 |---|---:|---:|
-| Apple M1 Max | **7.73 / 15.38** | 20.21 |
-| AWS Graviton 3 | **20.38 / 40.04** | 32.27 |
-| AWS Intel Linux | **22.60 / 43.96** | 26.15 |
-| GitHub Windows 2025 | **25.27 / 53.35** | 37.76 |
+| Apple M1 Max | **7.65 / 15.07** | 19.84 |
+| AWS Graviton 3 | **20.38 / 40.05** | 32.23 |
+| AWS Intel Linux | **21.26 / 41.34** | 24.61 |
+| GitHub Windows 2025 | **25.29 / 53.37** | 37.72 |
 
 `GlobalInstant` beats `std` on every primary cell. On Graviton 3 the public reference is the
 usable, shippable `isb; cntvct` read; the same route's exact (compile-time-specialized) form is
@@ -134,7 +134,7 @@ this API's `Duration` contract.
 
 These four are the primary cells: the `Instant` and `GlobalInstant` tables above are measured and
 validated (`validate_campaign_for_checkout`) on exactly these environments, bound to revision
-`f6df5df`. Every primary cell retains its source revision, build profile, enabled features, runner
+`e35ec98`. Every primary cell retains its source revision, build profile, enabled features, runner
 identity, medians, confidence intervals, raw selector samples, and source-sealed collector bundle.
 The durable package is
 [`docs/evidence/timers/primary-speed-campaign-2026-07-18`](https://github.com/spence/tach/tree/v0.2.0/docs/evidence/timers/primary-speed-campaign-2026-07-18).
@@ -145,12 +145,12 @@ The `ThreadCpuInstant` table and its dedicated chart above draw from the retaine
 package (revisions `68dc201`/`c64dcb7`) — the more comprehensive thread-CPU measurement, with more
 samples and two extra native environments (GitHub Intel macOS, AWS FreeBSD) beyond the four primary
 cells. `ThreadCpuInstant` provider selection is unaffected by ADR-0007, so these measured code paths
-are byte-identical at `f6df5df`. The steady-state chart at the top of this file draws its thread-CPU
-panel instead from the fresh `f6df5df` primary campaign; the two agree within run-to-run noise except
+are byte-identical at `e35ec98`. The steady-state chart at the top of this file draws its thread-CPU
+panel instead from the fresh `e35ec98` primary campaign; the two agree within run-to-run noise except
 on `c7i.large`, where the close x86 provider tournament selected the raw `CLOCK_THREAD_CPUTIME_ID`
 syscall in the retained package (150.75 ns) and `clock_gettime` in the primary campaign (166.63 ns).
 The retained package is the authoritative thread-CPU reference; collapsing to a single source at
-`f6df5df` would require re-running the full release-closure campaign (all supplemental cells) and is
+`e35ec98` would require re-running the full release-closure campaign (all supplemental cells) and is
 deferred as a post-0.2.0 refinement.
 
 ## Methodology
@@ -185,11 +185,11 @@ python3 benches/verify-target-providers.py --install-targets
 
 ## Reproduce the retained gate and charts
 
-**Primary `Instant`/`GlobalInstant` campaign** (revision `f6df5df`, `EVID-PRIMARY-SPEED-CAMPAIGN`):
+**Primary `Instant`/`GlobalInstant` campaign** (revision `e35ec98`, `EVID-PRIMARY-SPEED-CAMPAIGN`):
 
 ```sh
 # Apple (catalyst, M1 Max):
-benches/run-speed-local.sh .tach-bench-out/f6df5df/speed-0-apple.json
+benches/run-speed-local.sh .tach-bench-out/e35ec98/speed-0-apple.json
 # AWS c7g + inteln (self-terminating; add current IP to SG sg-05e99abafa54936d3 first):
 benches/run-speed-aws.sh c7g    c7g.large     # -> speed-1-c7g.json
 benches/run-speed-aws.sh inteln c7i.large     # -> speed-2-inteln.json (retry serially on the known signal-reentry harness flake)
@@ -198,13 +198,13 @@ gh workflow run bench --ref main              # -> artifact tach-speed-windows-2
 
 # Validate the assembled four-cell directory (each cell beside its .collector.bundle):
 python3 -c "import json,sys; sys.path.insert(0,'benches'); import speed_evidence as se; \
-from pathlib import Path; d=Path('.tach-bench-out/f6df5df'); \
+from pathlib import Path; d=Path('.tach-bench-out/e35ec98'); \
 cells={n:d/n for n in ('speed-0-apple.json','speed-1-c7g.json','speed-2-inteln.json','speed-4-windows.json')}; \
 docs={k:json.loads(v.read_text()) for k,v in cells.items()}; \
 r=se.validate_campaign_for_checkout(docs,Path('.'),cells); print('passed',r['passed'],'failures',r['failures'])"
 
 # Render the chart directly from the campaign directory:
-python3 benches/summary-use-cases.py --campaign-dir .tach-bench-out/f6df5df --output-dir benches --svg-only
+python3 benches/summary-use-cases.py --campaign-dir .tach-bench-out/e35ec98 --output-dir benches --svg-only
 ```
 
 See
