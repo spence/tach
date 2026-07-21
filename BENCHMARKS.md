@@ -5,8 +5,8 @@ tach has three timer contracts, refined per
 
 - `Instant` — the fastest **same-core** clock. `elapsed()` never returns a negative `Duration` (it
   saturates to zero on a backward read across an unsynchronized core migration), but `Instant`
-  does not itself promise cross-core value consistency — use `OrderedInstant` for that.
-- `OrderedInstant` — the fastest **cross-core-reliable** clock: value-consistent across cores and
+  does not itself promise cross-core value consistency — use `GlobalInstant` for that.
+- `GlobalInstant` — the fastest **cross-core-reliable** clock: value-consistent across cores and
   carrying the documented happens-before synchronization edge.
 - `ThreadCpuInstant` — the fastest reliable per-thread time, with an explicit monotonic-wall
   fallback where a platform cannot expose thread CPU time.
@@ -16,7 +16,7 @@ tach's release proof separates two claims:
 - A warning-strict, optimized build proof covers all 24 advertised Rust targets and every default
   and `--no-default-features` provider route. That proves availability, routing, and hot-path
   shape—not latency on hardware we did not run.
-- A primary speed campaign measures `Instant` and `OrderedInstant` steady-state cost on the four
+- A primary speed campaign measures `Instant` and `GlobalInstant` steady-state cost on the four
   primary target identities shown below: Apple M1 Max, AWS Graviton 3, AWS Intel Linux, and
   GitHub Windows 2025. It proves latency on real hardware for the refined contract, not
   availability on every advertised target.
@@ -47,7 +47,7 @@ selectors, or failed eligible-reference comparisons.
 ## Same-thread elapsed time
 
 `Instant` is the fastest **same-core** clock (ADR-0007): callers that need a cross-core-reliable
-value use `OrderedInstant` instead. The audited references are `quanta 0.12.6`, `fastant 0.1.11`,
+value use `GlobalInstant` instead. The audited references are `quanta 0.12.6`, `fastant 0.1.11`,
 `minstant 0.1.7`, and `std::time::Instant`; eligibility is platform- and contract-specific.
 
 | Environment | tach::Instant | fastest eligible reference | std (now) | verdict |
@@ -60,26 +60,26 @@ value use `OrderedInstant` instead. The audited references are `quanta 0.12.6`, 
 "Material tie" means tach's point estimate and the conservative edge of its 95% confidence
 interval both fit within `max(1 ns, 5%)` of the reference — a fraction-of-a-nanosecond wobble, not
 a loss. On Windows, `Instant` reads a calibrated invariant TSC (`windows_tsc`) behind a CPUID
-rate-stability gate, degrading to `QueryPerformanceCounter` when the gate fails; `OrderedInstant`
+rate-stability gate, degrading to `QueryPerformanceCounter` when the gate fails; `GlobalInstant`
 stays on `QueryPerformanceCounter` for its cross-core guarantee on every Windows architecture.
 
 These are tight-loop throughput measurements. Independent architectural reads can overlap on an
 out-of-order core; the results are not dependency-chained instruction latency.
 
-## Synchronization-ordered elapsed time
+## Cross-thread elapsed time
 
-`OrderedInstant` is the fastest **cross-core-reliable** clock (ADR-0007): value-consistent across
+`GlobalInstant` is the fastest **cross-core-reliable** clock (ADR-0007): value-consistent across
 cores and carrying the happens-before synchronization edge. `std::time::Instant` is the eligible
 cross-core-reliable public reference in this set.
 
-| Environment | `tach::OrderedInstant` | `std::time::Instant` (now) |
+| Environment | `tach::GlobalInstant` | `std::time::Instant` (now) |
 |---|---:|---:|
 | Apple M1 Max | **7.73 / 15.38** | 20.21 |
 | AWS Graviton 3 | **20.38 / 40.04** | 32.27 |
 | AWS Intel Linux | **22.60 / 43.96** | 26.15 |
 | GitHub Windows 2025 | **25.27 / 53.35** | 37.76 |
 
-`OrderedInstant` beats `std` on every primary cell. On Graviton 3 the public reference is the
+`GlobalInstant` beats `std` on every primary cell. On Graviton 3 the public reference is the
 usable, shippable `isb; cntvct` read; the same route's exact (compile-time-specialized) form is
 retained only as a disclosed diagnostic dispatch lower bound, not a competitor, because the
 mandatory `isb` barrier exposes a SIGILL-safe provider dispatch tach cannot skip and still ship.
@@ -132,7 +132,7 @@ this API's `Duration` contract.
 | AWS Intel Linux | `c7i.large` | `x86_64-unknown-linux-gnu` | Criterion |
 | GitHub Windows | `windows-2025` | `x86_64-pc-windows-msvc` | Criterion |
 
-These four are the primary cells: the `Instant` and `OrderedInstant` tables above are measured and
+These four are the primary cells: the `Instant` and `GlobalInstant` tables above are measured and
 validated (`validate_campaign_for_checkout`) on exactly these environments, bound to revision
 `f6df5df`. Every primary cell retains its source revision, build profile, enabled features, runner
 identity, medians, confidence intervals, raw selector samples, and source-sealed collector bundle.
@@ -185,7 +185,7 @@ python3 benches/verify-target-providers.py --install-targets
 
 ## Reproduce the retained gate and charts
 
-**Primary `Instant`/`OrderedInstant` campaign** (revision `f6df5df`, `EVID-PRIMARY-SPEED-CAMPAIGN`):
+**Primary `Instant`/`GlobalInstant` campaign** (revision `f6df5df`, `EVID-PRIMARY-SPEED-CAMPAIGN`):
 
 ```sh
 # Apple (catalyst, M1 Max):

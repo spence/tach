@@ -1212,7 +1212,7 @@ def add_wall_selector_evidence(
         out["tach"]["selection"] = selection
         # `tach_ordered.selection` retains the architecture-protocol evidence
         # emitted by ordered-selection.json; this record proves the complete
-        # OS/direct provider choice for the OrderedInstant domain.
+        # OS/direct provider choice for the GlobalInstant domain.
         out["tach_ordered"]["wall_selection"] = selection
         candidates = selection.get("eligible_direct_candidates", {})
         if isinstance(candidates, list):

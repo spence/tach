@@ -3,17 +3,17 @@
 //! Linux exposes the timestamp counter to EL0 through `RDTSC`, but a thread can
 //! request `SIGSEGV` on counter access with `PR_SET_TSC(PR_TSC_SIGSEGV)`, and
 //! the kernel can demote an unreliable TSC from its clocksource. Tach reads a
-//! bare `RDTSC` for `Instant` and `lfence; rdtsc` for `OrderedInstant` only when
+//! bare `RDTSC` for `Instant` and `lfence; rdtsc` for `GlobalInstant` only when
 //! the counter is eligible: `PR_GET_TSC` reports it enabled, CPUID advertises an
 //! invariant TSC, and the kernel's current clocksource is `tsc`. Both reads are
 //! scaled by the calibrated counter frequency.
 //!
 //! A bare `RDTSC` is eligible for local monotonic `Instant` samples because the
 //! reads order against one another; it is not ordered with surrounding work.
-//! `OrderedInstant` additionally needs the read ordered after a prior Acquire
+//! `GlobalInstant` additionally needs the read ordered after a prior Acquire
 //! load, which `LFENCE` guarantees only on Intel or on AMD parts that set
 //! `CPUID.8000_0021H:EAX[2]` (AMD_LFENCE_ALWAYS_SERIALIZING). Where that
-//! guarantee is absent the LFENCE form would be unordered, so `OrderedInstant`
+//! guarantee is absent the LFENCE form would be unordered, so `GlobalInstant`
 //! falls back off the TSC path.
 //!
 //! When the counter is denied or ineligible, both timers fall back to the
@@ -38,7 +38,7 @@ const PROVIDER_UNKNOWN: u8 = 0;
 const PROVIDER_SELECTING: u8 = 1;
 
 const PROVIDER_TSC: u8 = 2;
-// `Instant` checks `== PROVIDER_TSC` and `OrderedInstant` checks
+// `Instant` checks `== PROVIDER_TSC` and `GlobalInstant` checks
 // `== PROVIDER_TSC_LFENCE_RDTSC`; the shared tag keeps each public hot path a
 // single compare against the reentrant syscall fallback providers, which carry
 // distinct tags routed to the cold path.
@@ -167,7 +167,7 @@ fn publish_ordered_hot_state(provider: u8, scale: u64) {
   ORDERED_HOT_STATE.store(state, Ordering::Release);
 }
 
-/// Read an unordered endpoint in `OrderedInstant`'s selected numeric domain.
+/// Read an unordered endpoint in `GlobalInstant`'s selected numeric domain.
 #[inline(always)]
 #[allow(clippy::inline_always)]
 pub fn ticks_ordered_unordered() -> u64 {
@@ -662,7 +662,7 @@ fn detect_ordered_provider() -> u8 {
   // LFENCE only orders a following RDTSC after prior loads on Intel or on AMD
   // parts with AMD_LFENCE_ALWAYS_SERIALIZING (CPUID.8000_0021H:EAX[2]); without
   // that guarantee `PROVIDER_TSC_LFENCE_RDTSC` would emit an unordered
-  // OrderedInstant, silently violating the contract. This gate is correctness,
+  // GlobalInstant, silently violating the contract. This gate is correctness,
   // not speed: unproven hardware fails closed to the raw-syscall + CPUID-barrier
   // reentrant provider. Do not delete it as tournament cruft.
   let provider =
@@ -680,7 +680,7 @@ fn detect_ordered_provider() -> u8 {
 /// Whether `LFENCE` architecturally orders a following `RDTSC` after prior
 /// loads on this CPU. True on Intel with SSE2, or on AMD with SSE2 and
 /// `CPUID.8000_0021H:EAX[2]` (AMD_LFENCE_ALWAYS_SERIALIZING). Without this
-/// guarantee `OrderedInstant`'s `lfence; rdtsc` read would be unordered, so
+/// guarantee `GlobalInstant`'s `lfence; rdtsc` read would be unordered, so
 /// `detect_ordered_provider` consults it as a correctness gate, not a speed
 /// test: unknown vendors and non-serializing AMD parts fail closed.
 #[allow(unused_unsafe)] // supported rustc versions differ on whether __cpuid is unsafe

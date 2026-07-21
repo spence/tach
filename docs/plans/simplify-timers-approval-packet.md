@@ -16,12 +16,12 @@ silencing it would edit `Cargo.toml`, re-seal the campaign, and force a full re-
   the provider-policy matrix is dispositioned, `verify-target-providers.py` passes on both feature
   surfaces, and fmt/clippy/`test --lib` are green on default and `--no-default-features`.
 - **ADR-0007 accepted** — three contracts sharpened by guarantee: `Instant` = fastest **same-core**
-  clock (`elapsed()` saturates to zero, never negative); `OrderedInstant` = fastest
+  clock (`elapsed()` saturates to zero, never negative); `GlobalInstant` = fastest
   **cross-core-reliable** clock (value-consistent + happens-before edge); `ThreadCpuInstant` = fastest
-  reliable per-thread time. The cross-core guarantee moved from `Instant` to `OrderedInstant`.
+  reliable per-thread time. The cross-core guarantee moved from `Instant` to `GlobalInstant`.
 - **Windows `Instant` QPC → calibrated invariant TSC landed** (`4259e92`, provider `windows_tsc`):
   x86/x86_64 read a rate-calibrated invariant TSC behind a CPUID gate, degrading to QPC when
-  ineligible; `OrderedInstant` and aarch64-Windows `Instant` stay on QPC (a stated x86-only fork).
+  ineligible; `GlobalInstant` and aarch64-Windows `Instant` stay on QPC (a stated x86-only fork).
 - **A release CI regression was found and fixed** (see §2) — `ci.yml` (24-target route-proof +
   inline-parity) had been red since M4; both causes are resolved at `f6df5df` and `ci.yml` is green.
 - **Fresh four-primary speed campaign GREEN at `f6df5df`.** `validate_campaign_for_checkout` passes
@@ -50,7 +50,7 @@ Tracked as `ESC-M4-CI-RED` (resolved). Both causes are mine and closed — no ow
 
 ## 3. Decision 1 — RATIFY the c7g ordered-gate correction (`fbe6e8b`) — recommend RATIFY
 
-On Graviton3 `OrderedInstant` is `isb; cntvct`. The mandatory `isb` barrier forbids the out-of-order
+On Graviton3 `GlobalInstant` is `isb; cntvct`. The mandatory `isb` barrier forbids the out-of-order
 overlap that hides the SIGILL-safe provider dispatch on the barrier-free `Instant` path, so the
 public ordered read sits above a compile-time-specialized `isb; cntvct` that pays no per-call dispatch
 — a read tach **cannot ship** (hardcoding the pick SIGILLs a counter-disabled thread; ADR-0003
@@ -59,7 +59,7 @@ after competent work): the barrier-exposed ordered pick takes the existing resid
 `dispatch_lower_bound_with_public_winner_gate` — the exact route is a **disclosed** diagnostic lower
 bound and the gate becomes "tach_ordered beats `std`", which it does (**20.38 < 32.27** at `f6df5df`).
 Scoped by provider name so `Instant` and every non-barrier pick stay hard-gated. **ADR-0007
-reinforces this** — `OrderedInstant` is explicitly the cross-core tier, so the barrier is
+reinforces this** — `GlobalInstant` is explicitly the cross-core tier, so the barrier is
 contract-required, not overhead to apologize for. Executor work under the doctrine ("gate the
 outcome") and **reversible** (a veto reverts `fbe6e8b` + one re-measure). Full record:
 `docs/ESCALATIONS.md` → `ESC-APPLE-ELAPSED-DISPATCH`.
@@ -78,9 +78,9 @@ to README/BENCHMARKS (ns per call, `now / now+elapsed`, lower is better):
 | AWS Intel Linux | **14.85 / 30.65** | fastant 14.87, minstant 14.85 | 26.15 | material tie; beats quanta 17.38 |
 | GitHub Windows 2025 | **11.48 / 22.77** | quanta 11.44 | 37.76 | material tie (tach faster on elapsed: 22.77 < 23.90) |
 
-**Cross-core-reliable `OrderedInstant`** (vs `std`, the only comparably-safe reference)
+**Cross-core-reliable `GlobalInstant`** (vs `std`, the only comparably-safe reference)
 
-| Environment | tach::OrderedInstant | std::time::Instant (now) |
+| Environment | tach::GlobalInstant | std::time::Instant (now) |
 |---|---:|---:|
 | Apple M1 Max | **7.73 / 15.38** | 20.21 |
 | AWS Graviton 3 | **20.38 / 40.04** | 32.27 |
@@ -89,25 +89,25 @@ to README/BENCHMARKS (ns per call, `now / now+elapsed`, lower is better):
 
 The honest headline: tach `Instant` is the **fastest or materially tied** read on every primary cell
 (apple/c7g fastest outright; inteln/windows a within-margin tie under the `max(1 ns, 5%)` rule), and
-`OrderedInstant` beats `std` on every one. The scoping the public claim needs is the **contract
+`GlobalInstant` beats `std` on every one. The scoping the public claim needs is the **contract
 distinction**, not an apology: `Instant` is same-core (the tier quanta/minstant/fastant also target);
-the cross-core guarantee lives in `OrderedInstant` (the tier those libraries do not offer, so it is
+the cross-core guarantee lives in `GlobalInstant` (the tier those libraries do not offer, so it is
 compared to `std`).
 
 **One honest shift from the `4259e92` draft — Windows `Instant` beat → tie.** The `4259e92` draft
 showed Windows a clean win (9.29 vs quanta 11.91). This `f6df5df` CI run drew a slower/noisier
-`windows-2025` runner (QPC-based `std`/`OrderedInstant` reads inflate ~30–58% run-to-run), so
+`windows-2025` runner (QPC-based `std`/`GlobalInstant` reads inflate ~30–58% run-to-run), so
 `Instant` lands a **material tie** with quanta (11.48 vs 11.44) while tach is faster on elapsed
 (22.77 < 23.90). This is CI-runner variance, not a regression; per the no-cherry-pick rule the valid
 run **stands** (I did not re-run to chase the cleaner number). The relative claim is unchanged and
-honest: fastest or materially tied on `Instant`, `OrderedInstant` beats `std`. The calibrated
+honest: fastest or materially tied on `Instant`, `GlobalInstant` beats `std`. The calibrated
 invariant TSC keeps Windows competitive; the prior QPC-eligibility caveat is retired.
 
 ## 5. Decision 3 — ACCEPT M4.G1 / the packet (technical deliverables complete)
 
 M4.G1 conditions, all met at `f6df5df` / `5f4dc79`: (1) ADR-0007 accepted ✅; (2) Windows `Instant`
-raw-TSC on both feature surfaces, `OrderedInstant` unchanged ✅; (3) `validate_campaign_for_checkout`
-green at one revision, `Instant` competitive, `OrderedInstant` beats `std` ✅
+raw-TSC on both feature surfaces, `GlobalInstant` unchanged ✅; (3) `validate_campaign_for_checkout`
+green at one revision, `Instant` competitive, `GlobalInstant` beats `std` ✅
 (`EVID-PRIMARY-SPEED-CAMPAIGN`); (4) README/BENCHMARKS describe the refined contract with fresh
 committed evidence and no deleted-provenance claims ✅ (rebound `5f4dc79`); (5) a complete approval
 packet awaits you ✅ (this document). I have **closed the M4.G1 gate** on these deliverables (🟢). The

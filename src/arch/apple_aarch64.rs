@@ -17,12 +17,12 @@
 //! self-synchronizing commpage offset (`NOSPEC`) or `mach_absolute_time`
 //! (`NONE`), both in the Mach-timebase domain.
 //!
-//! `OrderedInstant` is a correctness-gated pick, not a speed tournament: the
+//! `GlobalInstant` is a correctness-gated pick, not a speed tournament: the
 //! mode names the self-synchronizing register XNU permits — Apple `ACNTVCT_EL0`
 //! (`NOSPEC_APPLE`) or ARMv8.6 `CNTVCTSS_EL0` (`NOSPEC`) — otherwise an explicit
 //! `isb sy; cntvct` barrier (`SPEC`) or `mach_absolute_time` (`NONE`) carries
 //! the happens-before edge. An unbarriered read is never synchronization
-//! ordered, so the bare counter is never an `OrderedInstant` pick. Every
+//! ordered, so the bare counter is never an `GlobalInstant` pick. Every
 //! ordered pick stays in the Mach-timebase domain.
 
 use core::arch::asm;
@@ -113,7 +113,7 @@ fn ticks_for_mode(mode: u8) -> u64 {
   }
 }
 
-// OrderedInstant is a CORRECTNESS capability gate, not a deleted speed
+// GlobalInstant is a CORRECTNESS capability gate, not a deleted speed
 // tournament — do not remove it (mirrors the x86 LFENCE gate). Reading an EL0
 // system register the commpage mode does not permit raises SIGILL, so the mode
 // byte decides which self-synchronizing register XNU exposes: Apple's
@@ -477,7 +477,7 @@ mod tests {
   use super::*;
 
   // ESC-APPLE-ORDERED-SELECTION probe: does each candidate ordered provider honor
-  // the OrderedInstant happens-before contract on this hardware? Each thread
+  // the GlobalInstant happens-before contract on this hardware? Each thread
   // Acquire-loads the max published raw tick, reads the candidate, and counts a
   // violation if its read is < the observed tick. Same-provider raw ticks share
   // one monotonic domain, so the comparison is valid. Bare CNTVCT is the negative
@@ -557,7 +557,7 @@ mod tests {
     } else {
       assert_eq!(instant_nanos_per_tick_q32(), mach_nanos_per_tick_q32());
     }
-    // Bare CNTVCT is never the ordered pick: OrderedInstant reads a self-sync
+    // Bare CNTVCT is never the ordered pick: GlobalInstant reads a self-sync
     // register, an explicit isb barrier, or mach_absolute — all in the
     // Mach-timebase domain, so a mach_absolute bracket contains the ordered
     // read while an out-of-domain bare read (`cntvct` < `cntvct + offset`)

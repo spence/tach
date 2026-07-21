@@ -2,9 +2,9 @@
 //!
 //! `Instant` measures Emscripten's guarded `performance.now()` path against
 //! Node's guarded `process.hrtime.bigint()` path when both exist. A
-//! non-threaded `OrderedInstant` uses that selected local timeline because no
+//! non-threaded `GlobalInstant` uses that selected local timeline because no
 //! value can cross a Rust thread boundary. With Emscripten pthread support
-//! enabled, `OrderedInstant` measures two complete cross-thread-safe paths: an
+//! enabled, `GlobalInstant` measures two complete cross-thread-safe paths: an
 //! epoch-correlated performance clock plus a shared atomic maximum, and
 //! Emscripten's pthread-synchronized `emscripten_get_now`, aligned into that
 //! epoch domain when both clocks are available, plus the same maximum.

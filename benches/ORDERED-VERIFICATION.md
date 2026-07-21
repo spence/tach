@@ -1,8 +1,8 @@
-# OrderedInstant cross-thread monotonicity — verification
+# GlobalInstant cross-thread monotonicity — verification
 
-**Question:** does `OrderedInstant` ever go backward across threads — can a read on
+**Question:** does `GlobalInstant` ever go backward across threads — can a read on
 thread B, sequenced after a synchronization edge from thread A, return a value less
-than A's? `OrderedInstant` defends against this with an instruction-ordering barrier
+than A's? `GlobalInstant` defends against this with an instruction-ordering barrier
 (`lfence; rdtsc` on x86, `isb sy` on aarch64) that pins the counter read after prior loads
 are globally visible. This file records that it holds, and that the fast comparison
 crates — which lack the barrier — do not.
@@ -27,7 +27,7 @@ Two ways it's run:
 show violations, or the placement was inert and the result is *inconclusive*, not a
 pass. This is what makes a "0" meaningful.
 
-## Results — OrderedInstant held at 0 on every machine tested
+## Results — GlobalInstant held at 0 on every machine tested
 
 | Cell | Arch / topology | `tach_ordered` viol | reads | bare-`tach` control |
 |---|---|---:|---:|---:|
@@ -41,16 +41,16 @@ pass. This is what makes a "0" meaningful.
 | **intel-2s-m7i (pinned)** | **x86_64, Xeon 8488C, 2 sockets** | **0** | 3.6B | **18K / 96.9M / 112M, max 55µs** ✓ fired |
 | **amd-2s-m7a (pinned)** | **x86_64, EPYC 9R14, 2 sockets** | **0** | 5.7B | **399M / 2.1B / 2.2B, max 97µs** ✓ fired |
 
-**Total: 0 backward steps in ~10.9 billion `OrderedInstant` cross-thread reads.**
+**Total: 0 backward steps in ~10.9 billion `GlobalInstant` cross-thread reads.**
 
 The two-socket runs are the decisive ones. On a genuinely multi-socket box bare
 `tach` inverted enormously — up to **55 µs on Intel** and **97 µs on AMD** (on AMD,
 ~8% of all cross-socket reads on the adversarial pair). That is exactly the regime
-where a read-ordering barrier is most stressed, and `OrderedInstant` held at **0
+where a read-ordering barrier is most stressed, and `GlobalInstant` held at **0
 across every placement on both vendors**. Cross-socket pin pairs were verified to
 straddle sockets (cpu0/cpu48 on Intel, cpu0/cpu96 on AMD) before trusting the result.
 
-## The fast comparison crates invert; OrderedInstant and std don't
+## The fast comparison crates invert; GlobalInstant and std don't
 
 The headline result. The same pinned cross-socket test, run side-by-side against the
 whole ecosystem on the two-socket boxes (`benches/ordered-verify-{intel,amd}-*.json`).
@@ -58,7 +58,7 @@ Identical placement, identical hardware, identical moment — violation counts:
 
 **Intel Xeon 8488C, 2-socket (cross-socket pinned):**
 
-| placement | `tach::Instant` | **`tach::OrderedInstant`** | `std` | `quanta` | `minstant` | `fastant` |
+| placement | `tach::Instant` | **`tach::GlobalInstant`** | `std` | `quanta` | `minstant` | `fastant` |
 |---|--:|--:|--:|--:|--:|--:|
 | adversarial-pair | 63,638 | **0** | 0 | 16,166 | 4,797 | 5,785 |
 | full-span (192t) | 48,099,661 | **0** | 0 | 46,299,832 | 44,214,260 | 54,422,121 |
@@ -66,7 +66,7 @@ Identical placement, identical hardware, identical moment — violation counts:
 
 **AMD EPYC 9R14, 2-socket (cross-socket pinned):**
 
-| placement | `tach::Instant` | **`tach::OrderedInstant`** | `std` | `quanta` | `minstant` | `fastant` |
+| placement | `tach::Instant` | **`tach::GlobalInstant`** | `std` | `quanta` | `minstant` | `fastant` |
 |---|--:|--:|--:|--:|--:|--:|
 | adversarial-pair | 257,284,001 | **0** | 0 | 121,250,245 | 253,498,378 | 237,108,349 |
 | full-span (192t) | 1,529,678,258 | **0** | 0 | 1,595,243,184 | 1,536,214,626 | 1,597,493,438 |
@@ -76,17 +76,17 @@ Identical placement, identical hardware, identical moment — violation counts:
 inverts right alongside the fast competitors (AMD full-span: Instant 1.53B, quanta
 1.60B, minstant 1.54B, fastant 1.60B). That's the point: **every bare architectural-
 counter read fails this contract the same way** — tach's included. The barrier is the
-only thing that changes the outcome, and `tach::OrderedInstant` is the one clock here
+only thing that changes the outcome, and `tach::GlobalInstant` is the one clock here
 that has it. `std` also passes, but via its vDSO / syscall path, at 2–8× the per-call
 cost.
 
 (`tach::Instant`'s inversions are *not* a defect — it's the fast read, documented to
-trade cross-thread ordering for speed. Reach for `OrderedInstant` exactly when this
+trade cross-thread ordering for speed. Reach for `GlobalInstant` exactly when this
 table matters to you.)
 
 None of `quanta` / `minstant` / `fastant` exposes an *ordered* read variant — there is
 no API knob to make them cross-thread-correct short of dropping to `std`.
-`OrderedInstant` is the only fast clock in the set that is correct by construction.
+`GlobalInstant` is the only fast clock in the set that is correct by construction.
 
 (On aarch64, `minstant` / `fastant` fall back to `std` rather than reading the TSC, so
 they pass there — honest nuance, but it means they're not actually fast on aarch64.)
@@ -101,7 +101,7 @@ TSC synchronized across sockets, so the counters themselves are coherent; what w
 measured is the bare read being sampled before the Acquire-load retires, with the
 stall lengthened by the contended cross-socket cache line. Wherever a bare
 cross-thread read appears to invert — whatever the underlying cause —
-`OrderedInstant`'s barrier prevents it (0 / 10.9B). We did **not** isolate a
+`GlobalInstant`'s barrier prevents it (0 / 10.9B). We did **not** isolate a
 deliberately-desynchronized counter; that case is out of contract for *every* tach
 type (see the "one assumption" note in the README).
 
@@ -132,7 +132,7 @@ type (see the "one assumption" note in the README).
 
 On every modern architecture we tested — Apple Silicon (M1/M4), AWS Graviton 3,
 Intel x86 and AMD x86 (virtualized, single-socket bare-metal, Firecracker, and
-2-socket NUMA bare-metal), Windows x86 — `OrderedInstant` does not go backward across
+2-socket NUMA bare-metal), Windows x86 — `GlobalInstant` does not go backward across
 threads: **0 violations in ~10.9 billion reads**, with the bare-counter control
 firing on every machine to prove each test was live, and with the fast comparison crates
 inverting under the same conditions. The one topology that could have broken it —

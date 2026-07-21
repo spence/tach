@@ -4,7 +4,7 @@
 //! wall-clock-rate counter for that OS/architecture pair. Most targets use an
 //! architectural counter. Windows x86 `Instant` reads a calibrated invariant
 //! TSC — the same-core tier of ADR-0007 — degrading to `QueryPerformanceCounter`
-//! when the invariant-TSC CPUID gate fails. Windows `OrderedInstant`, which
+//! when the invariant-TSC CPUID gate fails. Windows `GlobalInstant`, which
 //! carries the cross-core happens-before contract, and aarch64 Windows `Instant`
 //! stay on `QueryPerformanceCounter`, whose backing clock Windows validates and
 //! whose cross-processor synchronization, scaling, and bias Windows owns. A raw
@@ -370,7 +370,7 @@ pub fn ticks_ordered() -> u64 {
 }
 
 // `elapsed_unordered()` must remain in the provider and numeric domain chosen
-// for `OrderedInstant`. JavaScript workers need the epoch timeline without the
+// for `GlobalInstant`. JavaScript workers need the epoch timeline without the
 // shared atomic maximum, while Linux x86 and aarch64 may choose a provider
 // independently from `Instant`. Every remaining route guarantees that both
 // read forms use the same provider and raw domain, so it can reuse `ticks()`.

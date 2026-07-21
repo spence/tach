@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Provision an EC2 instance, run the ordered-verify study, pull JSON back, terminate.
 #
-# Proves OrderedInstant holds across threads while the fast comparison crates invert: runs the
+# Proves GlobalInstant holds across threads while the fast comparison crates invert: runs the
 # synchronization-order test under pinned placements (adversarial cross-socket
 # pair + full-span + oversubscribed-2x) across tach / tach_ordered / std / quanta / minstant /
 # std. Bare `tach` is the positive control — it MUST show violations under a
@@ -127,7 +127,7 @@ $SSH "cd tach && source \$HOME/.cargo/env && BIN=\$(find target/release/deps -na
 $SCP "ec2-user@$IP:tach/${OUT}" "${OUT}"
 echo "pulled ${OUT}"
 
-# Verdict per placement: OrderedInstant must hold at 0 while the fast comparison
+# Verdict per placement: GlobalInstant must hold at 0 while the fast comparison
 # crates (quanta/minstant/fastant) invert wherever they read the counter bare.
 python3 - "${OUT}" <<'PY'
 import json, sys
@@ -141,9 +141,9 @@ for p in d["placements"]:
     if ctrl == 0:
         verdict = "INCONCLUSIVE (control inert — placement didn't exercise cross-domain reads)"
     elif ordd == 0:
-        verdict = "OrderedInstant HOLDS (control fired, ordered=0)"
+        verdict = "GlobalInstant HOLDS (control fired, ordered=0)"
     else:
-        verdict = f"REGRESSION: OrderedInstant inverted (max {r['tach_ordered']['max_violation_ns']}ns)"
+        verdict = f"REGRESSION: GlobalInstant inverted (max {r['tach_ordered']['max_violation_ns']}ns)"
     comp = " ".join(
         f"{k}={vof(r, k)}" for k in ("std", "quanta", "minstant", "fastant") if k in r
     )

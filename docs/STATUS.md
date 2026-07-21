@@ -9,7 +9,7 @@ objective doc: author status there, not here.
 > Objective:  `OBJ-SIMPLIFY-TIMERS` — Simplify to verified fastest per-target clocks  (M2 🚧 Fixed-pick conversion with inline parity)
 > Next:       OBJ-SIMPLIFY-TIMERS.M2 — `src/` converts to compile-time picks + capability gates per the freeze table; tournaments only where a flip is frozen
 > Blocked on you: ESC-AMD-FLIP-PROBE-TOOLING, ESC-APPLE-ELAPSED-DISPATCH, ESC-M3-CLAIMS-REMEASURE, ESC-SIMPLIFY-M4-APPROVAL
-> Last verified: 2026-07-18 · Changed: Refined-contract publish-readiness deliverables complete at f6df5df/5f4dc79: (1) ADR-0007 accepted; (2) Windows Instant selects calibrated invariant TSC on both feature surfaces, OrderedInstant unchanged (route-proof green); (3) validate_campaign_for_checkout green at one revision, zero failures — Instant fastest-or-materially-tied on all four primary cells, OrderedInstant beats std on all four (EVID-PRIMARY-SPEED-CAMPAIGN); (4) README/BENCHMARKS rebound to the refined three-tier contract with fresh committed evidence, no deleted-provenance claims, thread-cpu two-source provenance disclosed; (5) approval packet re-prepared at f6df5df. RC passes cargo publish --dry-run. Owner ratification (claims wording, packet acceptance) tracked as ESC-M3-CLAIMS-REMEASURE + ESC-SIMPLIFY-M4-APPROVAL.; OBJ-SIMPLIFY-TIMERS.M4.G1 🟢 at evidence SHA `f6df5df`. · By: nsr · 5f4dc79
+> Last verified: 2026-07-20 · Changed: OBJ-SIMPLIFY-TIMERS.M2 🚧 (Fixed-pick conversion with inline parity) · By: nsr · 6a1a113
 <!-- /render:vitals -->
 
 - **Status (work):** 🚧 in progress · 🟣 next candidate · ⚪ not started · ✅ completed · ⛔️ blocked · ⚫️ out of scope

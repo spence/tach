@@ -28,8 +28,8 @@
 <rect x="351" y="503.5" width="252.863" height="22" fill="#d6cca8"/>
 <rect x="351" y="503.5" width="115.807" height="22" fill="#9A8A3A"/>
 <text x="860" y="520.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">20.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">44.1</tspan></text>
-<text x="66" y="554" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SYNCHRONIZATION-ORDERED ELAPSED</text>
-<text x="66" y="591.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::OrderedInstant</text>
+<text x="66" y="554" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
+<text x="66" y="591.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
 <rect x="351" y="574.5" width="120.271" height="22" fill="#f5c69c"/>
 <rect x="351" y="574.5" width="60.4425" height="22" fill="#EC7A1C"/>
 <text x="860" y="591.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">7.73<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">15.4</tspan></text>
@@ -71,8 +71,8 @@
 <rect x="1233" y="503.5" width="278.128" height="22" fill="#d6cca8"/>
 <rect x="1233" y="503.5" width="128.068" height="22" fill="#9A8A3A"/>
 <text x="1742" y="520.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">32.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">70.1</tspan></text>
-<text x="948" y="554" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SYNCHRONIZATION-ORDERED ELAPSED</text>
-<text x="948" y="591.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::OrderedInstant</text>
+<text x="948" y="554" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
+<text x="948" y="591.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
 <rect x="1233" y="574.5" width="197.134" height="22" fill="#f5c69c"/>
 <rect x="1233" y="574.5" width="100.312" height="22" fill="#EC7A1C"/>
 <text x="1742" y="591.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">20.4<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">40.0</tspan></text>
@@ -114,8 +114,8 @@
 <rect x="351" y="1241.5" width="345" height="22" fill="#d6cca8"/>
 <rect x="351" y="1241.5" width="159.559" height="22" fill="#9A8A3A"/>
 <text x="860" y="1258.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">26.2<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">56.5</tspan></text>
-<text x="66" y="1292" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SYNCHRONIZATION-ORDERED ELAPSED</text>
-<text x="66" y="1329.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::OrderedInstant</text>
+<text x="66" y="1292" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
+<text x="66" y="1329.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
 <rect x="351" y="1312.5" width="268.196" height="22" fill="#f5c69c"/>
 <rect x="351" y="1312.5" width="137.906" height="22" fill="#EC7A1C"/>
 <text x="860" y="1329.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">22.6<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">44.0</tspan></text>
@@ -157,8 +157,8 @@
 <rect x="1233" y="1241.5" width="270.4" height="22" fill="#d6cca8"/>
 <rect x="1233" y="1241.5" width="130.299" height="22" fill="#9A8A3A"/>
 <text x="1742" y="1258.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">37.8<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">78.4</tspan></text>
-<text x="948" y="1292" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">SYNCHRONIZATION-ORDERED ELAPSED</text>
-<text x="948" y="1329.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::OrderedInstant</text>
+<text x="948" y="1292" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17.0" fill="#7A6E60" font-weight="600">CROSS-THREAD ELAPSED TIME</text>
+<text x="948" y="1329.62" text-anchor="start" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18.0" fill="#EC7A1C" font-weight="600">tach::GlobalInstant</text>
 <rect x="1233" y="1312.5" width="234.862" height="22" fill="#f5c69c"/>
 <rect x="1233" y="1312.5" width="111.256" height="22" fill="#EC7A1C"/>
 <text x="1742" y="1329.62" text-anchor="end" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#2E231B">25.3<tspan dx="4" fill="#7A6E60">/</tspan><tspan dx="4">53.4</tspan></text>

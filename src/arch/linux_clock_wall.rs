@@ -4,7 +4,7 @@
 //! `CLOCK_MONOTONIC_RAW`, or `CLOCK_BOOTTIME` timelines, and the cheapest
 //! eligible route is an environment property: libc may
 //! reach a vDSO, while a direct syscall can win when wrapper or virtualization
-//! costs dominate. `Instant` and `OrderedInstant` therefore measure their
+//! costs dominate. `Instant` and `GlobalInstant` therefore measure their
 //! complete branched paths independently. Armv7 also measures the time32 and
 //! time64 syscall ABIs independently when each is available.
 //! A direct Arm virtual-counter read is admitted only when the kernel leaves

@@ -10,7 +10,7 @@
 //! | Job | Type | Contract |
 //! |---|---|---|
 //! | Same-thread elapsed | [`Instant`] | Wall-rate time; endpoints stay local |
-//! | Ordered elapsed | [`OrderedInstant`] | Wall time ordered after memory observations |
+//! | Cross-thread elapsed | [`GlobalInstant`] | Wall time ordered after memory observations |
 //! | Thread CPU, where native | [`ThreadCpuInstant`] | CPU time or explicit wall fallback |
 //!
 //! With default features, each type selects the fastest eligible provider for
@@ -19,7 +19,7 @@
 //! Disabling default features requests the syscall-only `no_std` thread-CPU
 //! implementation and can therefore trade speed for dependency surface.
 //!
-//! On six benchmark environments, each type has the fastest tested
+//! On four primary environments, each type has the fastest tested
 //! steady-state read and elapsed bracket for its contract, with
 //! `max(1 ns, 5%)` treated as a practical material tie. A separate 24-target
 //! compile and codegen matrix proves API availability and provider routing; it
@@ -46,7 +46,7 @@
 //! one thread. Direct-counter providers do not order the sample after prior
 //! memory operations.
 //!
-//! Use [`OrderedInstant`] when a timestamp participates in a cross-thread
+//! Use [`GlobalInstant`] when a timestamp participates in a cross-thread
 //! happens-before relationship. Direct-counter targets select an architecture
 //! barrier; Windows and Intel macOS fence before their reliable platform
 //! clock. The load-then-now-then-check contract produced zero inversions in
@@ -105,7 +105,7 @@ mod calibration;
 mod instant;
 mod thread_cpu;
 
-pub use instant::{Instant, OrderedInstant};
+pub use instant::{GlobalInstant, Instant};
 pub use thread_cpu::{ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
 
 // `#![no_std]` remains the crate root. The default thread-cpu-inline feature

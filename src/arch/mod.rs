@@ -67,7 +67,7 @@ pub use direct::{ticks, ticks_ordered, ticks_ordered_unordered};
 // Stored independently as fixed-point Q32:
 //   nanos_per_tick_q32 = (nanos_numerator << 32) / ticks_denominator
 // Then converting ticks to nanos becomes (ticks * scale) >> 32, replacing the
-// per-call u128 division with a multiply + shift. Instant and OrderedInstant
+// per-call u128 division with a multiply + shift. Instant and GlobalInstant
 // may select different providers, so their scales must never be interchanged.
 // Most targets initialize each cache at the first elapsed/arithmetic call.
 // Linux-kernel x86 publishes the ordered scale with provider selection; its
@@ -558,7 +558,7 @@ fn read_ordered_nanos_per_tick_q32() -> u64 {
 }
 
 // Windows x86 `Instant` selects a calibrated invariant TSC or degrades to QPC;
-// its frequency follows that selection. `OrderedInstant` and aarch64 Windows
+// its frequency follows that selection. `GlobalInstant` and aarch64 Windows
 // stay on the authoritative QueryPerformanceFrequency.
 #[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
 #[inline]
@@ -844,7 +844,7 @@ fn measure_scales_for_recal() -> RecalibrationScaleUpdate {
 // Windows x86 has no `clock_gettime`, so it re-measures its TSC scale against
 // QPC in `windows_x86_wall` instead of the shared `crate::calibration` path.
 // Only the local scale recalibrates and only when the TSC is selected;
-// `OrderedInstant` stays on the authoritative QueryPerformanceFrequency.
+// `GlobalInstant` stays on the authoritative QueryPerformanceFrequency.
 #[cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "x86")))]
 #[inline]
 fn measure_scales_for_recal() -> RecalibrationScaleUpdate {

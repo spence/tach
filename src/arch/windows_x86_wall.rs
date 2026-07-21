@@ -10,7 +10,7 @@
 //! relaxes only the cross-core value-consistency requirement for `Instant`, not
 //! rate stability. The read is scaled by the calibrated counter frequency.
 //!
-//! `OrderedInstant` is **not** handled here. Its cross-core-consistent,
+//! `GlobalInstant` is **not** handled here. Its cross-core-consistent,
 //! happens-before contract stays on `QueryPerformanceCounter` for every Windows
 //! architecture (`src/arch/fallback.rs`), so this module never touches an
 //! ordered-reachable path.

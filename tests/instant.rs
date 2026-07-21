@@ -1,9 +1,9 @@
-//! Integration tests for the public `Instant` / `OrderedInstant` contracts.
+//! Integration tests for the public `Instant` / `GlobalInstant` contracts.
 //! Relocated from the `src/lib.rs` unit module (OBJ-SIMPLIFY-TIMERS M2): these
 //! exercise only the public API, so they belong in an integration crate.
 
 use std::time::Duration;
-use tach::{Instant, OrderedInstant};
+use tach::{GlobalInstant, Instant};
 
 // Upper bound for sleep-based elapsed checks: a garbage guard, not a precision
 // bound. Hosted CI oversleeps short sleeps heavily (a 10 ms sleep measured
@@ -16,7 +16,7 @@ const SLEEP_ELAPSED_MAX_MS: u128 = 60_000;
 fn instant_is_send_sync() {
   fn assert_send_sync<T: Send + Sync>() {}
   assert_send_sync::<Instant>();
-  assert_send_sync::<OrderedInstant>();
+  assert_send_sync::<GlobalInstant>();
 }
 
 #[test]
@@ -40,9 +40,9 @@ fn elapsed_after_sleep() {
 
 #[test]
 fn ordered_now_advances() {
-  let mut previous = OrderedInstant::now();
+  let mut previous = GlobalInstant::now();
   for _ in 0..10_000 {
-    let current = OrderedInstant::now();
+    let current = GlobalInstant::now();
     assert!(current >= previous, "ordered counter moved backward");
     previous = current;
   }
@@ -50,19 +50,19 @@ fn ordered_now_advances() {
 
 #[test]
 fn ordered_elapsed_after_sleep() {
-  let start = OrderedInstant::now();
+  let start = GlobalInstant::now();
   std::thread::sleep(Duration::from_millis(10));
   let elapsed = start.elapsed();
   assert!(elapsed.as_millis() >= 9, "ordered elapsed too short: {elapsed:?}");
   assert!(elapsed.as_millis() < SLEEP_ELAPSED_MAX_MS, "ordered elapsed too long: {elapsed:?}");
 }
 
-// Pairing OrderedInstant start with elapsed_unordered() end: end timestamp
+// Pairing GlobalInstant start with elapsed_unordered() end: end timestamp
 // is unordered but should still come after the ordered start (sleep is well
 // longer than any reordering window).
 #[test]
 fn ordered_elapsed_unordered_after_sleep() {
-  let start = OrderedInstant::now();
+  let start = GlobalInstant::now();
   std::thread::sleep(Duration::from_millis(10));
   let elapsed = start.elapsed_unordered();
   assert!(elapsed.as_millis() >= 9, "elapsed_unordered too short: {elapsed:?}");
@@ -81,13 +81,13 @@ fn instant_duration_since_saturates_when_earlier_is_later() {
 // elapsed() must saturate to zero when `self` is in the future rather than
 // wrapping to a ~580-year garbage Duration. The future instant is an hour
 // ahead, so the current read always lands before it. Covers both types
-// plus OrderedInstant's unordered end read.
+// plus GlobalInstant's unordered end read.
 #[test]
 fn elapsed_saturates_when_self_is_in_the_future() {
   let one_hour = Duration::from_secs(3600);
   assert_eq!((Instant::now() + one_hour).elapsed(), Duration::ZERO);
-  assert_eq!((OrderedInstant::now() + one_hour).elapsed(), Duration::ZERO);
-  assert_eq!((OrderedInstant::now() + one_hour).elapsed_unordered(), Duration::ZERO);
+  assert_eq!((GlobalInstant::now() + one_hour).elapsed(), Duration::ZERO);
+  assert_eq!((GlobalInstant::now() + one_hour).elapsed_unordered(), Duration::ZERO);
 }
 
 #[test]
@@ -138,9 +138,9 @@ fn instant_sub_duration_and_add_assign() {
 
 #[test]
 fn ordered_instant_arithmetic_mirrors_instant() {
-  let a = OrderedInstant::now();
+  let a = GlobalInstant::now();
   std::thread::sleep(Duration::from_millis(5));
-  let b = OrderedInstant::now();
+  let b = GlobalInstant::now();
   let diff: Duration = b - a;
   assert!(diff.as_millis() >= 4 && diff.as_millis() < SLEEP_ELAPSED_MAX_MS, "diff: {diff:?}");
   assert_eq!(a.duration_since(b), Duration::ZERO);
@@ -200,7 +200,7 @@ fn elapsed_tracks_std_within_5_percent() {
 
 // Synchronization-order monotonicity, directly validating the happens-before
 // contract: "after observing a value via Acquire-load, a subsequent
-// OrderedInstant::now() must return a value >= what was observed." This is the
+// GlobalInstant::now() must return a value >= what was observed." This is the
 // in-crate version of the `measure_synchronization_order` bench; it must hold
 // with 0 violations across N racing threads.
 //
@@ -211,7 +211,7 @@ fn elapsed_tracks_std_within_5_percent() {
 //
 // Plain Instant FAILS this — on x86 (~10 µs hardware sync slop) and on Apple
 // Silicon (~12% of reads on M1) the bare counter read can be sampled before
-// the Acquire-load retires. OrderedInstant passes because its barrier
+// the Acquire-load retires. GlobalInstant passes because its barrier
 // (`rdtscp` / `isb sy`) pins the read after prior loads are globally visible,
 // verified at 0 violations across ~10.9B reads incl. 2-socket NUMA.
 #[test]
@@ -221,7 +221,7 @@ fn ordered_honors_happens_before() {
   use std::thread;
 
   let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(16);
-  let anchor = OrderedInstant::now();
+  let anchor = GlobalInstant::now();
   let published_ns = Arc::new(AtomicU64::new(0));
   let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
   let barrier = Arc::new(std::sync::Barrier::new(threads + 1));
@@ -242,7 +242,7 @@ fn ordered_honors_happens_before() {
           // Step 2: Call now(). Its barrier pins the counter read after the
           //         Acquire-load above, so the return must be >= the tick
           //         for the observed ns.
-          let t = OrderedInstant::now();
+          let t = GlobalInstant::now();
           let ns = t.duration_since(anchor).as_nanos() as u64;
           // Step 3: Check the contract: ns >= observed.
           if ns < observed {
@@ -264,7 +264,7 @@ fn ordered_honors_happens_before() {
   let total_violations: u64 = handles.into_iter().map(|h| h.join().unwrap()).sum();
   assert_eq!(
     total_violations, 0,
-    "OrderedInstant showed {total_violations} happens-before cross-thread monotonicity \
+    "GlobalInstant showed {total_violations} happens-before cross-thread monotonicity \
      violations (expected 0); the ordering barrier appears to be broken",
   );
 }

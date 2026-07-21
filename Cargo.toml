@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 authors = ["Spencer Creasey"]
 repository = "https://github.com/spence/tach"
-description = "Fast timers for local elapsed, ordered cross-thread, and current-thread CPU time"
+description = "Fast timers for same-thread elapsed, cross-thread ordered, and current-thread CPU time"
 keywords = ["timer", "clock", "profiling", "instant", "thread-cpu"]
 categories = ["hardware-support", "development-tools::profiling"]
 include = [
@@ -49,7 +49,7 @@ default = ["thread-cpu-inline"]
 # Other targets ignore this feature. Disable default features to keep those
 # targets on the syscall-only no_std implementation.
 thread-cpu-inline = []
-# OPT-IN: compile the cross-thread `OrderedInstant` provider for Emscripten
+# OPT-IN: compile the cross-thread `GlobalInstant` provider for Emscripten
 # pthread/shared-memory builds. Stable rustc accepts `-C target-feature=+atomics`
 # for code generation but does not expose that unstable target feature through
 # `cfg(target_feature)`, so pthread consumers must enable this Cargo feature as

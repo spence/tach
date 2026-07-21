@@ -76,7 +76,7 @@ use tach::bench::{
   ),
 ))]
 use tach::bench::{ThreadCpuPerfPathHandle, ThreadCpuPerfReadHandle};
-use tach::{Instant, OrderedInstant, ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
+use tach::{GlobalInstant, Instant, ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
 
 #[cfg(feature = "bench-internal")]
 #[allow(unused_macros)]
@@ -273,10 +273,10 @@ macro_rules! measure_apple_public_exact {
   (ordered, $nanos_per_tick_q32:expr, $read:path) => {{
     let scale = $nanos_per_tick_q32;
     serde_json::json!({
-      "now": measure_wall_public_exact(|| OrderedInstant::now(), || $read()),
+      "now": measure_wall_public_exact(|| GlobalInstant::now(), || $read()),
       "elapsed": measure_wall_public_exact(
         || {
-          let start = OrderedInstant::now();
+          let start = GlobalInstant::now();
           start.elapsed()
         },
         || {
@@ -312,12 +312,12 @@ fn measure_apple_x86_public_exact() -> serde_json::Value {
     },
     "ordered": {
       "now": measure_wall_public_exact(
-        || OrderedInstant::now(),
+        || GlobalInstant::now(),
         || tach::bench::apple_x86_selected_ordered_ticks(),
       ),
       "elapsed": measure_wall_public_exact(
         || {
-          let start = OrderedInstant::now();
+          let start = GlobalInstant::now();
           start.elapsed()
         },
         || {
@@ -357,10 +357,10 @@ macro_rules! measure_linux_x86_public_exact {
   (ordered, $nanos_per_tick_q32:expr, $read:path) => {{
     let scale = $nanos_per_tick_q32;
     serde_json::json!({
-      "now": measure_wall_public_exact(|| OrderedInstant::now(), || $read()),
+      "now": measure_wall_public_exact(|| GlobalInstant::now(), || $read()),
       "elapsed": measure_wall_public_exact(
         || {
-          let start = OrderedInstant::now();
+          let start = GlobalInstant::now();
           start.elapsed()
         },
         || {
@@ -485,10 +485,10 @@ macro_rules! measure_linux_aarch64_public_exact {
   (ordered, $nanos_per_tick_q32:expr, $read:path) => {{
     let scale = $nanos_per_tick_q32;
     serde_json::json!({
-      "now": measure_wall_public_exact(|| OrderedInstant::now(), || $read()),
+      "now": measure_wall_public_exact(|| GlobalInstant::now(), || $read()),
       "elapsed": measure_wall_public_exact(
         || {
-          let start = OrderedInstant::now();
+          let start = GlobalInstant::now();
           start.elapsed()
         },
         || {
@@ -1087,10 +1087,10 @@ macro_rules! measure_freebsd_public_exact {
   (ordered, $nanos_per_tick_q32:expr, $read:path) => {{
     let scale = $nanos_per_tick_q32;
     serde_json::json!({
-      "now": measure_wall_public_exact(|| OrderedInstant::now(), || $read()),
+      "now": measure_wall_public_exact(|| GlobalInstant::now(), || $read()),
       "elapsed": measure_wall_public_exact(
         || {
-          let start = OrderedInstant::now();
+          let start = GlobalInstant::now();
           start.elapsed()
         },
         || {
@@ -1288,7 +1288,7 @@ fn bench_now(c: &mut Criterion) {
 
   let mut g = c.benchmark_group("Instant::now()");
   g.bench_function("tach", |b| b.iter(|| black_box(Instant::now())));
-  g.bench_function("tach_ordered", |b| b.iter(|| black_box(OrderedInstant::now())));
+  g.bench_function("tach_ordered", |b| b.iter(|| black_box(GlobalInstant::now())));
   #[cfg(all(
     feature = "bench-internal",
     any(target_os = "android", target_os = "linux"),
@@ -1504,7 +1504,7 @@ fn bench_now(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    // x86 Instant is the invariant-TSC pick (ADR-0007); OrderedInstant and
+    // x86 Instant is the invariant-TSC pick (ADR-0007); GlobalInstant and
     // aarch64 Instant stay on QueryPerformanceCounter.
     let instant_provider = tach::bench::windows_wall_selected_provider();
     g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
@@ -1647,7 +1647,7 @@ fn write_apple_wall_selection() {
     if AppleX86CommpageDirect::try_for_current_machine().is_some() {
       ordered_candidates.push("direct_ordered_wall__apple_commpage_lfence_rdtsc_nanotime");
     }
-    let decision_rule = "Instant is a fixed apple_mach_absolute_time read (the invariant-TSC branch was removed per owner ruling as an unvalidatable bare-metal-Intel path, source-proven but never performance-selected); OrderedInstant retains mach_absolute_time unless its eligible commpage dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins";
+    let decision_rule = "Instant is a fixed apple_mach_absolute_time read (the invariant-TSC branch was removed per owner ruling as an unvalidatable bare-metal-Intel path, source-proven but never performance-selected); GlobalInstant retains mach_absolute_time unless its eligible commpage dispatcher wins by > max(1 ns/read, 5%) with >=8/9 decisive paired wins";
     let probe = serde_json::json!({
       "ordered": tach::bench::apple_x86_wall_selection_measurements(),
     });
@@ -1674,7 +1674,7 @@ fn write_apple_wall_selection() {
   #[cfg(target_arch = "aarch64")]
   let payload = {
     // The commpage mode fixes one provider per contract; there is no tournament.
-    let decision_rule = "Instant reads bare CNTVCT_EL0 where the commpage mode permits it (SPEC/NOSPEC_APPLE), scaled by CNTFRQ_EL0, else the self-synchronizing commpage offset (NOSPEC) or mach_absolute_time (NONE). OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
+    let decision_rule = "Instant reads bare CNTVCT_EL0 where the commpage mode permits it (SPEC/NOSPEC_APPLE), scaled by CNTFRQ_EL0, else the self-synchronizing commpage offset (NOSPEC) or mach_absolute_time (NONE). GlobalInstant is a SIGILL-safe capability gate, not a speed tournament: the mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
     // The exact elapsed leg must scale its tick delta into a Duration exactly as
     // the public path does; the selected primitive carries the mode-correct scale
     // (bare CNTVCT by CNTFRQ_EL0, Mach-domain reads by the Mach ratio) and is
@@ -1741,7 +1741,7 @@ fn write_windows_wall_selection() {
   } else {
     "aarch64-windows"
   };
-  // OrderedInstant reads QueryPerformanceCounter on every arch and scales by
+  // GlobalInstant reads QueryPerformanceCounter on every arch and scales by
   // QueryPerformanceFrequency. x86 Instant reads a bare invariant TSC (ADR-0007),
   // so its exact-parity probe scales by the calibrated TSC rate instead.
   let ordered_scale = tach::bench::windows_qpc_nanos_per_tick_q32();
@@ -1780,10 +1780,10 @@ fn write_windows_wall_selection() {
     ),
   });
   let ordered_public_exact = serde_json::json!({
-    "now": measure_wall_public_exact(|| OrderedInstant::now(), || tach::bench::windows_qpc_ticks()),
+    "now": measure_wall_public_exact(|| GlobalInstant::now(), || tach::bench::windows_qpc_ticks()),
     "elapsed": measure_wall_public_exact(
       || {
-        let start = OrderedInstant::now();
+        let start = GlobalInstant::now();
         start.elapsed()
       },
       || {
@@ -1794,9 +1794,9 @@ fn write_windows_wall_selection() {
     ),
   });
   #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
-  let decision_rule = "x86 Windows Instant reads a bare invariant TSC (RDTSC) calibrated against QueryPerformanceCounter, the same-core Instant tier of ADR-0007, degrading to QueryPerformanceCounter only when the CPUID invariant-TSC gate (leaf 1 EDX[4] plus 0x80000007 EDX[8]) fails. OrderedInstant stays on QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock, scaled by QueryPerformanceFrequency: Windows owns its cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity, so a raw counter read is ineligible for the cross-core ordered contract while the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. OrderedInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.";
+  let decision_rule = "x86 Windows Instant reads a bare invariant TSC (RDTSC) calibrated against QueryPerformanceCounter, the same-core Instant tier of ADR-0007, degrading to QueryPerformanceCounter only when the CPUID invariant-TSC gate (leaf 1 EDX[4] plus 0x80000007 EDX[8]) fails. GlobalInstant stays on QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock, scaled by QueryPerformanceFrequency: Windows owns its cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity, so a raw counter read is ineligible for the cross-core ordered contract while the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. GlobalInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.";
   #[cfg(target_arch = "aarch64")]
-  let decision_rule = "Instant and OrderedInstant both read QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock on every supported Windows target, scaled by QueryPerformanceFrequency. Windows owns the cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity of its backing source, so a raw TSC/CNTVCT read is ineligible and the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. OrderedInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.";
+  let decision_rule = "Instant and GlobalInstant both read QueryPerformanceCounter, the OS-designated high-resolution monotonic wall clock on every supported Windows target, scaled by QueryPerformanceFrequency. Windows owns the cross-processor synchronization, hypervisor scaling, bias, and live-migration continuity of its backing source, so a raw TSC/CNTVCT read is ineligible and the precise interrupt-time, coarse, and UTC clocks do not satisfy the high-resolution monotonic contract. GlobalInstant needs no separate fence because the opaque QueryPerformanceCounter call boundary orders the read after a prior Acquire load.";
   let payload = serde_json::json!({
     "architecture": architecture,
     "selected_provider": {
@@ -1861,7 +1861,7 @@ fn write_linux_x86_wall_selection() {
       "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
       "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
     },
-    "decision_rule": "Instant reads a bare RDTSC and OrderedInstant reads LFENCE+RDTSC when the kernel exposes an eligible invariant TSC and, for the ordered read, LFENCE is architecturally serializing (Intel, or AMD with AMD_LFENCE_ALWAYS_SERIALIZING); otherwise both fall back to the raw CLOCK_MONOTONIC syscall, with the ordered read prefixing a CPUID barrier",
+    "decision_rule": "Instant reads a bare RDTSC and GlobalInstant reads LFENCE+RDTSC when the kernel exposes an eligible invariant TSC and, for the ordered read, LFENCE is architecturally serializing (Intel, or AMD with AMD_LFENCE_ALWAYS_SERIALIZING); otherwise both fall back to the raw CLOCK_MONOTONIC syscall, with the ordered read prefixing a CPUID barrier",
     "post_init_boundary": "PR_SET_TSC(PR_TSC_SIGSEGV) must not revoke TSC access after direct-provider selection",
   });
   let instant_provider = instant_selected.provider();
@@ -1923,7 +1923,7 @@ fn write_linux_aarch64_wall_selection() {
       "instant": format!("direct_selected_wall__{}", instant_selected.provider()),
       "ordered": format!("direct_selected_ordered_wall__{}", ordered_selected.provider()),
     },
-    "decision_rule": "Instant reads a bare CNTVCT_EL0 and OrderedInstant reads isb sy; CNTVCT_EL0 when the kernel leaves the counter user-readable, scaled by the calibrated CNTFRQ_EL0; otherwise both fall back to the raw CLOCK_MONOTONIC syscall whose own kernel boundary carries the ordered read's happens-before edge",
+    "decision_rule": "Instant reads a bare CNTVCT_EL0 and GlobalInstant reads isb sy; CNTVCT_EL0 when the kernel leaves the counter user-readable, scaled by the calibrated CNTFRQ_EL0; otherwise both fall back to the raw CLOCK_MONOTONIC syscall whose own kernel boundary carries the ordered read's happens-before edge",
     "post_init_boundary": "a revoked EL0 counter faults on read and is served by the raw CLOCK_MONOTONIC syscall fallback, never a libc/vDSO reader",
   });
   let instant_provider = instant_selected.provider();
@@ -1982,7 +1982,7 @@ fn write_freebsd_wall_selection() {
       "instant": format!("direct_selected_wall__{}", instant.provider()),
       "ordered": format!("direct_selected_ordered_wall__{}", ordered.provider()),
     },
-    "decision_rule": "Instant reads a bare RDTSC and OrderedInstant reads LFENCE+RDTSC when the kernel selected an eligible invariant TSC timecounter and, for the ordered read, LFENCE is architecturally serializing (Intel, or AMD with AMD_LFENCE_ALWAYS_SERIALIZING); otherwise both fall back to the raw CLOCK_MONOTONIC syscall, with the ordered read prefixing a CPUID barrier",
+    "decision_rule": "Instant reads a bare RDTSC and GlobalInstant reads LFENCE+RDTSC when the kernel selected an eligible invariant TSC timecounter and, for the ordered read, LFENCE is architecturally serializing (Intel, or AMD with AMD_LFENCE_ALWAYS_SERIALIZING); otherwise both fall back to the raw CLOCK_MONOTONIC syscall, with the ordered read prefixing a CPUID barrier",
   });
   let instant_public_exact = with_residual_instant_read!(
     instant.provider(),
@@ -2080,11 +2080,11 @@ fn write_ordered_selection() {
 
   #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
   let payload = {
-    // The commpage mode fixes the OrderedInstant pick; there is no tournament.
+    // The commpage mode fixes the GlobalInstant pick; there is no tournament.
     let ordered_provider = tach::bench::apple_ordered_wall_selected_provider();
     let ordered_scale =
       tach::bench::apple_aarch64_selected_ordered_primitive().nanos_per_tick_q32();
-    let decision_rule = "OrderedInstant is a SIGILL-safe capability gate, not a speed tournament: the commpage mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
+    let decision_rule = "GlobalInstant is a SIGILL-safe capability gate, not a speed tournament: the commpage mode names the self-synchronizing register XNU permits (ACNTVCT_EL0 in NOSPEC_APPLE, CNTVCTSS_EL0 in NOSPEC), else an explicit isb sy; cntvct barrier (SPEC) or mach_absolute_time (NONE) carries the happens-before edge. A bare unbarriered read is never an ordered pick (ADR-0005).";
     let public_exact_probe = with_apple_aarch64_ordered_read!(
       ordered_provider,
       measure_apple_public_exact,
@@ -2140,7 +2140,7 @@ fn bench_elapsed(c: &mut Criterion) {
   });
   g.bench_function("tach_ordered", |b| {
     b.iter(|| {
-      let start = OrderedInstant::now();
+      let start = GlobalInstant::now();
       black_box(start.elapsed())
     });
   });
@@ -2373,7 +2373,7 @@ fn bench_elapsed(c: &mut Criterion) {
   }
   #[cfg(all(feature = "bench-internal", target_os = "windows"))]
   {
-    // x86 Instant is the invariant-TSC pick (ADR-0007); OrderedInstant and
+    // x86 Instant is the invariant-TSC pick (ADR-0007); GlobalInstant and
     // aarch64 Instant stay on QueryPerformanceCounter.
     let instant_provider = tach::bench::windows_wall_selected_provider();
     g.bench_function(format!("direct_selected_wall__{instant_provider}"), |b| {
@@ -4748,12 +4748,12 @@ fn bench_thread_cpu_behavior(_c: &mut Criterion) {
 fn bench_ordered(c: &mut Criterion) {
   write_criterion_runtime_attestation();
   let mut g = c.benchmark_group("Ordered Instant::now()");
-  g.bench_function("tach::OrderedInstant", |b| {
-    b.iter(|| black_box(OrderedInstant::now()));
+  g.bench_function("tach::GlobalInstant", |b| {
+    b.iter(|| black_box(GlobalInstant::now()));
   });
-  g.bench_function("tach::OrderedInstant (now + elapsed)", |b| {
+  g.bench_function("tach::GlobalInstant (now + elapsed)", |b| {
     b.iter(|| {
-      let start = OrderedInstant::now();
+      let start = GlobalInstant::now();
       black_box(start.elapsed())
     });
   });
@@ -4783,8 +4783,8 @@ fn bench_elapsed_only(c: &mut Criterion) {
   g.bench_function("tach::Instant", |b| {
     b.iter(|| black_box(black_box(tach_start).elapsed()));
   });
-  let ordered_start = OrderedInstant::now();
-  g.bench_function("tach::OrderedInstant", |b| {
+  let ordered_start = GlobalInstant::now();
+  g.bench_function("tach::GlobalInstant", |b| {
     b.iter(|| black_box(black_box(ordered_start).elapsed()));
   });
   let thread_cpu_start = ThreadCpuInstant::now();

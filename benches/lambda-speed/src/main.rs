@@ -4,7 +4,7 @@ use std::time::{Duration, Instant as WallInstant};
 
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use serde_json::{Value, json};
-use tach::{Instant, OrderedInstant, ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
+use tach::{Instant, GlobalInstant, ThreadCpuInstant, ThreadCpuProvider, ThreadCpuReadCost};
 
 const ITERATIONS: usize = 100_000;
 const SAMPLES: usize = 31;
@@ -112,9 +112,9 @@ async fn handler(_event: LambdaEvent<Value>) -> Result<Value, Error> {
     let start = Instant::now();
     black_box(start.elapsed())
   });
-  let tach_ordered_now = median_cost(|| black_box(OrderedInstant::now()));
+  let tach_ordered_now = median_cost(|| black_box(GlobalInstant::now()));
   let tach_ordered_elapsed = median_cost(|| {
-    let start = OrderedInstant::now();
+    let start = GlobalInstant::now();
     black_box(start.elapsed())
   });
   let selected_instant = selected_instant_primitive();
@@ -783,7 +783,7 @@ macro_rules! with_lambda_linux_x86_ordered_read {
       "linux_clock_boottime_syscall_x86_64_x86_mfence" => $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_mfence),
       "linux_clock_boottime_syscall_x86_64_x86_cpuid" => $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_cpuid),
       "linux_clock_boottime_syscall_x86_64_x86_serialize" => $callback!($($arguments)*, tach::bench::linux_x86_exact_syscall64_boottime_serialize),
-      _ => panic!("unsupported Lambda Linux x86 OrderedInstant provider: {}", $provider),
+      _ => panic!("unsupported Lambda Linux x86 GlobalInstant provider: {}", $provider),
     }
   }};
 }

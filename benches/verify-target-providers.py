@@ -120,12 +120,12 @@ LINUX_VDSO_TARGETS = {
   "s390x-unknown-linux-gnu",
 }
 
-# `OrderedInstant::elapsed_unordered()` deliberately uses a weaker endpoint
-# contract than `OrderedInstant::elapsed()`. The M2 public `now() + elapsed()`
+# `GlobalInstant::elapsed_unordered()` deliberately uses a weaker endpoint
+# contract than `GlobalInstant::elapsed()`. The M2 public `now() + elapsed()`
 # proof covers the ordinary ordered endpoint; a future claim about the weaker
 # endpoint needs its own provider specification rather than inheriting this one.
 ORDERED_UNORDERED_ELAPSED_EXCLUSION = (
-  "OrderedInstant::elapsed_unordered() has a deliberately weaker end-read ordering "
+  "GlobalInstant::elapsed_unordered() has a deliberately weaker end-read ordering "
   "contract and is outside the ordinary now-plus-elapsed route proof."
 )
 
@@ -147,7 +147,7 @@ EMSCRIPTEN_NODE_THREAD_CPU_IMPORT = "tach_node_thread_cpu_usage_micros"
 
 PROBE_SOURCE = """#![no_std]
 
-use tach::{Instant, OrderedInstant, ThreadCpuInstant};
+use tach::{Instant, GlobalInstant, ThreadCpuInstant};
 
 #[unsafe(no_mangle)]
 #[inline(never)]
@@ -168,13 +168,13 @@ pub extern "C" fn tach_probe_instant_now_elapsed() -> u64 {
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-pub fn tach_probe_ordered_instant_now() -> OrderedInstant {
-  OrderedInstant::now()
+pub fn tach_probe_ordered_instant_now() -> GlobalInstant {
+  GlobalInstant::now()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-pub fn tach_probe_ordered_instant_elapsed(start: OrderedInstant) -> u64 {
+pub fn tach_probe_ordered_instant_elapsed(start: GlobalInstant) -> u64 {
   start.elapsed().as_nanos() as u64
 }
 
@@ -203,7 +203,7 @@ pub extern "C" fn tach_probe_thread_cpu_now_elapsed() -> u64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn tach_probe_public_api() -> u64 {
   let local = Instant::now();
-  let ordered = OrderedInstant::now();
+  let ordered = GlobalInstant::now();
   let thread = ThreadCpuInstant::now();
   let provider = ThreadCpuInstant::provider();
   let _ = ThreadCpuInstant::read_cost_hint();
@@ -721,7 +721,7 @@ def instant_route(target: str) -> dict:
       # QueryPerformanceCounter only when the CPUID invariant-TSC gate fails.
       # Instant is the same-core tier now, so the raw RDTSC that M2 forbade is
       # required; a bare rdtscp/CNTVCT read stays forbidden, and QPC is allowed
-      # because the fallback and OrderedInstant still link it. OrderedInstant is
+      # because the fallback and GlobalInstant still link it. GlobalInstant is
       # unchanged (ordered_instant_route below still requires QueryPerformanceCounter).
       return {
         "provider": "invariant-TSC Instant pick with a QueryPerformanceCounter fallback",
@@ -749,7 +749,7 @@ def instant_route(target: str) -> dict:
     # runtime branch, so Instant is a fixed mach_absolute_time read
     # (src/arch/apple_x86_64.rs `ticks`). XNU's x86 mach_timebase is 1/1, so the
     # counter is already nanoseconds and no RDTSC is emitted for Instant.
-    # OrderedInstant is unchanged (ordered_instant_route below still requires the
+    # GlobalInstant is unchanged (ordered_instant_route below still requires the
     # commpage LFENCE/RDTSC/LFENCE protocol).
     return {
       "provider": "fixed XNU Mach absolute-time provider",
@@ -1019,7 +1019,7 @@ def instant_route(target: str) -> dict:
 def ordered_instant_route(target: str, mode: str) -> dict:
   if target.endswith("pc-windows-msvc"):
     # Frozen ordered pick: the same direct QueryPerformanceCounter read. Its
-    # opaque OS call boundary carries the OrderedInstant happens-before edge, so
+    # opaque OS call boundary carries the GlobalInstant happens-before edge, so
     # no explicit fence is emitted and none is allowed; the pre-M2
     # windows_ticks_ordered_after_selection selector was deleted with the
     # tournament (src/arch/fallback.rs `windows_ticks_ordered`).
@@ -2054,11 +2054,11 @@ def main() -> None:
     "public_elapsed_route_scope": {
       "included": [
         "Instant::now() + Instant::elapsed()",
-        "OrderedInstant::now() + OrderedInstant::elapsed()",
+        "GlobalInstant::now() + GlobalInstant::elapsed()",
         "ThreadCpuInstant::now() + ThreadCpuInstant::elapsed()",
       ],
       "excluded": {
-        "OrderedInstant::elapsed_unordered()": ORDERED_UNORDERED_ELAPSED_EXCLUSION,
+        "GlobalInstant::elapsed_unordered()": ORDERED_UNORDERED_ELAPSED_EXCLUSION,
       },
     },
     "targets": results,
@@ -2089,7 +2089,7 @@ def main() -> None:
         "TSC eligibility requires invariant-TSC CPUID metadata, an enabled PR_GET_TSC mode, "
         "and Linux retaining tsc in its available clocksource list (current tsc is accepted "
         "when Android exposes only that node). Runtime measurements require the branched TSC "
-        "path to win materially for that Instant contract. Instant and OrderedInstant select "
+        "path to win materially for that Instant contract. Instant and GlobalInstant select "
         "independently and retain separate conversion scales."
       ),
       (
@@ -2111,7 +2111,7 @@ def main() -> None:
       ),
       (
         "Linux armv7 exposes no ELF HWCAP that guarantees a standalone EL0 CNTVCT read, so "
-        "Instant and OrderedInstant independently select among CLOCK_MONOTONIC/"
+        "Instant and GlobalInstant independently select among CLOCK_MONOTONIC/"
         "CLOCK_MONOTONIC_RAW libc/vDSO and time32/time64 syscalls. ThreadCpuInstant may use "
         "AArch32 CNTVCT only while perf's seqlocked cap_user_time metadata authorizes and "
         "converts that exact task-clock mmap read; it compares the complete path against the "

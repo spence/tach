@@ -23,13 +23,13 @@ use crate::arch;
 ///
 /// Use `Instant` when both endpoints of an elapsed-time bracket remain local to
 /// one thread. If a timestamp participates in a cross-thread happens-before
-/// relationship, use [`OrderedInstant`] instead.
+/// relationship, use [`GlobalInstant`] instead.
 ///
 /// # Monotonicity contract
 ///
 /// Samples are non-decreasing on one thread. Direct counter reads are not
 /// ordered after prior memory operations, so they do not provide
-/// [`OrderedInstant`]'s synchronization-order guarantee.
+/// [`GlobalInstant`]'s synchronization-order guarantee.
 ///
 /// # Example
 ///
@@ -57,7 +57,7 @@ impl Instant {
   /// Returns the duration that has elapsed since `self` was sampled.
   ///
   /// Saturates to zero rather than wrapping if the current read lands before
-  /// `self`. See [`crate::OrderedInstant`] when the endpoint must be ordered
+  /// `self`. See [`crate::GlobalInstant`] when the endpoint must be ordered
   /// after a cross-thread synchronization observation.
   #[inline(always)]
   #[allow(clippy::inline_always)]
@@ -120,7 +120,7 @@ impl Instant {
   /// to the median); do not invoke from a hot path.
   ///
   /// No-op on platforms where the selected clock has an authoritative rate:
-  /// aarch64 Windows QPC/QPF, Windows `OrderedInstant` on every architecture,
+  /// aarch64 Windows QPC/QPF, Windows `GlobalInstant` on every architecture,
   /// the Darwin timebase, FreeBSD's selected wall provider, aarch64 `cntfrq_el0`,
   /// WASI, and the wasm host. Direct-TSC x86 targets re-measure the actual
   /// counter rate against the platform monotonic clock — `clock_gettime` on
@@ -137,7 +137,7 @@ impl Instant {
   /// and is incompatible with `#![no_std]` targets** — it pulls in
   /// `std::thread` and `std::sync::OnceLock`.
   ///
-  /// Affects both [`Instant`] and [`crate::OrderedInstant`]. Each type owns
+  /// Affects both [`Instant`] and [`crate::GlobalInstant`]. Each type owns
   /// the scale for its selected provider, so independently selected wall
   /// clocks remain in their own raw tick domains.
   pub fn recalibrate() {
@@ -181,7 +181,7 @@ impl Sub<Instant> for Instant {
 /// A monotonic elapsed-time sample ordered after prior memory observations.
 ///
 /// On x86 and aarch64, a sample taken after an `Acquire` load that observed a
-/// published `OrderedInstant` is at least that published value. The documented
+/// published `GlobalInstant` is at least that published value. The documented
 /// load-then-now-then-check harness produced zero inversions in about 10.9
 /// billion reads across the tested systems.
 ///
@@ -189,7 +189,7 @@ impl Sub<Instant> for Instant {
 ///
 /// A direct counter read is not a memory operation, so an out-of-order CPU can
 /// sample [`Instant::now()`] before a prior `Acquire` load completes.
-/// `OrderedInstant` uses the target's ordering boundary before or as part of
+/// `GlobalInstant` uses the target's ordering boundary before or as part of
 /// reading its selected wall-time domain. That provider can differ from
 /// [`Instant`]'s provider when the fastest ordered and unordered reads differ
 /// on a host.
@@ -227,9 +227,9 @@ impl Sub<Instant> for Instant {
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct OrderedInstant(u64);
+pub struct GlobalInstant(u64);
 
-impl OrderedInstant {
+impl GlobalInstant {
   /// Reads the counter through the target's ordering boundary so the timestamp
   /// is sampled *after* any prior `Acquire`-or-stronger observation.
   #[inline(always)]
@@ -266,25 +266,25 @@ impl OrderedInstant {
   /// different providers and raw tick domains.
   #[inline]
   #[must_use]
-  pub fn duration_since(&self, earlier: OrderedInstant) -> Duration {
+  pub fn duration_since(&self, earlier: GlobalInstant) -> Duration {
     self.checked_duration_since(earlier).unwrap_or_default()
   }
 
   /// See [`Instant::checked_duration_since`].
   #[inline]
   #[must_use]
-  pub fn checked_duration_since(&self, earlier: OrderedInstant) -> Option<Duration> {
+  pub fn checked_duration_since(&self, earlier: GlobalInstant) -> Option<Duration> {
     self.0.checked_sub(earlier.0).map(ordered_ticks_to_duration)
   }
 
   /// See [`Instant::saturating_duration_since`].
   #[inline]
   #[must_use]
-  pub fn saturating_duration_since(&self, earlier: OrderedInstant) -> Duration {
+  pub fn saturating_duration_since(&self, earlier: GlobalInstant) -> Duration {
     self.duration_since(earlier)
   }
 
-  /// See [`Instant::checked_add`]. The returned `OrderedInstant` is a
+  /// See [`Instant::checked_add`]. The returned `GlobalInstant` is a
   /// synthetic point in the timeline; no architectural fence runs (fences
   /// only matter for *reads*).
   #[inline]
@@ -303,37 +303,37 @@ impl OrderedInstant {
   }
 }
 
-impl Add<Duration> for OrderedInstant {
-  type Output = OrderedInstant;
-  fn add(self, rhs: Duration) -> OrderedInstant {
+impl Add<Duration> for GlobalInstant {
+  type Output = GlobalInstant;
+  fn add(self, rhs: Duration) -> GlobalInstant {
     self.checked_add(rhs).expect("overflow when adding duration to ordered instant")
   }
 }
 
-impl AddAssign<Duration> for OrderedInstant {
+impl AddAssign<Duration> for GlobalInstant {
   fn add_assign(&mut self, rhs: Duration) {
     *self = *self + rhs;
   }
 }
 
-impl Sub<Duration> for OrderedInstant {
-  type Output = OrderedInstant;
-  fn sub(self, rhs: Duration) -> OrderedInstant {
+impl Sub<Duration> for GlobalInstant {
+  type Output = GlobalInstant;
+  fn sub(self, rhs: Duration) -> GlobalInstant {
     self
       .checked_sub(rhs)
       .expect("overflow when subtracting duration from ordered instant")
   }
 }
 
-impl SubAssign<Duration> for OrderedInstant {
+impl SubAssign<Duration> for GlobalInstant {
   fn sub_assign(&mut self, rhs: Duration) {
     *self = *self - rhs;
   }
 }
 
-impl Sub<OrderedInstant> for OrderedInstant {
+impl Sub<GlobalInstant> for GlobalInstant {
   type Output = Duration;
-  fn sub(self, rhs: OrderedInstant) -> Duration {
+  fn sub(self, rhs: GlobalInstant) -> Duration {
     self.duration_since(rhs)
   }
 }

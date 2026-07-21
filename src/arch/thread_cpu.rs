@@ -3656,7 +3656,7 @@ pub(crate) fn now_nanos() -> u64 {
 }
 
 // GetThreadTimes' documented failure fallback is QueryPerformanceCounter, the
-// same OS-owned high-resolution wall clock `OrderedInstant` reads, scaled to
+// same OS-owned high-resolution wall clock `GlobalInstant` reads, scaled to
 // nanoseconds. Reading QPC directly rather than the shared `crate::arch::ticks()`
 // `Instant` timeline keeps this fallback off the x86 Windows bare-invariant-TSC
 // `Instant` path (RDTSC), which the thread-cpu route forbids and whose tick

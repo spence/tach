@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render summary-ordered.{svg,png} (+ -wide): OrderedInstant vs std.
+"""Render summary-ordered.{svg,png} (+ -wide): GlobalInstant vs std.
 
 The two clocks that stay correct across threads. Reuses summary.py's renderer
 and reads `std` from the SAME `bench_data.CELLS` as summary.py, so the std bars

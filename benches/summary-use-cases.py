@@ -36,9 +36,9 @@ SECTIONS = [
     ],
   ),
   (
-    "SYNCHRONIZATION-ORDERED ELAPSED",
+    "CROSS-THREAD ELAPSED TIME",
     [
-      ("tach_ordered", "tach::OrderedInstant", "#EC7A1C", True),
+      ("tach_ordered", "tach::GlobalInstant", "#EC7A1C", True),
       ("std", "std", "#9A8A3A", False),
     ],
   ),

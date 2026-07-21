@@ -12,11 +12,11 @@ unbenchmarked hardware.
 All three APIs compute elapsed time as `Duration`. What changes is the quantity that advances
 and where two samples may be compared safely.
 
-| Job | Type | Quantity and comparison contract |
-|---|---|---|
-| Same-thread elapsed bracket | `Instant` | Wall-rate monotonic elapsed time; endpoints stay local and carry no synchronization-order guarantee |
-| Synchronization-ordered elapsed | `OrderedInstant` | The same elapsed-time domain, ordered across the documented happens-before edge |
-| Current-thread CPU usage, where native | `ThreadCpuInstant` | Scheduled CPU time or an explicit wall fallback; compare on the same OS thread and reported domain |
+| You're timing | Reach for | Instead of | Contract, and how tach compares |
+|---|---|---|---|
+| An elapsed bracket on one thread | `Instant` | `quanta`, `std::time::Instant` | Wall-rate, endpoints stay local. Fastest tested: 0.65 ns on Apple; ties or beats `quanta` on every primary cell. |
+| Timestamps compared across threads | `GlobalInstant` | `std::time::Instant` | Same elapsed domain, ordered across a happens-before edge. 1.2–2.6× faster than `std`, and still cross-core-safe. |
+| A thread's own CPU time | `ThreadCpuInstant` | `clock_gettime` / `GetThreadTimes` | Scheduled CPU time, or an explicit wall fallback. As fast as the OS call; up to 4.6× on Linux. |
 
 That is the mental model: two elapsed-time clocks with different ordering contracts, plus one
 thread-time clock. They share an API shape and units, not a time domain.
@@ -24,7 +24,7 @@ thread-time clock. They share an API shape and units, not a time domain.
 ## Usage
 
 ```rust
-use tach::{Instant, OrderedInstant, ThreadCpuInstant};
+use tach::{Instant, GlobalInstant, ThreadCpuInstant};
 
 // Wall time for a bracket whose endpoints remain on this thread.
 let local_start = Instant::now();
@@ -32,7 +32,7 @@ do_local_work();
 println!("local elapsed: {:?}", local_start.elapsed());
 
 // Use ordered samples when timestamps participate in cross-thread synchronization.
-let published = OrderedInstant::now();
+let published = GlobalInstant::now();
 publish_to_another_thread(published);
 
 // CPU delivered to this OS thread, excluding sleep and descheduling.
@@ -43,7 +43,7 @@ if cpu_start.measures_thread_cpu_time() {
 }
 ```
 
-`Instant` and `OrderedInstant` are `Send + Sync`. `ThreadCpuInstant` is deliberately neither:
+`Instant` and `GlobalInstant` are `Send + Sync`. `ThreadCpuInstant` is deliberately neither:
 moving a sample would make it too easy to compare unrelated thread-CPU timelines.
 
 ## Fastest tested for all three contracts
@@ -65,12 +65,12 @@ on all four primary environments.
 
 `Instant` is fastest outright on Apple M1 Max and AWS Graviton 3, and materially tied — within
 `max(1 ns, 5%)` — with the fastest same-tier library on AWS Intel Linux and GitHub Windows.
-`OrderedInstant` beats `std` on every primary cell.
+`GlobalInstant` beats `std` on every primary cell.
 
 A shorter bar can still be ineligible or unshippable: on Graviton 3 the exact `isb; cntvct` route
-under `OrderedInstant` is retained as a disclosed diagnostic dispatch lower bound — the mandatory
+under `GlobalInstant` is retained as a disclosed diagnostic dispatch lower bound — the mandatory
 `isb` barrier exposes a SIGILL-safe provider dispatch tach cannot skip and still ship, so the
-chart's public comparison gates on the shippable read (`tach::OrderedInstant` 20.38 ns < `std`
+chart's public comparison gates on the shippable read (`tach::GlobalInstant` 20.38 ns < `std`
 32.27 ns), not the idealized diagnostic. The chart keeps such diagnostics visible; the validator
 does not call them competitors.
 
@@ -98,13 +98,13 @@ stay local to one thread.
 
 The value is process-wide and can be moved, but the read is not ordered after prior memory
 operations. If a timestamp participates in a cross-thread happens-before relationship, use
-`OrderedInstant`.
+`GlobalInstant`.
 
-### `OrderedInstant`: synchronization-ordered elapsed time
+### `GlobalInstant`: synchronization-ordered elapsed time
 
-`OrderedInstant::now()` reads the elapsed-time counter behind the architecture's ordering
+`GlobalInstant::now()` reads the elapsed-time counter behind the architecture's ordering
 primitive: `lfence; rdtsc` on x86 and `isb sy` before CNTVCT_EL0 on aarch64, except Windows, whose
-`OrderedInstant` stays on the OS-owned `QueryPerformanceCounter` call boundary for its cross-core
+`GlobalInstant` stays on the OS-owned `QueryPerformanceCounter` call boundary for its cross-core
 guarantee. A sample taken after an `Acquire` observation cannot be pulled in front of that
 observation.
 
@@ -161,7 +161,7 @@ comparison is unordered.
 
 ## Platform support
 
-| Platform / target | `Instant` | `OrderedInstant` | `ThreadCpuInstant` |
+| Platform / target | `Instant` | `GlobalInstant` | `ThreadCpuInstant` |
 |---|---|---|---|
 | Linux x86 / x86_64 | Measured kernel-eligible RDTSC or OS monotonic route | Independently measured ordered counter or OS monotonic route | Measured perf task-clock mmap/read or native thread-clock route |
 | Linux AArch64 | Measured CNTVCT or OS monotonic route | Independently measured ordered CNTVCT or OS monotonic route | Complete inline perf capability when available; native raw syscall fallback |
@@ -199,7 +199,7 @@ Other supported targets retain their compile-time provider without pulling in `s
 
 ## Accuracy and drift
 
-`Instant` and `OrderedInstant` convert architectural ticks with a cached fixed-point scale. For
+`Instant` and `GlobalInstant` convert architectural ticks with a cached fixed-point scale. For
 wall-correlated accuracy over long intervals, call `Instant::recalibrate()` or enable the
 `recalibrate-background` feature. The background feature requires `std`; manual recalibration does
 not.

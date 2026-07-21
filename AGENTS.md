@@ -10,7 +10,7 @@ constitution to consult when deciding where a record belongs.
 tach is a Rust timer crate with three `Instant`-shaped values:
 
 - `Instant` measures local wall-rate elapsed time.
-- `OrderedInstant` measures wall-rate elapsed time ordered across the documented
+- `GlobalInstant` measures wall-rate elapsed time ordered across the documented
   synchronization edge.
 - `ThreadCpuInstant` measures scheduled CPU time on the current OS thread, or a
   reported monotonic-wall fallback when that platform cannot expose thread CPU time.

@@ -6,7 +6,7 @@ board as a new `OBJ-SIMPLIFY-TIMERS.M5` milestone plus the reactivated `OBJ-RELE
 
 ## Corrections to the pre-plan picture (verified)
 
-- **Apple aarch64 `OrderedInstant` is NOT an open defect — it is resolved.** `ESC-APPLE-ORDERED-SELECTION`
+- **Apple aarch64 `GlobalInstant` is NOT an open defect — it is resolved.** `ESC-APPLE-ORDERED-SELECTION`
   ✅ ACCEPTED; **ADR-0006** accepted; `EVID-APPLE-ORDERED` (two-machine happens-before survey);
   `src/arch/apple_aarch64.rs` selects deterministically on the commpage timebase *mode*
   (`NOSPEC_APPLE→acntvct`, `NOSPEC→cntvctss`, `SPEC→isb+cntvct`, else `mach`). Deterministic per

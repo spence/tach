@@ -11,5 +11,6 @@
 | [`ADR-0004`](0004-decision-boundary-runtime-proof.md) | Runtime proof follows decision boundaries | Accepted — narrowed by ADR-0005 (2026-07-15): a production measured tournament now | 2026-07-14 |
 | [`ADR-0005`](0005-timer-contracts-eligibility-evidence-classes-and-selection-policy.md) | Timer contracts, eligibility evidence classes, and selection policy | Accepted | 2026-07-15 |
 | [`ADR-0006`](0006-apple-ordered-selects-self-synchronizing-counter.md) | Apple OrderedInstant selects the self-synchronizing counter, mode-gated | Accepted | 2026-07-16 |
-| [`ADR-0007`](0007-instant-contract-refinement.md) | Refined three-tier timer contract: same-core Instant, cross-core OrderedInstant | Accepted | 2026-07-17 |
+| [`ADR-0007`](0007-instant-contract-refinement.md) | Refined three-tier timer contract: same-core Instant, cross-core GlobalInstant | Accepted | 2026-07-17 |
+| [`ADR-0008`](0008-rename-global-instant.md) | Rename OrderedInstant to GlobalInstant | Accepted | 2026-07-20 |
 <!-- /render:adr-index -->

@@ -3,15 +3,15 @@
 //! FreeBSD exposes both the timecounter the kernel selected and that counter's
 //! quality through `sysctl`. A direct `RDTSC` is eligible only when the kernel
 //! selected a synchronized, invariant `TSC`/`TSC-low` provider with nonnegative
-//! quality. When eligible, `Instant` reads a bare `RDTSC` and `OrderedInstant`
+//! quality. When eligible, `Instant` reads a bare `RDTSC` and `GlobalInstant`
 //! reads `lfence; rdtsc`; both scale by the kernel's reported `machdep.tsc_freq`.
 //!
 //! A bare `RDTSC` is eligible for local monotonic `Instant` samples because the
 //! reads order against one another; it is not ordered with surrounding work.
-//! `OrderedInstant` additionally needs the read ordered after a prior Acquire
+//! `GlobalInstant` additionally needs the read ordered after a prior Acquire
 //! load, which `LFENCE` guarantees only on Intel or on AMD parts that set
 //! `CPUID.8000_0021H:EAX[2]` (AMD_LFENCE_ALWAYS_SERIALIZING). Where that
-//! guarantee is absent the LFENCE form would be unordered, so `OrderedInstant`
+//! guarantee is absent the LFENCE form would be unordered, so `GlobalInstant`
 //! falls back off the TSC path.
 //!
 //! When the counter is ineligible, both timers fall back to the explicit
@@ -363,7 +363,7 @@ fn detect_provider(ordered: bool) -> u8 {
     // LFENCE only orders a following RDTSC after prior loads on Intel or on AMD
     // parts with AMD_LFENCE_ALWAYS_SERIALIZING (CPUID.8000_0021H:EAX[2]);
     // without that guarantee `HOT_PROVIDER_TSC_LFENCE` would emit an unordered
-    // OrderedInstant, silently violating the contract. This gate is correctness,
+    // GlobalInstant, silently violating the contract. This gate is correctness,
     // not speed: unproven hardware fails closed to the raw-syscall + CPUID-barrier
     // reentrant provider. Do not delete it as tournament cruft.
     if tsc_eligible && lfence_ordered_eligible() {
@@ -381,7 +381,7 @@ fn detect_provider(ordered: bool) -> u8 {
 /// Whether `LFENCE` architecturally orders a following `RDTSC` after prior
 /// loads on this CPU. True on Intel with SSE2, or on AMD with SSE2 and
 /// `CPUID.8000_0021H:EAX[2]` (AMD_LFENCE_ALWAYS_SERIALIZING). Without this
-/// guarantee `OrderedInstant`'s `lfence; rdtsc` read would be unordered, so
+/// guarantee `GlobalInstant`'s `lfence; rdtsc` read would be unordered, so
 /// `detect_provider` consults it as a correctness gate, not a speed test:
 /// unknown vendors and non-serializing AMD parts fail closed.
 #[allow(unused_unsafe)] // supported rustc versions differ on whether __cpuid is unsafe

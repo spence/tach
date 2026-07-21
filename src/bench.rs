@@ -20,8 +20,8 @@ use std::vec::Vec;
 
 use serde::Serialize;
 
+use crate::GlobalInstant as TachGlobalInstantTy;
 use crate::Instant as TachInstantTy;
-use crate::OrderedInstant as TachOrderedInstantTy;
 
 #[cfg(target_os = "windows")]
 #[doc(hidden)]
@@ -3942,7 +3942,7 @@ pub fn measure_cross_thread<C: ClockSource>(
 /// before a prior Acquire-load — i.e. it needs an ordering barrier to claim the
 /// synchronization-order contract.
 ///
-/// This is the canonical test behind `OrderedInstant`'s cross-thread guarantee:
+/// This is the canonical test behind `GlobalInstant`'s cross-thread guarantee:
 /// `tach` (bare) fails it, `tach_ordered` (barrier) passes it at 0 violations.
 pub fn measure_synchronization_order<C: ClockSource>(
   threads: usize,
@@ -4237,16 +4237,16 @@ impl ClockSource for TachInstant {
   }
 }
 
-pub struct TachOrderedInstant;
-static TACH_ORDERED_ANCHOR: OnceLock<TachOrderedInstantTy> = OnceLock::new();
-impl ClockSource for TachOrderedInstant {
+pub struct TachGlobalInstant;
+static TACH_ORDERED_ANCHOR: OnceLock<TachGlobalInstantTy> = OnceLock::new();
+impl ClockSource for TachGlobalInstant {
   const NAME: &'static str = "tach_ordered";
   fn init_anchor() {
-    let _ = TACH_ORDERED_ANCHOR.get_or_init(TachOrderedInstantTy::now);
+    let _ = TACH_ORDERED_ANCHOR.get_or_init(TachGlobalInstantTy::now);
   }
   fn now_as_u64() -> u64 {
     let anchor = *TACH_ORDERED_ANCHOR.get().expect("init_anchor first");
-    u64::try_from(TachOrderedInstantTy::now().saturating_duration_since(anchor).as_nanos())
+    u64::try_from(TachGlobalInstantTy::now().saturating_duration_since(anchor).as_nanos())
       .unwrap_or(u64::MAX)
   }
 }

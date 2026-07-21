@@ -151,7 +151,7 @@ mod qpc {
 
   // QueryPerformanceCounter is the OS-designated high-resolution monotonic wall
   // clock on every supported Windows target, scaled by the cached
-  // QueryPerformanceFrequency. It backs `OrderedInstant` on every architecture,
+  // QueryPerformanceFrequency. It backs `GlobalInstant` on every architecture,
   // `Instant` on aarch64 Windows, and the `Instant` fallback on x86 Windows when
   // the invariant-TSC gate fails; x86 Windows `Instant` otherwise reads a
   // calibrated TSC (`super::windows_x86_wall`, ADR-0007). Windows owns whatever
@@ -159,7 +159,7 @@ mod qpc {
   // continuity its backing source needs. A raw CNTVCT read does not inherit those
   // guarantees; the precise interrupt-time APIs expose a slower 100 ns domain;
   // and the coarse/UTC/auxiliary clocks do not satisfy the high-resolution
-  // monotonic contract. `OrderedInstant` needs no separate fence: the opaque
+  // monotonic contract. `GlobalInstant` needs no separate fence: the opaque
   // QueryPerformanceCounter call boundary prevents the compiler from moving the
   // read across a prior Acquire load, and the Windows-owned timeline orders
   // events across processors.
@@ -188,7 +188,7 @@ mod qpc {
     qpc_ticks()
   }
 
-  /// Reads the same wall clock for `OrderedInstant`, ordered after prior
+  /// Reads the same wall clock for `GlobalInstant`, ordered after prior
   /// Acquire-or-stronger observations by the opaque QueryPerformanceCounter call
   /// boundary.
   #[inline(always)]
@@ -196,7 +196,7 @@ mod qpc {
     qpc_ticks()
   }
 
-  /// Reads `OrderedInstant`'s numeric domain without the call-boundary ordering
+  /// Reads `GlobalInstant`'s numeric domain without the call-boundary ordering
   /// used by its start and ordered-end reads. QPC is a single domain, so this is
   /// the same read.
   #[inline(always)]
@@ -248,7 +248,7 @@ mod qpc {
   mod wall_tests {
     use super::*;
 
-    // Validates the QPC domain itself: `OrderedInstant` on every Windows
+    // Validates the QPC domain itself: `GlobalInstant` on every Windows
     // architecture, `Instant` on aarch64 Windows, and the x86 Windows `Instant`
     // fallback. It deliberately reads the QPC primitives here, not the selected
     // x86 `Instant` (a calibrated TSC in `super::windows_x86_wall`, ADR-0007),

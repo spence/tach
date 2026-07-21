@@ -27,7 +27,7 @@ use std::time::Duration;
 use tach::bench::{
   CellReport, ClockReport, ClockSource, FastantInstant, HostInfo, MinstantInstant,
   OrderedVerifyPlacement, OrderedVerifyReport, QuantaInstant, SkewResult, StdInstant,
-  SyncOrderResult, TachInstant, TachOrderedInstant, available_core_ids, measure_cross_thread,
+  SyncOrderResult, TachGlobalInstant, TachInstant, available_core_ids, measure_cross_thread,
   measure_per_thread, measure_skew, measure_synchronization_order,
   measure_synchronization_order_pinned, tach_freq_hz, tach_used_cpuid_15h, unix_ns_now,
 };
@@ -115,7 +115,7 @@ fn main() {
 fn run_clock(name: &str, args: &Args) -> ClockReport {
   match name {
     "tach" => run_for::<TachInstant>(args),
-    "tach_ordered" => run_for::<TachOrderedInstant>(args),
+    "tach_ordered" => run_for::<TachGlobalInstant>(args),
     #[cfg(feature = "recalibrate-background")]
     "tach_recal" => run_for::<TachInstantRecal>(args),
     "std" => run_for::<StdInstant>(args),
@@ -306,7 +306,7 @@ fn parse_args() -> Args {
 }
 
 /// `--mode ordered-verify`: run the synchronization-order test under deliberately
-/// pinned placements to prove `OrderedInstant` holds across threads (and that the
+/// pinned placements to prove `GlobalInstant` holds across threads (and that the
 /// fast comparison crates do not). Bare `tach` is the built-in positive control — it must show
 /// violations under a placement, or that placement was inert (the result is then
 /// inconclusive, not a pass).
@@ -358,7 +358,7 @@ fn run_ordered_verify(args: &Args) {
       }};
     }
     run!("tach", TachInstant);
-    run!("tach_ordered", TachOrderedInstant);
+    run!("tach_ordered", TachGlobalInstant);
     run!("std", StdInstant);
     run!("quanta", QuantaInstant);
     run!("minstant", MinstantInstant);

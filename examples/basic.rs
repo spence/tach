@@ -1,4 +1,4 @@
-use tach::{Instant, OrderedInstant, ThreadCpuInstant};
+use tach::{GlobalInstant, Instant, ThreadCpuInstant};
 
 fn main() {
   // Prime the lazy frequency calibration so the first measurement
@@ -15,7 +15,7 @@ fn main() {
   println!("1M additions (sum = {sum}):");
   println!("  local elapsed = {elapsed:?}");
 
-  let published = OrderedInstant::now();
+  let published = GlobalInstant::now();
   let ordered_elapsed = std::thread::spawn(move || published.elapsed())
     .join()
     .expect("worker should not panic");

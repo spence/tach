@@ -14,7 +14,7 @@
 //! malformed, or unavailable releases fail closed.
 //!
 //! When counter reads are eligible, `Instant` reads a bare `CNTVCT_EL0` and
-//! `OrderedInstant` reads `isb; mrs cntvct_el0`, both scaled by the calibrated
+//! `GlobalInstant` reads `isb; mrs cntvct_el0`, both scaled by the calibrated
 //! counter frequency. A bare CNTVCT read is eligible for local monotonic
 //! samples because the register contract orders CNTVCT reads with one another;
 //! it is not ordered with surrounding work. The ISB form additionally orders
@@ -179,7 +179,7 @@ fn ticks_ordered_after_selection() -> u64 {
   }
 }
 
-/// Read an endpoint in OrderedInstant's selected numeric domain without a
+/// Read an endpoint in GlobalInstant's selected numeric domain without a
 /// preceding happens-before barrier.
 #[inline(always)]
 #[allow(clippy::inline_always)]
@@ -230,7 +230,7 @@ fn clock_gettime_syscall_nanos(clock_id: libc::clockid_t) -> Option<u64> {
   let mut status = libc::c_long::from(clock_id);
   // SAFETY: this is the Linux aarch64 syscall ABI. Callers pass a valid
   // clock ID, value is writable timespec storage, and omitting `nomem` gives the
-  // compiler ordering needed by OrderedInstant and the syscall's memory
+  // compiler ordering needed by GlobalInstant and the syscall's memory
   // effects their required boundary.
   unsafe {
     core::arch::asm!(

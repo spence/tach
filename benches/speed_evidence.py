@@ -412,7 +412,7 @@ EXPECTED_WALL_PICKS = {
   "windows": {
     # x86 Windows Instant is a calibrated invariant TSC (windows_tsc, ADR-0007),
     # degrading to windows_qpc when the invariant-TSC gate fails; aarch64 Windows
-    # Instant stays windows_qpc. OrderedInstant is unchanged on every arch.
+    # Instant stays windows_qpc. GlobalInstant is unchanged on every arch.
     "instant": frozenset({"windows_tsc", "windows_qpc"}),
     "ordered": frozenset({"windows_qpc_call_boundary"}),
   },
@@ -853,7 +853,7 @@ def validate_apple_wall_selector(
   probe = selection.get("probe")
   # Apple x86 shape: `Instant` is a fixed `apple_mach_absolute_time` read (the
   # invariant-TSC branch was removed as an unvalidatable bare-metal-Intel path,
-  # owner ruling), so there is no Instant tournament to reproduce; `OrderedInstant`
+  # owner ruling), so there is no Instant tournament to reproduce; `GlobalInstant`
   # keeps its commpage-vs-mach tournament. The aarch64 payload carries no `probe`
   # key and falls through to the fixed-per-contract branch below.
   if (
@@ -891,7 +891,7 @@ def validate_apple_wall_selector(
       },
     }
 
-    # `OrderedInstant` keeps the unchanged commpage-vs-mach tournament.
+    # `GlobalInstant` keeps the unchanged commpage-vs-mach tournament.
     domain_specs = (
       (
         "ordered",
@@ -3903,7 +3903,7 @@ def validate_cell(
         "passed": not policy["eligible"],
       }
       if policy["eligible"]:
-        failures.append(f"{context}: OrderedInstant {metric} lacks its eligible std reference")
+        failures.append(f"{context}: GlobalInstant {metric} lacks its eligible std reference")
       continue
     passed, allowance = equivalent_or_faster(
       clocks["tach_ordered"], std_reference, metric
@@ -3918,7 +3918,7 @@ def validate_cell(
       "passed": passed,
     }
     if not passed:
-      failures.append(f"{context}: OrderedInstant {metric} is materially slower than std")
+      failures.append(f"{context}: GlobalInstant {metric} is materially slower than std")
 
   selected_wall_parity = {}
   wall_selection = clocks["tach"].get("selection")

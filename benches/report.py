@@ -45,8 +45,8 @@ CRATES = ["tach", "quanta", "fastant", "minstant", "std"]
 # Criterion replaces `::` with `__` in subdir names; the display labels
 # restore the original form.
 ORDERED_ENTRIES = [
-  ("tach__OrderedInstant", "tach::OrderedInstant", True),
-  ("tach__OrderedInstant (now + elapsed)", "OrderedInstant (now+elapsed)", True),
+  ("tach__OrderedInstant", "tach::GlobalInstant", True),
+  ("tach__OrderedInstant (now + elapsed)", "GlobalInstant (now+elapsed)", True),
   ("tach__Instant (unordered reference)", "tach::Instant (unordered ref)", False),
   ("std__time__Instant", "std::time::Instant", False),
   ("std__time__Instant (now + elapsed)", "std::Instant (now+elapsed)", False),
@@ -350,7 +350,7 @@ def build_report(criterion_dir: Path, cell_name: str, title: str, subtitle: str)
   elapsed_data = {c: read_estimates(criterion_dir, GROUP_ELAPSED, c) for c in CRATES}
 
   # Ordered group is optional — only present if the bench was run with the
-  # OrderedInstant group enabled.
+  # GlobalInstant group enabled.
   try:
     ordered_inner, ord_w, ord_h = read_violin(criterion_dir, GROUP_ORDERED)
     has_ordered = True
@@ -602,7 +602,7 @@ def build_lambda_report(runs: list[dict], cell_name: str, title: str, subtitle: 
 
 SKEWMONO_CLOCKS = [
   ("tach", "tach::Instant", True),
-  ("tach_ordered", "tach::OrderedInstant", True),
+  ("tach_ordered", "tach::GlobalInstant", True),
   ("tach_recal", "tach::Instant + recal-bg", True),
   ("std", "std::time::Instant", False),
   ("quanta", "quanta::Instant", False),

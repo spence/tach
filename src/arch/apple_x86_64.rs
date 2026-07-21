@@ -7,7 +7,7 @@
 //! is an unvalidatable runtime branch, so it was removed (owner ruling, M4): the
 //! always-available Mach read is the unconditional local timer.
 //!
-//! `OrderedInstant` still selects independently. It stays on XNU's Mach
+//! `GlobalInstant` still selects independently. It stays on XNU's Mach
 //! absolute-time domain and may inline the commpage seqlock plus
 //! `lfence; rdtsc; lfence` protocol, measuring its complete steady-state dispatch
 //! and retaining the system function unless the direct path wins materially and
