@@ -21,6 +21,21 @@ and where two samples may be compared safely.
 That is the mental model: two elapsed-time clocks with different ordering contracts, plus one
 thread-time clock. They share an API shape and units, not a time domain.
 
+And the same three types as a matrix of guarantees — what each contract promises, and what it
+deliberately doesn't:
+
+| Guarantee | `Instant` | `GlobalInstant` | `ThreadCpuInstant` |
+|---|---|---|---|
+| Measures | Wall-clock elapsed | Wall-clock elapsed | Thread CPU time † |
+| Advances while the thread is parked or descheduled | Yes | Yes | No — freezes |
+| `elapsed()` is monotonic and never negative | Yes | Yes | Yes |
+| Two samples comparable across threads | No — same-thread only | Yes — cross-core value-consistent | No — `!Send` by design |
+| Read ordered after a prior `Acquire` (happens-before edge) | No | Yes | n/a |
+| `Send + Sync` | Yes | Yes | No — neither |
+
+† Native thread CPU time where the target exposes it, otherwise an explicit monotonic-wall
+fallback — never a silent substitution. Check `ThreadCpuInstant::measures_thread_cpu_time()`.
+
 ## Usage
 
 ```rust
