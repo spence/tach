@@ -33,8 +33,10 @@ deliberately doesn't:
 | Read ordered after a prior `Acquire` (happens-before edge) | No | Yes | n/a |
 | `Send + Sync` | Yes | Yes | No — neither |
 
-† Native thread CPU time where the target exposes it, otherwise an explicit monotonic-wall
-fallback — never a silent substitution. Check `ThreadCpuInstant::measures_thread_cpu_time()`.
+† Native thread CPU time on every OS target: Linux, macOS, Windows, Android, and FreeBSD, across
+all architectures. The monotonic-wall fallback is confined to WASM/WASI hosts that expose no
+per-thread clock (browsers; Node uses native thread CPU), never a silent substitution. Check
+`ThreadCpuInstant::measures_thread_cpu_time()`.
 
 ## Usage
 
